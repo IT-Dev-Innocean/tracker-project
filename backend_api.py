@@ -63,23 +63,32 @@ setup_db()
 
 load_dotenv()
 
-
-
-
-
-# Ambil URL frontend dari .env (jika ada), supaya bisa connect dari Vercel
+# Primary frontend URL (email links, dll). Bisa diisi satu URL atau dipisah koma.
 FRONTEND_URL = os.getenv(
-    "FRONTEND_URL", "https://innocean-tracker.vercel.app"
-)  # Sesuaikan dengan URL Vercel Innocean Anda
+    "FRONTEND_URL", "https://iid-tracker.netlify.app"
+).split(",")[0].strip().rstrip("/")
 
-# Mengizinkan React/Vue (Frontend) mengakses API ini
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+
+def _build_cors_origins() -> list:
+    """Gabungkan localhost + FRONTEND_URL (comma-separated) + FRONTEND_URLS."""
+    origins = {
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        FRONTEND_URL,
-    ],  # Batasi hanya dari domain Frontend yang sah
+        "https://iid-tracker.netlify.app",
+    }
+    for key in ("FRONTEND_URL", "FRONTEND_URLS"):
+        raw = os.getenv(key, "") or ""
+        for part in raw.split(","):
+            origin = part.strip().rstrip("/")
+            if origin:
+                origins.add(origin)
+    return sorted(origins)
+
+
+# Mengizinkan frontend (Netlify / lokal) mengakses API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_build_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

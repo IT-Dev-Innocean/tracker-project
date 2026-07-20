@@ -12,7 +12,7 @@ from dependencies import *
 from utils import *
 from services.email_service import send_email
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://innocean-tracker.vercel.app")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://iid-tracker.netlify.app").split(",")[0].strip().rstrip("/")
 
 router = APIRouter()
 

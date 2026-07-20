@@ -16,7 +16,7 @@ from services.email_service import send_email
 # Import evaluate_user_lifecycle from backend_api to resolve NameError
 from utils import *
 
-FRONTEND_URL = os.getenv("FRONTEND_URL", "https://innocean-tracker.vercel.app")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://iid-tracker.netlify.app").split(",")[0].strip().rstrip("/")
 
 router = APIRouter()
 
