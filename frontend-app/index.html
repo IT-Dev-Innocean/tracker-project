@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Primary Meta Tags -->
+    <title>INNOCEAN Tracker | Enterprise Workload Manager</title>
+    <meta name="title" content="INNOCEAN Tracker | Enterprise Workload Manager" />
+    <meta
+      name="description"
+      content="The central nervous system for INNOCEAN's professionals and dynamic teams to synchronize workflows and deliver outstanding global results."
+    />
+
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://innocean-tracker.vercel.app/" />
+    <meta property="og:title" content="🔒 Secure Area | INNOCEAN Tracker" />
+    <meta
+      property="og:description"
+      content="You have been invited to view a secure task or workspace. Please click the link and authenticate via corporate Single Sign-On (SSO) to proceed."
+    />
+    <meta
+      property="og:image"
+      content="https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1200&auto=format&fit=crop"
+    />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="🔒 Secure Area | INNOCEAN Tracker" />
+    <meta
+      property="twitter:description"
+      content="You have been invited to view a secure task or workspace. Please authenticate to proceed."
+    />
+    <meta
+      property="twitter:image"
+      content="https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1200&auto=format&fit=crop"
+    />
+
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch((error) => {
+            console.log('SW registration failed:', error);
+          });
+        });
+      }
+    </script>
+
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="/theme.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
