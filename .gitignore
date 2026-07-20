@@ -1,0 +1,57 @@
+# Environment & secrets
+.env
+.env.*
+*.env
+.env.example
+**/.env.example
+
+# Python
+.venv/
+venv/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.log
+
+# Node / frontend
+node_modules/
+frontend-app/node_modules/
+frontend-app/dist/
+frontend-app/.vite/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Playwright
+frontend-app/playwright-report/
+frontend-app/test-results/
+frontend-app/blob-report/
+frontend-app/playwright/.cache/
+frontend-app/playwright/.auth/
+
+# IDE / OS
+.DS_Store
+**/.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Local temp
+*.bak
+*.tmp
+.cache/
