@@ -53,7 +53,7 @@ export const PomodoroWidget = ({ isDarkMode }) => {
           ↻
         </button>
       </div>
-      <div className="text-4xl font-black tabular-nums tracking-tight text-center my-2 text-black dark:text-white">
+      <div className="text-4xl font-black tabular-nums text-center my-2 text-black dark:text-white">
         {mins}:{secs}
       </div>
       <div className="flex gap-2">

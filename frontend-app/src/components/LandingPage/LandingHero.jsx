@@ -1,4 +1,5 @@
 import React from 'react';
+import InnoceanLogo from '../InnoceanLogo';
 
 export default function LandingHero({ setIsLoginMode, setShowAuthForm, isInstallable, handleInstallClick }) {
 
@@ -25,12 +26,7 @@ export default function LandingHero({ setIsLoginMode, setShowAuthForm, isInstall
 
           {/* Navigation */}
           <nav className="px-6 lg:px-8 py-6 flex justify-between items-center max-w-7xl mx-auto w-full relative z-20">
-            <div className="flex flex-col">
-              <span className="font-black text-black dark:text-white text-3xl tracking-tighter uppercase leading-none">
-                INNOCEAN
-              </span>
-              <span className="text-[10px] font-bold text-neutral-500 tracking-[0.3em] uppercase mt-1">Tracker</span>
-            </div>
+            <InnoceanLogo size="xl" trackerClassName="text-[10px] mt-1" />
             <div className="flex items-center gap-6">
               {isInstallable && (
                 <button
@@ -85,7 +81,7 @@ export default function LandingHero({ setIsLoginMode, setShowAuthForm, isInstall
                   Enterprise Workload Management
                 </div>
                 <h1
-                  className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tighter mb-6 leading-[1.05] text-slate-900 dark:text-white reveal-on-scroll uppercase"
+                  className="text-5xl sm:text-6xl lg:text-7xl font-black mb-6 leading-[1.05] text-slate-900 dark:text-white reveal-on-scroll uppercase"
                   style={{ animationDelay: '200ms' }}
                 >
                   Orchestrate teams <br />

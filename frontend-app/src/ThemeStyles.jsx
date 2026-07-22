@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function AppThemes({ appTheme }) {
   return (
     <>
@@ -126,7 +124,7 @@ export default function AppThemes({ appTheme }) {
       {appTheme === 'chatapp' && (
         <style>{`
           /* Chat App (Discord) Dark Mode Overrides */
-          .font-sans, input, textarea, select, button { font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; }
+          .font-sans, input, textarea, select, button { font-family: 'Barlow', sans-serif !important; }
           .rounded-xl, .rounded-2xl, .rounded-3xl, .rounded-lg { border-radius: 8px !important; }
           html:not(.dark) body { background-color: #ffffff !important; color: #313338 !important; }
           .dark body { background-color: #313338 !important; color: #dbdee1 !important; }
@@ -181,7 +179,7 @@ export default function AppThemes({ appTheme }) {
       {appTheme === 'cupertino' && (
         <style>{`
           /* Cupertino (Apple) Glassmorphism Overrides */
-          .font-sans, input, textarea, select, button { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important; }
+          .font-sans, input, textarea, select, button { font-family: 'Barlow', sans-serif !important; }
           
           /* Cupertino Light Mode Glassmorphism */
           html:not(.dark) body { background-color: #F5F5F7 !important; color: #1D1D1F !important; }
@@ -221,7 +219,7 @@ export default function AppThemes({ appTheme }) {
       {appTheme === 'social' && (
         <style>{`
           /* Social (Facebook/Meta) Light Mode Overrides */
-          .font-sans, input, textarea, select, button { font-family: Segoe UI, Helvetica, Arial, sans-serif !important; }
+          .font-sans, input, textarea, select, button { font-family: 'Barlow', sans-serif !important; }
           .rounded-xl, .rounded-2xl, .rounded-3xl, .rounded-lg { border-radius: 8px !important; }
 
           html:not(.dark) body { background-color: #F0F2F5 !important; color: #050505 !important; }
@@ -245,7 +243,7 @@ export default function AppThemes({ appTheme }) {
 
       {appTheme === 'retail' && (
         <style>{`
-          .font-sans, input, textarea, select, button { font-family: "Amazon Ember", Arial, sans-serif !important; }
+          .font-sans, input, textarea, select, button { font-family: 'Barlow', sans-serif !important; }
           
           /* Retail (Amazon) Light Mode Overrides */
           html:not(.dark) body { background-color: #e4e6e6 !important; color: #0F1111 !important; }

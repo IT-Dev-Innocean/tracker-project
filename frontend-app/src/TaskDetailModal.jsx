@@ -1367,7 +1367,7 @@ export default function TaskDetailModal({
               <div className="flex-1 flex items-center justify-center relative z-20">
                 <div className="z-10 text-center p-6 sm:p-8 bg-white/80 dark:bg-black/80 backdrop-blur-md m-4 sm:m-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-xl">
                   <div className="text-5xl mb-6 drop-shadow-md">💬</div>
-                  <h3 className="text-xl font-black text-black dark:text-white uppercase tracking-tight mb-3">
+                  <h3 className="text-xl font-black text-black dark:text-white uppercase mb-3">
                     {currentUser
                       ? tMsg('Private Workspace', 'Ruang Kerja Terkunci')
                       : tMsg('Join the Conversation', 'Bergabung dalam Percakapan')}
@@ -1653,7 +1653,7 @@ export default function TaskDetailModal({
               <div className="w-20 h-20 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm">
                 ⚠️
               </div>
-              <h3 className="text-2xl font-black text-black dark:text-white mb-4 uppercase tracking-tighter">
+              <h3 className="text-2xl font-black text-black dark:text-white mb-4 uppercase">
                 {tMsg('Remove Link?', 'Hapus Tautan?')}
               </h3>
               <p className="text-neutral-600 dark:text-neutral-400 mb-8 text-sm font-medium leading-relaxed">
@@ -1686,7 +1686,7 @@ export default function TaskDetailModal({
               <div className="w-20 h-20 bg-amber-50 dark:bg-amber-900/30 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-amber-200 dark:border-amber-800/50">
                 🔔
               </div>
-              <h3 className="text-xl sm:text-2xl font-black text-black dark:text-white mb-4 uppercase tracking-tighter">
+              <h3 className="text-xl sm:text-2xl font-black text-black dark:text-white mb-4 uppercase">
                 {tMsg('Send Smart Nudge?', 'Kirim Pantauan Cerdas?')}
               </h3>
               <p className="text-neutral-600 dark:text-neutral-400 mb-8 text-sm font-medium leading-relaxed">

@@ -592,7 +592,7 @@ export default function AnalyticsView({
 
       {/* Date Range Filter */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-        <h2 className="overview-title text-xl font-extrabold text-slate-800 dark:text-white uppercase tracking-tighter">
+        <h2 className="overview-title text-xl font-extrabold text-slate-800 dark:text-white uppercase">
           Performance Overview
         </h2>
         <div className="flex flex-wrap items-center justify-end gap-3">
@@ -1158,7 +1158,7 @@ export default function AnalyticsView({
             </div>
           </div>
           <div className="flex-1 flex flex-col items-center justify-center py-6">
-            <p className={`text-6xl font-black tracking-tighter ${onTimeColor}`}>{onTimeRate}%</p>
+            <p className={`text-6xl font-black ${onTimeColor}`}>{onTimeRate}%</p>
             <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-4 text-center">
               <span className="text-slate-800 dark:text-white">{onTimeCount}</span> of {completedTasks.length} Delivered
               On Schedule

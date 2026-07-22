@@ -194,7 +194,7 @@ export default function LandingFeatures({ showAuthForm }) {
         >
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-16 reveal-on-scroll">
-              <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 dark:text-white mb-6 uppercase">
+              <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 uppercase">
                 Built for every workflow
               </h2>
               <p className="text-slate-500 dark:text-slate-400 font-medium max-w-2xl mx-auto text-lg leading-relaxed">
@@ -264,7 +264,7 @@ export default function LandingFeatures({ showAuthForm }) {
               <span className="text-neutral-500 font-bold tracking-widest uppercase text-xs mb-3 block">
                 Global Infrastructure
               </span>
-              <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 dark:text-white mb-6 uppercase">
+              <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 uppercase">
                 Enterprise-Grade Architecture
               </h2>
               <p className="text-slate-500 dark:text-slate-400 font-medium max-w-2xl mx-auto text-lg leading-relaxed">
@@ -334,7 +334,7 @@ export default function LandingFeatures({ showAuthForm }) {
                 <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-indigo-100 dark:border-indigo-800/50">
                   🔐
                 </div>
-                <h3 className="font-black text-slate-900 dark:text-white tracking-tight text-lg mb-2">
+                <h3 className="font-black text-slate-900 dark:text-white text-lg mb-2">
                   Zero-Trust Security
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
@@ -350,7 +350,7 @@ export default function LandingFeatures({ showAuthForm }) {
                 <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-blue-100 dark:border-blue-800/50">
                   ⏳
                 </div>
-                <h3 className="font-black text-slate-900 dark:text-white tracking-tight text-lg mb-2">
+                <h3 className="font-black text-slate-900 dark:text-white text-lg mb-2">
                   Intelligent Workflows
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
@@ -366,7 +366,7 @@ export default function LandingFeatures({ showAuthForm }) {
                 <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-emerald-100 dark:border-emerald-800/50">
                   🤖
                 </div>
-                <h3 className="font-black text-slate-900 dark:text-white tracking-tight text-lg mb-2">
+                <h3 className="font-black text-slate-900 dark:text-white text-lg mb-2">
                   Multi-AI Co-Pilot
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
@@ -382,7 +382,7 @@ export default function LandingFeatures({ showAuthForm }) {
                 <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-sky-100 dark:border-sky-800/50">
                   💬
                 </div>
-                <h3 className="font-black text-slate-900 dark:text-white tracking-tight text-lg mb-2">
+                <h3 className="font-black text-slate-900 dark:text-white text-lg mb-2">
                   Unified Collaboration
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
@@ -398,7 +398,7 @@ export default function LandingFeatures({ showAuthForm }) {
                 <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-amber-100 dark:border-amber-800/50">
                   📊
                 </div>
-                <h3 className="font-black text-slate-900 dark:text-white tracking-tight text-lg mb-2">
+                <h3 className="font-black text-slate-900 dark:text-white text-lg mb-2">
                   Actionable Analytics
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
@@ -414,7 +414,7 @@ export default function LandingFeatures({ showAuthForm }) {
                 <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-slate-200 dark:border-slate-700/50">
                   ⚡
                 </div>
-                <h3 className="font-black text-slate-900 dark:text-white tracking-tight text-lg mb-2">
+                <h3 className="font-black text-slate-900 dark:text-white text-lg mb-2">
                   High-Performance Engine
                 </h3>
                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
@@ -463,7 +463,7 @@ export default function LandingFeatures({ showAuthForm }) {
           </div>
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-16 reveal-on-scroll">
-              <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 dark:text-white mb-6 uppercase">
+              <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 uppercase">
                 Why INNOCEAN Tracker?
               </h2>
               <p className="text-slate-500 dark:text-slate-400 font-medium max-w-2xl mx-auto text-lg leading-relaxed">

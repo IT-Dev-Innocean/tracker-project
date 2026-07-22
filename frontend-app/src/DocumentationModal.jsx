@@ -1060,7 +1060,7 @@ export default function DocumentationModal({ setIsDocsOpen, isSuperAdmin, langua
             </div>
 
             {/* Page Header */}
-            <h1 className="text-2xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4 flex items-center gap-3">
+            <h1 className="text-2xl md:text-5xl font-extrabold text-slate-900 dark:text-white mb-4 flex items-center gap-3">
               <span className="text-3xl md:text-4xl">{activePage.icon}</span>{' '}
               <HighlightText text={activePage.title} query={highlightQuery} />
             </h1>

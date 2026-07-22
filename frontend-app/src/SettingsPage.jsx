@@ -3,7 +3,7 @@ import { Avatar, SegmentedControl } from './SharedUI';
 
 const SettingsSection = ({ title, description, children }) => (
   <div className="animate-in fade-in duration-300">
-    <h3 className="text-2xl font-black tracking-tight text-slate-800 dark:text-slate-100 mb-2">{title}</h3>
+    <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">{title}</h3>
     <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400 mb-8">{description}</p>
     <div className="space-y-2">{children}</div>
   </div>
@@ -207,7 +207,7 @@ export default function SettingsPage({
     >
       <div className="max-w-6xl mx-auto px-6 py-8 md:py-16">
         <div className="mb-12 flex justify-between items-center mac-animate">
-          <h2 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-slate-100 tracking-tighter flex items-center gap-3">
+          <h2 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">
             <span className="text-3xl md:text-4xl">⚙️</span> {tMsg('Settings', 'Pengaturan')}
           </h2>
           <button

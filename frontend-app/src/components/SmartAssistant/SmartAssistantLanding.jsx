@@ -14,7 +14,7 @@ export default function SmartAssistantLanding({
         ✨
       </div>
       <h2
-        className="text-2xl font-black text-black dark:text-white mb-2 tracking-tight mac-animate"
+        className="text-2xl font-black text-black dark:text-white mb-2 mac-animate"
         style={{ animationDelay: '100ms' }}
       >
         {tMsg('Hello', 'Halo')} @{currentUser}

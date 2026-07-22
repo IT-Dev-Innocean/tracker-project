@@ -316,10 +316,10 @@ export default function HomeDashboard() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-2">
+            <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase mb-2">
               {formattedDate}
             </p>
-            <h1 className="text-4xl md:text-5xl font-black text-black dark:text-white tracking-tighter leading-none">
+            <h1 className="text-4xl md:text-5xl font-black text-black dark:text-white leading-none">
               {tMsg('Welcome back,', 'Selamat datang,')} <br className="hidden md:block" />
               <span className="text-transparent bg-clip-text bg-linear-to-r from-slate-800 to-black dark:from-white dark:to-slate-300">{currentUser}</span>
             </h1>
@@ -712,7 +712,7 @@ export default function HomeDashboard() {
         {/* Getting Started CTA */}
         <div className="mt-8 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-8 text-center flex flex-col items-center pb-10">
           <div className="text-4xl mb-4 animate-bounce">🚀</div>
-          <h3 className="text-xl font-black text-black dark:text-white mb-2 tracking-tight">
+          <h3 className="text-xl font-black text-black dark:text-white mb-2">
             {tMsg('Ready to get things done?', 'Siap untuk menyelesaikan tugas?')}
           </h3>
           <p className="text-slate-600 dark:text-slate-400 max-w-lg mx-auto text-sm mb-6 leading-relaxed">

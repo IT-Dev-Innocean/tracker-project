@@ -610,7 +610,7 @@ export default function CalendarView({
             <div className="w-16 h-16 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-sm border border-red-200 dark:border-red-800/50">
               {selectedLeave.leave_type === 'personal' ? '🌴' : '🎌'}
             </div>
-            <h3 className="text-xl font-black text-black dark:text-white mb-2 uppercase tracking-tighter">
+            <h3 className="text-xl font-black text-black dark:text-white mb-2 uppercase">
               {selectedLeave.leave_type === 'personal' ? 'Personal Leave' : 'Public Holiday'}
             </h3>
             <p className="text-neutral-600 dark:text-neutral-400 mb-6 text-sm font-medium leading-relaxed">

@@ -54,7 +54,7 @@ export function BaseConfirmModal({
         >
           {icon}
         </div>
-        <h3 className="text-xl sm:text-2xl font-black text-black dark:text-white mb-4 uppercase tracking-tighter">
+        <h3 className="text-xl sm:text-2xl font-black text-black dark:text-white mb-4 uppercase">
           {title}
         </h3>
         <div className="text-neutral-600 dark:text-neutral-400 mb-8 text-sm font-medium leading-relaxed">
@@ -142,7 +142,7 @@ export function WelcomeTourModal({
         <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-indigo-200 dark:border-indigo-800/50 hover:scale-110 transition-transform cursor-default">
           👋
         </div>
-        <h2 className="text-2xl font-black text-black dark:text-white uppercase tracking-tighter mb-2">
+        <h2 className="text-2xl font-black text-black dark:text-white uppercase mb-2">
           {tMsg('Welcome to Tracker', 'Selamat Datang di Tracker')}
         </h2>
         <p className="text-neutral-500 dark:text-neutral-400 text-sm font-medium mb-8 leading-relaxed">
@@ -397,7 +397,7 @@ export function ExportModal({
           isClosing ? 'mac-exit' : 'mac-animate'
         }`}
       >
-        <h2 className="text-2xl font-black text-black dark:text-white mb-2 uppercase tracking-tighter">
+        <h2 className="text-2xl font-black text-black dark:text-white mb-2 uppercase">
           {exportMode === 'global' ? tMsg('Global Report', 'Laporan Global') : tMsg('Export Data', 'Ekspor Data')}
         </h2>
         <p className="text-xs font-bold uppercase tracking-widest text-neutral-500 dark:text-neutral-400 mb-8">
@@ -478,7 +478,7 @@ export function CreateBoardModal({
           isClosing ? 'mac-exit' : 'mac-animate'
         }`}
       >
-        <h2 className="text-3xl font-black text-black dark:text-white mb-2 uppercase tracking-tighter">
+        <h2 className="text-3xl font-black text-black dark:text-white mb-2 uppercase">
           {tMsg('New Project', 'Proyek Baru')}
         </h2>
         <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-8">
@@ -613,7 +613,7 @@ export function TeamModal({
           isClosing ? 'mac-exit' : 'mac-animate'
         }`}
       >
-        <h2 className="text-3xl font-black text-black dark:text-white mb-2 tracking-tight flex items-center gap-3">
+        <h2 className="text-3xl font-black text-black dark:text-white mb-2 flex items-center gap-3">
           <span className="text-4xl">🤝</span> {tMsg('Project Members', 'Anggota Proyek')}
         </h2>
 
@@ -841,7 +841,7 @@ export function InvitationsModal({
         }`}
       >
         <div className="flex justify-between items-center mb-8 border-b border-neutral-200 dark:border-neutral-800 pb-8">
-          <h2 className="text-3xl font-black text-black dark:text-white tracking-tight">
+          <h2 className="text-3xl font-black text-black dark:text-white">
             🔔 {tMsg('Invitations', 'Undangan')}
           </h2>
           <span className="bg-black text-white dark:bg-white dark:text-black font-bold px-3 py-1 rounded-full shadow-sm text-xs">
@@ -918,7 +918,7 @@ export function ColumnModal({ colModal, setColModal, handleColSubmit, language }
           isClosing ? 'mac-exit' : 'mac-animate'
         }`}
       >
-        <h2 className="text-2xl font-black text-black dark:text-white mb-6 uppercase tracking-tighter">
+        <h2 className="text-2xl font-black text-black dark:text-white mb-6 uppercase">
           {colModal.mode === 'add'
             ? `➕ ${tMsg('Add New', 'Tambah Baru')} ${colModal.target}`
             : colModal.mode === 'rename'
@@ -1016,7 +1016,7 @@ export function LeaveModal({
           isClosing ? 'mac-exit' : 'mac-animate'
         }`}
       >
-        <h2 className="text-3xl font-black text-black dark:text-white uppercase tracking-tighter mb-2 flex items-center gap-3">
+        <h2 className="text-3xl font-black text-black dark:text-white uppercase mb-2 flex items-center gap-3">
           🌴 {tMsg('Time Off & Holidays', 'Cuti & Libur Nasional')}
         </h2>
         <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 dark:text-neutral-400 mb-8">
@@ -1167,7 +1167,7 @@ export function FeedbackModal({
         <div className="w-16 h-16 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-500 rounded-full flex items-center justify-center mb-6 text-3xl shadow-sm border border-yellow-200 dark:border-yellow-800/50">
           💡
         </div>
-        <h2 className="text-3xl font-black text-black dark:text-white mb-2 tracking-tight">
+        <h2 className="text-3xl font-black text-black dark:text-white mb-2">
           {tMsg('Submit Idea', 'Kirim Ide')}
         </h2>
         <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-8">
@@ -1239,7 +1239,7 @@ export function ContactSupportModal({
         <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 text-blue-500 rounded-full flex items-center justify-center mb-6 text-3xl shadow-sm border border-blue-200 dark:border-blue-800/50">
           🎧
         </div>
-        <h2 className="text-3xl font-black text-black dark:text-white mb-2 tracking-tight">
+        <h2 className="text-3xl font-black text-black dark:text-white mb-2">
           {tMsg('Contact Support', 'Hubungi Dukungan')}
         </h2>
         <p className="text-neutral-500 dark:text-neutral-400 text-sm mb-8">
@@ -1387,7 +1387,7 @@ export function NotificationModal({
           <h3
             className={`${
               isToast ? 'text-sm mb-1' : 'text-2xl mb-2'
-            } font-black text-black dark:text-white uppercase tracking-tighter`}
+            } font-black text-black dark:text-white uppercase`}
           >
             {notification.type === 'error'
               ? tMsg('Error', 'Kesalahan')
@@ -1467,7 +1467,7 @@ export function MyTicketsModal({ setIsMyTicketsOpen, language, setSelectedTask, 
         }`}
       >
         <div className="flex justify-between items-center mb-6 border-b border-neutral-200 dark:border-neutral-800 pb-6 shrink-0">
-          <h2 className="text-2xl font-black text-black dark:text-white uppercase tracking-tighter flex items-center gap-3">
+          <h2 className="text-2xl font-black text-black dark:text-white uppercase flex items-center gap-3">
             <span className="text-3xl">🎫</span> {tMsg('My Tickets & Feedback', 'Tiket & Masukan Saya')}
           </h2>
           <button onClick={close} className="text-neutral-500 hover:text-black dark:hover:text-white transition-colors">

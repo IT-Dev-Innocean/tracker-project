@@ -13,7 +13,7 @@ export default function SystemSpecsModal({ setIsSpecsOpen, language }) {
       <div className="max-w-7xl mx-auto px-6 py-12 md:py-20 flex flex-col min-h-screen">
         <div className="flex justify-between items-start md:items-center flex-col md:flex-row gap-6 mb-12 border-b border-neutral-200 dark:border-neutral-800 pb-8 shrink-0">
           <div>
-            <h2 className="text-4xl md:text-5xl font-black text-black dark:text-white uppercase tracking-tighter mb-2">
+            <h2 className="text-4xl md:text-5xl font-black text-black dark:text-white uppercase mb-2">
               {tMsg('System Limits & Specs', 'Batas & Spesifikasi Sistem')}
             </h2>
             <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest">

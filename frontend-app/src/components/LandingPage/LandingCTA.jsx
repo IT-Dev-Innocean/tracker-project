@@ -8,7 +8,7 @@ export default function LandingCTA({ setIsLoginMode, setShowAuthForm }) {
         >
           <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:20px_20px] opacity-50"></div>
           <div className="max-w-4xl mx-auto px-6 relative z-10 text-center reveal-on-scroll">
-            <h2 className="text-4xl md:text-5xl font-black text-black mb-6 tracking-tighter uppercase">
+            <h2 className="text-4xl md:text-5xl font-black text-black mb-6 uppercase">
               Ready to elevate your team's productivity?
             </h2>
             <p className="text-neutral-500 text-lg md:text-xl font-medium mb-10 max-w-2xl mx-auto">

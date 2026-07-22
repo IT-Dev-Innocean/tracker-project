@@ -613,7 +613,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 pb-6 shrink-0">
         <div className="flex flex-col gap-2">
-          <h1 className="text-4xl md:text-5xl font-black text-black dark:text-white tracking-tighter leading-none flex items-center gap-3">
+          <h1 className="text-4xl md:text-5xl font-black text-black dark:text-white leading-none flex items-center gap-3">
             <span className="text-indigo-600 dark:text-indigo-400">⏱️</span> 
             My timesheets
           </h1>

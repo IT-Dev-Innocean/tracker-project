@@ -1173,7 +1173,7 @@ export default function ChatWorkspaceModal({
             <div className="w-20 h-20 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm">
               ⚠️
             </div>
-            <h3 className="text-2xl font-black text-black dark:text-white mb-4 uppercase tracking-tighter">
+            <h3 className="text-2xl font-black text-black dark:text-white mb-4 uppercase">
               Delete Chat?
             </h3>
             <p className="text-neutral-600 dark:text-neutral-400 mb-8 text-sm font-medium leading-relaxed">
@@ -1218,7 +1218,7 @@ export default function ChatWorkspaceModal({
             <div className="w-20 h-20 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm">
               ⚠️
             </div>
-            <h3 className="text-2xl font-black text-black dark:text-white mb-4 uppercase tracking-tighter">
+            <h3 className="text-2xl font-black text-black dark:text-white mb-4 uppercase">
               {tMsg('Delete Message?', 'Hapus Pesan?')}
             </h3>
             <p className="text-neutral-600 dark:text-neutral-400 mb-8 text-sm font-medium leading-relaxed">

@@ -530,7 +530,7 @@ export default function ChangelogModal({ setIsChangelogOpen, language }) {
       <div className="max-w-4xl mx-auto px-6 py-12 md:py-20 flex flex-col min-h-screen">
         <div className="flex justify-between items-start md:items-center flex-col md:flex-row gap-6 mb-12 border-b border-neutral-200 dark:border-neutral-800 pb-8 shrink-0">
           <div>
-            <h2 className="text-4xl md:text-5xl font-black text-black dark:text-white uppercase tracking-tighter mb-2">
+            <h2 className="text-4xl md:text-5xl font-black text-black dark:text-white uppercase mb-2">
               Changelog
             </h2>
             <p className="text-xs font-bold text-neutral-500 uppercase tracking-widest">
@@ -577,7 +577,7 @@ export default function ChangelogModal({ setIsChangelogOpen, language }) {
                       {log.type === 'major' && <span className="text-2xl">🚀</span>}
                       {log.type === 'feature' && <span className="text-2xl">✨</span>}
                       {log.type === 'release' && <span className="text-2xl">🎉</span>}
-                      <h3 className="text-xl md:text-2xl font-black uppercase tracking-tight text-black dark:text-white">
+                      <h3 className="text-xl md:text-2xl font-black uppercase text-black dark:text-white">
                         {log.title}
                       </h3>
                     </div>

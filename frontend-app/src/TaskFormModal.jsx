@@ -215,7 +215,7 @@ Format:
         }`}
       >
         <div className="flex justify-between items-center p-5 sm:p-8 md:px-12 md:py-8 border-b border-neutral-200 dark:border-neutral-800 shrink-0 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-xl z-20">
-          <h2 className="text-xl sm:text-2xl font-extrabold text-black dark:text-white uppercase tracking-tight flex items-center gap-2 sm:gap-3">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-black dark:text-white uppercase flex items-center gap-2 sm:gap-3">
             {formMode === 'ai' ? '✨' : <IconPlus className="w-6 h-6 sm:w-8 sm:h-8" />}
             {formMode === 'ai' ? tMsg('Smart Assistant', 'Asisten Pintar') : tMsg('Add Task', 'Tugas Baru')}
           </h2>
@@ -234,7 +234,7 @@ Format:
             className="flex-1 overflow-y-auto p-5 sm:p-8 md:p-12 flex flex-col items-center text-center custom-scrollbar"
             style={{ animation: 'elegant-fade-up 0.6s ease forwards' }}
           >
-            <h3 className="text-2xl sm:text-4xl font-black text-black dark:text-white mb-3 tracking-tight">
+            <h3 className="text-2xl sm:text-4xl font-black text-black dark:text-white mb-3">
               {tMsg('Describe your request', 'Ceritakan tugas yang ingin dibuat')}
             </h3>
             <p className="text-neutral-500 dark:text-neutral-400 mb-8 max-w-lg text-sm font-medium">

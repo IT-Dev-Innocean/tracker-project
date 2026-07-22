@@ -1,6 +1,6 @@
-import React from 'react';
 import { Avatar } from '../../SharedUI';
 import { useAppContext } from '../../contexts/AppContext';
+import InnoceanLogo from '../InnoceanLogo';
 
 export default function MobileTopBar() {
   const {
@@ -43,71 +43,71 @@ export default function MobileTopBar() {
   const tMsg = (en, id) => (language === 'id' ? id : en);
 
   return (
-    <div className="md:hidden flex items-center justify-between bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md px-4 py-3 border-b border-neutral-200/50 dark:border-neutral-800/50 shrink-0 z-[45]">
-      <div className="flex items-center gap-2">
+    <div className='md:hidden flex items-center justify-between bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md px-4 py-3 border-b border-neutral-200/50 dark:border-neutral-800/50 shrink-0 z-[45]'>
+      <div className='flex items-center gap-2'>
         <button
           onClick={() => setIsMobileMenuOpen(true)}
-          className="p-1.5 -ml-1.5 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md transition-colors"
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16M4 18h16"></path>
+          className='p-1.5 -ml-1.5 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md transition-colors'>
+          <svg
+            className='w-6 h-6'
+            fill='none'
+            stroke='currentColor'
+            viewBox='0 0 24 24'>
+            <path
+              strokeLinecap='round'
+              strokeLinejoin='round'
+              strokeWidth='2.5'
+              d='M4 6h16M4 12h16M4 18h16'></path>
           </svg>
         </button>
-        <div
-          className="flex flex-col cursor-pointer hover:opacity-80 transition-opacity tour-board-title-mobile"
+        <InnoceanLogo
+          size='md'
+          className='tour-board-title-mobile'
           onClick={() => {
             setSelectedBoard(null);
             setIsProactiveAIOpen(true);
           }}
-        >
-          <span className="font-black text-black dark:text-white tracking-tighter uppercase leading-none text-xl">
-            INNOCEAN
-          </span>
-          <span className="text-[8px] font-bold text-indigo-500 dark:text-indigo-400 tracking-[0.3em] uppercase mt-0.5">
-            Tracker
-          </span>
-        </div>
+        />
       </div>
 
-      <div className="flex items-center gap-4 relative">
-        <div className="relative">
+      <div className='flex items-center gap-4 relative'>
+        <div className='relative'>
           {unreadCount > 0 ? (
             <button
               onClick={() => setIsNotifOpen(true)}
-              className="text-xl relative p-1 text-neutral-600 dark:text-neutral-300"
-            >
+              className='text-xl relative p-1 text-neutral-600 dark:text-neutral-300'>
               🔔
-              <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-black"></span>
+              <span className='absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-black'></span>
             </button>
           ) : (
             <button
               onClick={() => setIsNotifOpen(true)}
-              className="text-xl p-1 text-neutral-600 dark:text-neutral-300"
-            >
+              className='text-xl p-1 text-neutral-600 dark:text-neutral-300'>
               🔔
             </button>
           )}
           {isNotifOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setIsNotifOpen(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-[85vw] sm:w-80 max-w-[320px] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl z-50 flex flex-col max-h-[60vh] sm:max-h-[450px] overflow-hidden">
-                <div className="p-3 border-b border-neutral-100 dark:border-neutral-800 flex justify-between items-center sticky top-0 bg-white dark:bg-neutral-900">
-                  <h3 className="font-bold text-sm text-black dark:text-white">
+              <div
+                className='fixed inset-0 z-40'
+                onClick={() => setIsNotifOpen(false)}></div>
+              <div className='absolute top-full right-0 mt-2 w-[85vw] sm:w-80 max-w-[320px] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl z-50 flex flex-col max-h-[60vh] sm:max-h-[450px] overflow-hidden'>
+                <div className='p-3 border-b border-neutral-100 dark:border-neutral-800 flex justify-between items-center sticky top-0 bg-white dark:bg-neutral-900'>
+                  <h3 className='font-bold text-sm text-black dark:text-white'>
                     {tMsg('Notifications', 'Notifikasi')}
                   </h3>
                   {unreadCount > 0 && (
                     <button
                       onClick={handleReadAllNotifications}
-                      className="text-xs text-indigo-500 font-bold hover:underline"
-                    >
+                      className='text-xs text-indigo-500 font-bold hover:underline'>
                       {tMsg('Mark all read', 'Tandai semua dibaca')}
                     </button>
                   )}
                 </div>
-                <div className="overflow-y-auto flex-1">
+                <div className='overflow-y-auto flex-1'>
                   {notifications.length === 0 ? (
-                    <div className="p-8 text-center text-neutral-400 text-sm">
-                      <span className="text-3xl block mb-2">📭</span>
+                    <div className='p-8 text-center text-neutral-400 text-sm'>
+                      <span className='text-3xl block mb-2'>📭</span>
                       {tMsg('No notifications yet.', 'Belum ada notifikasi.')}
                     </div>
                   ) : (
@@ -130,37 +130,40 @@ export default function MobileTopBar() {
                           setIsNotifOpen(false);
                         }}
                         className={`p-3 border-b border-neutral-100 dark:border-neutral-800 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors ${
-                          !n.is_read ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''
-                        }`}
-                      >
-                        <div className="flex gap-2.5 items-start text-left">
-                          <span className="text-lg shrink-0">
+                          !n.is_read
+                            ? 'bg-indigo-50/50 dark:bg-indigo-900/10'
+                            : ''
+                        }`}>
+                        <div className='flex gap-2.5 items-start text-left'>
+                          <span className='text-lg shrink-0'>
                             {n.type === 'task_assigned'
                               ? '👉'
                               : n.type === 'task_completed'
-                              ? '✅'
-                              : n.type === 'comment' || n.type === 'mention' || n.type === 'team_chat'
-                              ? '💬'
-                              : n.type === 'team_invite' || n.type === 'access_request'
-                              ? '🤝'
-                              : '🔔'}
+                                ? '✅'
+                                : n.type === 'comment' ||
+                                    n.type === 'mention' ||
+                                    n.type === 'team_chat'
+                                  ? '💬'
+                                  : n.type === 'team_invite' ||
+                                      n.type === 'access_request'
+                                    ? '🤝'
+                                    : '🔔'}
                           </span>
-                          <div className="flex-1 min-w-0">
+                          <div className='flex-1 min-w-0'>
                             <p
                               className={`text-xs leading-snug ${
                                 !n.is_read
                                   ? 'font-bold text-black dark:text-white'
                                   : 'text-neutral-600 dark:text-neutral-400'
-                              }`}
-                            >
+                              }`}>
                               {n.message?.replace(/<!--TASK_ID:\d+-->/g, '')}
                             </p>
-                            <p className="text-[10px] text-neutral-400 mt-0.5">
+                            <p className='text-[10px] text-neutral-400 mt-0.5'>
                               {formatDateMMM(n.timestamp)}
                             </p>
                           </div>
                           {!n.is_read && (
-                            <div className="w-2 h-2 bg-indigo-500 rounded-full shrink-0 mt-1"></div>
+                            <div className='w-2 h-2 bg-indigo-500 rounded-full shrink-0 mt-1'></div>
                           )}
                         </div>
                       </div>
@@ -172,30 +175,32 @@ export default function MobileTopBar() {
           )}
         </div>
 
-        <div className="relative">
+        <div className='relative'>
           {isMobileProfileOpen && (
             <div
-              className="fixed inset-0 z-40"
-              onClick={() => setIsMobileProfileOpen(false)}
-            ></div>
+              className='fixed inset-0 z-40'
+              onClick={() => setIsMobileProfileOpen(false)}></div>
           )}
           <button
             onClick={() => setIsMobileProfileOpen(!isMobileProfileOpen)}
-            className="p-1 -mr-1 tour-account-menu-mobile"
-          >
-            <Avatar name={currentUser} url={avatarsMap[currentUser]} size="w-8 h-8" textClass="text-xs" />
+            className='p-1 -mr-1 tour-account-menu-mobile'>
+            <Avatar
+              name={currentUser}
+              url={avatarsMap[currentUser]}
+              size='w-8 h-8'
+              textClass='text-xs'
+            />
           </button>
           {isMobileProfileOpen && (
-            <div className="absolute top-full right-0 mt-2 w-56 z-50">
-              <div className="bg-white/95 dark:bg-black/95 backdrop-blur-xl shadow-xl border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden py-1">
+            <div className='absolute top-full right-0 mt-2 w-56 z-50'>
+              <div className='bg-white/95 dark:bg-black/95 backdrop-blur-xl shadow-xl border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden py-1'>
                 {isSuperAdmin && (
                   <button
                     onClick={() => {
                       openAdminModal();
                       setIsMobileProfileOpen(false);
                     }}
-                    className="w-full text-left px-4 py-3 text-sm font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 flex items-center gap-2 transition-colors"
-                  >
+                    className='w-full text-left px-4 py-3 text-sm font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 flex items-center gap-2 transition-colors'>
                     <span>🔑</span> {tMsg('Manage Users', 'Kelola Pengguna')}
                   </button>
                 )}
@@ -204,8 +209,7 @@ export default function MobileTopBar() {
                     setIsSettingsOpen(true);
                     setIsMobileProfileOpen(false);
                   }}
-                  className="w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors"
-                >
+                  className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
                   <span>⚙️</span> {tMsg('Settings', 'Pengaturan')}
                 </button>
                 <button
@@ -214,8 +218,7 @@ export default function MobileTopBar() {
                     setIsMobileProfileOpen(false);
                   }}
                   disabled={accountStatus === 'suspended'}
-                  className="w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors"
-                >
+                  className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
                   <span>🌴</span> {tMsg('Time Off', 'Cuti')}
                 </button>
                 <button
@@ -225,8 +228,7 @@ export default function MobileTopBar() {
                     setIsMobileProfileOpen(false);
                   }}
                   disabled={accountStatus === 'suspended'}
-                  className="w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors"
-                >
+                  className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
                   <span>✨</span> {tMsg('Smart Assistant', 'Asisten Pintar AI')}
                 </button>
                 <button
@@ -235,18 +237,16 @@ export default function MobileTopBar() {
                     setIsMobileProfileOpen(false);
                   }}
                   disabled={accountStatus === 'suspended'}
-                  className="w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors"
-                >
+                  className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
                   <span>🎫</span> {tMsg('My Tickets', 'Tiket Saya')}
                 </button>
-                <div className="border-t border-neutral-200 dark:border-neutral-800 my-1"></div>
+                <div className='border-t border-neutral-200 dark:border-neutral-800 my-1'></div>
                 <button
                   onClick={() => {
                     setIsDocsOpen(true);
                     setIsMobileProfileOpen(false);
                   }}
-                  className="w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors"
-                >
+                  className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
                   <span>📖</span> {tMsg('Documentation', 'Dokumentasi')}
                 </button>
                 <button
@@ -255,8 +255,7 @@ export default function MobileTopBar() {
                     setIsMobileProfileOpen(false);
                   }}
                   disabled={accountStatus === 'suspended'}
-                  className="w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors"
-                >
+                  className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
                   <span>💡</span> {tMsg('Submit Idea', 'Kirim Masukan')}
                 </button>
                 <button
@@ -265,8 +264,7 @@ export default function MobileTopBar() {
                     setIsMobileProfileOpen(false);
                   }}
                   disabled={accountStatus === 'suspended'}
-                  className="w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors"
-                >
+                  className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
                   <span>🎧</span> {tMsg('Contact Support', 'Hubungi Dukungan')}
                 </button>
                 <button
@@ -274,8 +272,7 @@ export default function MobileTopBar() {
                     startTour();
                     setIsMobileProfileOpen(false);
                   }}
-                  className="w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors"
-                >
+                  className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
                   <span>🧭</span> {tMsg('Replay Tour', 'Ulangi Tur')}
                 </button>
                 {isInstallable && (
@@ -284,22 +281,28 @@ export default function MobileTopBar() {
                       handleInstallClick();
                       setIsMobileProfileOpen(false);
                     }}
-                    className="w-full text-left px-4 py-3 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-2 transition-colors mt-1 rounded-lg"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-3 3m0 0l-3-3m3 3V4"></path>
+                    className='w-full text-left px-4 py-3 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-2 transition-colors mt-1 rounded-lg'>
+                    <svg
+                      className='w-4 h-4'
+                      fill='none'
+                      stroke='currentColor'
+                      viewBox='0 0 24 24'>
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth='2.5'
+                        d='M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-3 3m0 0l-3-3m3 3V4'></path>
                     </svg>
                     {tMsg('Install App', 'Instal Aplikasi')}
                   </button>
                 )}
-                <div className="border-t border-neutral-200 dark:border-neutral-800 my-1"></div>
+                <div className='border-t border-neutral-200 dark:border-neutral-800 my-1'></div>
                 <button
                   onClick={() => {
                     setIsLogoutConfirmOpen(true);
                     setIsMobileProfileOpen(false);
                   }}
-                  className="w-full text-left px-4 py-3 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2 transition-colors"
-                >
+                  className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2 transition-colors'>
                   <span>🚪</span> {tMsg('Logout', 'Keluar')}
                 </button>
               </div>

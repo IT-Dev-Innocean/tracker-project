@@ -1083,7 +1083,7 @@ function App() {
         font-size: 1.15rem !important;
         font-weight: 900 !important;
         margin-bottom: 0.5rem !important;
-        letter-spacing: -0.025em !important;
+        letter-spacing: normal !important;
       }
       .driver-popover-description {
         font-size: 0.8rem !important;
@@ -1226,7 +1226,7 @@ function App() {
               <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-6 shadow-inner border border-indigo-100 dark:border-indigo-800/50">
                 📜
               </div>
-              <h2 className="text-2xl font-black text-black dark:text-white uppercase tracking-tighter mb-4">
+              <h2 className="text-2xl font-black text-black dark:text-white uppercase mb-4">
                 {tMsg('Updated Terms', 'Pembaruan Persyaratan')}
               </h2>
               <p className="text-sm text-neutral-600 dark:text-neutral-400 font-medium leading-relaxed mb-8">

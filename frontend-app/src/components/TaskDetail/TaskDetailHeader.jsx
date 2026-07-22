@@ -19,7 +19,7 @@ export default function TaskDetailHeader({
         isInline ? 'p-4 sm:p-5' : 'p-4 sm:p-6 lg:p-8'
       }`}
     >
-      <h2 className="text-lg sm:text-2xl font-extrabold text-black dark:text-white uppercase tracking-tight truncate flex-1">
+      <h2 className="text-lg sm:text-2xl font-extrabold text-black dark:text-white uppercase truncate flex-1">
         {isEditing ? tMsg('✏️ Edit Task', '✏️ Edit Tugas') : tMsg('Task Details', 'Detail Tugas')}
       </h2>
       <div className="flex items-center gap-2 sm:gap-4 shrink-0">

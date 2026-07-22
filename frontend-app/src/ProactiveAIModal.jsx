@@ -467,7 +467,7 @@ USER REQUEST:
             <div className="w-full max-w-4xl mx-auto flex flex-col flex-1 lg:min-h-0 transition-all duration-500">
               <div className="shrink-0">
                 <div className="mb-6 lg:mb-8 animate-elegant">
-                  <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-black dark:text-white tracking-tighter leading-tight mb-2 sm:mb-4">
+                  <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-black dark:text-white leading-tight mb-2 sm:mb-4">
                     {tMsg('What do you want to achieve today?', 'Apa yang ingin Anda capai hari ini?')}
                   </h1>
                   <p className="text-neutral-500 dark:text-neutral-400 text-sm sm:text-lg font-medium leading-relaxed">
@@ -834,7 +834,7 @@ USER REQUEST:
               <div className="flex items-center gap-3 mb-4 md:mb-6 shrink-0">
                 <span className="text-2xl">🛒</span>
                 <div>
-                  <h2 className="font-black text-base sm:text-lg text-black dark:text-white uppercase tracking-tight">
+                  <h2 className="font-black text-base sm:text-lg text-black dark:text-white uppercase">
                     {tMsg('Inbox', 'Kotak Masuk')}
                   </h2>
                   <p className="text-[9px] font-bold text-neutral-500 uppercase tracking-widest">
@@ -960,7 +960,7 @@ USER REQUEST:
             <div className="w-20 h-20 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-red-200 dark:border-red-800/50">
               🗑️
             </div>
-            <h3 className="text-xl font-black text-black dark:text-white mb-4 uppercase tracking-tighter">
+            <h3 className="text-xl font-black text-black dark:text-white mb-4 uppercase">
               {tMsg('Discard Drafts?', 'Buang Draf?')}
             </h3>
             <p className="text-neutral-600 dark:text-neutral-400 mb-8 text-sm font-medium leading-relaxed">
@@ -993,7 +993,7 @@ USER REQUEST:
             <div className="w-20 h-20 bg-amber-50 dark:bg-amber-900/30 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-amber-200 dark:border-amber-800/50">
               ⚠️
             </div>
-            <h3 className="text-xl font-black text-black dark:text-white mb-4 uppercase tracking-tighter">
+            <h3 className="text-xl font-black text-black dark:text-white mb-4 uppercase">
               {tMsg('Private Workspace Alert', 'Peringatan Ruang Kerja')}
             </h3>
             <p className="text-neutral-600 dark:text-neutral-400 mb-8 text-sm font-medium leading-relaxed">

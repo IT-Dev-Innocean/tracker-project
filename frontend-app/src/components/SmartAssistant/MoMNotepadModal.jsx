@@ -507,7 +507,7 @@ If no action items found, return []. JSON Schema:
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <span className="text-xl sm:text-2xl shrink-0">📝</span>
             <div className="min-w-0">
-              <h2 className="text-sm sm:text-base font-black text-black dark:text-white tracking-tight uppercase truncate">
+              <h2 className="text-sm sm:text-base font-black text-black dark:text-white uppercase truncate">
                 Notepad Rapat & MoM
               </h2>
               <p className="text-[10px] sm:text-xs text-neutral-400 font-semibold tracking-wide hidden sm:block">
@@ -674,8 +674,8 @@ If no action items found, return []. JSON Schema:
                               minWidth: '100%' 
                             }}
                             className={`bg-transparent border-none p-0.5 focus:outline-none focus:ring-0 text-black dark:text-white placeholder-neutral-300 dark:placeholder-neutral-700 transition-all ${
-                              block.type === 'heading-1' ? 'text-3xl font-black tracking-tight' :
-                              block.type === 'heading-2' ? 'text-xl font-bold tracking-tight mt-3' :
+                              block.type === 'heading-1' ? 'text-3xl font-black' :
+                              block.type === 'heading-2' ? 'text-xl font-bold mt-3' :
                               block.type === 'todo' && block.completed ? 'line-through text-neutral-400 dark:text-neutral-500 text-sm font-medium' :
                               'text-sm font-medium'
                             }`}

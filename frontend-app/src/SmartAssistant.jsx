@@ -2372,7 +2372,7 @@ USER REQUEST:
           <div className="w-16 h-16 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-sm border border-red-200 dark:border-red-800/50">
             🗑️
           </div>
-          <h3 className="text-lg font-black text-black dark:text-white mb-2 uppercase tracking-tighter">
+          <h3 className="text-lg font-black text-black dark:text-white mb-2 uppercase">
             {tMsg('Discard Changes?', 'Buang Perubahan?')}
           </h3>
           <p className="text-neutral-500 dark:text-neutral-400 mb-6 text-xs font-medium leading-relaxed">

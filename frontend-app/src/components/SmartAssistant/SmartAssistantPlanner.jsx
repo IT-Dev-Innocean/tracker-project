@@ -73,7 +73,7 @@ export default function SmartAssistantPlanner({
           </div>
           {plannedTasks.length === 0 && !isPlanning && (
             <>
-              <h3 className="text-xl font-black text-black dark:text-white tracking-tight mb-2">
+              <h3 className="text-xl font-black text-black dark:text-white mb-2">
                 {tMsg('What is your goal?', 'Apa tujuan Anda?')}
               </h3>
               <p className="text-xs text-neutral-500 font-medium mb-8 leading-relaxed">

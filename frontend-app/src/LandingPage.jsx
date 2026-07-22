@@ -156,7 +156,7 @@ export default function LandingPage({
               <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl shadow-sm border border-blue-200 dark:border-blue-800/50">
                 🎧
               </div>
-              <h3 className="text-xl font-black text-black dark:text-white mb-4 uppercase tracking-tighter">
+              <h3 className="text-xl font-black text-black dark:text-white mb-4 uppercase">
                 Coming Soon
               </h3>
               <p className="text-neutral-600 dark:text-neutral-400 mb-8 text-sm font-medium leading-relaxed">

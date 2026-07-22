@@ -40,7 +40,7 @@ export default function LandingFAQ() {
           className="py-24 md:py-32 bg-white dark:bg-neutral-950 border-t border-slate-200 dark:border-slate-800 relative z-10"
         >
           <div className="max-w-4xl mx-auto px-6 lg:px-8">
-            <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 dark:text-white mb-12 text-center reveal-on-scroll uppercase">
+            <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-12 text-center reveal-on-scroll uppercase">
               Frequently Asked Questions
             </h2>
             <div className="space-y-4 reveal-on-scroll" style={{ animationDelay: '100ms' }}>

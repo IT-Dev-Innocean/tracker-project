@@ -276,7 +276,7 @@ export default function AdminModal({
       >
         <div className="flex justify-between items-center mb-6 border-b border-neutral-200 dark:border-neutral-800 pb-6 shrink-0">
           <div>
-            <h2 className="text-3xl font-black text-black dark:text-white flex items-center gap-3 tracking-tight">
+            <h2 className="text-3xl font-black text-black dark:text-white flex items-center gap-3">
               {tMsg('Admin Dashboard', 'Dasbor Admin')}
             </h2>
             <div className="flex items-center gap-4 mt-4 border-b border-neutral-200 dark:border-neutral-800 pb-px">
@@ -789,7 +789,7 @@ export default function AdminModal({
                   <div className="w-20 h-20 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-red-200 dark:border-red-800">
                     ⚠️
                   </div>
-                  <h3 className="text-2xl font-black text-black dark:text-white mb-2 tracking-tight text-center uppercase">
+                  <h3 className="text-2xl font-black text-black dark:text-white mb-2 text-center uppercase">
                     {tMsg('Delete Projects?', 'Hapus Proyek?')}
                   </h3>
                   <p className="text-neutral-600 dark:text-neutral-400 text-sm font-medium leading-relaxed mb-6">
@@ -842,7 +842,7 @@ export default function AdminModal({
                   <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-indigo-200 dark:border-indigo-800">
                     🔄
                   </div>
-                  <h3 className="text-2xl font-black text-black dark:text-white mb-2 tracking-tight text-center uppercase">
+                  <h3 className="text-2xl font-black text-black dark:text-white mb-2 text-center uppercase">
                     {tMsg('Transfer Project', 'Pindahkan Proyek')}
                   </h3>
                   <p className="text-neutral-600 dark:text-neutral-400 text-sm font-medium leading-relaxed mb-6">
@@ -922,7 +922,7 @@ export default function AdminModal({
                   >
                     {bulkUserActionType === 'verify' ? '✅' : '⚠️'}
                   </div>
-                  <h3 className="text-2xl font-black text-black dark:text-white mb-2 tracking-tight text-center uppercase">
+                  <h3 className="text-2xl font-black text-black dark:text-white mb-2 text-center uppercase">
                     {bulkUserActionType === 'verify'
                       ? tMsg('Verify Users?', 'Verifikasi Pengguna?')
                       : tMsg('Purge Users?', 'Bersihkan Pengguna?')}
@@ -1380,7 +1380,7 @@ export default function AdminModal({
               <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border bg-red-50 dark:bg-red-900/30 text-red-500 border-red-200 dark:border-red-800">
                 🗑️
               </div>
-              <h3 className="text-2xl font-black text-black dark:text-white mb-2 tracking-tight text-center uppercase">
+              <h3 className="text-2xl font-black text-black dark:text-white mb-2 text-center uppercase">
                 {tMsg('Delete User', 'Hapus Pengguna')}
               </h3>
               <p className="text-neutral-500 dark:text-neutral-400 text-sm font-medium leading-relaxed mb-8">
@@ -1558,7 +1558,7 @@ export default function AdminModal({
                   >
                     {icon}
                   </div>
-                  <h3 className="text-2xl font-black text-black dark:text-white mb-2 tracking-tight text-center uppercase">
+                  <h3 className="text-2xl font-black text-black dark:text-white mb-2 text-center uppercase">
                     {title}
                   </h3>
                   <p className="text-neutral-600 dark:text-neutral-400 text-sm font-medium leading-relaxed mb-6">
@@ -1678,7 +1678,7 @@ export default function AdminModal({
             <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-indigo-200 dark:border-indigo-800">
               🔐
             </div>
-            <h3 className="text-3xl font-black text-black dark:text-white mb-2 tracking-tight">
+            <h3 className="text-3xl font-black text-black dark:text-white mb-2">
               {tMsg('Security Verification', 'Verifikasi Keamanan')}
             </h3>
             <p className="text-neutral-500 dark:text-neutral-400 max-w-md text-center text-sm leading-relaxed mb-8">
@@ -1741,7 +1741,7 @@ export default function AdminModal({
             <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-indigo-200 dark:border-indigo-800">
               ⏱️
             </div>
-            <h3 className="text-2xl font-black text-black dark:text-white mb-2 tracking-tight text-center uppercase">
+            <h3 className="text-2xl font-black text-black dark:text-white mb-2 text-center uppercase">
               {tMsg('Set Approver', 'Atur Penyetuju')}
             </h3>
             <p className="text-neutral-600 dark:text-neutral-400 text-sm font-medium leading-relaxed mb-6">

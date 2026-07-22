@@ -43,7 +43,7 @@ export default function LandingAISection({ showAuthForm }) {
                   <span className="text-base leading-none">✨</span>
                   Powered by Dual AI Engine
                 </div>
-                <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 dark:text-white mb-6 leading-[1.1] uppercase">
+                <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 leading-[1.1] uppercase">
                   Work smarter, not harder with <br className="hidden lg:block" />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-600 to-black dark:from-slate-300 dark:to-white">
                     AI Assistance.
@@ -60,7 +60,7 @@ export default function LandingAISection({ showAuthForm }) {
                       🤖
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900 dark:text-white text-lg tracking-tight mb-1">
+                      <h4 className="font-bold text-slate-900 dark:text-white text-lg mb-1">
                         Proactive Task Drafting
                       </h4>
                       <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
@@ -74,7 +74,7 @@ export default function LandingAISection({ showAuthForm }) {
                       📝
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900 dark:text-white text-lg tracking-tight mb-1">
+                      <h4 className="font-bold text-slate-900 dark:text-white text-lg mb-1">
                         Live Meeting Extraction
                       </h4>
                       <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
@@ -88,7 +88,7 @@ export default function LandingAISection({ showAuthForm }) {
                       🧠
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900 dark:text-white text-lg tracking-tight mb-1">
+                      <h4 className="font-bold text-slate-900 dark:text-white text-lg mb-1">
                         Context-Aware Co-Pilot
                       </h4>
                       <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
@@ -183,7 +183,7 @@ export default function LandingAISection({ showAuthForm }) {
         >
           <div className="max-w-7xl mx-auto px-6 lg:px-8">
             <div className="text-center mb-12 md:mb-16 reveal-on-scroll">
-              <h2 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 dark:text-white mb-6 uppercase">
+              <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 uppercase">
                 See how it works
               </h2>
               <p className="text-slate-500 dark:text-slate-400 font-medium max-w-2xl mx-auto text-lg leading-relaxed">
