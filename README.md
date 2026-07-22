@@ -10,13 +10,15 @@ Aplikasi internal project tracker (Kanban, timesheet, chat, AI assistant) dengan
 
 ```
 tracker-project/
-├── backend_api.py          # Entry point FastAPI
-├── database.py             # SQLAlchemy models + koneksi DB
-├── dependencies.py         # JWT auth
-├── routers/                # Auth, boards, tasks, AI, timesheets, dll.
-├── services/               # Email service
-├── alembic/                # Database migrations
-├── requirements.txt
+├── backend/                # Python FastAPI backend
+│   ├── backend_api.py      # Entry point FastAPI
+│   ├── database.py         # SQLAlchemy models + koneksi DB
+│   ├── dependencies.py     # JWT auth
+│   ├── routers/            # Auth, boards, tasks, AI, timesheets, dll.
+│   ├── services/           # Email service
+│   ├── alembic/            # Database migrations
+│   ├── tests/              # Pytest
+│   └── requirements.txt
 ├── Procfile                # Start command Render
 ├── netlify.toml            # Build & redirect Netlify
 └── frontend-app/           # React (Vite) frontend
@@ -55,9 +57,9 @@ postgresql://USER:PASSWORD@ep-xxxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=r
 ### 2.1 Backend
 
 ```bash
-cd tracker-project
+cd tracker-project/backend
 
-# Virtual environment
+# Virtual environment (bisa di root repo atau di backend/)
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 
@@ -65,6 +67,7 @@ pip install -r requirements.txt
 
 # Salin dan isi environment
 cp .env.example .env
+# Atau letakkan .env di root repo (tracker-project/.env) — keduanya didukung
 ```
 
 Isi minimal di `.env`:
@@ -84,6 +87,9 @@ python -c "import secrets; print(secrets.token_hex(32))"
 Jalankan migrasi (opsional tapi disarankan), lalu start API:
 
 ```bash
+# Pastikan cwd = folder backend/
+cd backend
+
 # Migrasi skema
 alembic upgrade head
 
@@ -152,13 +158,13 @@ Setelah backend pertama kali connect (atau setelah `alembic upgrade head`), skem
 |---------|--------|
 | **Root Directory** | *(kosong / root repo)* |
 | **Runtime** | Python 3 |
-| **Build Command** | `pip install -r requirements.txt` |
-| **Start Command** | `uvicorn backend_api:app --host 0.0.0.0 --port $PORT` |
+| **Build Command** | `pip install -r backend/requirements.txt` |
+| **Start Command** | `cd backend && uvicorn backend_api:app --host 0.0.0.0 --port $PORT` |
 
    Atau biarkan memakai `Procfile` yang sudah ada:
 
    ```text
-   web: uvicorn backend_api:app --host 0.0.0.0 --port $PORT
+   web: cd backend && uvicorn backend_api:app --host 0.0.0.0 --port $PORT
    ```
 
 4. Tambahkan **Environment Variables** di Render:
@@ -181,13 +187,13 @@ Setelah backend pertama kali connect (atau setelah `alembic upgrade head`), skem
 6. (Disarankan) Jalankan migrasi sekali dari mesin lokal dengan `DATABASE_URL` Neon yang sama:
 
    ```bash
-   alembic upgrade head
+   cd backend && alembic upgrade head
    ```
 
    Atau tambahkan di Build Command Render:
 
    ```bash
-   pip install -r requirements.txt && alembic upgrade head
+   pip install -r backend/requirements.txt && cd backend && alembic upgrade head
    ```
 
 > **Catatan free tier Render:** service bisa sleep setelah idle. Request pertama setelah sleep bisa lambat (~30–60 detik).
@@ -275,13 +281,15 @@ Lalu redeploy backend agar CORS mengizinkan domain Netlify.
 
 ```bash
 # Backend lokal
-source .venv/bin/activate
+cd backend
+source .venv/bin/activate   # atau: source ../.venv/bin/activate
 uvicorn backend_api:app --reload --port 8000
 
 # Frontend lokal
 cd frontend-app && npm run dev
 
 # Migrasi
+cd backend
 alembic upgrade head
 alembic revision --autogenerate -m "deskripsi"
 alembic current

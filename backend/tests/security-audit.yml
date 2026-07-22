@@ -25,9 +25,10 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install fastapi uvicorn sqlalchemy python-dotenv bcrypt pyjwt pydantic requests httpx pytest google-genai
+          pip install -r backend/requirements.txt
+          pip install pytest httpx
 
       # Langkah 4: Menjalankan Pengujian Pytest
       - name: Run Security Audit (Pytest)
         run: |
-          python -m pytest tests/ -v
+          cd backend && python -m pytest tests/ -v

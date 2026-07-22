@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 import bcrypt
 import json
@@ -6,7 +7,12 @@ from sqlalchemy import create_engine, Column, Integer, String, Text, text, DateT
 from datetime import datetime
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-load_dotenv()
+_BACKEND_DIR = Path(__file__).resolve().parent
+_REPO_ROOT = _BACKEND_DIR.parent
+
+# Muat .env dari root repo lalu backend/ (backend menimpa jika ada)
+load_dotenv(_REPO_ROOT / ".env", override=False)
+load_dotenv(_BACKEND_DIR / ".env", override=True)
 
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
