@@ -164,6 +164,8 @@ Setelah backend pertama kali connect (atau setelah `alembic upgrade head`), skem
 | **Build Command** | `pip install -r backend/requirements.txt` |
 | **Start Command** | `cd backend && uvicorn backend_api:app --host 0.0.0.0 --port $PORT` |
 
+   > **Catatan:** Root `requirements.txt` adalah shim (`-r backend/requirements.txt`) agar build lama Render tetap jalan. File `runtime.txt` pin Python 3.12.
+
    Atau biarkan memakai `Procfile` yang sudah ada:
 
    ```text
