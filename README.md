@@ -87,15 +87,18 @@ python -c "import secrets; print(secrets.token_hex(32))"
 Jalankan migrasi (opsional tapi disarankan), lalu start API:
 
 ```bash
-# Pastikan cwd = folder backend/
-cd backend
-
 # Migrasi skema
-alembic upgrade head
+cd backend && alembic upgrade head && cd ..
 
-# Start server (http://localhost:8000)
+# Dari root repo — gunakan helper script (disarankan)
+./run-backend.sh
+
+# Atau manual dari folder backend/
+cd backend
 uvicorn backend_api:app --reload --host 0.0.0.0 --port 8000
 ```
+
+> **Penting:** Jangan jalankan `uvicorn backend_api:app` dari root repo — modul sudah pindah ke folder `backend/`.
 
 Saat pertama kali jalan, `setup_db()` akan:
 
@@ -280,10 +283,11 @@ Lalu redeploy backend agar CORS mengizinkan domain Netlify.
 ## 8. Perintah berguna
 
 ```bash
-# Backend lokal
-cd backend
-source .venv/bin/activate   # atau: source ../.venv/bin/activate
-uvicorn backend_api:app --reload --port 8000
+# Backend lokal (dari root repo)
+./run-backend.sh
+
+# Atau manual
+cd backend && uvicorn backend_api:app --reload --port 8000
 
 # Frontend lokal
 cd frontend-app && npm run dev
