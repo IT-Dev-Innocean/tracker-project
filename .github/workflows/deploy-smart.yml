@@ -1,0 +1,92 @@
+name: Smart Deploy (Monorepo)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_frontend:
+        description: Force deploy frontend (Netlify)
+        type: boolean
+        default: false
+      force_backend:
+        description: Force deploy backend (Render)
+        type: boolean
+        default: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.changes.outputs.frontend }}
+      backend: ${{ steps.changes.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed paths
+        id: changes
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            FRONTEND="${{ inputs.force_frontend }}"
+            BACKEND="${{ inputs.force_backend }}"
+            if [[ "$FRONTEND" != "true" && "$BACKEND" != "true" ]]; then
+              read -r F B <<< "$(bash scripts/detect-changes.sh "${{ github.event.before }}" "${{ github.sha }}")"
+              FRONTEND=$([[ "$F" == "1" ]] && echo true || echo false)
+              BACKEND=$([[ "$B" == "1" ]] && echo true || echo false)
+            fi
+          else
+            BEFORE="${{ github.event.before }}"
+            if [[ "$BEFORE" == "0000000000000000000000000000000000000000" ]]; then
+              BEFORE=""
+            fi
+            read -r F B <<< "$(bash scripts/detect-changes.sh "$BEFORE" "${{ github.sha }}")"
+            FRONTEND=$([[ "$F" == "1" ]] && echo true || echo false)
+            BACKEND=$([[ "$B" == "1" ]] && echo true || echo false)
+          fi
+          echo "frontend=$FRONTEND" >> "$GITHUB_OUTPUT"
+          echo "backend=$BACKEND" >> "$GITHUB_OUTPUT"
+          echo "Deploy frontend: $FRONTEND | Deploy backend: $BACKEND"
+
+  deploy-frontend:
+    needs: detect
+    if: needs.detect.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Netlify build hook
+        env:
+          NETLIFY_BUILD_HOOK_URL: ${{ secrets.NETLIFY_BUILD_HOOK_URL }}
+        run: |
+          if [[ -z "$NETLIFY_BUILD_HOOK_URL" ]]; then
+            echo "NETLIFY_BUILD_HOOK_URL belum di-set di GitHub Secrets." >&2
+            exit 1
+          fi
+          curl -sS -X POST -d {} "$NETLIFY_BUILD_HOOK_URL"
+          echo "Netlify deploy triggered."
+
+  deploy-backend:
+    needs: detect
+    if: needs.detect.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy hook
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [[ -z "$RENDER_DEPLOY_HOOK_URL" ]]; then
+            echo "RENDER_DEPLOY_HOOK_URL belum di-set di GitHub Secrets." >&2
+            exit 1
+          fi
+          curl -sS -X POST "$RENDER_DEPLOY_HOOK_URL"
+          echo "Render deploy triggered."
+
+  skip-summary:
+    needs: detect
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summary
+        run: |
+          echo "frontend deploy: ${{ needs.detect.outputs.frontend }}"
+          echo "backend deploy: ${{ needs.detect.outputs.backend }}"

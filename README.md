@@ -257,7 +257,69 @@ Lalu redeploy backend agar CORS mengizinkan domain Netlify.
 
 ---
 
-## 6. Checklist pasca-deploy
+## 6. Smart Deploy (Monorepo)
+
+Repo ini monorepo (`frontend-app/` + `backend/`). Deploy hanya di-trigger untuk bagian yang berubah.
+
+### Path yang memicu deploy
+
+| Target | Path yang dipantau |
+|--------|-------------------|
+| **Netlify** (frontend) | `frontend-app/**`, `netlify.toml` |
+| **Render** (backend) | `backend/**`, `Procfile`, `requirements.txt`, `runtime.txt`, `render.yaml`, `run-backend.sh` |
+
+### Opsi A — Auto-deploy platform (disarankan)
+
+**Netlify** — `netlify.toml` sudah berisi `ignore` build:
+
+- Commit **hanya backend** → Netlify **skip** build (status: *Build skipped*)
+- Commit **frontend** → Netlify build normal
+
+**Render** — set **Included Paths** di Dashboard → Service → Settings → Build & Deploy:
+
+```text
+backend/**
+Procfile
+requirements.txt
+runtime.txt
+render.yaml
+run-backend.sh
+```
+
+- Commit **hanya frontend** → Render **tidak** deploy
+- Commit **backend** → Render deploy normal
+
+### Opsi B — GitHub Actions + Deploy Hooks
+
+Workflow: `.github/workflows/deploy-smart.yml`
+
+1. Buat **Deploy Hook** di Netlify (Site settings → Build & deploy → Build hooks)
+2. Buat **Deploy Hook** di Render (Service → Settings → Deploy Hook)
+3. Tambahkan GitHub Secrets di repo:
+   - `NETLIFY_BUILD_HOOK_URL`
+   - `RENDER_DEPLOY_HOOK_URL`
+4. (Opsional) Matikan auto-deploy Git di Netlify/Render agar hanya Actions yang trigger
+
+Push ke `main` → Actions mendeteksi diff → trigger Netlify dan/atau Render sesuai folder yang berubah.
+
+### Script lokal / manual
+
+```bash
+# Cek apa yang berubah (output: "frontend backend", 1=ya 0=tidak)
+./scripts/detect-changes.sh HEAD~1 HEAD
+
+# Deploy pintar (perlu env hook URL)
+export NETLIFY_BUILD_HOOK_URL="https://api.netlify.com/build_hooks/..."
+export RENDER_DEPLOY_HOOK_URL="https://api.render.com/deploy/srv-..."
+
+./scripts/deploy-smart.sh          # keduanya sesuai diff
+./scripts/deploy-frontend.sh       # Netlify saja (skip jika tidak ada perubahan frontend)
+./scripts/deploy-backend.sh        # Render saja (skip jika tidak ada perubahan backend)
+```
+
+---
+
+## 7. Checklist pasca-deploy
 
 1. Buka URL Netlify → halaman landing muncul.
 2. Buka `{BACKEND_URL}/` → JSON `status: online`.
@@ -268,7 +330,7 @@ Lalu redeploy backend agar CORS mengizinkan domain Netlify.
 
 ---
 
-## 7. Troubleshooting
+## 8. Troubleshooting
 
 | Gejala | Penyebab umum | Solusi |
 |--------|---------------|--------|
@@ -278,11 +340,12 @@ Lalu redeploy backend agar CORS mengizinkan domain Netlify.
 | Frontend memanggil localhost di prod | `VITE_API_BASE_URL` belum di-set | Set di Netlify env lalu **Clear cache and deploy** |
 | DB connection reset | Neon idle / pool | Pakai pooled URL + pastikan `sslmode=require` |
 | Email verifikasi tidak terkirim | SMTP belum dikonfigurasi | Isi `SMTP_*` atau verifikasi manual via admin |
-| Render 502 / lambat pertama kali | Cold start free tier | Tunggu & refresh; pertimbangkan keep-alive |
+| Render deploy saat hanya ubah frontend | Auto-deploy Render tanpa filter path | Set **Included Paths** di Render (lihat §6) |
+| Netlify deploy saat hanya ubah backend | Ignore build belum aktif | Pastikan `netlify.toml` sudah di-push |
 
 ---
 
-## 8. Perintah berguna
+## 9. Perintah berguna
 
 ```bash
 # Backend lokal (dari root repo)
@@ -306,7 +369,7 @@ cd frontend-app && npm run build && npm run preview
 
 ---
 
-## 9. Keamanan singkat
+## 10. Keamanan singkat
 
 - Jangan commit file `.env`.
 - Ganti password `admin` / `admin123` di production.
