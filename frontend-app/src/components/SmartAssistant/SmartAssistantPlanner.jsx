@@ -1,5 +1,6 @@
 import React from 'react';
 import { LoadingSpinner } from '../../Utils';
+import { Icon } from '../icons/Icon';
 
 export default function SmartAssistantPlanner({
   boards,
@@ -44,7 +45,7 @@ export default function SmartAssistantPlanner({
           ◀ {tMsg('Menu', 'Menu')}
         </button>
         <span className="text-[10px] font-black uppercase tracking-widest text-purple-600 dark:text-purple-400 flex items-center gap-1.5 flex-1 justify-center">
-          🚀 {tMsg('AI Task Planner', 'Perencana Tugas AI')}
+          <Icon name="rocket" className="w-4 h-4 inline-block mr-1" /> {tMsg('AI Task Planner', 'Perencana Tugas AI')}
         </span>
         <button
           onClick={() => {
@@ -116,7 +117,7 @@ export default function SmartAssistantPlanner({
                   className="bg-purple-600 hover:bg-purple-700 text-white font-bold w-[52px] h-[52px] rounded-2xl shadow-md transition-all flex items-center justify-center shrink-0 disabled:opacity-50 hover:-translate-y-0.5"
                   title={tMsg('Generate Plan', 'Buat Rencana')}
                 >
-                  ✨
+                  <Icon name="sparkles" className="w-5 h-5" />
                 </button>
               ) : (
                 <button
@@ -124,7 +125,7 @@ export default function SmartAssistantPlanner({
                   disabled={!plannerPrompt.trim() || isPlanning}
                   className="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-xs disabled:opacity-50 hover:-translate-y-0.5"
                 >
-                  {isPlanning ? <LoadingSpinner /> : '✨'}
+                  {isPlanning ? <LoadingSpinner /> : <Icon name="sparkles" className="w-4 h-4" />}
                   {isPlanning ? tMsg('Planning...', 'Merencanakan...') : tMsg('Generate Plan', 'Buat Rencana')}
                 </button>
               )}
@@ -244,16 +245,16 @@ export default function SmartAssistantPlanner({
                             : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
                         }`}
                       >
-                        {t.impact === 'High' ? '🔥 High' : t.impact === 'Low' ? '🧊 Low' : '⚡ Med'}
+                        {t.impact === 'High' ? (<><Icon name="flame" className="w-3 h-3 inline-block" /> High</>) : t.impact === 'Low' ? (<><Icon name="snowflake" className="w-3 h-3 inline-block" /> Low</>) : (<><Icon name="zap" className="w-3 h-3 inline-block" /> Med</>)}
                       </span>
                       {t.deadline && (
                         <span className="text-[9px] font-bold bg-rose-100 dark:bg-rose-900/30 px-2 py-0.5 rounded text-rose-700 dark:text-rose-400 uppercase tracking-wider">
-                          📅 {formatDateMMM ? formatDateMMM(t.deadline) : t.deadline}
+                          <Icon name="calendar" className="w-3 h-3 inline-block" /> {formatDateMMM ? formatDateMMM(t.deadline) : t.deadline}
                         </span>
                       )}
                       {t.auto_nudge && (
                         <span className="text-[9px] font-bold bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded text-purple-700 dark:text-purple-400 uppercase tracking-wider">
-                          🔔 Auto Nudge ON
+                          <Icon name="bell" className="w-3 h-3 inline-block" /> Auto Nudge ON
                         </span>
                       )}
                     </div>
@@ -276,7 +277,7 @@ export default function SmartAssistantPlanner({
             disabled={isSavingPlanned || !plannedTasks.some((t) => t.selected)}
             className="w-full bg-purple-600 text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-purple-700 transition-all uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 hover:-translate-y-0.5 disabled:opacity-50 disabled:hover:translate-y-0"
           >
-            {isSavingPlanned ? <LoadingSpinner /> : '🚀'}
+            {isSavingPlanned ? <LoadingSpinner /> : <Icon name="rocket" className="w-5 h-5" />}
             {isSavingPlanned
               ? tMsg('Saving...', 'Menyimpan...')
               : tMsg(

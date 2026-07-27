@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCloseAnimation } from './Utils';
+import { Icon } from './components/icons/Icon';
 
 export default function ChangelogModal({ setIsChangelogOpen, language }) {
   const [isClosing, close] = useCloseAnimation(() => setIsChangelogOpen(false));
@@ -541,7 +542,7 @@ export default function ChangelogModal({ setIsChangelogOpen, language }) {
             onClick={close}
             className="bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm text-black dark:text-white px-6 py-3.5 rounded-full font-bold uppercase tracking-widest text-xs transition-colors flex items-center gap-2 w-full md:w-auto justify-center"
           >
-            <span>✖</span> {tMsg('Close', 'Tutup')}
+            <Icon name="x" className="w-4 h-4 inline-block mr-1" /> {tMsg('Close', 'Tutup')}
           </button>
         </div>
 
@@ -574,9 +575,9 @@ export default function ChangelogModal({ setIsChangelogOpen, language }) {
                   </div>
                   <div className="bg-white dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 md:p-8 shadow-sm">
                     <div className="flex items-center gap-3 mb-6">
-                      {log.type === 'major' && <span className="text-2xl">🚀</span>}
-                      {log.type === 'feature' && <span className="text-2xl">✨</span>}
-                      {log.type === 'release' && <span className="text-2xl">🎉</span>}
+                      {log.type === 'major' && <Icon name="rocket" className="w-7 h-7" />}
+                      {log.type === 'feature' && <Icon name="sparkles" className="w-7 h-7" />}
+                      {log.type === 'release' && <Icon name="party-popper" className="w-7 h-7" />}
                       <h3 className="text-xl md:text-2xl font-black uppercase text-black dark:text-white">
                         {log.title}
                       </h3>

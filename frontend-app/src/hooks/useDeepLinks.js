@@ -28,7 +28,7 @@ export function useDeepLinks({ isAuthenticated, boards, setSelectedBoard, curren
         if (boardIdParam.startsWith('global')) {
           setSelectedBoard({
             id: 'global',
-            name: `🌍 ${tMsg ? tMsg('Global Workload', 'Global Workload') : 'Global Workload'}`,
+            name: tMsg ? tMsg('Global Workload', 'Global Workload') : 'Global Workload',
             owner_username: currentUser,
             role: 'owner',
             isVirtual: true,

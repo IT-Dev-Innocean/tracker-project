@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { IconPerson, Avatar } from './SharedUI';
+import { Icon } from './components/icons/Icon';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { HighlightText, stripHtml, useCloseAnimation, LoadingSpinner, renderRichText } from './Utils';
 import ChatMessage from './ChatMessage';
@@ -514,7 +515,7 @@ export default function TaskDetailModal({
                 : 'font-bold text-neutral-400 hover:text-black dark:hover:text-white'
             }`}
           >
-            📝 {tMsg('Details', 'Detail')}
+<Icon name="file-text" className="w-4 h-4 inline mr-1" /> {tMsg('Details', 'Detail')}
           </button>
           <button
             onClick={() => setMobileTab('activity')}
@@ -524,7 +525,7 @@ export default function TaskDetailModal({
                 : 'font-bold text-neutral-400 hover:text-black dark:hover:text-white'
             }`}
           >
-            💬 {tMsg('Activity', 'Aktivitas')}
+<Icon name="message-circle" className="w-4 h-4 inline mr-1" /> {tMsg('Activity', 'Aktivitas')}
           </button>
         </div>
 
@@ -606,7 +607,7 @@ export default function TaskDetailModal({
                               : tMsg('Requester', 'Peminta')
                           }
                         >
-                          {editFormData.requester?.includes('@') ? '👉' : <IconPerson className="w-6 h-6" />}
+                          {editFormData.requester?.includes('@') ? <Icon name="pointer" className="w-6 h-6" /> : <IconPerson className="w-6 h-6" />}
                         </span>
                         <div className="flex-1 min-w-0 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center relative">
                           <input
@@ -681,7 +682,7 @@ export default function TaskDetailModal({
                           className="text-neutral-400 group-focus-within:text-black dark:group-focus-within:text-white transition-colors w-8 flex justify-center text-xl"
                           title="Status"
                         >
-                          📌
+                          <Icon name="pin" className="w-5 h-5" />
                         </span>
                         <div
                           className={`flex-1 min-w-0 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 transition-all flex items-center ${
@@ -708,7 +709,7 @@ export default function TaskDetailModal({
                       <div className="group">
                         <div className="flex justify-between items-center mb-2">
                           <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest items-center gap-2">
-                            <span className="text-base">🗓️</span> {tMsg('Start Date', 'Tanggal Mulai')}
+                            <Icon name="calendar-days" className="w-4 h-4 inline" /> {tMsg('Start Date', 'Tanggal Mulai')}
                           </label>
                           <span className="text-[9px] font-bold text-indigo-500">
                             {formatDateMMM(editFormData.start_date)}
@@ -727,7 +728,7 @@ export default function TaskDetailModal({
                       <div className="group">
                         <div className="flex justify-between items-center mb-2">
                           <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest items-center gap-2">
-                            <span className="text-base">📅</span> {tMsg('Deadline', 'Tenggat Waktu')}
+                            <Icon name="calendar" className="w-4 h-4" /> {tMsg('Deadline', 'Tenggat Waktu')}
                           </label>
                           <span className="text-[9px] font-bold text-indigo-500">
                             {formatDateMMM(editFormData.deadline)}
@@ -748,7 +749,7 @@ export default function TaskDetailModal({
                     <div className="grid grid-cols-1 gap-4 sm:gap-6 mt-2 sm:mt-6">
                       <div className="group">
                         <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 items-center gap-2">
-                          <span className="text-base">📂</span> {tMsg('Category', 'Kategori')}
+                          <Icon name="folder-open" className="w-4 h-4" /> {tMsg('Category', 'Kategori')}
                         </label>
                         <div className="flex gap-1.5 sm:gap-2">
                           <div className="flex-1 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center min-w-0">
@@ -770,7 +771,7 @@ export default function TaskDetailModal({
                             className="bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 px-3 sm:px-4 rounded-2xl transition-colors text-sm font-bold flex items-center justify-center shrink-0 shadow-sm"
                             title={tMsg('Add New Category', 'Tambah Kategori Baru')}
                           >
-                            ➕
+                            <Icon name="plus" className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
@@ -779,7 +780,7 @@ export default function TaskDetailModal({
                     <div className="grid grid-cols-3 gap-3 sm:gap-6 mt-2 sm:mt-6">
                       <div className="group min-w-0">
                         <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 items-center gap-2 truncate">
-                          <span className="text-base hidden sm:inline">🔁</span> {tMsg('Recurring', 'Berulang')}
+                          <Icon name="repeat" className="w-4 h-4 hidden sm:inline" /> {tMsg('Recurring', 'Berulang')}
                         </label>
                         <div className="bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center">
                           <select
@@ -796,7 +797,7 @@ export default function TaskDetailModal({
                       </div>
                       <div className="group col-span-1">
                         <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 items-center gap-2 min-h-4 truncate">
-                          <span className="text-base hidden sm:inline">💥</span> {tMsg('Impact', 'Dampak')}
+                          <Icon name="zap" className="w-4 h-4 hidden sm:inline" /> {tMsg('Impact', 'Dampak')}
                         </label>
                         <div className="bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center">
                           <select
@@ -804,15 +805,15 @@ export default function TaskDetailModal({
                             onChange={(e) => setEditFormData({ ...editFormData, impact: e.target.value })}
                             className="w-full bg-transparent border-0 focus:ring-0 p-3.5 text-[10px] sm:text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider truncate [&>option]:bg-white dark:[&>option]:bg-neutral-950"
                           >
-                            <option value="High">🔥 High</option>
-                            <option value="Medium">⚡ Medium</option>
-                            <option value="Low">🧊 Low</option>
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
                           </select>
                         </div>
                       </div>
                       <div className="group col-span-1">
                         <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 items-center gap-2 min-h-4 truncate">
-                          <span className="text-base hidden sm:inline">⏳</span> {tMsg('ETC (Hrs)', 'ETC (Jam)')}
+                          <Icon name="clock" className="w-4 h-4 hidden sm:inline" /> {tMsg('ETC (Hrs)', 'ETC (Jam)')}
                           <span
                             className="cursor-help text-neutral-400 font-normal normal-case tracking-normal"
                             title="Estimated Time Consumption"
@@ -838,11 +839,11 @@ export default function TaskDetailModal({
                             title="AI Estimate"
                           >
                             {isEstimatingEtc ? (
-                              '⏳'
+                              <Icon name="clock" className="w-4 h-4 animate-pulse" />
                             ) : (
                               <>
-                                <span className="sm:hidden">✨</span>
-                                <span className="hidden sm:inline">✨ AI Est.</span>
+                                <Icon name="sparkles" className="w-4 h-4 sm:hidden" />
+                                <span className="hidden sm:inline-flex sm:items-center sm:gap-1"><Icon name="sparkles" className="w-3.5 h-3.5" /> AI Est.</span>
                               </>
                             )}
                           </button>
@@ -852,7 +853,7 @@ export default function TaskDetailModal({
 
                     <div className="group pt-2">
                       <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 items-center gap-2">
-                        <span className="text-base">📝</span> {tMsg('Description', 'Deskripsi')}
+                        <Icon name="file-text" className="w-4 h-4" /> {tMsg('Description', 'Deskripsi')}
                       </label>
                       <div className="bg-neutral-100 dark:bg-neutral-900 rounded-3xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all p-2">
                         <div className="flex gap-2 mb-2 px-2 pb-2 border-b border-neutral-200 dark:border-neutral-800">
@@ -910,7 +911,7 @@ export default function TaskDetailModal({
                             disabled={isGeneratingDesc}
                             className="ml-auto text-[10px] font-bold px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md shadow-sm border border-indigo-200 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 disabled:opacity-50 flex items-center gap-1 transition-colors"
                           >
-                            {isGeneratingDesc ? '⏳...' : '✨ Auto Generate'}
+                            {isGeneratingDesc ? (<><Icon name="clock" className="w-3 h-3 inline animate-pulse" /> ...</>) : (<><Icon name="sparkles" className="w-3 h-3 inline" /> Auto Generate</>)}
                           </button>
                         </div>
                         <textarea
@@ -930,7 +931,7 @@ export default function TaskDetailModal({
 
                     <div className="group pt-2">
                       <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 items-center gap-2">
-                        <span className="text-base">🔗</span>{' '}
+                        <Icon name="link" className="w-4 h-4" />{' '}
                         {tMsg('External Links / Supporting Access', 'Tautan Eksternal / Akses Pendukung')}
                       </label>
                       <div className="flex flex-col gap-2 w-full min-w-0">
@@ -960,7 +961,7 @@ export default function TaskDetailModal({
                                   className="text-neutral-400 hover:text-red-500 font-bold p-2 transition-colors"
                                   title="Remove Link"
                                 >
-                                  ✖
+                                  <Icon name="x" className="w-4 h-4" />
                                 </button>
                               )}
                             </div>
@@ -976,7 +977,7 @@ export default function TaskDetailModal({
                           }}
                           className="text-[10px] font-bold text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 self-start mt-1 flex items-center gap-1.5 uppercase tracking-widest transition-colors bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1.5 rounded-lg"
                         >
-                          <span>➕</span> {tMsg('Add Another Link', 'Tambah Tautan Lainnya')}
+                          <Icon name="plus" className="w-3.5 h-3.5" /> {tMsg('Add Another Link', 'Tambah Tautan Lainnya')}
                         </button>
                       </div>
                     </div>
@@ -1041,7 +1042,7 @@ export default function TaskDetailModal({
                               );
                           }}
                         >
-                          #{selectedTask.id} 🔗
+                          #{selectedTask.id} <Icon name="link" className="w-3.5 h-3.5 inline ml-1" />
                         </span>
                         <span className="text-neutral-300 dark:text-neutral-700 shrink-0">/</span>
                         {selectedTask.board_name && selectedTask.board_name !== 'Unknown' && (
@@ -1059,7 +1060,7 @@ export default function TaskDetailModal({
                               }}
                               title={`Go to Project: ${selectedTask.board_name}`}
                             >
-                              <span className="truncate">📂 {selectedTask.board_name}</span>
+                              <span className="truncate flex items-center gap-1"><Icon name="folder-open" className="w-3.5 h-3.5 shrink-0" /> {selectedTask.board_name}</span>
                             </span>
                             <span className="text-neutral-300 dark:text-neutral-700 shrink-0">/</span>
                           </>
@@ -1083,7 +1084,7 @@ export default function TaskDetailModal({
                         className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest flex items-center gap-1 shrink-0 sm:ml-2"
                         title="Date Created"
                       >
-                        📅 {formatDateMMM(selectedTask.timestamp)}
+<Icon name="calendar" className="w-3.5 h-3.5 inline mr-1" /> {formatDateMMM(selectedTask.timestamp)}
                       </span>
                     </div>
                     <p className="text-lg font-extrabold wrap-break-word">{selectedTask.project_name || 'Untitled Task'}</p>
@@ -1124,7 +1125,7 @@ export default function TaskDetailModal({
                         </div>
                         <div className="absolute inset-0 flex items-center justify-center">
                           <span className="bg-black/80 text-white font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-widest shadow-xl backdrop-blur-md text-center">
-                            🔒{' '}
+                            <Icon name="lock" className="w-3.5 h-3.5 inline mr-1" />
                             {currentUser
                               ? tMsg('Project Members Only', 'Khusus Anggota Proyek')
                               : tMsg('Login to View Description', 'Login untuk Melihat Deskripsi')}
@@ -1147,7 +1148,7 @@ export default function TaskDetailModal({
                           onClick={() => setIsAddingLink(true)}
                           className="text-[9px] font-bold text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 uppercase tracking-widest"
                         >
-                          <span>➕</span> {tMsg('Add Link', 'Tambah Tautan')}
+                          <Icon name="plus" className="w-3.5 h-3.5" /> {tMsg('Add Link', 'Tambah Tautan')}
                         </button>
                       )}
                     </div>
@@ -1180,26 +1181,26 @@ export default function TaskDetailModal({
                             let cardClass =
                               'bg-neutral-50 dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:border-indigo-300 dark:hover:border-indigo-700';
                             let iconClass = 'bg-neutral-200 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400';
-                            let icon = '🔗';
+                            let iconName = 'link';
                             let title = 'External Attachment';
 
                             if (isDrive) {
                               cardClass =
                                 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/50 hover:border-blue-300 dark:hover:border-blue-700';
                               iconClass = 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400';
-                              icon = '📂';
+                              iconName = 'folder-open';
                               title = 'Google Workspace Asset';
                             } else if (isFigma) {
                               cardClass =
                                 'bg-pink-50/50 dark:bg-pink-900/10 border-pink-100 dark:border-pink-800/50 hover:border-pink-300 dark:hover:border-pink-700';
                               iconClass = 'bg-pink-100 dark:bg-pink-900/40 text-pink-600 dark:text-pink-400';
-                              icon = '🎨';
+                              iconName = 'image';
                               title = 'Figma Design Asset';
                             } else if (isOneDrive) {
                               cardClass =
                                 'bg-cyan-50/50 dark:bg-cyan-900/10 border-cyan-100 dark:border-cyan-800/50 hover:border-cyan-300 dark:hover:border-cyan-700';
                               iconClass = 'bg-cyan-100 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400';
-                              icon = '☁️';
+                              iconName = 'cloud';
                               title = 'Microsoft OneDrive Asset';
                             }
 
@@ -1214,7 +1215,7 @@ export default function TaskDetailModal({
                                   <div
                                     className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-xl sm:text-2xl shrink-0 group-hover:scale-110 transition-transform ${iconClass}`}
                                   >
-                                    {icon}
+                                    <Icon name={iconName} className="w-5 h-5 sm:w-6 sm:h-6" />
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="font-bold text-sm sm:text-base text-black dark:text-white truncate">
@@ -1225,14 +1226,7 @@ export default function TaskDetailModal({
                                     </p>
                                   </div>
                                   <div className="text-neutral-400 group-hover:text-black dark:group-hover:text-white transition-colors shrink-0">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                      ></path>
-                                    </svg>
+                                    <Icon name="external-link" className="w-5 h-5" />
                                   </div>
                                 </a>
                                 {isTaskAdmin && accountStatus !== 'suspended' && handleQuickLinkRemove && (
@@ -1244,7 +1238,7 @@ export default function TaskDetailModal({
                                     className="p-3 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl border border-transparent hover:border-red-200 dark:hover:border-red-800 transition-colors shrink-0"
                                     title={tMsg('Remove Link', 'Hapus Tautan')}
                                   >
-                                    ✖
+                                    <Icon name="x" className="w-4 h-4" />
                                   </button>
                                 )}
                               </div>
@@ -1318,7 +1312,7 @@ export default function TaskDetailModal({
                       onClick={() => setIsDeleteConfirmOpen(true)}
                       className="px-5 py-3.5 w-full sm:w-auto rounded-full font-bold text-red-500 hover:text-white bg-transparent hover:bg-red-500 border border-transparent hover:border-red-500 transition-all uppercase tracking-widest text-xs"
                     >
-                      🗑️ {tMsg('Delete Task', 'Hapus Tugas')}
+<Icon name="trash" className="w-4 h-4 inline mr-1" /> {tMsg('Delete Task', 'Hapus Tugas')}
                     </button>
                   ) : (
                     <div></div>
@@ -1329,7 +1323,7 @@ export default function TaskDetailModal({
                         onClick={startEditing}
                         className="w-full sm:w-auto px-6 py-4 sm:py-3.5 rounded-full font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors uppercase tracking-widest text-xs"
                       >
-                        ✏️ {tMsg('Edit', 'Edit')}
+<Icon name="pencil" className="w-4 h-4 inline mr-1" /> {tMsg('Edit', 'Edit')}
                       </button>
                     )}
                     <button
@@ -1366,7 +1360,7 @@ export default function TaskDetailModal({
             {isPreviewMode ? (
               <div className="flex-1 flex items-center justify-center relative z-20">
                 <div className="z-10 text-center p-6 sm:p-8 bg-white/80 dark:bg-black/80 backdrop-blur-md m-4 sm:m-6 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-xl">
-                  <div className="text-5xl mb-6 drop-shadow-md">💬</div>
+                  <div className="mb-6 flex justify-center"><Icon name="message-circle" className="w-12 h-12 drop-shadow-md text-neutral-400" /></div>
                   <h3 className="text-xl font-black text-black dark:text-white uppercase mb-3">
                     {currentUser
                       ? tMsg('Private Workspace', 'Ruang Kerja Terkunci')
@@ -1434,7 +1428,7 @@ export default function TaskDetailModal({
                             : 'font-bold text-neutral-400 hover:text-black dark:hover:text-white'
                         }`}
                       >
-                        💬 {tMsg('Comments', 'Komentar')} ({regularComments.length})
+            <Icon name="message-circle" className="w-4 h-4 inline mr-1" /> {tMsg('Comments', 'Komentar')} ({regularComments.length})
                       </button>
                       <button
                         onClick={() => setActiveTab('activity')}
@@ -1459,28 +1453,14 @@ export default function TaskDetailModal({
                           }`}
                           title={tMsg('Search Comments', 'Cari Komentar')}
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2.5"
-                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                            ></path>
-                          </svg>
+                          <Icon name="search" className="w-4 h-4" strokeWidth={2.5} />
                         </button>
                         <button
                           type="button"
                           onClick={handleStartTaskMeet}
                           className="text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors uppercase tracking-widest"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2.5"
-                              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                            ></path>
-                          </svg>
+                          <Icon name="video" className="w-4 h-4" strokeWidth={2.5} />
                           <span className="hidden sm:inline">Meet Now</span>
                         </button>
                       </div>
@@ -1490,7 +1470,7 @@ export default function TaskDetailModal({
 
                 {activeTab === 'comments' && isTaskChatSearchOpen && (
                   <div className="relative w-full border-b border-neutral-100 dark:border-neutral-800/50 bg-neutral-50/50 dark:bg-neutral-900/50 p-2 mac-animate shrink-0 z-20">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">🔍</span>
+                    <Icon name="search" className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
                     <input
                       type="text"
                       placeholder={tMsg('Search comments...', 'Cari komentar...')}
@@ -1651,7 +1631,7 @@ export default function TaskDetailModal({
           <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-70 p-4 transition-opacity duration-200 opacity-100">
             <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-sm border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] text-center mac-animate">
               <div className="w-20 h-20 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm">
-                ⚠️
+                <Icon name="alert-triangle" className="w-10 h-10" />
               </div>
               <h3 className="text-2xl font-black text-black dark:text-white mb-4 uppercase">
                 {tMsg('Remove Link?', 'Hapus Tautan?')}
@@ -1684,7 +1664,7 @@ export default function TaskDetailModal({
           <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-70 p-4 transition-opacity duration-200 opacity-100">
             <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-sm border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] text-center mac-animate">
               <div className="w-20 h-20 bg-amber-50 dark:bg-amber-900/30 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-amber-200 dark:border-amber-800/50">
-                🔔
+                <Icon name="bell" className="w-10 h-10" />
               </div>
               <h3 className="text-xl sm:text-2xl font-black text-black dark:text-white mb-4 uppercase">
                 {tMsg('Send Smart Nudge?', 'Kirim Pantauan Cerdas?')}
@@ -1707,7 +1687,7 @@ export default function TaskDetailModal({
                   disabled={isGeneratingNudge}
                   className="flex-1 px-4 py-4 rounded-full font-bold text-white bg-amber-500 hover:bg-amber-600 shadow-md transition-all uppercase tracking-widest text-[10px] sm:text-xs hover:-translate-y-0.5 disabled:opacity-50"
                 >
-                  {isGeneratingNudge ? '⏳...' : tMsg('Yes, Send', 'Ya, Kirim')}
+                  {isGeneratingNudge ? (<><Icon name="clock" className="w-4 h-4 inline animate-pulse mr-1" />...</>) : tMsg('Yes, Send', 'Ya, Kirim')}
                 </button>
               </div>
             </div>

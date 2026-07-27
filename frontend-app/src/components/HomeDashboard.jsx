@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useAppContext } from '../contexts/AppContext';
 import { isUserAssigned, getTaskAssignee } from '../useAppLogic';
 import { Avatar } from '../SharedUI';
+import { Icon } from './icons/Icon';
 
 const cleanMarkdown = (text) => {
   if (!text) return '';
@@ -62,7 +63,7 @@ export default function HomeDashboard() {
   }, []);
 
   const openTaskInGlobal = (task) => {
-    setSelectedBoard({ id: 'global', name: `🌍 ${tMsg('See the Big Picture', 'Lihat Gambaran Besar')}`, role: 'owner', isVirtual: true });
+    setSelectedBoard({ id: 'global', name: tMsg('See the Big Picture', 'Lihat Gambaran Besar'), role: 'owner', isVirtual: true });
     setShowMyTasks(false);
     setShowOverdueOnly(false);
     setTimeout(() => {
@@ -338,7 +339,7 @@ export default function HomeDashboard() {
           <div className="absolute top-0 left-0 w-1.5 h-full bg-black dark:bg-white"></div>
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center shrink-0">
-              <span className="text-xl">✨</span>
+              <Icon name="sparkles" className="w-5 h-5" />
             </div>
             <div className="flex-1">
               <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 mb-1.5 flex items-center justify-between uppercase tracking-widest w-full">
@@ -360,7 +361,7 @@ export default function HomeDashboard() {
                   className="text-slate-400 hover:text-black dark:hover:text-white transition-colors disabled:opacity-50"
                   title={tMsg('Refresh AI Briefing', 'Perbarui Ringkasan AI')}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                  <Icon name="refresh-cw" className="w-4 h-4" />
                 </button>
               </h3>
               <div className="text-slate-600 dark:text-slate-400 leading-relaxed font-medium text-sm md:text-base">
@@ -383,18 +384,18 @@ export default function HomeDashboard() {
           <div className="tour-my-capacity bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-sm">
             <div className="flex justify-between items-center mb-3">
               <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2">
-                <span>⏳</span> {tMsg('My Capacity', 'Kapasitas Saya')}
+                <Icon name="clock" className="w-4 h-4" /> {tMsg('My Capacity', 'Kapasitas Saya')}
               </h3>
               {(isWeeklyOverload || isMonthlyOverload) && (
                 <div className="flex items-center gap-2">
                   {isWeeklyOverload && (
                     <span className="text-[9px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 px-2 py-1 rounded-full border border-red-200 dark:border-red-800/50">
-                      ⚠️ {tMsg('Weekly Overload', 'Beban Mingguan Berlebih')}
+                      <Icon name="alert-triangle" className="w-3 h-3 inline" /> {tMsg('Weekly Overload', 'Beban Mingguan Berlebih')}
                     </span>
                   )}
                   {isMonthlyOverload && (
                     <span className="text-[9px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-1 rounded-full border border-amber-200 dark:border-amber-800/50">
-                      ⚠️ {tMsg('Monthly Overload', 'Beban Bulanan Berlebih')}
+                      <Icon name="alert-triangle" className="w-3 h-3 inline" /> {tMsg('Monthly Overload', 'Beban Bulanan Berlebih')}
                     </span>
                   )}
                 </div>
@@ -426,14 +427,14 @@ export default function HomeDashboard() {
         <div className="tour-quick-stats grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div 
             onClick={() => {
-              setSelectedBoard({ id: 'global', name: `🌍 ${tMsg('See the Big Picture', 'Lihat Gambaran Besar')}`, role: 'owner', isVirtual: true });
+              setSelectedBoard({ id: 'global', name: tMsg('See the Big Picture', 'Lihat Gambaran Besar'), role: 'owner', isVirtual: true });
               setShowMyTasks(true);
               setShowOverdueOnly(false);
             }}
             className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md border border-neutral-200 dark:border-neutral-800 p-6 rounded-2xl shadow-sm hover:shadow-lg hover:border-black dark:hover:border-white transition-all cursor-pointer group flex flex-col justify-between"
           >
             <div>
-              <div className="text-2xl mb-3 group-hover:scale-110 transition-transform origin-left">📋</div>
+              <Icon name="clipboard-list" className="w-6 h-6 mb-3 group-hover:scale-110 transition-transform origin-left" />
               <div className="text-4xl font-black text-black dark:text-white mb-1">
                 {isLoading ? (
                   <div className="w-12 h-10 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse my-0.5"></div>
@@ -447,7 +448,7 @@ export default function HomeDashboard() {
           
           <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md border border-neutral-200 dark:border-neutral-800 p-6 rounded-2xl shadow-sm flex flex-col justify-between">
             <div>
-              <div className="text-2xl mb-3">📂</div>
+              <Icon name="folder-open" className="w-6 h-6 mb-3" />
               <div className="text-4xl font-black text-black dark:text-white mb-1">
                 {isLoading ? (
                   <div className="w-12 h-10 bg-neutral-200 dark:bg-neutral-800 rounded animate-pulse my-0.5"></div>
@@ -461,7 +462,7 @@ export default function HomeDashboard() {
 
           <div 
             onClick={() => {
-              setSelectedBoard({ id: 'global', name: `🌍 ${tMsg('See the Big Picture', 'Lihat Gambaran Besar')}`, role: 'owner', isVirtual: true });
+              setSelectedBoard({ id: 'global', name: tMsg('See the Big Picture', 'Lihat Gambaran Besar'), role: 'owner', isVirtual: true });
               setShowOverdueOnly(true);
               setShowMyTasks(false);
             }}
@@ -469,7 +470,7 @@ export default function HomeDashboard() {
           >
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-red-500/10 rounded-full blur-xl"></div>
             <div className="relative z-10">
-              <div className="text-2xl mb-3 relative z-10">⚠️</div>
+              <Icon name="alert-triangle" className="w-6 h-6 mb-3 relative z-10" />
               <div className="text-4xl font-black text-amber-600 dark:text-amber-500 mb-1 relative z-10">
                 {isLoading ? (
                   <div className="w-12 h-10 bg-amber-200/50 dark:bg-amber-900/20 rounded animate-pulse my-0.5"></div>
@@ -484,7 +485,7 @@ export default function HomeDashboard() {
           <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md border border-red-100 dark:border-red-900/30 p-6 rounded-2xl shadow-sm relative overflow-hidden flex flex-col justify-between">
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-red-500/10 rounded-full blur-xl"></div>
             <div className="relative z-10">
-              <div className="text-2xl mb-3 relative z-10">🚨</div>
+              <Icon name="siren" className="w-6 h-6 mb-3 relative z-10" />
               <div className="text-4xl font-black text-red-600 dark:text-red-500 mb-1 relative z-10">
                 {isLoading ? (
                   <div className="w-12 h-10 bg-red-200/50 dark:bg-red-900/20 rounded animate-pulse my-0.5"></div>
@@ -502,7 +503,7 @@ export default function HomeDashboard() {
           {/* Top Queue Tasks */}
           <div className="tour-top-queue bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-sm flex flex-col h-full min-h-75">
             <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 mb-4 uppercase tracking-widest flex items-center gap-2 shrink-0">
-              <span>⚡</span> {tMsg('My Top Queue', 'Antrean Teratas Saya')}
+              <Icon name="zap" className="w-4 h-4" /> {tMsg('My Top Queue', 'Antrean Teratas Saya')}
             </h3>
             <div className="flex-1 space-y-1 pr-2">
               {topQueueTasks.length > 0 ? topQueueTasks.map((task, index) => (
@@ -546,21 +547,24 @@ export default function HomeDashboard() {
                           task.impact === 'Medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50' :
                           'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-900/50'
                         }`}>
-                          {task.impact === 'High' ? '🔥' : task.impact === 'Medium' ? '⚡' : '🌱'} {task.impact}
+                          <Icon
+                            name={task.impact === 'High' ? 'flame' : task.impact === 'Medium' ? 'zap' : 'sprout'}
+                            className="w-3 h-3"
+                          /> {task.impact}
                         </span>
                       )}
 
                       {/* Recurring */}
                       {task.recurring && task.recurring !== 'none' && (
                         <span className="shrink-0 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 px-1.5 py-0.5 rounded font-medium flex items-center gap-0.5 border border-purple-200 dark:border-purple-900/50">
-                          🔄 {task.recurring}
+                          <Icon name="refresh-cw" className="w-3 h-3" /> {task.recurring}
                         </span>
                       )}
 
                       {/* ETC */}
                       {task.etc && (
                         <span className="shrink-0 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium flex items-center gap-0.5 border border-blue-200 dark:border-blue-900/50">
-                          ⏱ {task.etc}
+                          <Icon name="clock" className="w-3 h-3" /> {task.etc}
                         </span>
                       )}
                     </div>
@@ -592,7 +596,7 @@ export default function HomeDashboard() {
                 </div>
               )) : (
                 <div className="text-sm text-slate-500 flex flex-col items-center h-full justify-center text-center gap-2">
-                  <div className="text-4xl">🎉</div>
+                  <Icon name="party-popper" className="w-10 h-10" />
                   <div>{tMsg('You have no pending tasks! You are all caught up.', 'Tidak ada tugas tertunda! Anda sudah menyelesaikan semuanya.')}</div>
                 </div>
               )}
@@ -602,7 +606,7 @@ export default function HomeDashboard() {
           {/* Recent Comments */}
           <div className="tour-recent-comments bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-sm flex flex-col h-full min-h-75">
             <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 mb-4 uppercase tracking-widest flex items-center gap-2 shrink-0">
-              <span>💬</span> {tMsg('Recent Comments', 'Komentar Terbaru')}
+              <Icon name="message-circle" className="w-4 h-4" /> {tMsg('Recent Comments', 'Komentar Terbaru')}
             </h3>
             <div className="flex-1 space-y-3 pr-2">
               {isInboxLoading ? (
@@ -670,7 +674,10 @@ export default function HomeDashboard() {
                     >
                       <div className="flex items-center gap-2">
                         <div className="text-lg shrink-0">
-                          {chat.is_dm ? '💬' : chat.is_project_chat ? '🏢' : '📋'}
+                          <Icon
+                            name={chat.is_dm ? 'message-circle' : chat.is_project_chat ? 'building' : 'clipboard-list'}
+                            className="w-5 h-5"
+                          />
                         </div>
                         <div className="flex flex-col min-w-0">
                           <div className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1.5">
@@ -700,7 +707,7 @@ export default function HomeDashboard() {
                   );
                 }) : (
                   <div className="text-sm text-slate-500 flex flex-col items-center h-full justify-center text-center gap-2">
-                    <div className="text-4xl">💭</div>
+                    <Icon name="message-circle" className="w-10 h-10 opacity-50" />
                     <div>{tMsg('No recent comments found.', 'Tidak ada komentar terbaru.')}</div>
                   </div>
                 );
@@ -711,7 +718,7 @@ export default function HomeDashboard() {
 
         {/* Getting Started CTA */}
         <div className="mt-8 bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-8 text-center flex flex-col items-center pb-10">
-          <div className="text-4xl mb-4 animate-bounce">🚀</div>
+          <Icon name="rocket" className="w-10 h-10 mb-4 animate-bounce" />
           <h3 className="text-xl font-black text-black dark:text-white mb-2">
             {tMsg('Ready to get things done?', 'Siap untuk menyelesaikan tugas?')}
           </h3>
@@ -723,16 +730,16 @@ export default function HomeDashboard() {
           </p>
           <button
             onClick={() => {
-              setSelectedBoard({ id: 'global', name: `🌍 ${tMsg('See the Big Picture', 'Lihat Gambaran Besar')}`, role: 'owner', isVirtual: true });
+              setSelectedBoard({ id: 'global', name: tMsg('See the Big Picture', 'Lihat Gambaran Besar'), role: 'owner', isVirtual: true });
               setShowMyTasks(false);
               setShowOverdueOnly(false);
             }}
             className="group relative inline-flex items-center justify-center gap-3 bg-black dark:bg-white text-white dark:text-black font-black py-4 px-10 rounded-2xl transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 text-sm md:text-base overflow-hidden"
           >
             <div className="absolute inset-0 bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-20 transition-opacity"></div>
-            <span className="text-xl group-hover:scale-125 transition-transform duration-300">🌍</span> 
+            <Icon name="globe" className="w-5 h-5 group-hover:scale-125 transition-transform duration-300" /> 
             <span>{tMsg('Master View', 'Tampilan Master')}</span>
-            <span className="text-xl group-hover:translate-x-2 transition-transform duration-300">→</span>
+            <Icon name="arrow-right" className="w-5 h-5 group-hover:translate-x-2 transition-transform duration-300" />
           </button>
         </div>
       </div>

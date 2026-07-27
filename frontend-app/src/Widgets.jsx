@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Icon } from './components/icons/Icon';
 
 export const PomodoroWidget = ({ isDarkMode }) => {
   const [timeLeft, setTimeLeft] = useState(25 * 60);
@@ -39,7 +40,7 @@ export const PomodoroWidget = ({ isDarkMode }) => {
     <div className="fixed bottom-6 right-6 z-[60] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl p-4 flex flex-col gap-2 w-48 mac-animate hidden md:flex tour-pomodoro">
       <div className="flex justify-between items-center">
         <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">
-          {mode === 'work' ? '🍅 Focus' : '☕ Break'}
+          {mode === 'work' ? (<><Icon name="timer" className="w-3.5 h-3.5 inline-block mr-1" /> Focus</>) : (<><Icon name="coffee" className="w-3.5 h-3.5 inline-block mr-1" /> Break</>)}
         </span>
         <button
           onClick={() => {
@@ -110,7 +111,7 @@ export const ProjectLifecycleBanner = ({ deletionDateStr, language }) => {
   return (
     <div className="bg-red-500 text-white text-center py-2.5 px-4 text-[10px] sm:text-xs font-bold uppercase tracking-widest shadow-md sticky top-0 z-[99] flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
       <span>
-        ⚠️{' '}
+        <Icon name="alert-triangle" className="w-3.5 h-3.5 inline" />{' '}
         {tMsg(
           'PROJECT INACTIVE FOR 6 MONTHS. AUTO-DELETING IN:',
           'PROYEK TIDAK AKTIF SELAMA 6 BULAN. HAPUS OTOMATIS DALAM:'
@@ -135,7 +136,7 @@ export const LiveClock = ({ showLiveClockDate, language }) => {
       className="hidden lg:flex items-center gap-2 text-[10px] sm:text-xs font-bold text-neutral-500 dark:text-neutral-400 border-r border-neutral-200 dark:border-neutral-800 pr-3 sm:pr-4 mr-1 sm:mr-2 tour-live-clock"
       title="Current Local Time"
     >
-      <span className="text-sm">🕒</span>
+      <Icon name="clock" className="w-3.5 h-3.5" />
       {showLiveClockDate && (
         <span className="uppercase tracking-widest">
           {currentTime.toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', {

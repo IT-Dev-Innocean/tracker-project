@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useCloseAnimation, LoadingSpinner } from './Utils';
 import { Avatar } from './SharedUI';
+import { Icon } from './components/icons/Icon';
 
 export default function ProactiveAIModal({
   setIsProactiveAIOpen,
@@ -424,8 +425,8 @@ USER REQUEST:
           {isCancelling
             ? tMsg('Cancelling...', 'Membatalkan...')
             : isCartVisible || inboxTasks.length > 0
-              ? tMsg('Cancel', 'Batal') + ' ✖'
-              : tMsg('Skip', 'Lewati') + ' ✖'}
+              ? (<>{tMsg('Cancel', 'Batal')} <Icon name="x" className="w-3.5 h-3.5 inline-block" /></>)
+              : (<>{tMsg('Skip', 'Lewati')} <Icon name="x" className="w-3.5 h-3.5 inline-block" /></>)}
         </button>
 
         <style>{`
@@ -595,14 +596,7 @@ USER REQUEST:
                       {isProcessing ? (
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       ) : (
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2.5"
-                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                          ></path>
-                        </svg>
+                        <Icon name="send" className="w-6 h-6" />
                       )}
                     </button>
                   </div>
@@ -750,12 +744,12 @@ USER REQUEST:
                             </span>
                             {t.deadline && (
                               <span className="text-[9px] font-bold bg-rose-100 dark:bg-rose-900/30 px-2 py-0.5 rounded text-rose-700 dark:text-rose-400 inline-block uppercase tracking-wider">
-                                📅 {formatDateMMM(t.deadline)}
+                                <Icon name="calendar" className="w-3 h-3 inline-block" /> {formatDateMMM(t.deadline)}
                               </span>
                             )}
                             {t.auto_nudge && (
                               <span className="text-[9px] font-bold bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 rounded text-purple-700 dark:text-purple-400 inline-block uppercase tracking-wider">
-                                🔔 Auto Nudge ON
+                                <Icon name="bell" className="w-3 h-3 inline-block" /> Auto Nudge ON
                               </span>
                             )}
                             <select
@@ -796,7 +790,7 @@ USER REQUEST:
                             className="shrink-0 ml-2 text-neutral-400 hover:text-red-500 transition-colors p-1"
                             title={tMsg('Remove task', 'Hapus tugas')}
                           >
-                            ✖
+                            <Icon name="x" className="w-4 h-4" />
                           </button>
                         )}
                       </div>
@@ -817,7 +811,7 @@ USER REQUEST:
                       disabled={isSaving || isProcessing || !generatedTasks.some((t) => t.selected)}
                       className="w-full sm:w-auto bg-black dark:bg-white text-white dark:text-black px-8 py-3.5 rounded-full font-bold uppercase tracking-widest text-xs shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 pointer-events-auto"
                     >
-                      {isSaving ? <LoadingSpinner /> : '🚀'}
+                      {isSaving ? <LoadingSpinner /> : <Icon name="rocket" className="w-5 h-5" />}
                       {isSaving
                         ? tMsg('Processing...', 'Memproses...')
                         : tMsg('Add to Inbox', 'Tambahkan ke Kotak Masuk')}
@@ -880,21 +874,21 @@ USER REQUEST:
                               : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
                             }`}
                         >
-                          {t.impact === 'High' ? '🔥 High' : t.impact === 'Low' ? '🧊 Low' : '⚡ Med'}
+                          {t.impact === 'High' ? (<><Icon name="flame" className="w-3 h-3 inline-block" /> High</>) : t.impact === 'Low' ? (<><Icon name="snowflake" className="w-3 h-3 inline-block" /> Low</>) : (<><Icon name="zap" className="w-3 h-3 inline-block" /> Med</>)}
                         </span>
                         <span className="text-[9px] font-bold px-2 py-1 rounded-md uppercase tracking-widest shadow-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">
                           ⏳ {t.etc || 2}h
                         </span>
                         {t.auto_nudge && (
                           <span className="text-[9px] font-bold px-2 py-1 rounded-md uppercase tracking-widest shadow-sm bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
-                            🔔 Auto Nudge ON
+                            <Icon name="bell" className="w-3 h-3 inline-block" /> Auto Nudge ON
                           </span>
                         )}
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 mt-2.5 pt-2.5 border-t border-neutral-100 dark:border-neutral-800/50 text-[9px] font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest">
                       <div className="flex justify-between items-center">
-                        <span title="Created At">✨ AI Draft</span>
+                        <span title="Created At"><Icon name="sparkles" className="w-3 h-3 inline-block mr-1" /> AI Draft</span>
                         <span className="text-black dark:text-white">
                           {t.finalDeadline ? `⏳ ${formatDateMMM(t.finalDeadline)}` : '-'}
                         </span>
@@ -930,7 +924,7 @@ USER REQUEST:
                         className="absolute top-2 right-2 p-1.5 text-neutral-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-neutral-950 rounded-lg"
                         title={tMsg('Cancel task', 'Batal tugas')}
                       >
-                        ✖
+                        <Icon name="x" className="w-4 h-4" />
                       </button>
                     )}
                   </div>
@@ -958,7 +952,7 @@ USER REQUEST:
         <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[300] p-4">
           <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-sm border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl text-center mac-animate">
             <div className="w-20 h-20 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-red-200 dark:border-red-800/50">
-              🗑️
+              <Icon name="trash" className="w-5 h-5" />
             </div>
             <h3 className="text-xl font-black text-black dark:text-white mb-4 uppercase">
               {tMsg('Discard Drafts?', 'Buang Draf?')}
@@ -991,7 +985,7 @@ USER REQUEST:
         <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[300] p-4">
           <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-sm border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl text-center mac-animate">
             <div className="w-20 h-20 bg-amber-50 dark:bg-amber-900/30 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-amber-200 dark:border-amber-800/50">
-              ⚠️
+              <Icon name="alert-triangle" className="w-10 h-10" />
             </div>
             <h3 className="text-xl font-black text-black dark:text-white mb-4 uppercase">
               {tMsg('Private Workspace Alert', 'Peringatan Ruang Kerja')}

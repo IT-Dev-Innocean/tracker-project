@@ -1,26 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-
-// Custom SVG Icons
-const SlidersIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="4" y1="21" x2="4" y2="14"></line>
-    <line x1="4" y1="10" x2="4" y2="3"></line>
-    <line x1="12" y1="21" x2="12" y2="12"></line>
-    <line x1="12" y1="8" x2="12" y2="3"></line>
-    <line x1="20" y1="21" x2="20" y2="16"></line>
-    <line x1="20" y1="12" x2="20" y2="3"></line>
-    <line x1="1" y1="14" x2="7" y2="14"></line>
-    <line x1="9" y1="8" x2="15" y2="8"></line>
-    <line x1="17" y1="16" x2="23" y2="16"></line>
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="20 6 9 17 4 12"></polyline>
-  </svg>
-);
+import { Icon } from './icons/Icon';
 
 export default function BoardFilterSort({
   columns = [],
@@ -108,7 +88,7 @@ export default function BoardFilterSort({
               />
               <span className="text-sm">{opt.label}</span>
             </div>
-            {value === opt.value && <CheckIcon />}
+            {value === opt.value && <Icon name="check" className="w-3.5 h-3.5" strokeWidth={2.5} />}
           </label>
         ))}
       </div>
@@ -126,7 +106,7 @@ export default function BoardFilterSort({
             : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
         }`}
       >
-        <SlidersIcon />
+        <Icon name="sliders" className="w-4 h-4" />
         <span>Display</span>
         {hasActiveFilters && (
           <span className="w-2 h-2 rounded-full bg-indigo-500 ml-1"></span>

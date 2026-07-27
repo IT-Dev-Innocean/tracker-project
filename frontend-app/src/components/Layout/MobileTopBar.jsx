@@ -1,6 +1,19 @@
 import { Avatar } from '../../SharedUI';
 import { useAppContext } from '../../contexts/AppContext';
 import InnoceanLogo from '../InnoceanLogo';
+import { Icon } from '../icons/Icon';
+
+function NotificationTypeIcon({ type }) {
+  if (type === 'task_assigned') return <Icon name="arrow-right" className="w-5 h-5" />;
+  if (type === 'task_completed') return <Icon name="check-circle" className="w-5 h-5" />;
+  if (type === 'comment' || type === 'mention' || type === 'team_chat') {
+    return <Icon name="message-circle" className="w-5 h-5" />;
+  }
+  if (type === 'team_invite' || type === 'access_request') {
+    return <Icon name="handshake" className="w-5 h-5" />;
+  }
+  return <Icon name="bell" className="w-5 h-5" />;
+}
 
 export default function MobileTopBar() {
   const {
@@ -48,17 +61,7 @@ export default function MobileTopBar() {
         <button
           onClick={() => setIsMobileMenuOpen(true)}
           className='p-1.5 -ml-1.5 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md transition-colors'>
-          <svg
-            className='w-6 h-6'
-            fill='none'
-            stroke='currentColor'
-            viewBox='0 0 24 24'>
-            <path
-              strokeLinecap='round'
-              strokeLinejoin='round'
-              strokeWidth='2.5'
-              d='M4 6h16M4 12h16M4 18h16'></path>
-          </svg>
+          <Icon name="menu" className="w-6 h-6" />
         </button>
         <InnoceanLogo
           size='md'
@@ -76,14 +79,14 @@ export default function MobileTopBar() {
             <button
               onClick={() => setIsNotifOpen(true)}
               className='text-xl relative p-1 text-neutral-600 dark:text-neutral-300'>
-              🔔
+              <Icon name="bell" className="w-5 h-5" />
               <span className='absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-black'></span>
             </button>
           ) : (
             <button
               onClick={() => setIsNotifOpen(true)}
               className='text-xl p-1 text-neutral-600 dark:text-neutral-300'>
-              🔔
+              <Icon name="bell" className="w-5 h-5" />
             </button>
           )}
           {isNotifOpen && (
@@ -107,7 +110,7 @@ export default function MobileTopBar() {
                 <div className='overflow-y-auto flex-1'>
                   {notifications.length === 0 ? (
                     <div className='p-8 text-center text-neutral-400 text-sm'>
-                      <span className='text-3xl block mb-2'>📭</span>
+                      <Icon name="mail" className="w-8 h-8 mx-auto mb-2 opacity-60" />
                       {tMsg('No notifications yet.', 'Belum ada notifikasi.')}
                     </div>
                   ) : (
@@ -135,19 +138,8 @@ export default function MobileTopBar() {
                             : ''
                         }`}>
                         <div className='flex gap-2.5 items-start text-left'>
-                          <span className='text-lg shrink-0'>
-                            {n.type === 'task_assigned'
-                              ? '👉'
-                              : n.type === 'task_completed'
-                                ? '✅'
-                                : n.type === 'comment' ||
-                                    n.type === 'mention' ||
-                                    n.type === 'team_chat'
-                                  ? '💬'
-                                  : n.type === 'team_invite' ||
-                                      n.type === 'access_request'
-                                    ? '🤝'
-                                    : '🔔'}
+                          <span className='shrink-0'>
+                            <NotificationTypeIcon type={n.type} />
                           </span>
                           <div className='flex-1 min-w-0'>
                             <p
@@ -201,7 +193,7 @@ export default function MobileTopBar() {
                       setIsMobileProfileOpen(false);
                     }}
                     className='w-full text-left px-4 py-3 text-sm font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 flex items-center gap-2 transition-colors'>
-                    <span>🔑</span> {tMsg('Manage Users', 'Kelola Pengguna')}
+                    <Icon name="lock" className="w-4 h-4" /> {tMsg('Manage Users', 'Kelola Pengguna')}
                   </button>
                 )}
                 <button
@@ -210,7 +202,7 @@ export default function MobileTopBar() {
                     setIsMobileProfileOpen(false);
                   }}
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
-                  <span>⚙️</span> {tMsg('Settings', 'Pengaturan')}
+                  <Icon name="settings" className="w-4 h-4" /> {tMsg('Settings', 'Pengaturan')}
                 </button>
                 <button
                   onClick={() => {
@@ -219,7 +211,7 @@ export default function MobileTopBar() {
                   }}
                   disabled={accountStatus === 'suspended'}
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                  <span>🌴</span> {tMsg('Time Off', 'Cuti')}
+                  <Icon name="calendar-days" className="w-4 h-4" /> {tMsg('Time Off', 'Cuti')}
                 </button>
                 <button
                   onClick={() => {
@@ -229,7 +221,7 @@ export default function MobileTopBar() {
                   }}
                   disabled={accountStatus === 'suspended'}
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                  <span>✨</span> {tMsg('Smart Assistant', 'Asisten Pintar AI')}
+                  <Icon name="sparkles" className="w-4 h-4" /> {tMsg('Smart Assistant', 'Asisten Pintar AI')}
                 </button>
                 <button
                   onClick={() => {
@@ -238,7 +230,7 @@ export default function MobileTopBar() {
                   }}
                   disabled={accountStatus === 'suspended'}
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                  <span>🎫</span> {tMsg('My Tickets', 'Tiket Saya')}
+                  <Icon name="ticket" className="w-4 h-4" /> {tMsg('My Tickets', 'Tiket Saya')}
                 </button>
                 <div className='border-t border-neutral-200 dark:border-neutral-800 my-1'></div>
                 <button
@@ -247,7 +239,7 @@ export default function MobileTopBar() {
                     setIsMobileProfileOpen(false);
                   }}
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
-                  <span>📖</span> {tMsg('Documentation', 'Dokumentasi')}
+                  <Icon name="book-open" className="w-4 h-4" /> {tMsg('Documentation', 'Dokumentasi')}
                 </button>
                 <button
                   onClick={() => {
@@ -256,7 +248,7 @@ export default function MobileTopBar() {
                   }}
                   disabled={accountStatus === 'suspended'}
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                  <span>💡</span> {tMsg('Submit Idea', 'Kirim Masukan')}
+                  <Icon name="lightbulb" className="w-4 h-4" /> {tMsg('Submit Idea', 'Kirim Masukan')}
                 </button>
                 <button
                   onClick={() => {
@@ -265,7 +257,7 @@ export default function MobileTopBar() {
                   }}
                   disabled={accountStatus === 'suspended'}
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                  <span>🎧</span> {tMsg('Contact Support', 'Hubungi Dukungan')}
+                  <Icon name="phone" className="w-4 h-4" /> {tMsg('Contact Support', 'Hubungi Dukungan')}
                 </button>
                 <button
                   onClick={() => {
@@ -273,7 +265,7 @@ export default function MobileTopBar() {
                     setIsMobileProfileOpen(false);
                   }}
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
-                  <span>🧭</span> {tMsg('Replay Tour', 'Ulangi Tur')}
+                  <Icon name="compass" className="w-4 h-4" /> {tMsg('Replay Tour', 'Ulangi Tur')}
                 </button>
                 {isInstallable && (
                   <button
@@ -282,17 +274,7 @@ export default function MobileTopBar() {
                       setIsMobileProfileOpen(false);
                     }}
                     className='w-full text-left px-4 py-3 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-2 transition-colors mt-1 rounded-lg'>
-                    <svg
-                      className='w-4 h-4'
-                      fill='none'
-                      stroke='currentColor'
-                      viewBox='0 0 24 24'>
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth='2.5'
-                        d='M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-3 3m0 0l-3-3m3 3V4'></path>
-                    </svg>
+                    <Icon name="download" className="w-4 h-4" />
                     {tMsg('Install App', 'Instal Aplikasi')}
                   </button>
                 )}
@@ -303,7 +285,7 @@ export default function MobileTopBar() {
                     setIsMobileProfileOpen(false);
                   }}
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2 transition-colors'>
-                  <span>🚪</span> {tMsg('Logout', 'Keluar')}
+                  <Icon name="logout" className="w-4 h-4" /> {tMsg('Logout', 'Keluar')}
                 </button>
               </div>
             </div>

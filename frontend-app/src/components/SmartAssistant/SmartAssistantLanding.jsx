@@ -1,4 +1,5 @@
 import React from 'react';
+import { Icon } from '../icons/Icon';
 
 export default function SmartAssistantLanding({
   currentUser,
@@ -10,8 +11,8 @@ export default function SmartAssistantLanding({
 }) {
   return (
     <div className="flex-1 flex flex-col w-full h-full bg-white dark:bg-neutral-950 relative z-20 items-center justify-center p-6 text-center">
-      <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-lg mac-animate">
-        ✨
+      <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg mac-animate">
+        <Icon name="sparkles" className="w-8 h-8" />
       </div>
       <h2
         className="text-2xl font-black text-black dark:text-white mb-2 mac-animate"
@@ -31,8 +32,8 @@ export default function SmartAssistantLanding({
           onClick={() => setAssistantMode('quick_todo')}
           className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 sm:p-5 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-emerald-500 dark:hover:border-emerald-500 transition-all flex items-center gap-4 text-left group"
         >
-          <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500 rounded-full flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform shadow-inner border border-emerald-100 dark:border-emerald-800/50">
-            ⚡
+          <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500 rounded-full flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner border border-emerald-100 dark:border-emerald-800/50">
+            <Icon name="zap" className="w-6 h-6" />
           </div>
           <div>
             <h3 className="font-bold text-black dark:text-white text-sm">
@@ -48,8 +49,8 @@ export default function SmartAssistantLanding({
           onClick={() => setAssistantMode('planner')}
           className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 sm:p-5 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-purple-500 dark:hover:border-purple-500 transition-all flex items-center gap-4 text-left group"
         >
-          <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/30 text-purple-500 rounded-full flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform shadow-inner border border-purple-100 dark:border-purple-800/50">
-            🚀
+          <div className="w-12 h-12 bg-purple-50 dark:bg-purple-900/30 text-purple-500 rounded-full flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner border border-purple-100 dark:border-purple-800/50">
+            <Icon name="rocket" className="w-6 h-6" />
           </div>
           <div>
             <h3 className="font-bold text-black dark:text-white text-sm">
@@ -65,8 +66,8 @@ export default function SmartAssistantLanding({
           onClick={() => startQuickNote()}
           className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 sm:p-5 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-amber-500 dark:hover:border-amber-500 transition-all flex items-center gap-4 text-left group"
         >
-          <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 text-amber-500 rounded-full flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform shadow-inner border border-amber-100 dark:border-amber-800/50">
-            📝
+          <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 text-amber-500 rounded-full flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner border border-amber-100 dark:border-amber-800/50">
+            <Icon name="file-text" className="w-6 h-6" />
           </div>
           <div>
             <h3 className="font-bold text-black dark:text-white text-sm">{tMsg('Meeting Notes', 'Catatan Rapat')}</h3>
@@ -83,8 +84,8 @@ export default function SmartAssistantLanding({
           }}
           className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 sm:p-5 rounded-2xl shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all flex items-center gap-4 text-left group"
         >
-          <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-full flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform shadow-inner border border-indigo-100 dark:border-indigo-800/50">
-            💬
+          <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-full flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform shadow-inner border border-indigo-100 dark:border-indigo-800/50">
+            <Icon name="message-circle" className="w-6 h-6" />
           </div>
           <div>
             <h3 className="font-bold text-black dark:text-white text-sm">

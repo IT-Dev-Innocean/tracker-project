@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useCloseAnimation, HighlightText, LoadingSpinner } from './Utils';
+import { Icon } from './components/icons/Icon';
 
 export default function AdminModal({
   setIsAdminModalOpen,
@@ -342,7 +343,7 @@ export default function AdminModal({
                       }}
                       className="text-[10px] font-bold bg-emerald-500 text-white px-3 py-1.5 rounded-lg uppercase tracking-widest hover:bg-emerald-600 transition-colors shadow-sm"
                     >
-                      ✅ {tMsg('Verify', 'Verifikasi')} ({selectedUsers.length})
+<Icon name="check-circle" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Verify', 'Verifikasi')} ({selectedUsers.length})
                     </button>
                     <button
                       onClick={() => {
@@ -351,13 +352,13 @@ export default function AdminModal({
                       }}
                       className="text-[10px] font-bold bg-red-500 text-white px-3 py-1.5 rounded-lg uppercase tracking-widest hover:bg-red-600 transition-colors shadow-sm"
                     >
-                      💥 {tMsg('Purge', 'Bersihkan')} ({selectedUsers.length})
+<Icon name="zap" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Purge', 'Bersihkan')} ({selectedUsers.length})
                     </button>
                   </div>
                 )}
               </div>
               <div className="relative w-full sm:w-auto mt-2 sm:mt-0">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">🔍</span>
+                <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
                 <input
                   type="text"
                   placeholder={tMsg('Search users...', 'Cari pengguna...')}
@@ -438,11 +439,11 @@ export default function AdminModal({
                       <td className="px-6 py-4 text-center whitespace-nowrap">
                         {u.is_superadmin === 1 ? (
                           <span className="text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-800/50 shadow-sm flex items-center justify-center gap-1.5 w-max mx-auto">
-                            👑 {tMsg('Admin', 'Admin')}
+<Icon name="crown" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Admin', 'Admin')}
                           </span>
                         ) : (
                           <span className="text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center gap-1.5 w-max mx-auto">
-                            👤 {tMsg('User', 'User')}
+<Icon name="user" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('User', 'User')}
                           </span>
                         )}
                       </td>
@@ -504,8 +505,8 @@ export default function AdminModal({
                                 }
                               >
                                 {u.is_superadmin === 1
-                                  ? '👑 ' + tMsg('Demote', 'Turunkan')
-                                  : '👤 ' + tMsg('Promote', 'Naikkan')}
+                                  ? (<><Icon name="crown" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Demote', 'Turunkan')}</>)
+                                  : (<><Icon name="user" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Promote', 'Naikkan')}</>)}
                               </button>
                             )}
                             {u.is_verified === 1 &&
@@ -520,7 +521,7 @@ export default function AdminModal({
                                   className="flex items-center gap-1.5 text-xs font-bold text-cyan-700 bg-cyan-50 hover:bg-cyan-500 hover:text-white dark:bg-cyan-900/20 dark:text-cyan-400 px-3 py-1.5 rounded-lg transition-all border border-cyan-200 dark:border-cyan-800/50 shadow-sm hover:-translate-y-0.5"
                                   title={tMsg('Freeze Account', 'Bekukan Akun')}
                                 >
-                                  ❄️ {tMsg('Freeze', 'Bekukan')}
+                                  <Icon name="snowflake" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Freeze', 'Bekukan')}
                                 </button>
                               )}
                             {u.is_verified === 1 &&
@@ -535,7 +536,7 @@ export default function AdminModal({
                                   className="flex items-center gap-1.5 text-xs font-bold text-purple-700 bg-purple-50 hover:bg-purple-500 hover:text-white dark:bg-purple-900/20 dark:text-purple-400 px-3 py-1.5 rounded-lg transition-all border border-purple-200 dark:border-purple-800/50 shadow-sm hover:-translate-y-0.5"
                                   title={tMsg('Schedule Offboarding Date', 'Jadwalkan Waktu Keluar')}
                                 >
-                                  🚪 {tMsg('Offboard', 'Keluar')}
+<Icon name="logout" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Offboard', 'Keluar')}
                                 </button>
                               )}
                             {u.is_verified === 1 && u.account_status === 'suspended' && (
@@ -549,7 +550,7 @@ export default function AdminModal({
                                 className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-500 hover:text-white dark:bg-emerald-900/30 dark:text-emerald-400 px-3 py-1.5 rounded-lg transition-all border border-emerald-200 dark:border-emerald-800/50 shadow-sm hover:-translate-y-0.5"
                                 title={tMsg('Unfreeze Account', 'Cairkan Akun')}
                               >
-                                🔥 {tMsg('Unfreeze', 'Cairkan')}
+<Icon name="flame" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Unfreeze', 'Cairkan')}
                               </button>
                             )}
                             {u.is_verified === 1 && u.account_status === 'pending_deletion' && (
@@ -563,7 +564,7 @@ export default function AdminModal({
                                 className="flex items-center gap-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-500 hover:text-white dark:bg-blue-900/20 dark:text-blue-400 px-3 py-1.5 rounded-lg transition-all border border-blue-200 dark:border-blue-800/50 shadow-sm hover:-translate-y-0.5"
                                 title={tMsg('Restore Account', 'Pulihkan Akun')}
                               >
-                                ♻️ {tMsg('Restore', 'Pulihkan')}
+                                <Icon name="recycle" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Restore', 'Pulihkan')}
                               </button>
                             )}
 
@@ -576,7 +577,7 @@ export default function AdminModal({
                                 className="flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-900/20 dark:text-red-400 px-3 py-1.5 rounded-lg transition-all border border-red-200 dark:border-red-800/50 shadow-sm hover:-translate-y-0.5"
                                 title={tMsg('Delete User', 'Hapus Pengguna')}
                               >
-                                🗑️ {tMsg('Delete', 'Hapus')}
+<Icon name="trash" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Delete', 'Hapus')}
                               </button>
                             ) : u.is_verified === 0 ? (
                               <>
@@ -590,7 +591,7 @@ export default function AdminModal({
                                   className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-500 hover:text-white dark:bg-emerald-900/20 dark:text-emerald-400 px-3 py-1.5 rounded-lg transition-all border border-emerald-200 dark:border-emerald-800/50 shadow-sm hover:-translate-y-0.5"
                                   title={tMsg('Manually Verify Account', 'Verifikasi Akun Manual')}
                                 >
-                                  ✅ {tMsg('Verify', 'Verifikasi')}
+            <Icon name="check-circle" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Verify', 'Verifikasi')}
                                 </button>
                                 <button
                                   onClick={() => {
@@ -605,7 +606,7 @@ export default function AdminModal({
                                     'Hapus Permanen Akun Belum Terverifikasi'
                                   )}
                                 >
-                                  💥 {tMsg('Purge', 'Bersihkan')}
+            <Icon name="zap" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Purge', 'Bersihkan')}
                                 </button>
                               </>
                             ) : null}
@@ -651,7 +652,7 @@ export default function AdminModal({
               </div>
               <div className="flex items-center gap-3 w-full sm:w-auto mt-2 sm:mt-0 flex-wrap sm:flex-nowrap">
                 <div className="relative w-full sm:w-auto flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">🔍</span>
+                  <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
                   <input
                     type="text"
                     placeholder={tMsg('Search projects...', 'Cari proyek...')}
@@ -734,15 +735,15 @@ export default function AdminModal({
                             </span>
                           ) : b.owner_status === 'pending_deletion' ? (
                             <span className="text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-800/50 shadow-sm w-max mx-auto block">
-                              ⏳ {tMsg('Owner Deleting', 'Pemilik Dihapus')}
+<Icon name="clock" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Owner Deleting', 'Pemilik Dihapus')}
                             </span>
                           ) : b.owner_status === 'suspended' ? (
                             <span className="text-xs font-bold bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400 px-3 py-1 rounded-full border border-cyan-200 dark:border-cyan-800/50 shadow-sm w-max mx-auto block">
-                              ❄️ {tMsg('Owner Frozen', 'Pemilik Beku')}
+                              <Icon name="snowflake" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Owner Frozen', 'Pemilik Beku')}
                             </span>
                           ) : (
                             <span className="text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/50 shadow-sm w-max mx-auto block">
-                              ✅ {tMsg('Active', 'Aktif')}
+        <Icon name="check-circle" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Active', 'Aktif')}
                             </span>
                           )}
                         </td>
@@ -763,7 +764,7 @@ export default function AdminModal({
                               className="flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-900/20 dark:text-red-400 px-3 py-1.5 rounded-lg transition-all border border-red-200 dark:border-red-800/50 shadow-sm hover:-translate-y-0.5"
                               title={tMsg('Delete Project', 'Hapus Proyek')}
                             >
-                              🗑️ {tMsg('Delete', 'Hapus')}
+<Icon name="trash" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Delete', 'Hapus')}
                             </button>
                           </div>
                         </td>
@@ -787,7 +788,7 @@ export default function AdminModal({
               <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-4 mac-animate">
                 <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-md border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] text-center flex flex-col items-center">
                   <div className="w-20 h-20 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-red-200 dark:border-red-800">
-                    ⚠️
+<Icon name="alert-triangle" className="w-10 h-10" />
                   </div>
                   <h3 className="text-2xl font-black text-black dark:text-white mb-2 text-center uppercase">
                     {tMsg('Delete Projects?', 'Hapus Proyek?')}
@@ -920,7 +921,7 @@ export default function AdminModal({
                         : 'bg-red-50 dark:bg-red-900/30 text-red-500 border-red-200 dark:border-red-800'
                     }`}
                   >
-                    {bulkUserActionType === 'verify' ? '✅' : '⚠️'}
+                    <Icon name={bulkUserActionType === 'verify' ? 'check-circle' : 'alert-triangle'} className="w-10 h-10" />
                   </div>
                   <h3 className="text-2xl font-black text-black dark:text-white mb-2 text-center uppercase">
                     {bulkUserActionType === 'verify'
@@ -1054,7 +1055,7 @@ export default function AdminModal({
                           <td className="px-6 py-3 text-sm text-neutral-700 dark:text-neutral-300 font-medium">
                             {u.timesheet_approver ? (
                               <span className="inline-flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full text-xs font-bold border border-indigo-100 dark:border-indigo-800/55">
-                                ⏱️ @{u.timesheet_approver}
+                                <Icon name="timer" className="w-3.5 h-3.5" /> @{u.timesheet_approver}
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 bg-neutral-100 dark:bg-neutral-850 text-neutral-500 px-2.5 py-1 rounded-full text-xs font-bold border border-neutral-250 dark:border-neutral-700">
@@ -1100,7 +1101,7 @@ export default function AdminModal({
               {/* Core System Settings */}
               <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 md:p-8">
                 <div className="flex items-center gap-3 mb-6">
-                  <span className="text-3xl">⚙️</span>
+                  <Icon name="settings" className="w-8 h-8" />
                   <div>
                     <h3 className="text-lg font-black text-black dark:text-white uppercase tracking-wider">
                       {tMsg('Core System Settings', 'Pengaturan Sistem Inti')}
@@ -1136,7 +1137,7 @@ export default function AdminModal({
                         onTouchCancel={() => togglePass('db', false)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
                       >
-                        {showPass.db ? '🙈' : '👁️'}
+                        {showPass.db ? <Icon name="eye-off" className="w-4 h-4" /> : <Icon name="eye" className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -1162,7 +1163,7 @@ export default function AdminModal({
                         onTouchCancel={() => togglePass('jwt', false)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
                       >
-                        {showPass.jwt ? '🙈' : '👁️'}
+                        {showPass.jwt ? <Icon name="eye-off" className="w-4 h-4" /> : <Icon name="eye" className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -1188,7 +1189,7 @@ export default function AdminModal({
                         onTouchCancel={() => togglePass('cal', false)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
                       >
-                        {showPass.cal ? '🙈' : '👁️'}
+                        {showPass.cal ? <Icon name="eye-off" className="w-4 h-4" /> : <Icon name="eye" className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -1270,7 +1271,7 @@ export default function AdminModal({
                         onTouchCancel={() => togglePass('smtp', false)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
                       >
-                        {showPass.smtp ? '🙈' : '👁️'}
+                        {showPass.smtp ? <Icon name="eye-off" className="w-4 h-4" /> : <Icon name="eye" className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -1280,7 +1281,7 @@ export default function AdminModal({
               {/* API AI Setting */}
               <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 md:p-8">
                 <div className="flex items-center gap-3 mb-6">
-                  <span className="text-3xl">🤖</span>
+                  <Icon name="bot" className="w-8 h-8" />
                   <div>
                     <h3 className="text-lg font-black text-black dark:text-white uppercase tracking-wider">
                       {tMsg('Smart Assistant APIs', 'API Asisten Pintar')}
@@ -1316,7 +1317,7 @@ export default function AdminModal({
                         onTouchCancel={() => togglePass('gemini', false)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
                       >
-                        {showPass.gemini ? '🙈' : '👁️'}
+                        {showPass.gemini ? <Icon name="eye-off" className="w-4 h-4" /> : <Icon name="eye" className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -1342,7 +1343,7 @@ export default function AdminModal({
                         onTouchCancel={() => togglePass('groq', false)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
                       >
-                        {showPass.groq ? '🙈' : '👁️'}
+                        {showPass.groq ? <Icon name="eye-off" className="w-4 h-4" /> : <Icon name="eye" className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -1378,7 +1379,7 @@ export default function AdminModal({
           <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-4 mac-animate">
             <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-md border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] text-center flex flex-col items-center">
               <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border bg-red-50 dark:bg-red-900/30 text-red-500 border-red-200 dark:border-red-800">
-                🗑️
+<Icon name="trash" className="w-5 h-5" />
               </div>
               <h3 className="text-2xl font-black text-black dark:text-white mb-2 text-center uppercase">
                 {tMsg('Delete User', 'Hapus Pengguna')}
@@ -1401,7 +1402,7 @@ export default function AdminModal({
                 className="w-full mb-3 px-6 py-5 rounded-2xl border-2 border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-left transition-all group hover:-translate-y-0.5 shadow-sm"
               >
                 <div className="flex items-start gap-4">
-                  <span className="text-2xl mt-0.5">⏱️</span>
+                  <Icon name="timer" className="w-6 h-6 mt-0.5 shrink-0" />
                   <div>
                     <div className="font-black text-amber-700 dark:text-amber-400 text-sm uppercase tracking-wide mb-1">
                       {tMsg('Soft Delete', 'Hapus Lunak')}
@@ -1429,7 +1430,7 @@ export default function AdminModal({
                 className="w-full mb-6 px-6 py-5 rounded-2xl border-2 border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-left transition-all group hover:-translate-y-0.5 shadow-sm"
               >
                 <div className="flex items-start gap-4">
-                  <span className="text-2xl mt-0.5">💥</span>
+<Icon name="zap" className="w-6 h-6 mt-0.5" />
                   <div>
                     <div className="font-black text-red-700 dark:text-red-400 text-sm uppercase tracking-wide mb-1">
                       {tMsg('Delete Now', 'Hapus Sekarang')}
@@ -1459,7 +1460,7 @@ export default function AdminModal({
 
         {userToProcess &&
           (() => {
-            let icon = '⚠️';
+            let icon = 'alert-triangle';
             let iconColor = 'bg-red-50 dark:bg-red-900/30 text-red-500 border-red-200 dark:border-red-800';
             let btnColor = 'bg-red-500 hover:bg-red-600 hover:-translate-y-0.5';
             let focusColor = 'focus:border-red-500';
@@ -1470,14 +1471,14 @@ export default function AdminModal({
             const requiresTyping = processAction === 'purge' || processAction === 'schedule';
 
             if (processAction === 'offboard') {
-              icon = '🚪';
+              icon = 'logout';
               iconColor = 'bg-purple-50 dark:bg-purple-900/30 text-purple-500 border-purple-200 dark:border-purple-800';
               btnColor = 'bg-purple-500 hover:bg-purple-600 hover:-translate-y-0.5';
               focusColor = 'focus:border-purple-500';
               textColor = 'text-purple-500';
               title = tMsg('Schedule Offboarding', 'Jadwalkan Karyawan Keluar');
             } else if (processAction === 'promote') {
-              icon = '👑';
+              icon = 'crown';
               iconColor = 'bg-amber-50 dark:bg-amber-900/30 text-amber-500 border-amber-200 dark:border-amber-800';
               btnColor = 'bg-amber-500 hover:bg-amber-600 hover:-translate-y-0.5';
               focusColor = 'focus:border-amber-500';
@@ -1488,7 +1489,7 @@ export default function AdminModal({
                 'Pengguna ini akan mendapatkan akses administratif penuh ke sistem.'
               );
             } else if (processAction === 'demote') {
-              icon = '👤';
+              icon = 'user';
               iconColor = 'bg-slate-50 dark:bg-slate-900/30 text-slate-500 border-slate-200 dark:border-slate-800';
               btnColor = 'bg-slate-500 hover:bg-slate-600 hover:-translate-y-0.5';
               focusColor = 'focus:border-slate-500';
@@ -1499,7 +1500,7 @@ export default function AdminModal({
                 'Pengguna ini akan kehilangan hak administratif dan menjadi anggota biasa.'
               );
             } else if (processAction === 'freeze') {
-              icon = '❄️';
+              icon = 'snowflake';
               iconColor = 'bg-cyan-50 dark:bg-cyan-900/30 text-cyan-500 border-cyan-200 dark:border-cyan-800';
               btnColor = 'bg-cyan-500 hover:bg-cyan-600 hover:-translate-y-0.5';
               focusColor = 'focus:border-cyan-500';
@@ -1510,7 +1511,7 @@ export default function AdminModal({
                 'Akun ini akan dinonaktifkan sementara dari melakukan perubahan apa pun.'
               );
             } else if (processAction === 'unfreeze') {
-              icon = '🔥';
+              icon = 'flame';
               iconColor =
                 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500 border-emerald-200 dark:border-emerald-800';
               btnColor = 'bg-emerald-500 hover:bg-emerald-600 hover:-translate-y-0.5';
@@ -1522,7 +1523,7 @@ export default function AdminModal({
                 'Akun ini akan diaktifkan kembali dan dapat menggunakan sistem secara normal.'
               );
             } else if (processAction === 'restore') {
-              icon = '♻️';
+              icon = 'recycle';
               iconColor = 'bg-blue-50 dark:bg-blue-900/30 text-blue-500 border-blue-200 dark:border-blue-800';
               btnColor = 'bg-blue-500 hover:bg-blue-600 hover:-translate-y-0.5';
               focusColor = 'focus:border-blue-500';
@@ -1533,7 +1534,7 @@ export default function AdminModal({
                 'Akun ini akan dipulihkan dari antrean penghapusan.'
               );
             } else if (processAction === 'verify') {
-              icon = '✅';
+              icon = 'check-circle';
               iconColor =
                 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500 border-emerald-200 dark:border-emerald-800';
               btnColor = 'bg-emerald-500 hover:bg-emerald-600 hover:-translate-y-0.5';
@@ -1556,7 +1557,7 @@ export default function AdminModal({
                   <div
                     className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border ${iconColor}`}
                   >
-                    {icon}
+                    <Icon name={icon} className="w-10 h-10" />
                   </div>
                   <h3 className="text-2xl font-black text-black dark:text-white mb-2 text-center uppercase">
                     {title}
@@ -1708,7 +1709,7 @@ export default function AdminModal({
                   onTouchCancel={() => setShowSudoPass(false)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
                 >
-                  {showSudoPass ? '🙈' : '👁️'}
+                  {showSudoPass ? <Icon name="eye-off" className="w-4 h-4" /> : <Icon name="eye" className="w-4 h-4" />}
                 </button>
               </div>
               <div className="flex gap-4 w-full">
@@ -1739,7 +1740,7 @@ export default function AdminModal({
         <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-4 mac-animate">
           <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-md border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] text-center flex flex-col items-center">
             <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-indigo-200 dark:border-indigo-800">
-              ⏱️
+              <Icon name="timer" className="w-10 h-10" />
             </div>
             <h3 className="text-2xl font-black text-black dark:text-white mb-2 text-center uppercase">
               {tMsg('Set Approver', 'Atur Penyetuju')}

@@ -1,3 +1,4 @@
+import { Icon } from '../icons/Icon';
 import React, { useState, useEffect } from 'react';
 
 export default function LandingAISection({ showAuthForm }) {
@@ -40,7 +41,7 @@ export default function LandingAISection({ showAuthForm }) {
             <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
               <div className="reveal-on-scroll">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold text-xs mb-6 border border-indigo-100 dark:border-indigo-800/50">
-                  <span className="text-base leading-none">✨</span>
+                  <Icon name="sparkles" className="w-4 h-4" />
                   Powered by Dual AI Engine
                 </div>
                 <h2 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white mb-6 leading-[1.1] uppercase">
@@ -56,9 +57,7 @@ export default function LandingAISection({ showAuthForm }) {
                 </p>
                 <div className="space-y-6">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700 text-2xl shadow-sm">
-                      🤖
-                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700 text-2xl shadow-sm"><Icon name="bot" className="w-6 h-6" /></div>
                     <div>
                       <h4 className="font-bold text-slate-900 dark:text-white text-lg mb-1">
                         Proactive Task Drafting
@@ -70,9 +69,7 @@ export default function LandingAISection({ showAuthForm }) {
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-800/50 text-2xl shadow-sm">
-                      📝
-                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-100 dark:border-emerald-800/50 text-2xl shadow-sm"><Icon name="file-text" className="w-6 h-6" /></div>
                     <div>
                       <h4 className="font-bold text-slate-900 dark:text-white text-lg mb-1">
                         Live Meeting Extraction
@@ -84,9 +81,7 @@ export default function LandingAISection({ showAuthForm }) {
                     </div>
                   </div>
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-800/50 text-2xl shadow-sm">
-                      🧠
-                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-100 dark:border-blue-800/50 text-2xl shadow-sm"><Icon name="brain" className="w-6 h-6" /></div>
                     <div>
                       <h4 className="font-bold text-slate-900 dark:text-white text-lg mb-1">
                         Context-Aware Co-Pilot
@@ -110,9 +105,7 @@ export default function LandingAISection({ showAuthForm }) {
                     ></div>
                     <div className="relative w-full max-w-sm bg-white/90 dark:bg-[#0e1116]/90 backdrop-blur-xl border border-white/50 dark:border-slate-700/50 shadow-2xl rounded-3xl p-5 space-y-5 transform-gpu hover:scale-105 transition-transform duration-500">
                       <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
-                        <div className="w-8 h-8 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center shadow-md">
-                          ✨
-                        </div>
+                        <div className="w-8 h-8 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center shadow-md"><Icon name="sparkles" className="w-5 h-5" /></div>
                         <div>
                           <h4 className="font-bold text-sm text-slate-800 dark:text-white leading-none">
                             Smart Assistant
@@ -127,12 +120,10 @@ export default function LandingAISection({ showAuthForm }) {
                         </div>
                       </div>
                       <div className="flex gap-3 items-end flex-row-reverse">
-                        <div className="w-6 h-6 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-[10px] shadow-md flex-shrink-0">
-                          ✨
-                        </div>
+                        <div className="w-6 h-6 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-[10px] shadow-md flex-shrink-0"><Icon name="sparkles" className="w-5 h-5" /></div>
                         <div className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-800/50 p-4 rounded-2xl rounded-br-sm text-xs text-indigo-900 dark:text-indigo-200 w-[85%]">
                           <div className="font-bold mb-3 flex items-center gap-2">
-                            <span className="text-indigo-600 dark:text-indigo-400">🤖</span> Found 2 action items:
+                            <span className="text-indigo-600 dark:text-indigo-400"><Icon name="bot" className="w-6 h-6" /></span> Found 2 action items:
                           </div>
                           <div className="space-y-2 mb-4">
                             <div className="flex items-center gap-2">
@@ -147,7 +138,7 @@ export default function LandingAISection({ showAuthForm }) {
                             </div>
                           </div>
                           <button className="w-full bg-indigo-600 hover:bg-indigo-700 transition-colors text-white px-3 py-2 rounded-xl text-[11px] font-bold shadow-sm flex items-center justify-center gap-1">
-                            ⚡ Create All Tasks
+                            <Icon name="zap" className="w-3.5 h-3.5 inline-block mr-1" /> Create All Tasks
                           </button>
                         </div>
                       </div>
@@ -164,14 +155,7 @@ export default function LandingAISection({ showAuthForm }) {
               className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm transition-all animate-bounce"
               title="Next Section"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                ></path>
-              </svg>
+              <Icon name="chevron-down" className="w-5 h-5" />
             </button>
           </div>
         </section>
@@ -203,31 +187,31 @@ export default function LandingAISection({ showAuthForm }) {
                     id: 0,
                     title: '1. Tell the AI what you need',
                     desc: 'Just type your request naturally. No need to fill out complex forms or select multiple dropdowns.',
-                    icon: '💬',
+                    icon: 'message-circle',
                   },
                   {
                     id: 1,
                     title: '2. AI extracts the details',
                     desc: 'The Smart Assistant instantly pulls out the task title, assignees, deadlines, and generates a structured checklist.',
-                    icon: '🧠',
+                    icon: 'brain',
                   },
                   {
                     id: 2,
                     title: '3. Task appears on your board',
                     desc: 'Boom! Your task is perfectly categorized, prioritized, and placed on your Kanban board ready for action.',
-                    icon: '🚀',
+                    icon: 'rocket',
                   },
                   {
                     id: 3,
                     title: '4. Collaborate Instantly',
                     desc: 'Team members get notified. Start discussions, share files, and track progress in one place without switching apps.',
-                    icon: '💬',
+                    icon: 'message-circle',
                   },
                   {
                     id: 4,
                     title: '5. Automated Insights',
                     desc: 'Generate executive summaries and workload analytics instantly with the click of a button.',
-                    icon: '📊',
+                    icon: 'trending-up',
                   },
                 ].map((step) => (
                   <div
@@ -244,7 +228,7 @@ export default function LandingAISection({ showAuthForm }) {
                         simStep === step.id ? 'text-black dark:text-white' : 'text-slate-500 dark:text-slate-300'
                       }`}
                     >
-                      <span>{step.icon}</span> {step.title}
+                      <Icon name={step.icon} className="w-5 h-5 shrink-0" /> {step.title}
                     </h3>
                     <p
                       className={`text-xs sm:text-sm leading-relaxed font-medium ${
@@ -271,9 +255,7 @@ export default function LandingAISection({ showAuthForm }) {
                 >
                   <div className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-lg">
                     <div className="flex items-center gap-3 mb-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-                      <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center rounded-full text-lg">
-                        ✨
-                      </div>
+                      <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center rounded-full text-lg"><Icon name="sparkles" className="w-5 h-5" /></div>
                       <div>
                         <div className="font-bold text-slate-800 dark:text-white text-sm">Smart Assistant</div>
                         <div className="text-[10px] text-indigo-500">Ready to help</div>
@@ -433,7 +415,7 @@ export default function LandingAISection({ showAuthForm }) {
                 >
                   <div className="bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 h-full flex flex-col overflow-hidden relative shadow-lg">
                     <div className="bg-white dark:bg-neutral-950 border-b border-slate-200 dark:border-slate-800 p-3 shrink-0 flex items-center gap-3">
-                      <span className="text-xl">💬</span>
+                      <Icon name="message-circle" className="w-5 h-5" />
                       <div>
                         <div className="font-bold text-sm text-slate-800 dark:text-white leading-tight">
                           Fix login API bug
@@ -460,9 +442,7 @@ export default function LandingAISection({ showAuthForm }) {
                         </div>
                       </div>
                       <div className="flex gap-2 animate-fade-up" style={{ animationDelay: '2000ms' }}>
-                        <div className="w-6 h-6 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-[10px] shadow-md shrink-0">
-                          ✨
-                        </div>
+                        <div className="w-6 h-6 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-[10px] shadow-md shrink-0"><Icon name="sparkles" className="w-5 h-5" /></div>
                         <div className="bg-white dark:bg-neutral-800 p-2.5 rounded-xl rounded-tl-sm border border-slate-100 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300 shadow-sm border-l-2 border-l-indigo-500 max-w-[85%]">
                           <span className="font-bold text-indigo-600 dark:text-indigo-400 block mb-1">
                             Smart Assistant
@@ -486,9 +466,7 @@ export default function LandingAISection({ showAuthForm }) {
                 >
                   <div className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col h-full">
                     <div className="flex items-center gap-3 mb-4 border-b border-slate-100 dark:border-slate-800 pb-4 shrink-0">
-                      <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center rounded-xl text-lg">
-                        📊
-                      </div>
+                      <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 flex items-center justify-center rounded-xl text-lg"><Icon name="trending-up" className="w-5 h-5" /></div>
                       <div>
                         <div className="font-bold text-slate-800 dark:text-white text-sm">Project Health</div>
                         <div className="text-[10px] text-slate-500">Live Analytics</div>
@@ -544,7 +522,7 @@ export default function LandingAISection({ showAuthForm }) {
                         style={{ animationDelay: '1000ms' }}
                       >
                         <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5 mb-2">
-                          <span className="animate-pulse">✨</span> AI Executive Summary
+                          <span className="animate-pulse"><Icon name="sparkles" className="w-5 h-5" /></span> AI Executive Summary
                         </span>
                         <p className="text-xs text-indigo-900 dark:text-indigo-200 font-medium leading-relaxed">
                           The team's velocity is strong. 85% of tasks are completed on time. No critical bottlenecks
@@ -564,14 +542,7 @@ export default function LandingAISection({ showAuthForm }) {
               className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm transition-all animate-bounce"
               title="Next Section"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                ></path>
-              </svg>
+              <Icon name="chevron-down" className="w-5 h-5" />
             </button>
           </div>
         </section>

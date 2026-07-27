@@ -1,6 +1,7 @@
 import React from 'react';
 import ChatMessage from '../../ChatMessage';
 import { LoadingSpinner } from '../../Utils';
+import { Icon } from '../icons/Icon';
 
 export default function SmartAssistantChat({
   messages,
@@ -74,8 +75,8 @@ export default function SmartAssistantChat({
             className="text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-transparent border-none p-0 pr-4 focus:ring-0 cursor-pointer outline-none hover:opacity-80 transition-opacity [&>option]:bg-white dark:[&>option]:bg-neutral-900 [&>option]:text-black dark:[&>option]:text-white"
             title={language === 'id' ? 'Pilih Model AI' : 'Select AI Model'}
           >
-            <option value="auto">✨ {aiProvider === 'Smart Assistant' ? 'AUTO AI' : aiProvider.toUpperCase()}</option>
-            <option value="gemini">⚡ GOOGLE GEMINI</option>
+            <option value="auto">{aiProvider === 'Smart Assistant' ? 'AUTO AI' : aiProvider.toUpperCase()}</option>
+            <option value="gemini">GOOGLE GEMINI</option>
             <option value="llama">🧠 GPT-OSS 120B</option>
           </select>
           <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest hidden sm:block">
@@ -200,13 +201,13 @@ export default function SmartAssistantChat({
                 onClick={() => handleUserReply(optCancel)}
                 className="bg-white dark:bg-neutral-800 text-red-500 border border-red-200 dark:border-red-900/50 px-4 py-3.5 rounded-full shadow-lg font-bold uppercase tracking-widest text-[10px] hover:bg-red-50 dark:hover:bg-red-900/30 transition-all pointer-events-auto"
               >
-                ✖
+                <Icon name="x" className="w-4 h-4" />
               </button>
               <button
                 onClick={() => handleUserReply(tMsg('Process Notes', 'Proses Catatan'))}
                 className="bg-emerald-600 text-white px-5 py-3.5 rounded-full shadow-[0_10px_20px_rgba(16,185,129,0.3)] font-black uppercase tracking-widest text-[10px] hover:bg-emerald-700 hover:scale-105 transition-all pointer-events-auto flex items-center gap-2"
               >
-                <span>⚙️</span> {tMsg('Process Notes', 'Proses Catatan')}
+                <Icon name="settings" className="w-3.5 h-3.5 inline-block mr-1" /> {tMsg('Process Notes', 'Proses Catatan')}
               </button>
             </div>
           )}
@@ -332,14 +333,7 @@ export default function SmartAssistantChat({
             disabled={!inputValue.trim()}
             className="w-12 bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 disabled:bg-neutral-300 dark:disabled:bg-neutral-800 shrink-0"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-              ></path>
-            </svg>
+            <Icon name="send" className="w-5 h-5" />
           </button>
         </form>
       </div>

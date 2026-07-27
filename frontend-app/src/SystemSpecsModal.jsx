@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useCloseAnimation } from './Utils';
+import { Icon } from './components/icons/Icon';
 
 export default function SystemSpecsModal({ setIsSpecsOpen, language }) {
   const [isClosing, close] = useCloseAnimation(() => setIsSpecsOpen(false));
@@ -24,7 +25,7 @@ export default function SystemSpecsModal({ setIsSpecsOpen, language }) {
             onClick={close}
             className="bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm text-black dark:text-white px-6 py-3.5 rounded-full font-bold uppercase tracking-widest text-xs transition-colors flex items-center gap-2 w-full md:w-auto justify-center"
           >
-            <span>✖</span> {tMsg('Close Document', 'Tutup Dokumen')}
+            <Icon name="x" className="w-4 h-4 inline-block mr-1" /> {tMsg('Close Document', 'Tutup Dokumen')}
           </button>
         </div>
 
@@ -32,7 +33,7 @@ export default function SystemSpecsModal({ setIsSpecsOpen, language }) {
           {/* Kiri: Tabel Spesifikasi Utama */}
           <div className="flex-1 w-full min-w-0 flex flex-col">
             <div className="mb-8 p-5 sm:p-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50 rounded-2xl flex gap-4 items-start shrink-0">
-              <div className="text-2xl sm:text-3xl mt-0.5">⚠️</div>
+              <Icon name="alert-triangle" className="w-7 h-7 sm:w-8 sm:h-8" />
               <div>
                 <h3 className="font-bold text-amber-800 dark:text-amber-300 text-xs sm:text-sm uppercase tracking-widest mb-1.5">
                   {tMsg('Infrastructure Notice (Free Tier)', 'Pemberitahuan Infrastruktur (Tier Gratis)')}
@@ -712,7 +713,7 @@ export default function SystemSpecsModal({ setIsSpecsOpen, language }) {
           <div className="w-full lg:w-80 xl:w-96 shrink-0 flex flex-col gap-6">
             <div className="bg-white dark:bg-black p-6 sm:p-8 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-sm">
               <h3 className="text-xl font-black uppercase tracking-wider mb-6 text-black dark:text-white flex items-center gap-3">
-                <span className="text-2xl">🏗️</span> {tMsg('Architecture', 'Arsitektur')}
+                <Icon name="hard-hat" className="w-6 h-6" /> {tMsg('Architecture', 'Arsitektur')}
               </h3>
               <div className="space-y-6">
                 <div>
@@ -782,11 +783,11 @@ export default function SystemSpecsModal({ setIsSpecsOpen, language }) {
 
             <div className="bg-white dark:bg-black p-6 sm:p-8 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-sm">
               <h3 className="text-xl font-black uppercase tracking-wider mb-6 text-black dark:text-white flex items-center gap-3">
-                <span className="text-2xl">🔒</span> {tMsg('Security', 'Keamanan')}
+                <Icon name="lock" className="w-6 h-6" /> {tMsg('Security', 'Keamanan')}
               </h3>
               <ul className="space-y-4 text-xs font-medium text-neutral-600 dark:text-neutral-400">
                 <li className="flex gap-3 items-start">
-                  <span className="text-emerald-500 mt-0.5">✅</span>{' '}
+                  <Icon name="check-circle" className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />{' '}
                   <div>
                     <span className="font-bold text-black dark:text-white">
                       {tMsg('JWT Stateless Authentication', 'Otentikasi Stateless JWT')}
@@ -800,7 +801,7 @@ export default function SystemSpecsModal({ setIsSpecsOpen, language }) {
                   </div>
                 </li>
                 <li className="flex gap-3 items-start">
-                  <span className="text-emerald-500 mt-0.5">✅</span>{' '}
+                  <Icon name="check-circle" className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />{' '}
                   <div>
                     <span className="font-bold text-black dark:text-white">
                       {tMsg('Bcrypt One-Way Password Hashing', 'Hashing Sandi Satu Arah Bcrypt')}
@@ -814,7 +815,7 @@ export default function SystemSpecsModal({ setIsSpecsOpen, language }) {
                   </div>
                 </li>
                 <li className="flex gap-3 items-start">
-                  <span className="text-emerald-500 mt-0.5">✅</span>{' '}
+                  <Icon name="check-circle" className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />{' '}
                   <div>
                     <span className="font-bold text-black dark:text-white">
                       {tMsg('Google Workspace SSO (OAuth 2.0)', 'SSO Google Workspace (OAuth 2.0)')}
@@ -828,7 +829,7 @@ export default function SystemSpecsModal({ setIsSpecsOpen, language }) {
                   </div>
                 </li>
                 <li className="flex gap-3 items-start">
-                  <span className="text-emerald-500 mt-0.5">✅</span>{' '}
+                  <Icon name="check-circle" className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />{' '}
                   <div>
                     <span className="font-bold text-black dark:text-white">
                       {tMsg('Role-Based Access Control (RBAC)', 'Kontrol Akses Berbasis Peran (RBAC)')}
@@ -842,7 +843,7 @@ export default function SystemSpecsModal({ setIsSpecsOpen, language }) {
                   </div>
                 </li>
                 <li className="flex gap-3 items-start">
-                  <span className="text-emerald-500 mt-0.5">✅</span>{' '}
+                  <Icon name="check-circle" className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />{' '}
                   <div>
                     <span className="font-bold text-black dark:text-white">
                       {tMsg(
@@ -859,7 +860,7 @@ export default function SystemSpecsModal({ setIsSpecsOpen, language }) {
                   </div>
                 </li>
                 <li className="flex gap-3 items-start">
-                  <span className="text-emerald-500 mt-0.5">✅</span>{' '}
+                  <Icon name="check-circle" className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />{' '}
                   <div>
                     <span className="font-bold text-black dark:text-white">
                       {tMsg(
@@ -876,7 +877,7 @@ export default function SystemSpecsModal({ setIsSpecsOpen, language }) {
                   </div>
                 </li>
                 <li className="flex gap-3 items-start">
-                  <span className="text-emerald-500 mt-0.5">✅</span>{' '}
+                  <Icon name="check-circle" className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />{' '}
                   <div>
                     <span className="font-bold text-black dark:text-white">
                       {tMsg(
@@ -893,7 +894,7 @@ export default function SystemSpecsModal({ setIsSpecsOpen, language }) {
                   </div>
                 </li>
                 <li className="flex gap-3 items-start">
-                  <span className="text-emerald-500 mt-0.5">✅</span>{' '}
+                  <Icon name="check-circle" className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />{' '}
                   <div>
                     <span className="font-bold text-black dark:text-white">
                       {tMsg(
@@ -914,7 +915,7 @@ export default function SystemSpecsModal({ setIsSpecsOpen, language }) {
 
             <div className="bg-white dark:bg-black p-6 sm:p-8 border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-sm">
               <h3 className="text-xl font-black uppercase tracking-wider mb-6 text-black dark:text-white flex items-center gap-3">
-                <span className="text-2xl">🛡️</span> {tMsg('12 Penetration Tests', '12 Uji Penetrasi')}
+                <Icon name="shield" className="w-6 h-6" /> {tMsg('12 Penetration Tests', '12 Uji Penetrasi')}
               </h3>
               <ul className="space-y-4 text-xs font-medium text-neutral-600 dark:text-neutral-400">
                 <li className="flex gap-3 items-start">

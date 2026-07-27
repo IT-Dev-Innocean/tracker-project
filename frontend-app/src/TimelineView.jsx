@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { IconPerson } from './SharedUI';
+import { Icon } from './components/icons/Icon';
 import { getTaskAssignee } from './useAppLogic';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -437,19 +438,19 @@ export default function TimelineView({
     if (groupBy === 'Assignee') {
       key = getTaskAssignee(t);
       title = key;
-      icon = '👤';
+      icon = 'user';
     } else if (groupBy === 'Category') {
       key = t.category || 'Uncategorized';
       title = key;
-      icon = '📂';
+      icon = 'folder-open';
     } else if (groupBy === 'Status') {
       key = t.status || 'Unknown';
       title = key;
-      icon = '📌';
+      icon = 'pin';
     } else {
       key = t.board_id || 'unknown';
       title = t.board_name || 'Unknown Project';
-      icon = '📁';
+      icon = 'folder';
     }
 
     if (!acc[key]) acc[key] = { title, icon, tasks: [] };
@@ -494,7 +495,7 @@ export default function TimelineView({
                   onClick={() => setShowExportMenu(!showExportMenu)}
                   className="text-[10px] font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2 md:px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors disabled:opacity-50 flex items-center gap-1"
                 >
-                  {isExporting ? '⏳' : '💾'} {!isMobile && (isExporting ? ' Exporting...' : ' Export')} {!isMobile && <span className="text-[8px] opacity-70">▼</span>}
+                  {isExporting ? <Icon name="clock" className="w-3.5 h-3.5" /> : <Icon name="save" className="w-3.5 h-3.5" />} {!isMobile && (isExporting ? ' Exporting...' : ' Export')} {!isMobile && <Icon name="chevron-down" className="w-2.5 h-2.5 opacity-70" />}
                 </button>
                 {showExportMenu && !isExporting && (
                   <div className="absolute left-0 md:left-auto md:right-0 top-full mt-2 w-48 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 shadow-xl rounded-xl overflow-hidden z-50">
@@ -505,7 +506,7 @@ export default function TimelineView({
                       }}
                       className="w-full text-left px-4 py-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
                     >
-                      📄 {tMsg('Export PDF', 'Ekspor PDF')}
+                      <Icon name="file-text" className="w-3.5 h-3.5 inline-block mr-1" /> {tMsg('Export PDF', 'Ekspor PDF')}
                     </button>
                     <button
                       onClick={() => {
@@ -514,7 +515,7 @@ export default function TimelineView({
                       }}
                       className="w-full text-left px-4 py-2.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
                     >
-                      🖼️ {tMsg('Export High-Res Image', 'Ekspor Gambar High-Res')}
+                      <Icon name="image" className="w-3.5 h-3.5 inline-block mr-1" /> {tMsg('Export High-Res Image', 'Ekspor Gambar High-Res')}
                     </button>
                   </div>
                 )}
@@ -537,13 +538,13 @@ export default function TimelineView({
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-xs md:text-sm text-slate-800 dark:text-slate-200 truncate leading-tight pr-2 md:pr-4">
-                        {group.icon} {group.title}
+                        <Icon name={group.icon} className="w-3.5 h-3.5 inline-block mr-1" /> {group.title}
                       </span>
                       <span
                         className="text-slate-500 dark:text-slate-400 text-[10px] shrink-0 transition-transform duration-200"
                         style={{ transform: collapsedGroups[key] ? 'rotate(-90deg)' : 'rotate(0deg)' }}
                       >
-                        ▼
+                        <Icon name="chevron-down" className="w-3 h-3" style={{ transform: collapsedGroups[key] ? 'rotate(-90deg)' : 'rotate(0deg)' }} />
                       </span>
                     </div>
                   </div>
@@ -761,8 +762,8 @@ export default function TimelineView({
                             }
                             const desc = holiday
                               ? holiday.leave_type === 'personal'
-                                ? `🌴 @${holiday.username} Leave`
-                                : `🎌 ${holiday.description}`
+                                ? `@${holiday.username} Leave`
+                                : holiday.description
                               : 'Weekend';
                             if (!currentOffSegment)
                               currentOffSegment = { start: new Date(d), end: new Date(d), desc, isLeave: !!holiday };

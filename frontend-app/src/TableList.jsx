@@ -1,12 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { HighlightText } from './Utils';
-
-const IconPerson = ({ className }) => (
-  <svg className={className || 'w-4 h-4'} fill="currentColor" viewBox="0 0 24 24">
-    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-  </svg>
-);
+import { IconPerson } from './SharedUI';
+import { Icon } from './components/icons/Icon';
 
 const Avatar = ({ name, url, size, textClass }) => {
   if (url)
@@ -424,8 +420,8 @@ export default function TableList({
 
   const renderSortIcon = (columnKey) => {
     if (sortConfig.key !== columnKey) return null;
-    if (sortConfig.direction === 'ascending') return <span className="ml-1 text-indigo-500">↑</span>;
-    return <span className="ml-1 text-indigo-500">↓</span>;
+    if (sortConfig.direction === 'ascending') return <Icon name="chevron-up" className="ml-1 w-3 h-3 text-indigo-500" />;
+    return <Icon name="chevron-down" className="ml-1 w-3 h-3 text-indigo-500" />;
   };
 
   const activeTasks = useMemo(
@@ -611,7 +607,7 @@ export default function TableList({
             {selectedBoard && selectedBoard.id !== 'global' && accountStatus !== 'suspended' && currentPage === 1 && (
               <div className="bg-indigo-50/50 dark:bg-indigo-900/20 border-2 border-indigo-100 dark:border-indigo-900/30 rounded-2xl p-4 transition-all shadow-sm flex flex-col gap-3 relative">
                 <div className="flex items-center gap-3">
-                  <span className="text-indigo-500 font-black text-xl select-none">✨</span>
+                  <Icon name="sparkles" className="w-5 h-5 text-indigo-500" />
                   <input
                     type="text"
                     value={quickAddData.project_name}
@@ -638,7 +634,7 @@ export default function TableList({
                   {/* Assignee Input */}
                   <div className="relative group">
                     <div className="flex items-center gap-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg px-2 py-1 focus-within:ring-2 ring-indigo-500/50">
-                      <span className="text-[10px] uppercase font-bold text-neutral-400">👤</span>
+                      <Icon name="user" className="w-3 h-3 text-neutral-400" />
                       <input
                         type="text"
                         value={quickAddData.requester}
@@ -711,14 +707,14 @@ export default function TableList({
                     onChange={(e) => setQuickAddData({ ...quickAddData, impact: e.target.value })}
                     className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 ring-indigo-500/50 cursor-pointer"
                   >
-                    <option value="High">🔥 High Impact</option>
-                    <option value="Medium">⚡ Med Impact</option>
-                    <option value="Low">🧊 Low Impact</option>
+                    <option value="High">High Impact</option>
+                    <option value="Medium">Med Impact</option>
+                    <option value="Low">Low Impact</option>
                   </select>
 
                   {/* Deadline Input */}
                   <div className="flex items-center gap-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg px-2 py-1 focus-within:ring-2 ring-indigo-500/50">
-                    <span className="text-[10px] uppercase font-bold text-neutral-400">📅</span>
+                    <Icon name="calendar" className="w-3 h-3 text-neutral-400" />
                     <input
                       type="date"
                       value={quickAddData.deadline}
@@ -729,7 +725,7 @@ export default function TableList({
 
                   {/* ETC Input */}
                   <div className="flex items-center gap-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-lg px-2 py-1 focus-within:ring-2 ring-indigo-500/50">
-                    <span className="text-[10px] uppercase font-bold text-neutral-400">⏱️</span>
+                    <Icon name="clock" className="w-3 h-3 text-neutral-400" />
                     <input
                       type="number"
                       step="0.5"
@@ -828,7 +824,7 @@ export default function TableList({
                           className="text-[10px] capitalize font-bold text-blue-800 dark:text-blue-300 bg-blue-100/60 dark:bg-blue-900/60 px-2.5 py-1 rounded-lg shadow-sm border border-blue-200 dark:border-blue-700/50 text-center sm:w-full mt-1.5 flex items-center justify-center gap-1"
                           title="Recurring Task"
                         >
-                          🔁 {task.recurring}
+                          <Icon name="refresh-cw" className="w-3 h-3" /> {task.recurring}
                         </span>
                       )}
                     </div>
@@ -848,13 +844,13 @@ export default function TableList({
                           </h4>
                           {unreadComments > 0 && (
                             <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-md shadow-sm font-black animate-pulse flex items-center gap-1 shrink-0">
-                              💬 {unreadComments} New
+                              <Icon name="message-circle" className="w-3 h-3" /> {unreadComments} New
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs font-bold text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800/50 px-2 py-1 rounded-lg shrink-0 whitespace-nowrap">
                           <span>{task.start_date ? formatDateMMM(task.start_date) : '--'}</span>
-                          <span>→</span>
+                          <Icon name="arrow-right" className="w-3 h-3" />
                           <span className={isOverdue ? 'text-red-600 dark:text-red-400 font-black' : ''}>
                             {task.deadline ? formatDateMMM(task.deadline) : 'No Deadline'}
                           </span>
@@ -885,12 +881,12 @@ export default function TableList({
                           
                           {/* Project Name Badge */}
                           <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-700" title="Project / Board">
-                            📂 {task.board_name}
+                            <Icon name="folder-open" className="w-3 h-3 inline" /> {task.board_name}
                           </span>
 
                           {/* Category Badge */}
                           <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md border border-blue-100 dark:border-blue-800/50">
-                            🏷️ {task.category}
+                            <Icon name="tag" className="w-3 h-3 inline" /> {task.category}
                           </span>
 
                           {/* Status Badge */}
@@ -909,7 +905,8 @@ export default function TableList({
                             : task.impact === 'Low' ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
                             : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/50'
                           }`}>
-                            {task.impact === 'High' ? '🔥 High' : task.impact === 'Low' ? '🧊 Low' : '⚡ Med'}
+                            <Icon name={task.impact === 'High' ? 'flame' : task.impact === 'Low' ? 'snowflake' : 'zap'} className="w-3 h-3 inline" />{' '}
+                            {task.impact === 'High' ? 'High' : task.impact === 'Low' ? 'Low' : 'Med'}
                           </span>
 
                           {/* Subtask Badge */}
@@ -919,14 +916,14 @@ export default function TableList({
                                 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50'
                                 : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700'
                             }`}>
-                              📋 {task.subtask_done}/{task.subtask_total}
+                              <Icon name="clipboard-list" className="w-3 h-3 inline" /> {task.subtask_done}/{task.subtask_total}
                             </span>
                           )}
 
                           {/* ETC Badge */}
                           {(task.etc !== undefined && task.etc !== null) && (
                              <span className="text-[10px] font-bold px-2 py-1 rounded-md bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 border border-neutral-200 dark:border-neutral-700">
-                               ⏱️ {task.etc}h
+                               <Icon name="clock" className="w-3 h-3 inline" /> {task.etc}h
                              </span>
                           )}
 
@@ -937,7 +934,7 @@ export default function TableList({
                           {/* Owner Mention */}
                           {task.owner_username && task.owner_username !== currentUser && (
                             <span className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 px-2 py-1">
-                              🤝 from {task.owner_username}
+                              <Icon name="handshake" className="w-3 h-3 inline" /> from {task.owner_username}
                             </span>
                           )}
 
@@ -949,7 +946,7 @@ export default function TableList({
                               }`}                              
                               title={task.requester && task.requester.includes('@') ? `Assigned To: ${task.requester}` : `Requester: ${task.requester}`}                              
                             >
-                              {task.requester && task.requester.includes('@') ? '👉' : <IconPerson className="w-3 h-3 shrink-0" />}
+                              {task.requester && task.requester.includes('@') ? <Icon name="arrow-right" className="w-3 h-3 shrink-0" /> : <IconPerson className="w-3 h-3 shrink-0" />}
                               <Avatar name={task.requester} url={avatarsMap[task.requester ? task.requester.replace('@', '').trim() : '']} size="w-4 h-4" textClass="text-[8px]" />
                               <span className="truncate">{task.requester}</span>
                             </span>
@@ -994,7 +991,7 @@ export default function TableList({
               })
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-slate-500 dark:text-slate-400 text-center">
-                <span className="text-4xl mb-3 opacity-50">🍃</span>
+                <Icon name="leaf" className="w-10 h-10 mb-3 opacity-50" />
                 <p className="font-bold">No tasks found.</p>
                 <p className="text-xs mt-1">Enjoy the clarity of an empty list, or add a new task!</p>
               </div>
@@ -1006,8 +1003,8 @@ export default function TableList({
                 onClick={() => setShowCompletedMobile(!showCompletedMobile)}
                 className="w-full px-4 py-3 flex items-center justify-between text-xs font-bold text-slate-800 dark:text-white uppercase tracking-widest hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
               >
-                <span className="flex items-center gap-2">✅ Completed Tasks <span className="bg-neutral-200 dark:bg-neutral-700 px-2 py-0.5 rounded-full text-[10px]">{doneTasks.length}</span></span>
-                <span className="text-lg leading-none">{showCompletedMobile ? '▾' : '▸'}</span>
+                <span className="flex items-center gap-2"><Icon name="check-circle" className="w-4 h-4" /> Completed Tasks <span className="bg-neutral-200 dark:bg-neutral-700 px-2 py-0.5 rounded-full text-[10px]">{doneTasks.length}</span></span>
+                <Icon name={showCompletedMobile ? 'chevron-down' : 'chevron-right'} className="w-4 h-4" />
               </button>
               
                {showCompletedMobile && (
@@ -1059,7 +1056,11 @@ export default function TableList({
                         onClick={() => setIsArchiveExpanded(!isArchiveExpanded)}
                         className="w-full py-2 bg-neutral-200/50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors shadow-sm"
                       >
-                        {isArchiveExpanded ? '⬆ Hide Archived Tasks' : `📂 View ${archivedCount} Archived Tasks`}
+                        {isArchiveExpanded ? (
+                          <span className="inline-flex items-center gap-1.5"><Icon name="chevron-up" className="w-3 h-3" /> Hide Archived Tasks</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5"><Icon name="folder-open" className="w-3 h-3" /> View {archivedCount} Archived Tasks</span>
+                        )}
                       </button>
                     </div>
                   )}
@@ -1155,7 +1156,7 @@ export default function TableList({
         <div className="hidden xl:flex flex-col w-80 shrink-0">
           <div className="bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 shadow-sm rounded-3xl flex flex-col flex-1 min-h-0">
             <h3 className="p-6 text-base font-black text-slate-800 dark:text-white border-b border-neutral-200 dark:border-neutral-800 shrink-0 flex items-center gap-2">
-              ✅ Completed Tasks
+              <Icon name="check-circle" className="w-4 h-4" /> Completed Tasks
             </h3>
             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-neutral-50/30 dark:bg-neutral-950/30">
               {visibleDoneTasks.length > 0 ? (
@@ -1202,7 +1203,7 @@ export default function TableList({
                 ))
               ) : (
                 <div className="flex flex-col items-center justify-center py-10 text-neutral-400 dark:text-neutral-600">
-                  <p className="text-4xl mb-2 opacity-50">🎉</p>
+                  <Icon name="party-popper" className="w-10 h-10 mb-2 opacity-50" />
                   <p className="text-xs font-bold text-center">
                     No completed tasks yet.
                     <br />
@@ -1217,7 +1218,11 @@ export default function TableList({
                   onClick={() => setIsArchiveExpanded(!isArchiveExpanded)}
                   className="w-full py-3 bg-neutral-200/50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 text-[10px] font-bold uppercase tracking-widest rounded-xl hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors shadow-sm"
                 >
-                  {isArchiveExpanded ? '⬆ Hide Archived Tasks' : `📂 View ${archivedCount} Archived Tasks`}
+                  {isArchiveExpanded ? (
+                    <span className="inline-flex items-center justify-center gap-1.5"><Icon name="chevron-up" className="w-3 h-3" /> Hide Archived Tasks</span>
+                  ) : (
+                    <span className="inline-flex items-center justify-center gap-1.5"><Icon name="folder-open" className="w-3 h-3" /> View {archivedCount} Archived Tasks</span>
+                  )}
                 </button>
               </div>
             )}

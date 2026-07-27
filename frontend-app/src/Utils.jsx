@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Icon } from './components/icons/Icon';
 
 export const HighlightText = ({ text, query }) => {
   if (!query || !text) return <>{text}</>;
@@ -42,19 +43,7 @@ export function useCloseAnimation(closeAction, delay = 200) {
 }
 
 export const LoadingSpinner = () => (
-  <svg
-    className="animate-spin h-3.5 w-3.5 mr-2 inline-block"
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-  >
-    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-    <path
-      className="opacity-75"
-      fill="currentColor"
-      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-    ></path>
-  </svg>
+  <Icon name="loader-2" className="animate-spin h-3.5 w-3.5 mr-2 inline-block" />
 );
 
 export const renderRichText = (text) => {
@@ -96,7 +85,7 @@ export const renderRichText = (text) => {
       cleanCode = lines.join('\n');
     }
 
-    const block = `<details class="group bg-[#272822] text-[#F8F8F2] rounded-xl my-3 shadow-lg border border-[#3e3d32] overflow-hidden w-full max-w-full" open><summary class="px-4 py-2 bg-[#1e1f1c] cursor-pointer text-xs font-bold font-sans flex items-center justify-between select-none border-b border-[#3e3d32] hover:bg-[#2c2d27] transition-colors"><span class="text-[#A6E22E] flex items-center gap-2"><span>⌨️</span> <span>Code / Flowchart</span></span><div class="flex items-center gap-3"><button type="button" onclick="event.preventDefault(); event.stopPropagation(); navigator.clipboard.writeText(this.closest('details').querySelector('code').innerText); const t = this.innerHTML; this.innerHTML = '✅ Copied!'; setTimeout(() => this.innerHTML = t, 2000);" class="text-[10px] font-bold text-neutral-400 hover:text-[#A6E22E] transition-colors bg-[#272822] border border-[#3e3d32] px-2.5 py-1 rounded-md active:scale-95">📋 Copy</button><span class="group-open:rotate-180 transition-transform">▼</span></div></summary><div class="overflow-x-auto p-4 w-full custom-scrollbar" style="overscroll-behavior-x: contain;"><pre class="font-mono text-[10px] sm:text-xs text-left" style="white-space: pre; line-height: 1.3; min-width: max-content;"><code>${cleanCode}</code></pre></div></details>`;
+    const block = `<details class="group bg-[#272822] text-[#F8F8F2] rounded-xl my-3 shadow-lg border border-[#3e3d32] overflow-hidden w-full max-w-full" open><summary class="px-4 py-2 bg-[#1e1f1c] cursor-pointer text-xs font-bold font-sans flex items-center justify-between select-none border-b border-[#3e3d32] hover:bg-[#2c2d27] transition-colors"><span class="text-[#A6E22E] flex items-center gap-2"><span>Code / Flowchart</span></span><div class="flex items-center gap-3"><button type="button" onclick="event.preventDefault(); event.stopPropagation(); navigator.clipboard.writeText(this.closest('details').querySelector('code').innerText); const t = this.innerHTML; this.innerHTML = 'Copied!'; setTimeout(() => this.innerHTML = t, 2000);" class="text-[10px] font-bold text-neutral-400 hover:text-[#A6E22E] transition-colors bg-[#272822] border border-[#3e3d32] px-2.5 py-1 rounded-md active:scale-95">Copy</button><span class="group-open:rotate-180 transition-transform">▼</span></div></summary><div class="overflow-x-auto p-4 w-full custom-scrollbar" style="overscroll-behavior-x: contain;"><pre class="font-mono text-[10px] sm:text-xs text-left" style="white-space: pre; line-height: 1.3; min-width: max-content;"><code>${cleanCode}</code></pre></div></details>`;
     formattedText = formattedText.replace(`__CODE_BLOCK_${i}__`, block);
   });
 

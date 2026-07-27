@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Avatar, SegmentedControl } from './SharedUI';
+import { Icon } from './components/icons/Icon';
 
 const SettingsSection = ({ title, description, children }) => (
   <div className="animate-in fade-in duration-300">
@@ -18,7 +19,7 @@ const TabButton = ({ id, icon, label, activeTab, setActiveTab }) => (
         : 'text-neutral-500 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 hover:text-black dark:hover:text-white'
     }`}
   >
-    <span className="text-lg w-6 text-center">{icon}</span>
+    <span className="w-6 flex items-center justify-center shrink-0">{icon}</span>
     <span>{label}</span>
   </button>
 );
@@ -208,14 +209,14 @@ export default function SettingsPage({
       <div className="max-w-6xl mx-auto px-6 py-8 md:py-16">
         <div className="mb-12 flex justify-between items-center mac-animate">
           <h2 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-slate-100 flex items-center gap-3">
-            <span className="text-3xl md:text-4xl">⚙️</span> {tMsg('Settings', 'Pengaturan')}
+            <Icon name="settings" className="w-8 h-8 md:w-9 md:h-9" /> {tMsg('Settings', 'Pengaturan')}
           </h2>
           <button
             onClick={triggerClose}
             className="text-neutral-500 hover:text-indigo-500 dark:hover:text-indigo-400 font-bold flex items-center gap-2 transition-colors text-xs md:text-sm uppercase tracking-widest"
           >
             <span className="hidden sm:inline">← {tMsg('Back to App', 'Kembali')}</span>
-            <span className="sm:hidden text-2xl">✖</span>
+            <span className="sm:hidden"><Icon name="x" className="w-6 h-6" /></span>
           </button>
         </div>
 
@@ -224,28 +225,28 @@ export default function SettingsPage({
           <div className="md:w-64 shrink-0 space-y-2">
             <TabButton
               id="profile"
-              icon="👤"
+              icon={<Icon name="user" className="w-5 h-5" />}
               label={tMsg('Account Profile', 'Profil Akun')}
               activeTab={activeTab}
               setActiveTab={setActiveTab}
             />
             <TabButton
               id="appearance"
-              icon="🎨"
+              icon={<Icon name="image" className="w-5 h-5" />}
               label={tMsg('Appearance', 'Tampilan')}
               activeTab={activeTab}
               setActiveTab={setActiveTab}
             />
             <TabButton
               id="preferences"
-              icon="🛠️"
+              icon={<Icon name="wrench" className="w-5 h-5" />}
               label={tMsg('Preferences', 'Preferensi')}
               activeTab={activeTab}
               setActiveTab={setActiveTab}
             />
             <TabButton
               id="notifications"
-              icon="🔔"
+              icon={<Icon name="bell" className="w-5 h-5" />}
               label={tMsg('Notifications', 'Notifikasi')}
               activeTab={activeTab}
               setActiveTab={setActiveTab}
@@ -329,7 +330,7 @@ export default function SettingsPage({
                         required
                       />
                       <p className="text-[9px] text-amber-600 dark:text-amber-500 font-bold uppercase tracking-widest mt-1.5 px-1">
-                        ⚠️{' '}
+                        <Icon name="alert-triangle" className="w-3 h-3 inline" />{' '}
                         {tMsg(
                           'Changing email requires re-verification.',
                           'Mengubah email memerlukan verifikasi ulang.'
@@ -366,18 +367,7 @@ export default function SettingsPage({
                           onTouchCancel={() => setShowCurrentPass(false)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d={
-                                showCurrentPass
-                                  ? 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'
-                                  : 'M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18'
-                              }
-                            ></path>
-                          </svg>
+                          <Icon name={showCurrentPass ? 'eye' : 'eye-off'} className="w-5 h-5" />
                         </button>
                       </div>
                       <div className="flex flex-col md:flex-row gap-4">
@@ -400,18 +390,7 @@ export default function SettingsPage({
                             onTouchCancel={() => setShowNewPass(false)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d={
-                                  showNewPass
-                                    ? 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'
-                                    : 'M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18'
-                                }
-                              ></path>
-                            </svg>
+                            <Icon name={showNewPass ? 'eye' : 'eye-off'} className="w-5 h-5" />
                           </button>
                         </div>
                         <div className="relative flex-1">
@@ -433,18 +412,7 @@ export default function SettingsPage({
                             onTouchCancel={() => setShowConfirmPass(false)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
                           >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d={
-                                  showConfirmPass
-                                    ? 'M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'
-                                    : 'M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18'
-                                }
-                              ></path>
-                            </svg>
+                            <Icon name={showConfirmPass ? 'eye' : 'eye-off'} className="w-5 h-5" />
                           </button>
                         </div>
                       </div>
@@ -456,7 +424,7 @@ export default function SettingsPage({
                       type="submit"
                       className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-widest rounded-xl shadow-md transition-all flex items-center gap-2"
                     >
-                      💾 {tMsg('Save Profile Changes', 'Simpan Perubahan Profil')}
+                      <Icon name="save" className="w-4 h-4" /> {tMsg('Save Profile Changes', 'Simpan Perubahan Profil')}
                     </button>
                   </div>
                 </form>
@@ -534,7 +502,7 @@ export default function SettingsPage({
                         }
                         title={bg.name}
                       >
-                        {!bg.value && <span className="text-lg">🚫</span>}
+                        {!bg.value && <Icon name="ban" className="w-5 h-5" />}
                         {bg.value === 'gamer' && <span className="text-lg font-black text-[#66c0f4]">G</span>}
                         {bg.value === 'minimal' && <span className="text-lg font-black text-[#1a73e8]">M</span>}
                         {bg.value === 'sunset' && <span className="text-lg font-black text-white">S</span>}
@@ -546,7 +514,7 @@ export default function SettingsPage({
                         {bg.value === 'retail' && <span className="text-lg font-black text-[#FF9900]">R</span>}
                         {appTheme === bg.value && (
                           <div className="absolute -top-2 -right-2 bg-indigo-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shadow-sm ring-2 ring-white dark:ring-[#15181e]">
-                            ✓
+                            <Icon name="check" className="w-3 h-3" strokeWidth={3} />
                           </div>
                         )}
                       </button>
@@ -576,7 +544,7 @@ export default function SettingsPage({
                       >
                         {appTheme === bg.value && (
                           <div className="absolute -top-2 -right-2 bg-indigo-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shadow-sm ring-2 ring-white dark:ring-[#15181e]">
-                            ✓
+                            <Icon name="check" className="w-3 h-3" strokeWidth={3} />
                           </div>
                         )}
                       </button>
@@ -669,10 +637,10 @@ export default function SettingsPage({
                       }`}
                       title="None"
                     >
-                      <span className="text-[10px]">🚫</span>
+                      <Icon name="ban" className="w-3 h-3" />
                       {cardTheme === '' && (
                         <div className="absolute -top-1.5 -right-1.5 bg-indigo-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px] font-bold shadow-sm ring-2 ring-white dark:ring-[#15181e]">
-                          ✓
+                          <Icon name="check" className="w-2.5 h-2.5" strokeWidth={3} />
                         </div>
                       )}
                     </button>
@@ -689,7 +657,7 @@ export default function SettingsPage({
                       >
                         {cardTheme === bg.value && (
                           <div className="absolute -top-1.5 -right-1.5 bg-indigo-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[8px] font-bold shadow-sm ring-2 ring-white dark:ring-[#15181e]">
-                            ✓
+                            <Icon name="check" className="w-3 h-3" strokeWidth={3} />
                           </div>
                         )}
                       </button>
@@ -779,8 +747,8 @@ export default function SettingsPage({
                 >
                   <SegmentedControl
                     options={[
-                      { label: '☀️ Light', value: 'light' },
-                      { label: '🌙 Dark', value: 'dark' },
+                      { label: <span className="inline-flex items-center gap-1.5"><Icon name="sun" className="w-4 h-4" /> Light</span>, value: 'light' },
+                      { label: <span className="inline-flex items-center gap-1.5"><Icon name="moon" className="w-4 h-4" /> Dark</span>, value: 'dark' },
                     ]}
                     value={isDarkMode ? 'dark' : 'light'}
                     onChange={(val) => setIsDarkMode(val === 'dark')}
@@ -796,8 +764,8 @@ export default function SettingsPage({
                 >
                   <SegmentedControl
                     options={[
-                      { label: '🇺🇸 EN', value: 'en' },
-                      { label: '🇮🇩 ID', value: 'id' },
+                      { label: <span className="inline-flex items-center gap-1.5"><Icon iconify="circle-flags:us" className="w-4 h-4" /> EN</span>, value: 'en' },
+                      { label: <span className="inline-flex items-center gap-1.5"><Icon iconify="circle-flags:id" className="w-4 h-4" /> ID</span>, value: 'id' },
                     ]}
                     value={language}
                     onChange={(val) => {
@@ -829,7 +797,7 @@ export default function SettingsPage({
                       <option value="YYYY-MM-DD">2026-12-31</option>
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-neutral-400 font-bold text-xs">
-                      ▼
+                      <Icon name="chevron-down" className="w-3 h-3" />
                     </div>
                   </div>
                 </SettingItem>
@@ -1043,7 +1011,7 @@ export default function SettingsPage({
                       }
                       className="bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-sm transition-all flex items-center gap-2 border border-blue-200 dark:border-blue-800/50"
                     >
-                      ℹ️ {tMsg('Preview Info', 'Pratinjau Info')}
+                      <Icon name="info" className="w-4 h-4" /> {tMsg('Preview Info', 'Pratinjau Info')}
                     </button>
                     <button
                       type="button"
@@ -1055,7 +1023,7 @@ export default function SettingsPage({
                       }
                       className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 dark:text-emerald-400 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-sm transition-all flex items-center gap-2 border border-emerald-200 dark:border-emerald-800/50"
                     >
-                      ✅ {tMsg('Preview Success', 'Pratinjau Sukses')}
+                      <Icon name="check-circle" className="w-4 h-4" /> {tMsg('Preview Success', 'Pratinjau Sukses')}
                     </button>
                     <button
                       type="button"
@@ -1067,7 +1035,7 @@ export default function SettingsPage({
                       }
                       className="bg-red-50 hover:bg-red-100 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400 px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-widest shadow-sm transition-all flex items-center gap-2 border border-red-200 dark:border-red-800/50"
                     >
-                      ⚠️ {tMsg('Preview Error', 'Pratinjau Error')}
+                      <Icon name="alert-triangle" className="w-4 h-4" /> {tMsg('Preview Error', 'Pratinjau Error')}
                     </button>
                   </div>
                 </SettingItem>

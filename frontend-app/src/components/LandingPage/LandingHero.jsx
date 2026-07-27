@@ -1,3 +1,4 @@
+import { Icon } from '../icons/Icon';
 import React from 'react';
 import InnoceanLogo from '../InnoceanLogo';
 
@@ -33,14 +34,7 @@ export default function LandingHero({ setIsLoginMode, setShowAuthForm, isInstall
                   onClick={handleInstallClick}
                   className="hidden sm:flex text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors items-center gap-1.5"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2.5"
-                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-3 3m0 0l-3-3m3 3V4"
-                    ></path>
-                  </svg>
+                  <Icon name="download" className="w-4 h-4" />
                   Install App
                 </button>
               )}
@@ -61,7 +55,7 @@ export default function LandingHero({ setIsLoginMode, setShowAuthForm, isInstall
                 className="hidden sm:flex bg-black hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-200 text-white dark:text-black font-bold py-2 px-5 rounded-full transition-all text-sm items-center gap-2 group shadow-lg"
               >
                 Request Access
-                <span className="transition-transform group-hover:translate-x-1">→</span>
+                <Icon name="arrow-right" className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </button>
             </div>
           </nav>
@@ -106,7 +100,7 @@ export default function LandingHero({ setIsLoginMode, setShowAuthForm, isInstall
                     className="bg-black dark:bg-white text-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 font-bold py-3.5 px-8 rounded-full shadow-lg transition-all text-sm flex items-center justify-center gap-2 group hover:-translate-y-0.5"
                   >
                     Start now
-                    <span className="transition-transform group-hover:translate-x-1">→</span>
+                    <Icon name="arrow-right" className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                   </button>
                   <button
                     onClick={() => document.getElementById('ai-section')?.scrollIntoView({ behavior: 'smooth' })}
@@ -119,14 +113,7 @@ export default function LandingHero({ setIsLoginMode, setShowAuthForm, isInstall
                       onClick={handleInstallClick}
                       className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-8 rounded-full shadow-lg transition-all text-sm flex items-center justify-center gap-2 hover:-translate-y-0.5"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2.5"
-                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-3 3m0 0l-3-3m3 3V4"
-                        ></path>
-                      </svg>{' '}
+                      <Icon name="download" className="w-4 h-4" />{' '}
                       Install App
                     </button>
                   )}
@@ -197,7 +184,7 @@ export default function LandingHero({ setIsLoginMode, setShowAuthForm, isInstall
 
                 {/* Decorative floating element */}
                 <div className="absolute -bottom-10 -left-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-2xl animate-float-reverse flex items-center gap-4">
-                  <div className="text-3xl">✨</div>
+                  <Icon name="sparkles" className="w-8 h-8" />
                   <div>
                     <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded w-20 mb-2"></div>
                     <div className="h-2 bg-black dark:bg-white rounded w-32"></div>
@@ -214,14 +201,7 @@ export default function LandingHero({ setIsLoginMode, setShowAuthForm, isInstall
               className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm transition-all animate-bounce"
               title="Next Section"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                ></path>
-              </svg>
+              <Icon name="chevron-down" className="w-5 h-5" />
             </button>
           </div>
         </div>

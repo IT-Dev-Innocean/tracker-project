@@ -1,5 +1,6 @@
 import React from 'react';
 import axios from 'axios';
+import { Icon } from '../icons/Icon';
 
 export default function TaskDetailSidebar({
   selectedTask,
@@ -59,26 +60,44 @@ export default function TaskDetailSidebar({
           <p className="text-[10px] uppercase tracking-widest font-bold text-neutral-500 dark:text-neutral-400 mb-1">
             {tMsg('Impact', 'Dampak')}
           </p>
-          <p className="font-bold uppercase tracking-wide text-sm truncate">
-            {selectedTask.impact === 'High'
-              ? '🔥 High'
-              : selectedTask.impact === 'Low'
-              ? '🧊 Low'
-              : '⚡ Medium'}
+          <p className="font-bold uppercase tracking-wide text-sm truncate flex items-center gap-1.5">
+            {selectedTask.impact === 'High' ? (
+              <>
+                <Icon name="flame" className="w-3.5 h-3.5" /> High
+              </>
+            ) : selectedTask.impact === 'Low' ? (
+              <>
+                <Icon name="snowflake" className="w-3.5 h-3.5" /> Low
+              </>
+            ) : (
+              <>
+                <Icon name="zap" className="w-3.5 h-3.5" /> Medium
+              </>
+            )}
           </p>
         </div>
         <div className="shrink-0 min-w-0">
           <p className="text-[10px] uppercase tracking-widest font-bold text-neutral-500 dark:text-neutral-400 mb-1">
             {tMsg('Recurring', 'Berulang')}
           </p>
-          <p className="font-bold uppercase tracking-wide text-sm truncate">
-            {selectedTask.recurring === 'daily'
-              ? '🔁 Daily'
-              : selectedTask.recurring === 'weekly'
-              ? '🔁 Weekly'
-              : selectedTask.recurring === 'monthly'
-              ? '🔁 Monthly'
-              : '✖ None'}
+          <p className="font-bold uppercase tracking-wide text-sm truncate flex items-center gap-1.5">
+            {selectedTask.recurring === 'daily' ? (
+              <>
+                <Icon name="repeat" className="w-3.5 h-3.5" /> Daily
+              </>
+            ) : selectedTask.recurring === 'weekly' ? (
+              <>
+                <Icon name="repeat" className="w-3.5 h-3.5" /> Weekly
+              </>
+            ) : selectedTask.recurring === 'monthly' ? (
+              <>
+                <Icon name="repeat" className="w-3.5 h-3.5" /> Monthly
+              </>
+            ) : (
+              <>
+                <Icon name="x" className="w-3.5 h-3.5" /> None
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -141,10 +160,10 @@ export default function TaskDetailSidebar({
         </div>
         <div className="shrink-0 min-w-0">
           <p className="text-[10px] uppercase tracking-widest font-bold text-neutral-500 dark:text-neutral-400 mb-1 flex items-center gap-1" title="Estimated Time Consumption">
-            {tMsg('ETC', 'Estimasi')} <span className="cursor-help opacity-70">🛈</span>
+            {tMsg('ETC', 'Estimasi')} <Icon name="info" className="w-3 h-3 cursor-help opacity-70" title="Estimated Time Consumption" />
           </p>
-          <p className="font-bold uppercase tracking-wide text-sm truncate">
-            ⏳ {selectedTask.etc || 2}h
+          <p className="font-bold uppercase tracking-wide text-sm truncate flex items-center gap-1.5">
+            <Icon name="clock" className="w-3.5 h-3.5" /> {selectedTask.etc || 2}h
           </p>
         </div>
       </div>
@@ -156,14 +175,14 @@ export default function TaskDetailSidebar({
             onClick={() => openCalendarPopup(generateGoogleMeetScheduleUrl())}
             className="text-[9px] font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-4 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800/50 transition-all hover:-translate-y-0.5 hover:shadow-md flex items-center gap-1.5 uppercase tracking-widest shadow-sm"
           >
-            🗓️ {tMsg('Schedule Meeting', 'Jadwalkan Rapat')}
+            <Icon name="calendar-days" className="w-3.5 h-3.5" /> {tMsg('Schedule Meeting', 'Jadwalkan Rapat')}
           </button>
           <button
             type="button"
             onClick={() => openCalendarPopup(generateGoogleCalendarUrl())}
             className="text-[9px] font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-800/50 transition-all hover:-translate-y-0.5 hover:shadow-md flex items-center gap-1.5 uppercase tracking-widest shadow-sm"
           >
-            📅 {tMsg('Add to Calendar', 'Ke Kalender')}
+            <Icon name="calendar" className="w-3.5 h-3.5" /> {tMsg('Add to Calendar', 'Ke Kalender')}
           </button>
           {!isPreviewMode && (
             <button
@@ -173,7 +192,13 @@ export default function TaskDetailSidebar({
               className={`text-[9px] font-bold text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 px-4 py-2 rounded-lg border border-amber-200 dark:border-amber-800/50 transition-all hover:-translate-y-0.5 hover:shadow-md flex items-center gap-1.5 uppercase tracking-widest shadow-sm disabled:opacity-50 ${!hasAnyAssignee ? 'cursor-not-allowed' : ''}`}
               title={!hasAnyAssignee ? tMsg('No assignees to nudge', 'Tidak ada pekerja untuk dipantau') : ''}
             >
-              {isGeneratingNudge ? '⏳...' : '🔔 ' + tMsg('Smart Nudge', 'Pantauan Cerdas')}
+              {isGeneratingNudge ? (
+                <Icon name="clock" className="w-3.5 h-3.5 animate-pulse" />
+              ) : (
+                <>
+                  <Icon name="bell" className="w-3.5 h-3.5" /> {tMsg('Smart Nudge', 'Pantauan Cerdas')}
+                </>
+              )}
             </button>
           )}
           {isTaskAdmin && accountStatus !== 'suspended' && !isPreviewMode && (
@@ -201,7 +226,7 @@ export default function TaskDetailSidebar({
               }}
               className={`text-[9px] font-bold px-4 py-2 rounded-lg border transition-all hover:-translate-y-0.5 hover:shadow-md flex items-center gap-1.5 uppercase tracking-widest shadow-sm ${!!selectedTask.auto_nudge ? 'bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50' : 'bg-neutral-50 text-neutral-500 border-neutral-200 hover:bg-neutral-100 dark:bg-neutral-900/30 dark:text-neutral-400 dark:border-neutral-800/50'}`}
             >
-              🤖 {!!selectedTask.auto_nudge ? tMsg('Auto Nudge: ON', 'Auto Nudge: AKTIF') : tMsg('Auto Nudge: OFF', 'Auto Nudge: MATI')}
+              <Icon name="bot" className="w-3.5 h-3.5" /> {!!selectedTask.auto_nudge ? tMsg('Auto Nudge: ON', 'Auto Nudge: AKTIF') : tMsg('Auto Nudge: OFF', 'Auto Nudge: MATI')}
             </button>
           )}
         </div>

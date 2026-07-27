@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { HighlightText, LoadingSpinner } from './Utils';
 import { useAppContext } from './hooks/useAppContext';
+import { Icon } from './components/icons/Icon';
 
 function getWeekDays(startOfWeek) {
   const days = [];
@@ -602,7 +603,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
           onClick={() => setShowTimesheets?.(false)}
           className="hover:text-indigo-650 dark:hover:text-indigo-400 transition-colors flex items-center gap-1"
         >
-          🏠 {tMsg('Dashboard', 'Dasbor')}
+          <Icon name="home" className="w-3.5 h-3.5 inline" /> {tMsg('Dashboard', 'Dasbor')}
         </button>
         <span className="opacity-50">/</span>
         <span className="text-neutral-700 dark:text-slate-300 font-extrabold">
@@ -614,7 +615,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 pb-6 shrink-0">
         <div className="flex flex-col gap-2">
           <h1 className="text-4xl md:text-5xl font-black text-black dark:text-white leading-none flex items-center gap-3">
-            <span className="text-indigo-600 dark:text-indigo-400">⏱️</span> 
+            <Icon name="timer" className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
             My timesheets
           </h1>
           <p className="text-slate-500 dark:text-slate-400 font-medium">Log and manage your hours across all projects on a weekly basis.</p>
@@ -622,14 +623,14 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
         
         {/* Approver Status Badge */}
         <div className="flex items-center gap-2 px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm text-xs font-bold w-max">
-          <span>🎯 {tMsg('Approver', 'Penyetuju')}:</span>
+          <span><Icon name="target" className="w-3.5 h-3.5 inline-block mr-1" /> {tMsg('Approver', 'Penyetuju')}:</span>
           {profileData?.timesheet_approver ? (
             <span className="text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-lg">
               @{profileData.timesheet_approver}
             </span>
           ) : (
             <span className="text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg">
-              ⚠️ {tMsg('No Approver (Contact Admin)', 'Belum Ditentukan (Hubungi Admin)')}
+              <Icon name="alert-triangle" className="w-4 h-4 inline" /> {tMsg('No Approver (Contact Admin)', 'Belum Ditentukan (Hubungi Admin)')}
             </span>
           )}
         </div>
@@ -677,7 +678,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       {/* Overtime Warning */}
       {(hasDailyOvertime || hasWeeklyOvertime) && (
         <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex gap-3 text-amber-800 dark:text-amber-300 shadow-sm mac-animate">
-          <div className="text-xl">⚠️</div>
+          <Icon name="alert-triangle" className="w-5 h-5 shrink-0" />
           <div>
             <h4 className="font-bold text-sm">Overtime Warning</h4>
             <p className="text-xs mt-0.5 opacity-90 font-medium animate-pulse">
@@ -801,7 +802,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                             {boards.filter(b => b.is_private !== 1).map(b => (
                               <option key={b.id} value={b.id}>[{b.id}] {b.name}</option>
                             ))}
-                            <option value="custom">✍️ Custom Project...</option>
+                            <option value="custom">Custom Project...</option>
                           </select>
                           {row.board_id === 'custom' && (
                             <input
@@ -835,7 +836,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                             {projectTasks.map(t => (
                               <option key={t.id} value={t.id}>[{t.id}] {t.project_name && t.project_name.length > 40 ? t.project_name.substring(0, 40) + '...' : t.project_name}</option>
                             ))}
-                            <option value="custom">✍️ Custom Task...</option>
+                            <option value="custom">Custom Task...</option>
                           </select>
                           {row.request_id === 'custom' && (
                             <input
@@ -898,9 +899,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                         className="text-slate-400 hover:text-red-500 transition-colors p-1 disabled:opacity-30 disabled:cursor-not-allowed"
                         title="Remove Row"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-                        </svg>
+                        <Icon name="trash" className="w-5 h-5" />
                       </button>
                     </td>
                   </tr>
@@ -915,7 +914,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                     disabled={isWeekSubmitted}
                     className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-800/30 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    ➕ Add Row
+                    <Icon name="plus" className="w-3.5 h-3.5 inline-block mr-1" /> Add Row
                   </button>
                 </td>
                 <td className="py-3 px-4 text-right">Daily Totals:</td>
@@ -976,7 +975,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                       className="flex justify-between items-center px-6 py-4 bg-slate-50 dark:bg-neutral-950 hover:bg-slate-100 dark:hover:bg-neutral-900 transition-colors w-full text-left font-bold text-slate-700 dark:text-slate-200"
                     >
                       <span className="flex items-center gap-2">
-                        <span>📅</span>
+                        <Icon name="calendar" className="w-3.5 h-3.5" />
                         <span>
                           Week of {formatDateMMM(weekGroup.weekDays[0]).replace(/,?\s*\d{4}/, '')} - {formatDateMMM(weekGroup.weekDays[6]).replace(/,?\s*\d{4}/, '')}
                         </span>
@@ -1070,7 +1069,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
         <div className="bg-white dark:bg-neutral-900 border border-amber-250 dark:border-amber-900/50 rounded-2xl p-6 shadow-sm flex flex-col gap-4 animate-fade-in">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-amber-200 dark:border-amber-900/50 pb-2">
             <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              <span className="text-amber-500">🛡️</span> Pending Approvals for Team
+              <Icon name="shield" className="w-5 h-5 text-amber-500" /> Pending Approvals for Team
             </h2>
           </div>
           
@@ -1081,7 +1080,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
               {groupedApprovals.map(userGroup => (
                 <div key={userGroup.username} className="flex flex-col gap-4 border border-amber-200/50 dark:border-amber-900/20 rounded-2xl p-4 bg-amber-50/10 dark:bg-amber-950/5">
                   <div className="flex items-center gap-2 text-sm font-bold text-slate-850 dark:text-slate-200 border-b border-amber-100 dark:border-amber-900/20 pb-2">
-                    <span className="text-lg">👤</span>
+                    <Icon name="user" className="w-4 h-4" />
                     <span>@{userGroup.username}</span>
                   </div>
                   
@@ -1098,7 +1097,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                               onClick={() => toggleExpandApprovalWeek(userGroup.username, weekStartStr)}
                               className="flex items-center gap-2 hover:opacity-80"
                             >
-                              <span>📅</span>
+                              <Icon name="calendar" className="w-3.5 h-3.5" />
                               <span>
                                 Week of {formatDateMMM(weekGroup.weekDays[0]).replace(/,?\s*\d{4}/, '')} - {formatDateMMM(weekGroup.weekDays[6]).replace(/,?\s*\d{4}/, '')}
                               </span>
@@ -1201,9 +1200,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-200 dark:border-neutral-800">
             <div className="flex items-center gap-3 text-red-600 mb-2">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
+              <Icon name="alert-triangle" className="w-6 h-6" />
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">Submission Error</h3>
             </div>
             <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">{errorModalMsg}</p>

@@ -1,6 +1,7 @@
 import React from 'react';
 import ChatMessage from '../../ChatMessage';
 import { Avatar } from '../../SharedUI';
+import { Icon } from '../icons/Icon';
 
 export default function ChatMessageList({
   scrollContainerRef,
@@ -199,9 +200,7 @@ export default function ChatMessageList({
             className="w-10 h-10 bg-indigo-600 text-white rounded-full shadow-xl flex items-center justify-center font-black hover:scale-110 transition-transform"
             title="Scroll to bottom"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
-            </svg>
+            <Icon name="chevron-down" className="w-5 h-5" strokeWidth={2.5} />
           </button>
         )}
       </div>

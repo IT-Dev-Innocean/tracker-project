@@ -1,4 +1,5 @@
 import React from 'react';
+import { Icon } from '../icons/Icon';
 
 export default function TaskDetailHeader({
   isInline,
@@ -19,8 +20,15 @@ export default function TaskDetailHeader({
         isInline ? 'p-4 sm:p-5' : 'p-4 sm:p-6 lg:p-8'
       }`}
     >
-      <h2 className="text-lg sm:text-2xl font-extrabold text-black dark:text-white uppercase truncate flex-1">
-        {isEditing ? tMsg('✏️ Edit Task', '✏️ Edit Tugas') : tMsg('Task Details', 'Detail Tugas')}
+      <h2 className="text-lg sm:text-2xl font-extrabold text-black dark:text-white uppercase truncate flex-1 flex items-center gap-2">
+        {isEditing ? (
+          <>
+            <Icon name="pencil" className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+            {tMsg('Edit Task', 'Edit Tugas')}
+          </>
+        ) : (
+          tMsg('Task Details', 'Detail Tugas')
+        )}
       </h2>
       <div className="flex items-center gap-2 sm:gap-4 shrink-0">
         {isEditing ? (
@@ -54,9 +62,7 @@ export default function TaskDetailHeader({
               ))}
             </select>
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-100">
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7"></path>
-              </svg>
+              <Icon name="chevron-down" className="w-3 h-3" strokeWidth={3} />
             </div>
           </div>
         )}
@@ -66,9 +72,7 @@ export default function TaskDetailHeader({
             className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-neutral-500 hover:text-black dark:hover:text-white rounded-full transition-colors shrink-0"
             title={tMsg('Close', 'Tutup')}
           >
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
+            <Icon name="x" className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2.5} />
           </button>
         )}
       </div>

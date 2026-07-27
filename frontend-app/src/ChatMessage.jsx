@@ -1,5 +1,6 @@
 import React from 'react';
 import { Avatar } from './SharedUI';
+import { Icon } from './components/icons/Icon';
 
 export const renderChatMessageContent = (text, isMe) => {
   if (!text) return '';
@@ -51,7 +52,7 @@ export const renderChatMessageContent = (text, isMe) => {
     } else {
       cleanCode = lines.join('\n');
     }
-    const block = `<details class="group bg-[#272822] text-[#F8F8F2] rounded-xl my-3 shadow-lg border border-[#3e3d32] overflow-hidden w-full max-w-full" open><summary class="px-3 py-2 bg-[#1e1f1c] cursor-pointer text-xs font-bold font-sans flex items-center justify-between select-none border-b border-[#3e3d32] hover:bg-[#2c2d27] transition-colors"><span class="text-[#A6E22E] flex items-center gap-2"><span>⌨️</span> <span>Code</span></span><div class="flex items-center gap-3"><button type="button" onclick="event.preventDefault(); event.stopPropagation(); navigator.clipboard.writeText(this.closest('details').querySelector('code').innerText); const t = this.innerHTML; this.innerHTML = '✅ Copied!'; setTimeout(() => this.innerHTML = t, 2000);" class="text-[10px] font-bold text-neutral-400 hover:text-[#A6E22E] transition-colors bg-[#272822] border border-[#3e3d32] px-2.5 py-1 rounded-md active:scale-95">📋 Copy</button><span class="group-open:rotate-180 transition-transform">▼</span></div></summary><div class="overflow-x-auto p-3 w-full custom-scrollbar"><pre class="font-mono text-[10px] sm:text-xs text-left" style="white-space: pre; line-height: 1.3;"><code>${cleanCode}</code></pre></div></details>`;
+    const block = `<details class="group bg-[#272822] text-[#F8F8F2] rounded-xl my-3 shadow-lg border border-[#3e3d32] overflow-hidden w-full max-w-full" open><summary class="px-3 py-2 bg-[#1e1f1c] cursor-pointer text-xs font-bold font-sans flex items-center justify-between select-none border-b border-[#3e3d32] hover:bg-[#2c2d27] transition-colors"><span class="text-[#A6E22E] flex items-center gap-2"><span>Code</span></span><div class="flex items-center gap-3"><button type="button" onclick="event.preventDefault(); event.stopPropagation(); navigator.clipboard.writeText(this.closest('details').querySelector('code').innerText); const t = this.innerHTML; this.innerHTML = 'Copied!'; setTimeout(() => this.innerHTML = t, 2000);" class="text-[10px] font-bold text-neutral-400 hover:text-[#A6E22E] transition-colors bg-[#272822] border border-[#3e3d32] px-2.5 py-1 rounded-md active:scale-95">Copy</button><span class="group-open:rotate-180 transition-transform">▼</span></div></summary><div class="overflow-x-auto p-3 w-full custom-scrollbar"><pre class="font-mono text-[10px] sm:text-xs text-left" style="white-space: pre; line-height: 1.3;"><code>${cleanCode}</code></pre></div></details>`;
     escaped = escaped.replace(`__CODE_BLOCK_${i}__`, block);
   });
   return escaped;
@@ -109,8 +110,8 @@ export default function ChatMessage({
               {new Date(c.timestamp.replace(/-/g, '/')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
             {c.isPrivate && (
-              <span className="text-[8px] font-bold bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 px-1.5 py-0.5 rounded uppercase tracking-widest ml-1 shadow-sm">
-                🔒 Private
+              <span className="text-[8px] font-bold bg-neutral-200 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 px-1.5 py-0.5 rounded uppercase tracking-widest ml-1 shadow-sm inline-flex items-center gap-1">
+                <Icon name="lock" className="w-2.5 h-2.5" /> Private
               </span>
             )}
           </div>
@@ -136,14 +137,7 @@ export default function ChatMessage({
                   className="p-1.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-indigo-500 transition-colors"
                   title="Reply"
                 >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-                    ></path>
-                  </svg>
+                  <Icon name="reply" className="w-3 h-3" />
                 </button>
               )}
               {canDelete && (
@@ -152,14 +146,7 @@ export default function ChatMessage({
                   className="p-1.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-red-500 transition-colors"
                   title="Delete"
                 >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    ></path>
-                  </svg>
+                  <Icon name="trash" className="w-3 h-3" />
                 </button>
               )}
               <button
@@ -167,14 +154,7 @@ export default function ChatMessage({
                 className="p-1.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-indigo-500 transition-colors"
                 title="Copy"
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                  ></path>
-                </svg>
+                <Icon name="copy" className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -202,14 +182,7 @@ export default function ChatMessage({
                   className="p-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-indigo-500 transition-colors"
                   title="Add Reaction"
                 >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    ></path>
-                  </svg>
+                  <Icon name="smile-plus" className="w-3 h-3" />
                 </button>
                 <div
                   className={`absolute top-1/2 -translate-y-1/2 ${

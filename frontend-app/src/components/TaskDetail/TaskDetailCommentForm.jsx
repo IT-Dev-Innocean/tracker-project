@@ -1,4 +1,5 @@
 import React from 'react';
+import { Icon } from '../icons/Icon';
 
 export default function TaskDetailCommentForm({
   isInvolved,
@@ -45,7 +46,7 @@ export default function TaskDetailCommentForm({
                 onClick={() => setReplyingTo(null)}
                 className="text-neutral-400 hover:text-black dark:hover:text-white p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
               >
-                ✖
+                <Icon name="x" className="w-4 h-4" />
               </button>
             </div>
           )}
@@ -103,9 +104,7 @@ export default function TaskDetailCommentForm({
                 className="w-10 h-10 bg-indigo-600 text-white rounded-full shadow-xl flex items-center justify-center font-black hover:scale-110 transition-transform"
                 title="Scroll to bottom"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                </svg>
+                <Icon name="chevron-down" className="w-5 h-5" strokeWidth={2.5} />
               </button>
             )}
           </div>
@@ -226,15 +225,13 @@ export default function TaskDetailCommentForm({
               disabled={accountStatus === 'suspended' || !newComment.trim()}
               className="bg-indigo-600 text-white hover:bg-indigo-700 w-12 h-[48px] rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 disabled:bg-neutral-300 dark:disabled:bg-neutral-800 shrink-0"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
+              <Icon name="send" className="w-5 h-5" strokeWidth={2} />
             </button>
           </form>
         </>
       ) : (
-        <div className="p-4 text-center text-xs font-bold text-neutral-500 uppercase tracking-widest bg-neutral-100/50 dark:bg-neutral-900/50 rounded-xl border border-neutral-200 dark:border-neutral-800">
-          🔒{' '}
+        <div className="p-4 text-center text-xs font-bold text-neutral-500 uppercase tracking-widest bg-neutral-100/50 dark:bg-neutral-900/50 rounded-xl border border-neutral-200 dark:border-neutral-800 flex items-center justify-center gap-2">
+          <Icon name="lock" className="w-3.5 h-3.5" />
           {tMsg(
             'Only involved members can comment',
             'Hanya anggota yang terlibat yang dapat berkomentar'

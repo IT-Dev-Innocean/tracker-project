@@ -6,6 +6,7 @@ import SmartAssistantLanding from './components/SmartAssistant/SmartAssistantLan
 import SmartAssistantQuickTodo from './components/SmartAssistant/SmartAssistantQuickTodo';
 import SmartAssistantPlanner from './components/SmartAssistant/SmartAssistantPlanner';
 import SmartAssistantChat from './components/SmartAssistant/SmartAssistantChat';
+import { Icon } from './components/icons/Icon';
 
 export default function SmartAssistant({
   currentUser,
@@ -2370,7 +2371,7 @@ USER REQUEST:
       <div className="absolute inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-100 p-5">
         <div className="bg-white dark:bg-neutral-950 p-6 sm:p-8 w-full max-w-sm border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl text-center mac-animate">
           <div className="w-16 h-16 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-sm border border-red-200 dark:border-red-800/50">
-            🗑️
+            <Icon name="trash" className="w-8 h-8" />
           </div>
           <h3 className="text-lg font-black text-black dark:text-white mb-2 uppercase">
             {tMsg('Discard Changes?', 'Buang Perubahan?')}

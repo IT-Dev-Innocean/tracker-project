@@ -2,6 +2,7 @@ import React from 'react';
 import axios from 'axios';
 import { HighlightText } from '../../Utils';
 import { Avatar } from '../../SharedUI';
+import { Icon } from '../icons/Icon';
 
 export default function ChatSidebar({
   activeChat,
@@ -76,9 +77,11 @@ export default function ChatSidebar({
     >
       {/* Search & Filters */}
       <div className="p-4 border-b border-neutral-200 dark:border-neutral-800 shrink-0">
-        <h3 className="font-black text-lg text-black dark:text-white mb-3">💬 Workspace</h3>
+        <h3 className="font-black text-lg text-black dark:text-white mb-3 flex items-center gap-2">
+          <Icon name="message-circle" className="w-5 h-5" /> Workspace
+        </h3>
         <div className="relative mb-3">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">🔍</span>
+          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
           <input
             type="text"
             placeholder={tMsg('Search workspace...', 'Cari ruang kerja...')}
@@ -91,7 +94,7 @@ export default function ChatSidebar({
               onClick={() => setBoardSearchQuery('')}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black dark:hover:text-white p-1 font-bold text-xs"
             >
-              ✖
+              <Icon name="x" className="w-3.5 h-3.5" />
             </button>
           )}
 
@@ -142,7 +145,7 @@ export default function ChatSidebar({
                 {matchingBoards.length > 0 && (
                   <div className="space-y-1">
                     <div className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest px-2 mb-1 flex items-center justify-between">
-                      <span>📁 {tMsg('Projects', 'Proyek')}</span>
+                      <span className="flex items-center gap-1"><Icon name="folder" className="w-3 h-3" /> {tMsg('Projects', 'Proyek')}</span>
                       <span className="bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded text-[8px]">{matchingBoards.length}</span>
                     </div>
                     {matchingBoards.map(b => (
@@ -154,7 +157,7 @@ export default function ChatSidebar({
                         }}
                         className="w-full text-left px-2 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-2"
                       >
-                        <span className="text-neutral-400">🏢</span>
+                        <Icon name="building" className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
                         <span className="truncate flex-1">
                           <HighlightText text={b.name} query={boardSearchQuery} />
                         </span>
@@ -167,7 +170,7 @@ export default function ChatSidebar({
                 {matchingTasks.length > 0 && (
                   <div className="space-y-1">
                     <div className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest px-2 mb-1 flex items-center justify-between">
-                      <span>📋 {tMsg('Tasks', 'Tugas')}</span>
+                      <span className="flex items-center gap-1"><Icon name="clipboard-list" className="w-3 h-3" /> {tMsg('Tasks', 'Tugas')}</span>
                       <span className="bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded text-[8px]">{matchingTasks.length}</span>
                     </div>
                     {matchingTasks.map(t => (
@@ -179,7 +182,7 @@ export default function ChatSidebar({
                         }}
                         className="w-full text-left px-2 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-2"
                       >
-                        <span className="text-neutral-400">📋</span>
+                        <Icon name="clipboard-list" className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
                         <span className="truncate flex-1">
                           <HighlightText text={t.project_name} query={boardSearchQuery} />
                         </span>
@@ -192,7 +195,7 @@ export default function ChatSidebar({
                 {matchingChats.length > 0 && (
                   <div className="space-y-1">
                     <div className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest px-2 mb-1 flex items-center justify-between">
-                      <span>💬 {tMsg('Chats', 'Obrolan')}</span>
+                      <span className="flex items-center gap-1"><Icon name="message-circle" className="w-3 h-3" /> {tMsg('Chats', 'Obrolan')}</span>
                       <span className="bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded text-[8px]">{matchingChats.length}</span>
                     </div>
                     {matchingChats.map(c => {
@@ -243,7 +246,7 @@ export default function ChatSidebar({
                 {matchingUsers.length > 0 && (
                   <div className="space-y-1">
                     <div className="text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase tracking-widest px-2 mb-1 flex items-center justify-between">
-                      <span>👤 {tMsg('Users', 'Pengguna')}</span>
+                      <span className="flex items-center gap-1"><Icon name="user" className="w-3 h-3" /> {tMsg('Users', 'Pengguna')}</span>
                       <span className="bg-neutral-100 dark:bg-neutral-800 px-1 py-0.5 rounded text-[8px]">{matchingUsers.length}</span>
                     </div>
                     {matchingUsers.map(u => (
@@ -269,7 +272,7 @@ export default function ChatSidebar({
 
                 {!hasAnyResult && (
                   <div className="p-4 text-center text-xs font-bold text-neutral-500">
-                    📭 {tMsg('No search results found.', 'Tidak ada hasil pencarian.')}
+                    <Icon name="inbox" className="w-4 h-4 inline mr-1" /> {tMsg('No search results found.', 'Tidak ada hasil pencarian.')}
                   </div>
                 )}
 
@@ -286,7 +289,7 @@ export default function ChatSidebar({
                 : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-350 dark:hover:bg-neutral-750'
             }`}
           >
-            📭 Inbox
+            <Icon name="inbox" className="w-3.5 h-3.5" /> Inbox
             {unreadInboxChatsCount > 0 && (
               <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black leading-none shrink-0 scale-90">
                 {unreadInboxChatsCount}
@@ -303,7 +306,7 @@ export default function ChatSidebar({
               }`}
               title={tMsg('My Tasks', 'Tugas Saya')}
             >
-              👤 {tMsg('My Tasks', 'Tugas Saya')}
+              <Icon name="user" className="w-3.5 h-3.5" /> {tMsg('My Tasks', 'Tugas Saya')}
             </button>
             <button
               onClick={() => setShowUnreadFilter(!showUnreadFilter)}
@@ -314,7 +317,7 @@ export default function ChatSidebar({
               }`}
               title={tMsg('Unread', 'Belum Dibaca')}
             >
-              🔔 {tMsg('Unread', 'Belum Dibaca')}
+              <Icon name="bell" className="w-3.5 h-3.5" /> {tMsg('Unread', 'Belum Dibaca')}
             </button>
           </div>
         </div>
@@ -330,14 +333,14 @@ export default function ChatSidebar({
               className="hover:text-black dark:hover:text-white transition-colors text-xs font-black"
               title={tMsg('Expand All', 'Buka Semua')}
             >
-              ⊞
+              <Icon name="maximize-2" className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={handleCollapseAll}
               className="hover:text-black dark:hover:text-white transition-colors text-xs font-black"
               title={tMsg('Collapse All', 'Tutup Semua')}
             >
-              ⊟
+              <Icon name="minimize-2" className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -357,9 +360,9 @@ export default function ChatSidebar({
                   <div className="flex items-center gap-2 overflow-hidden flex-1 text-left">
                     <span className="w-4 h-4 flex items-center justify-center text-neutral-400 group-hover:text-black dark:group-hover:text-white shrink-0 transition-colors">
                       {expandedBoards[board.id] ? (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
+                        <Icon name="chevron-down" className="w-3.5 h-3.5" strokeWidth={3} />
                       ) : (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M9 5l7 7-7 7" /></svg>
+                        <Icon name="chevron-right" className="w-3.5 h-3.5" strokeWidth={3} />
                       )}
                     </span>
                     <span className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate flex-1" title={board.name}>
@@ -390,7 +393,9 @@ export default function ChatSidebar({
                               : 'text-slate-600 dark:text-slate-400 hover:bg-neutral-200 dark:hover:bg-neutral-800'
                           }`}
                         >
-                          <span className="truncate flex-1">🏢 General Chat</span>
+                          <span className="truncate flex-1 flex items-center gap-1.5">
+                            <Icon name="building" className="w-3.5 h-3.5 opacity-70 shrink-0" /> General Chat
+                          </span>
                           {unreadProj > 0 && (
                             <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-md shadow-sm shrink-0 animate-pulse ml-2">
                               {unreadProj}
@@ -425,7 +430,7 @@ export default function ChatSidebar({
                           }`}
                         >
                           <span className="truncate flex-1 flex items-center gap-1.5">
-                            <span className="text-[10px] opacity-70">📋</span>
+                            <Icon name="clipboard-list" className="w-3 h-3 opacity-70 shrink-0" />
                             {t.project_name}
                           </span>
                           {unreadTask > 0 && (
@@ -524,7 +529,7 @@ export default function ChatSidebar({
                 className="opacity-0 group-hover:opacity-100 text-neutral-400 hover:text-red-500 p-1 transition-opacity"
                 title="Delete conversation"
               >
-                ✖
+                <Icon name="x" className="w-3.5 h-3.5" />
               </button>
             </div>
           ))}

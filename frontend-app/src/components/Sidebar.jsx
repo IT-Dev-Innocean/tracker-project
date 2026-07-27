@@ -3,6 +3,19 @@ import { useAppContext } from '../hooks/useAppContext';
 import { Avatar, IconPlus } from '../SharedUI';
 import { HighlightText } from '../Utils';
 import InnoceanLogo from './InnoceanLogo';
+import { Icon } from './icons/Icon';
+
+function NotificationTypeIcon({ type }) {
+  if (type === 'task_assigned') return <Icon name="arrow-right" className="w-5 h-5" />;
+  if (type === 'task_completed') return <Icon name="check-circle" className="w-5 h-5" />;
+  if (type === 'comment' || type === 'mention' || type === 'team_chat') {
+    return <Icon name="message-circle" className="w-5 h-5" />;
+  }
+  if (type === 'team_invite' || type === 'access_request') {
+    return <Icon name="handshake" className="w-5 h-5" />;
+  }
+  return <Icon name="bell" className="w-5 h-5" />;
+}
 
 export default function Sidebar() {
   const {
@@ -261,7 +274,7 @@ export default function Sidebar() {
                 <span
                   className='text-[10px] opacity-60 shrink-0'
                   title={tMsg('Private Project', 'Proyek Privat')}>
-                  🔒
+                  <Icon name="lock" className="w-3 h-3" />
                 </span>
               )}
             </div>
@@ -291,7 +304,10 @@ export default function Sidebar() {
                     ? tMsg('Unpin Project', 'Lepas Sematan')
                     : tMsg('Pin Project', 'Sematkan Proyek')
                 }>
-                ★
+                <Icon
+                  name="star"
+                  className={`w-3.5 h-3.5 ${favoriteBoards.includes(board.id) ? 'fill-current' : ''}`}
+                />
               </button>
               {(isSuperAdmin || board.owner_username === currentUser) && (
                 <button
@@ -301,17 +317,7 @@ export default function Sidebar() {
                   }}
                   className='p-1 rounded text-neutral-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity'
                   title={tMsg('Delete Project', 'Hapus Proyek')}>
-                  <svg
-                    className='w-3.5 h-3.5'
-                    fill='none'
-                    stroke='currentColor'
-                    viewBox='0 0 24 24'>
-                    <path
-                      strokeLinecap='round'
-                      strokeLinejoin='round'
-                      strokeWidth='2'
-                      d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'></path>
-                  </svg>
+                  <Icon name="trash" className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
@@ -367,18 +373,7 @@ export default function Sidebar() {
               }}
               className='ml-auto p-1.5 text-neutral-400 hover:text-black dark:hover:text-white transition-colors rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800'
               title='Collapse sidebar'>
-              <svg
-                className='w-6 h-6'
-                fill='none'
-                stroke='currentColor'
-                strokeWidth='2'
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                viewBox='0 0 24 24'>
-                <rect width='18' height='18' x='3' y='3' rx='2' ry='2' />
-                <path d='M9 3v18' />
-                <path d='M14 15l-3-3 3-3' />
-              </svg>
+              <Icon name="panel-left-close" className="w-6 h-6" />
             </button>
           )}
         </div>
@@ -387,7 +382,7 @@ export default function Sidebar() {
           <div className='px-4 pt-5 pb-2 shrink-0 relative'>
             <div className='relative mb-3 group z-50'>
               <span className='absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 group-hover:text-black dark:group-hover:text-white transition-colors'>
-                🔍
+                <Icon name="search" className="w-4 h-4" />
               </span>
               <input
                 type='text'
@@ -409,7 +404,7 @@ export default function Sidebar() {
                     closeGlobalSearch();
                   }}
                   className='absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black dark:hover:text-white font-bold text-xs'>
-                  ✖
+                  <Icon name="x" className="w-3 h-3" />
                 </button>
               )}
 
@@ -434,7 +429,7 @@ export default function Sidebar() {
                         {matchedGlobalBoards.length > 0 && (
                           <div className='mb-2'>
                             <div className='px-5 py-1.5 text-[9px] font-bold text-black dark:text-white uppercase tracking-widest bg-neutral-100 dark:bg-neutral-900'>
-                              📁 Projects
+                              <Icon name="folder" className="w-3 h-3 inline" /> Projects
                             </div>
                             {matchedGlobalBoards.map((b) => (
                               <div
@@ -445,7 +440,7 @@ export default function Sidebar() {
                                   closeGlobalSearch();
                                 }}
                                 className='px-5 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 cursor-pointer border-b border-neutral-100 dark:border-neutral-800/50 transition-colors flex items-center gap-3'>
-                                <span className='text-xl shrink-0'>📂</span>
+                                <Icon name="folder-open" className="w-5 h-5 shrink-0" />
                                 <div className='flex flex-col min-w-0'>
                                   <span className='text-sm font-bold text-black dark:text-white truncate'>
                                     <HighlightText
@@ -469,7 +464,7 @@ export default function Sidebar() {
                         {globalSearchResults.length > 0 && (
                           <div className='mb-1'>
                             <div className='px-5 py-1.5 text-[9px] font-bold text-black dark:text-white uppercase tracking-widest bg-neutral-100 dark:bg-neutral-900'>
-                              📋 Tasks
+                              <Icon name="clipboard-list" className="w-3 h-3 inline" /> Tasks
                             </div>
                             {globalSearchResults.map((t) => (
                               <div
@@ -506,7 +501,7 @@ export default function Sidebar() {
                                         closeGlobalSearch();
                                       }
                                     }}>
-                                    📂{' '}
+                                    <Icon name="folder-open" className="w-3 h-3 inline" />{' '}
                                     <HighlightText
                                       text={t.board_name}
                                       query={globalSearchQuery}
@@ -528,7 +523,7 @@ export default function Sidebar() {
                                         &bull;
                                       </span>
                                       <span className='truncate flex items-center gap-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400'>
-                                        👤{' '}
+                                        <Icon name="user" className="w-3 h-3 inline" />{' '}
                                         <HighlightText
                                           text={t.requester}
                                           query={globalSearchQuery}
@@ -542,7 +537,7 @@ export default function Sidebar() {
                                         &bull;
                                       </span>
                                       <span className='text-neutral-500 dark:text-slate-400 text-[10px] font-medium'>
-                                        📅 {formatDateMMM(t.deadline)}
+                                        <Icon name="calendar" className="w-3 h-3 inline" /> {formatDateMMM(t.deadline)}
                                       </span>
                                     </>
                                   )}
@@ -607,18 +602,7 @@ export default function Sidebar() {
                 onClick={toggleCollapse}
                 className='w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors'
                 title='Expand sidebar'>
-                <svg
-                  className='w-6 h-6'
-                  fill='none'
-                  stroke='currentColor'
-                  strokeWidth='2'
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  viewBox='0 0 24 24'>
-                  <rect width='18' height='18' x='3' y='3' rx='2' ry='2' />
-                  <path d='M9 3v18' />
-                  <path d='M14 9l3 3-3 3' />
-                </svg>
+                <Icon name="panel-left-open" className="w-6 h-6" />
               </button>
             </div>
           )}
@@ -627,7 +611,7 @@ export default function Sidebar() {
               onClick={() => {
                 setSelectedBoard({
                   id: 'global',
-                  name: `🌍 ${tMsg('See the Big Picture', 'Lihat Gambaran Besar')}`,
+                  name: tMsg('See the Big Picture', 'Lihat Gambaran Besar'),
                   owner_username: currentUser,
                   role: 'owner',
                   isVirtual: true,
@@ -642,8 +626,8 @@ export default function Sidebar() {
                   : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
               } ${isCollapsed ? 'justify-center' : ''}`}
               title={tMsg('See the Big Picture', 'Lihat Gambaran Besar')}>
-              <div className='w-6 h-6 flex items-center justify-center text-lg'>
-                🌍
+              <div className='w-6 h-6 flex items-center justify-center'>
+                <Icon name="globe" className="w-5 h-5" />
               </div>
               {!isCollapsed && (
                 <span className='text-sm truncate'>
@@ -668,9 +652,9 @@ export default function Sidebar() {
                     : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
                 } ${isCollapsed ? 'justify-center' : ''}`}
                 title={tMsg('My To-Do List', 'Daftar Tugas Saya')}>
-                <div className='w-6 h-6 flex items-center justify-center text-lg'>
-                  📝
-                </div>
+              <div className='w-6 h-6 flex items-center justify-center'>
+                <Icon name="file-text" className="w-5 h-5" />
+              </div>
                 {!isCollapsed && (
                   <span className='text-sm truncate'>
                     {tMsg('My To-Do List', 'Daftar Tugas Saya')}
@@ -694,8 +678,8 @@ export default function Sidebar() {
                   : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
               } ${isCollapsed ? 'justify-center' : ''}`}
               title={tMsg('Timesheets', 'Lembar Waktu')}>
-              <div className='w-6 h-6 flex items-center justify-center text-lg'>
-                ⏱️
+              <div className='w-6 h-6 flex items-center justify-center'>
+                <Icon name="clock" className="w-5 h-5" />
               </div>
               {!isCollapsed && (
                 <span className='text-sm truncate'>
@@ -768,7 +752,7 @@ export default function Sidebar() {
               onClick={() => setIsChatWorkspaceOpen(true)}
               className='flex-1 flex justify-center items-center py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 transition-colors relative'
               title={tMsg('Chat', 'Obrolan')}>
-              <span className='text-sm'>💬</span>
+              <Icon name="message-circle" className="w-4 h-4" />
               {totalUnreadChats > 0 && (
                 <span className='absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border border-white dark:border-black scale-90 min-w-4 text-center leading-none'>
                   {totalUnreadChats}
@@ -782,13 +766,13 @@ export default function Sidebar() {
               }}
               className='flex-1 flex justify-center items-center py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 transition-colors'
               title={tMsg('Get All My Data', 'Dapatkan Semua Data')}>
-              <span className='text-sm'>🌍</span>
+              <Icon name="globe" className="w-4 h-4" />
             </button>
             <button
               onClick={() => setIsNotifOpen(!isNotifOpen)}
               className='flex-1 flex justify-center items-center py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 transition-colors relative'
               title={tMsg('Notifications', 'Notifikasi')}>
-              <span className='text-sm'>🔔</span>
+              <Icon name="bell" className="w-4 h-4" />
               {unreadCount > 0 && (
                 <span className='absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border border-white dark:border-black scale-90 min-w-4 text-center leading-none'>
                   {unreadCount}
@@ -799,7 +783,7 @@ export default function Sidebar() {
               onClick={() => setIsSettingsOpen(true)}
               className='flex-1 flex justify-center items-center py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 transition-colors'
               title={tMsg('Settings', 'Pengaturan')}>
-              <span className='text-sm'>⚙️</span>
+              <Icon name="settings" className="w-4 h-4" />
             </button>
           </div>
 
@@ -826,7 +810,7 @@ export default function Sidebar() {
                   <div className='overflow-y-auto flex-1'>
                     {notifications.length === 0 ? (
                       <div className='p-8 text-center text-neutral-400 text-sm'>
-                        <span className='text-3xl block mb-2'>📭</span>
+                        <Icon name="mail" className="w-8 h-8 mx-auto mb-2 opacity-60" />
                         {tMsg('No notifications yet.', 'Belum ada notifikasi.')}
                       </div>
                     ) : (
@@ -854,19 +838,8 @@ export default function Sidebar() {
                               : ''
                           }`}>
                           <div className='flex gap-2.5 items-start'>
-                            <span className='text-lg shrink-0'>
-                              {n.type === 'task_assigned'
-                                ? '👉'
-                                : n.type === 'task_completed'
-                                  ? '✅'
-                                  : n.type === 'comment' ||
-                                      n.type === 'mention' ||
-                                      n.type === 'team_chat'
-                                    ? '💬'
-                                    : n.type === 'team_invite' ||
-                                        n.type === 'access_request'
-                                      ? '🤝'
-                                      : '🔔'}
+                            <span className='shrink-0'>
+                              <NotificationTypeIcon type={n.type} />
                             </span>
                             <div className='flex-1 min-w-0'>
                               <p
@@ -937,7 +910,7 @@ export default function Sidebar() {
                         setIsProfileMenuOpen(false);
                       }}
                       className='w-full text-left px-4 py-3 text-sm font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 flex items-center gap-2 transition-colors'>
-                      <span>🔑</span> {tMsg('Manage Users', 'Kelola Pengguna')}
+                      <Icon name="lock" className="w-4 h-4" /> {tMsg('Manage Users', 'Kelola Pengguna')}
                     </button>
                   )}
                   <button
@@ -946,7 +919,7 @@ export default function Sidebar() {
                       setIsProfileMenuOpen(false);
                     }}
                     className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
-                    <span>⚙️</span> {tMsg('Settings', 'Pengaturan')}
+                    <Icon name="settings" className="w-4 h-4" /> {tMsg('Settings', 'Pengaturan')}
                   </button>
                   <button
                     onClick={() => {
@@ -955,7 +928,7 @@ export default function Sidebar() {
                     }}
                     disabled={accountStatus === 'suspended'}
                     className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                    <span>🌴</span> {tMsg('Time Off', 'Cuti')}
+                    <Icon name="calendar-days" className="w-4 h-4" /> {tMsg('Time Off', 'Cuti')}
                   </button>
                   <button
                     onClick={() => {
@@ -965,7 +938,7 @@ export default function Sidebar() {
                     }}
                     disabled={accountStatus === 'suspended'}
                     className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                    <span>✨</span>{' '}
+                    <Icon name="sparkles" className="w-4 h-4" />{' '}
                     {tMsg('Smart Assistant', 'Asisten Pintar AI')}
                   </button>
                   <button
@@ -975,7 +948,7 @@ export default function Sidebar() {
                     }}
                     disabled={accountStatus === 'suspended'}
                     className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                    <span>🎫</span> {tMsg('My Tickets', 'Tiket Saya')}
+                    <Icon name="ticket" className="w-4 h-4" /> {tMsg('My Tickets', 'Tiket Saya')}
                   </button>
                   <div className='border-t border-neutral-200 dark:border-neutral-800 my-1'></div>
                   <button
@@ -984,7 +957,7 @@ export default function Sidebar() {
                       setIsProfileMenuOpen(false);
                     }}
                     className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
-                    <span>📖</span> {tMsg('Documentation', 'Dokumentasi')}
+                    <Icon name="book-open" className="w-4 h-4" /> {tMsg('Documentation', 'Dokumentasi')}
                   </button>
                   <button
                     onClick={() => {
@@ -993,7 +966,7 @@ export default function Sidebar() {
                     }}
                     disabled={accountStatus === 'suspended'}
                     className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                    <span>💡</span> {tMsg('Submit Idea', 'Kirim Masukan')}
+                    <Icon name="lightbulb" className="w-4 h-4" /> {tMsg('Submit Idea', 'Kirim Masukan')}
                   </button>
                   <button
                     onClick={() => {
@@ -1002,7 +975,7 @@ export default function Sidebar() {
                     }}
                     disabled={accountStatus === 'suspended'}
                     className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                    <span>🎧</span>{' '}
+                    <Icon name="phone" className="w-4 h-4" />{' '}
                     {tMsg('Contact Support', 'Hubungi Dukungan')}
                   </button>
                   <button
@@ -1011,7 +984,7 @@ export default function Sidebar() {
                       setIsProfileMenuOpen(false);
                     }}
                     className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
-                    <span>🧭</span> {tMsg('Replay Tour', 'Ulangi Tur')}
+                    <Icon name="compass" className="w-4 h-4" /> {tMsg('Replay Tour', 'Ulangi Tur')}
                   </button>
                   {isInstallable && (
                     <button
@@ -1020,17 +993,7 @@ export default function Sidebar() {
                         setIsProfileMenuOpen(false);
                       }}
                       className='w-full text-left px-4 py-3 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-2 transition-colors mt-1 rounded-lg'>
-                      <svg
-                        className='w-4 h-4'
-                        fill='none'
-                        stroke='currentColor'
-                        viewBox='0 0 24 24'>
-                        <path
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                          strokeWidth='2.5'
-                          d='M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-3 3m0 0l-3-3m3 3V4'></path>
-                      </svg>
+                      <Icon name="download" className="w-4 h-4" />
                       {tMsg('Install App', 'Instal Aplikasi')}
                     </button>
                   )}
@@ -1041,7 +1004,7 @@ export default function Sidebar() {
                       setIsProfileMenuOpen(false);
                     }}
                     className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2 transition-colors'>
-                    <span>🚪</span> {tMsg('Logout', 'Keluar')}
+                    <Icon name="logout" className="w-4 h-4" /> {tMsg('Logout', 'Keluar')}
                   </button>
                 </div>
               </div>

@@ -1,3 +1,4 @@
+import { Icon } from '../icons/Icon';
 import React from 'react';
 
 export default function LandingCTA({ setIsLoginMode, setShowAuthForm }) {
@@ -22,7 +23,7 @@ export default function LandingCTA({ setIsLoginMode, setShowAuthForm }) {
               }}
               className="w-full sm:w-auto bg-black text-white hover:opacity-80 font-bold py-4 px-10 rounded-full shadow-2xl transition-all hover:-translate-y-1 flex items-center justify-center gap-2 mx-auto uppercase tracking-widest text-xs sm:text-sm"
             >
-              Request Access Now <span className="text-xl leading-none">🚀</span>
+              Request Access Now <Icon name="rocket" className="w-5 h-5" />
             </button>
           </div>
         </section>

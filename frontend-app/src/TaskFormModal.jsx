@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { IconPlus } from './SharedUI';
+import { Icon } from './components/icons/Icon';
 import { useCloseAnimation, LoadingSpinner } from './Utils';
 
 export default function TaskFormModal({
@@ -216,16 +217,14 @@ Format:
       >
         <div className="flex justify-between items-center p-5 sm:p-8 md:px-12 md:py-8 border-b border-neutral-200 dark:border-neutral-800 shrink-0 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-xl z-20">
           <h2 className="text-xl sm:text-2xl font-extrabold text-black dark:text-white uppercase flex items-center gap-2 sm:gap-3">
-            {formMode === 'ai' ? '✨' : <IconPlus className="w-6 h-6 sm:w-8 sm:h-8" />}
+            {formMode === 'ai' ? <Icon name="sparkles" className="w-6 h-6 sm:w-8 sm:h-8" /> : <IconPlus className="w-6 h-6 sm:w-8 sm:h-8" />}
             {formMode === 'ai' ? tMsg('Smart Assistant', 'Asisten Pintar') : tMsg('Add Task', 'Tugas Baru')}
           </h2>
           <button
             onClick={handleCancel}
             className="text-neutral-400 hover:text-black dark:hover:text-white transition-colors"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
+            <Icon name="x" className="w-6 h-6" strokeWidth={3} />
           </button>
         </div>
 
@@ -290,7 +289,7 @@ Format:
                 disabled={!aiPrompt.trim() || isGeneratingTask}
                 className="flex-1 bg-indigo-600 text-white font-bold py-4 rounded-full uppercase tracking-widest text-xs hover:bg-indigo-700 transition-all shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                ✨ {tMsg('Draft with AI', 'Buat dengan AI')}
+                <Icon name="sparkles" className="w-4 h-4 inline mr-1" /> {tMsg('Draft with AI', 'Buat dengan AI')}
               </button>
             </div>
           </div>
@@ -313,7 +312,7 @@ Format:
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 sm:gap-6 mb-6 relative z-50">
                   <div className="sm:col-span-2 group tour-form-requester relative z-50">
                     <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2">
-                      <span className="text-base">👤</span> {tMsg('Assignee / Requester', 'Pekerja / Peminta')}
+                      <Icon name="user" className="w-4 h-4" /> {tMsg('Assignee / Requester', 'Pekerja / Peminta')}
                     </label>
                     <div className="bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center relative h-[46px] sm:h-[50px]">
                       <input
@@ -386,7 +385,7 @@ Format:
 
                   <div className="sm:col-span-2 group">
                     <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2">
-                      <span className="text-base">📂</span> {tMsg('Category', 'Kategori')}
+                      <Icon name="folder-open" className="w-4 h-4" /> {tMsg('Category', 'Kategori')}
                     </label>
                     <div className="flex gap-1.5 sm:gap-2">
                       <div className="flex-1 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center min-w-0 h-[46px] sm:h-[50px]">
@@ -402,7 +401,7 @@ Format:
                           ))}
                           {formData.category &&
                             !categories.some((c) => c.toLowerCase() === formData.category.toLowerCase()) && (
-                              <option value={formData.category}>{formData.category} ✨</option>
+                              <option value={formData.category}>{formData.category}</option>
                             )}
                         </select>
                       </div>
@@ -412,14 +411,14 @@ Format:
                         className="bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 px-3 sm:px-4 rounded-2xl transition-colors text-sm font-bold flex items-center justify-center shrink-0 shadow-sm h-[46px] sm:h-[50px]"
                         title={tMsg('Add New Category', 'Tambah Kategori Baru')}
                       >
-                        ➕
+                        <Icon name="plus" className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
                   <div className="sm:col-span-1 group">
                     <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-[16px]">
-                      <span className="text-base">💥</span> {tMsg('Impact', 'Dampak')}
+                      <Icon name="zap" className="w-4 h-4" /> {tMsg('Impact', 'Dampak')}
                     </label>
                     <div className="bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-[46px] sm:h-[50px]">
                       <select
@@ -427,9 +426,9 @@ Format:
                         onChange={(e) => setFormData({ ...formData, impact: e.target.value })}
                         className="w-full h-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider [&>option]:bg-white dark:[&>option]:bg-neutral-950"
                       >
-                        <option value="High">🔥 High</option>
-                        <option value="Medium">⚡ Medium</option>
-                        <option value="Low">🧊 Low</option>
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
                       </select>
                     </div>
                   </div>
@@ -438,7 +437,7 @@ Format:
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                   <div className="group">
                     <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-[16px]">
-                      <span className="text-base">🗓️</span> {tMsg('Start Date', 'Tanggal Mulai')}
+                      <Icon name="calendar-days" className="w-4 h-4" /> {tMsg('Start Date', 'Tanggal Mulai')}
                     </label>
                     <div className="bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-[46px] sm:h-[50px]">
                       <input
@@ -452,7 +451,7 @@ Format:
                   </div>
                   <div className="group tour-form-deadline">
                     <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-[16px]">
-                      <span className="text-base">📅</span> {tMsg('Deadline', 'Tenggat Waktu')}
+                      <Icon name="calendar" className="w-4 h-4" /> {tMsg('Deadline', 'Tenggat Waktu')}
                     </label>
                     <div className="bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-[46px] sm:h-[50px]">
                       <input
@@ -466,7 +465,7 @@ Format:
                   </div>
                   <div className="group">
                     <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-[16px]">
-                      <span className="text-base">🔁</span> {tMsg('Recurring', 'Berulang')}
+                      <Icon name="repeat" className="w-4 h-4" /> {tMsg('Recurring', 'Berulang')}
                     </label>
                     <div className="bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-[46px] sm:h-[50px]">
                       <select
@@ -483,7 +482,7 @@ Format:
                   </div>
                   <div className="group">
                     <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-[16px]">
-                      <span className="text-base">⏳</span> {tMsg('ETC (Hrs)', 'ETC (Jam)')}
+                      <Icon name="clock" className="w-4 h-4" /> {tMsg('ETC (Hrs)', 'ETC (Jam)')}
                     </label>
                     <div className="bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center p-1.5 h-[46px] sm:h-[50px]">
                       <button
@@ -518,7 +517,7 @@ Format:
                         className="w-7 h-7 ml-1 flex items-center justify-center text-indigo-500 hover:text-white hover:bg-indigo-500 dark:hover:bg-indigo-600 rounded-xl font-bold transition-colors shrink-0 disabled:opacity-50"
                         title="AI Estimate"
                       >
-                        {isEstimatingEtc ? '⏳' : '✨'}
+                        {isEstimatingEtc ? <Icon name="clock" className="w-4 h-4 animate-pulse" /> : <Icon name="sparkles" className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
@@ -526,7 +525,7 @@ Format:
 
                 <div className="group pt-2">
                   <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2">
-                    <span className="text-base">📝</span> {tMsg('Description', 'Deskripsi')}
+                    <Icon name="file-text" className="w-4 h-4" /> {tMsg('Description', 'Deskripsi')}
                   </label>
                   <div className="bg-neutral-100 dark:bg-neutral-900 rounded-3xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all p-2">
                     <div className="flex gap-2 mb-2 px-2 pb-2 border-b border-neutral-200 dark:border-neutral-800">
@@ -572,7 +571,7 @@ Format:
                         disabled={isGeneratingDesc}
                         className="ml-auto text-[10px] font-bold px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md shadow-sm border border-indigo-200 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 disabled:opacity-50 flex items-center gap-1 transition-colors"
                       >
-                        {isGeneratingDesc ? '⏳...' : '✨ Auto Generate'}
+                        {isGeneratingDesc ? (<><Icon name="clock" className="w-3 h-3 inline animate-pulse" /> ...</>) : (<><Icon name="sparkles" className="w-3 h-3 inline" /> Auto Generate</>)}
                       </button>
                     </div>
                     <textarea
@@ -592,7 +591,7 @@ Format:
 
                 <div className="group pt-2">
                   <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2">
-                    <span className="text-base">🔗</span>{' '}
+                    <Icon name="link" className="w-4 h-4" />{' '}
                     {tMsg('External Links / Supporting Access', 'Tautan Eksternal / Akses Pendukung')}
                   </label>
                   <div className="flex flex-col gap-2 w-full min-w-0">
@@ -622,7 +621,7 @@ Format:
                               className="text-neutral-400 hover:text-red-500 font-bold p-2 transition-colors"
                               title="Remove Link"
                             >
-                              ✖
+                              <Icon name="x" className="w-4 h-4" />
                             </button>
                           )}
                         </div>
@@ -636,7 +635,7 @@ Format:
                       }}
                       className="text-[10px] font-bold text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 self-start mt-1 flex items-center gap-1.5 uppercase tracking-widest transition-colors bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1.5 rounded-lg"
                     >
-                      <span>➕</span> {tMsg('Add Another Link', 'Tambah Tautan Lainnya')}
+                      <Icon name="plus" className="w-3.5 h-3.5" /> {tMsg('Add Another Link', 'Tambah Tautan Lainnya')}
                     </button>
                   </div>
                 </div>
@@ -644,7 +643,7 @@ Format:
 
               <div className="group pt-8 mt-8 border-t border-neutral-200 dark:border-neutral-800 tour-form-checklist">
                 <label className="block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <span className="text-base">📋</span> {tMsg('Sub-task Checklist', 'Daftar Periksa Sub-tugas')}
+                  <Icon name="clipboard-list" className="w-4 h-4" /> {tMsg('Sub-task Checklist', 'Daftar Periksa Sub-tugas')}
                 </label>
                 <div className="flex flex-col sm:flex-row gap-2 mb-4">
                   <input
@@ -702,7 +701,7 @@ Format:
                           onClick={() => handleRemoveFormSubtask(i)}
                           className="text-neutral-400 hover:text-red-500 font-bold opacity-100 md:opacity-0 group-hover/item:opacity-100 transition-opacity px-2 md:px-0"
                         >
-                          ✖
+                          <Icon name="x" className="w-4 h-4" />
                         </button>
                       </div>
                     ))}

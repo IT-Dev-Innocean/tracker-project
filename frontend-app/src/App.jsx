@@ -3,6 +3,7 @@ import { useDeepLinks } from './hooks/useDeepLinks';
 import axios from 'axios';
 import 'driver.js/dist/driver.css';
 import { IconPerson, IconPlus, Avatar } from './SharedUI';
+import { Icon } from './components/icons/Icon';
 import KanbanBoard from './KanbanBoard';
 import { HighlightText, stripHtml } from './Utils';
 import TableList from './TableList';
@@ -867,7 +868,7 @@ function App() {
   let globalHealthAlert = '';
   let globalAlertClass = 'bg-slate-500/10 border-slate-500/30';
   let globalAlertTextClass = 'text-slate-200';
-  let globalAlertIcon = '✨';
+  let globalAlertIcon = 'sparkles';
 
   if (globalCriticalCount > 0) {
     globalHealthAlert = tMsg(
@@ -876,7 +877,7 @@ function App() {
     );
     globalAlertClass = 'bg-red-500/20 border-red-500/30';
     globalAlertTextClass = 'text-red-200';
-    globalAlertIcon = '🚨';
+    globalAlertIcon = 'circle-alert';
   } else if (globalWorkloadCount > 0) {
     globalHealthAlert = tMsg(
       `Workload Notice: High activity in ${globalWorkloadCount} project(s).`,
@@ -884,12 +885,12 @@ function App() {
     );
     globalAlertClass = 'bg-amber-500/20 border-amber-500/30';
     globalAlertTextClass = 'text-amber-200';
-    globalAlertIcon = '🤝';
+    globalAlertIcon = 'handshake';
   } else if (boards.length > 0) {
     globalHealthAlert = tMsg(`All projects are on track. Keep it up!`, `Semua proyek berjalan lancar. Pertahankan!`);
     globalAlertClass = 'bg-emerald-500/20 border-emerald-500/30';
     globalAlertTextClass = 'text-emerald-200';
-    globalAlertIcon = '✨';
+    globalAlertIcon = 'sparkles';
   }
 
   const getPageNumbers = () => {
@@ -1484,11 +1485,11 @@ function App() {
                     : 'scale-100 grayscale opacity-40 drop-shadow-xl hover:grayscale-0 hover:opacity-100'
                 }`}
               >
-                🗑️
+                <Icon name="trash" className="w-[70px] h-[70px] sm:w-[90px] sm:h-[90px]" />
                 {/* Kertas diremas yang melompat ke dalam tong sampah */}
                 {isTrashHovered && (
-                  <div className="absolute top-0 left-1/4 text-[50px] animate-crumple pointer-events-none drop-shadow-md z-50">
-                    📄
+                  <div className="absolute top-0 left-1/4 animate-crumple pointer-events-none drop-shadow-md z-50">
+                    <Icon name="file-text" className="w-[50px] h-[50px]" />
                   </div>
                 )}
               </div>
@@ -1554,7 +1555,7 @@ function App() {
             className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-60 w-14 h-14 bg-black dark:bg-white text-white dark:text-black rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.3)] dark:shadow-[0_10px_30px_rgba(255,255,255,0.2)] flex items-center justify-center transition-all duration-300 hover:scale-110 hover:-translate-y-1 group"
             title={tMsg('Smart Assistant', 'Asisten Pintar AI')}
           >
-            <span className="text-2xl group-hover:rotate-12 transition-transform">✨</span>
+            <Icon name="sparkles" className="w-7 h-7 group-hover:rotate-12 transition-transform" />
             <span className="absolute -top-1 -right-1 flex h-4 w-4">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-4 w-4 bg-indigo-500 border-2 border-white dark:border-black"></span>
@@ -1580,13 +1581,13 @@ function App() {
               onClick={() => setDrawerTab('assistant')}
               className="flex-1 py-4 text-[10px] sm:text-xs uppercase tracking-wider transition-colors font-black text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50/30 dark:bg-indigo-900/10"
             >
-              ✨ Assistant
+              <Icon name="sparkles" className="w-3.5 h-3.5 inline-block mr-1" /> Assistant
             </button>
             <button
               onClick={() => setIsProjectChatOpen(false)}
               className="px-4 text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors border-b-2 border-transparent"
             >
-              ✖
+              <Icon name="x" className="w-4 h-4" />
             </button>
           </div>
 
@@ -1610,28 +1611,14 @@ function App() {
                       }`}
                       title={tMsg('Search Chat', 'Cari Obrolan')}
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2.5"
-                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                        ></path>
-                      </svg>
+                      <Icon name="search" className="w-4 h-4" />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleStartMeet(selectedBoard.id)}
                       className="text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors uppercase tracking-widest"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2.5"
-                          d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                        ></path>
-                      </svg>{' '}
+                      <Icon name="video" className="w-4 h-4" />{' '}
                       Meet Now
                     </button>
                   </div>
@@ -1641,7 +1628,7 @@ function App() {
               {isChatSearchOpen && (
                 <div className="border-b border-neutral-200 dark:border-neutral-800 p-2 bg-neutral-50 dark:bg-neutral-900 shrink-0 z-10 shadow-inner">
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">🔍</span>
+                    <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400" />
                     <input
                       type="text"
                       placeholder={tMsg('Search messages...', 'Cari pesan...')}
@@ -1834,14 +1821,7 @@ function App() {
                                     className="p-1.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-indigo-500 transition-colors"
                                     title="Reply"
                                   >
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
-                                      ></path>
-                                    </svg>
+                                    <Icon name="reply" className="w-3 h-3" />
                                   </button>
                                   {(isMe || isSuperAdmin) && accountStatus !== 'suspended' && (
                                     <button
@@ -1849,14 +1829,7 @@ function App() {
                                       className="p-1.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-red-500 transition-colors"
                                       title="Delete"
                                     >
-                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth="2"
-                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                        ></path>
-                                      </svg>
+                                      <Icon name="trash" className="w-3 h-3" />
                                     </button>
                                   )}
                                   <button
@@ -1873,14 +1846,7 @@ function App() {
                                     className="p-1.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-indigo-500 transition-colors"
                                     title="Copy"
                                   >
-                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                                      ></path>
-                                    </svg>
+                                    <Icon name="copy" className="w-3.5 h-3.5" />
                                   </button>
                                 </div>
                               </div>
@@ -1911,14 +1877,7 @@ function App() {
                                     className="p-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-indigo-500 transition-colors"
                                     title="Add Reaction"
                                   >
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                      ></path>
-                                    </svg>
+                                    <Icon name="smile-plus" className="w-3 h-3" />
                                   </button>
                                   <div
                                     className={`absolute top-1/2 -translate-y-1/2 ${
@@ -2049,14 +2008,7 @@ function App() {
                     disabled={accountStatus === 'suspended' || !newProjectChatMessage.trim()}
                     className="bg-indigo-600 text-white hover:bg-indigo-700 w-12 h-12 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 disabled:bg-neutral-300 dark:disabled:bg-neutral-800 shrink-0"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
-                      ></path>
-                    </svg>
+                    <Icon name="send" className="w-5 h-5" />
                   </button>
                 </form>
               </div>
@@ -2107,14 +2059,7 @@ function App() {
                     className="w-10 h-10 bg-indigo-600 text-white rounded-full shadow-xl flex items-center justify-center font-black hover:scale-110 transition-transform"
                     title="Scroll to bottom"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2.5"
-                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                      ></path>
-                    </svg>
+                    <Icon name="arrow-down" className="w-5 h-5" />
                   </button>
                 )}
               </div>

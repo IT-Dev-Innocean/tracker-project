@@ -1,4 +1,5 @@
 import React from 'react';
+import { Icon } from '../icons/Icon';
 
 export default function ChatInputArea({
   activeChat,
@@ -47,7 +48,7 @@ export default function ChatInputArea({
             onClick={() => setReplyingTo(null)}
             className="text-neutral-400 hover:text-black dark:hover:text-white p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
           >
-            ✖
+            <Icon name="x" className="w-4 h-4" />
           </button>
         </div>
       )}
@@ -98,7 +99,7 @@ export default function ChatInputArea({
               className="bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 w-10 sm:w-12 h-[48px] rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 shrink-0"
               title={tMsg('Ask AI (Team)', 'Tanya AI (Tim)')}
             >
-              ✨
+              <Icon name="sparkles" className="w-5 h-5" />
             </button>
             <button
               type="button"
@@ -144,7 +145,7 @@ export default function ChatInputArea({
               className="bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-slate-400 w-10 sm:w-12 h-[48px] rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 shrink-0"
               title={tMsg('Ask AI (Private)', 'Tanya AI (Privat)')}
             >
-              🕵️
+              <Icon name="eye-off" className="w-5 h-5" />
             </button>
           </>
         )}
@@ -256,9 +257,7 @@ export default function ChatInputArea({
           disabled={accountStatus === 'suspended' || !newMessage.trim()}
           className="bg-indigo-600 text-white hover:bg-indigo-700 w-12 h-[48px] rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 disabled:bg-neutral-300 dark:disabled:bg-neutral-800 shrink-0"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-          </svg>
+          <Icon name="send" className="w-5 h-5" strokeWidth={2} />
         </button>
       </form>
     </div>

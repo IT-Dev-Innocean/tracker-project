@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { IconPerson, IconPlus, Avatar } from './SharedUI';
+import { Icon } from './components/icons/Icon';
 import { getTaskAssignee } from './useAppLogic';
 import { HighlightText } from './Utils';
 
@@ -166,7 +167,7 @@ export default function KanbanBoard({
                           className="text-[9px] font-bold text-neutral-400 uppercase tracking-widest shrink-0 ml-2 flex items-center gap-1"
                           title="Date Created"
                         >
-                          📅 {formatDateMMM(task.timestamp)}
+                          <Icon name="calendar" className="w-3 h-3 inline-block" /> {formatDateMMM(task.timestamp)}
                         </span>
                       </div>
                     </div>
@@ -202,13 +203,13 @@ export default function KanbanBoard({
                               }`}
                               title={`Impact: ${task.impact}`}
                             >
-                              {task.impact === 'High' ? '🔥 High' : task.impact === 'Low' ? '🧊 Low' : '⚡ Med'}
+                              {task.impact === 'High' ? (<><Icon name="flame" className="w-3 h-3 inline-block" /> High</>) : task.impact === 'Low' ? (<><Icon name="snowflake" className="w-3 h-3 inline-block" /> Low</>) : (<><Icon name="zap" className="w-3 h-3 inline-block" /> Med</>)}
                             </span>
                             <span
                               className="text-[9px] font-bold px-2 py-1 rounded-md uppercase tracking-widest shadow-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 cursor-help"
                               title="Estimated Time Consumption"
                             >
-                              ⏳ {task.etc || 2}h
+                              <Icon name="clock" className="w-3 h-3 inline-block" /> {task.etc || 2}h
                             </span>
                             {((task.recurring && task.recurring !== 'none') || isNewClone) && (
                               <span
@@ -219,7 +220,7 @@ export default function KanbanBoard({
                                 }`}
                                 title={isNewClone ? 'Newly Cloned Task' : 'Recurring Task'}
                               >
-                                🔁 {isNewClone ? 'NEW CLONE' : task.recurring}
+                                <Icon name="repeat" className="w-3 h-3 inline-block" /> {isNewClone ? 'NEW CLONE' : task.recurring}
                               </span>
                             )}
                             {(() => {
@@ -262,7 +263,7 @@ export default function KanbanBoard({
                     </div>
                     {task.owner_username !== currentUser && (
                       <div className="mb-3 text-[9px] font-bold text-white bg-black dark:bg-white dark:text-black px-2 py-1 rounded-full uppercase tracking-widest w-max shadow-sm">
-                        🤝 SHARED BY {task.owner_username}
+                        <Icon name="handshake" className="w-3 h-3 inline-block" /> SHARED BY {task.owner_username}
                       </div>
                     )}
                     <div className="flex flex-col gap-2 mt-2.5 pt-2.5 border-t border-neutral-100 dark:border-neutral-800/50 text-[9px] font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest min-w-0">
@@ -271,7 +272,7 @@ export default function KanbanBoard({
                           className="flex items-center gap-1.5 truncate text-black dark:text-white min-w-0"
                           title={task.requester.includes('@') ? 'Assigned To' : 'Requester'}
                         >
-                          {task.requester.includes('@') ? '👉' : <IconPerson className="w-4 h-4 shrink-0" />}
+                          {task.requester.includes('@') ? <Icon name="pointer" className="w-4 h-4 shrink-0" /> : <IconPerson className="w-4 h-4 shrink-0" />}
                           <Avatar
                             name={task.requester}
                             url={avatarsMap[task.requester.replace('@', '').trim()]}
@@ -294,7 +295,7 @@ export default function KanbanBoard({
                                   className="flex items-center gap-1.5 text-white bg-red-500 px-2 py-0.5 rounded-md shadow-sm text-[9px] font-black animate-pulse"
                                   title={`${unreadComments} unread messages`}
                                 >
-                                  💬 {unreadComments} New
+                                  <Icon name="message-circle" className="w-3 h-3 inline-block" /> {unreadComments} New
                                 </span>
                               );
                             }
@@ -307,20 +308,20 @@ export default function KanbanBoard({
                               }`}
                               title="Sub-tasks"
                             >
-                              📋 {task.subtask_done}/{task.subtask_total}
+                              <Icon name="clipboard-list" className="w-3 h-3 inline-block" /> {task.subtask_done}/{task.subtask_total}
                             </span>
                           )}
                         </div>
                       </div>
                       <div className="flex justify-between items-center flex-wrap gap-1.5">
-                        <span title="Created At">📅 {formatDateMMM(task.timestamp)}</span>
+                        <span title="Created At"><Icon name="calendar" className="w-3 h-3 inline-block" /> {formatDateMMM(task.timestamp)}</span>
                         <span
                           title={task.status === 'Done' ? 'Completed At' : 'Deadline'}
                           className={task.status === 'Done' ? 'text-black dark:text-white' : ''}
                         >
                           {task.status === 'Done'
-                            ? `✅ ${formatDateMMM(task.completed_time)}`
-                            : `⏳ ${formatDateMMM(task.deadline)}`}
+                            ? (<><Icon name="check-circle" className="w-3 h-3 inline-block" /> {formatDateMMM(task.completed_time)}</>)
+                            : (<><Icon name="clock" className="w-3 h-3 inline-block" /> {formatDateMMM(task.deadline)}</>)}
                         </span>
                       </div>
                     </div>
@@ -370,14 +371,14 @@ export default function KanbanBoard({
                                 className="text-neutral-400 hover:text-black dark:hover:text-white transition-colors"
                                 title={`Rename ${groupBy}`}
                               >
-                                ✏️
+                                <Icon name="pencil" className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleOpenDeleteBoard(groupBy, colName)}
                                 className="text-neutral-400 hover:text-black dark:hover:text-white transition-colors font-bold text-lg"
                                 title={`Remove ${groupBy}`}
                               >
-                                ✖
+                                <Icon name="x" className="w-4 h-4" />
                               </button>
                             </div>
                           )}

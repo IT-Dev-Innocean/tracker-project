@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { renderRichText } from '../../Utils';
+import { Icon } from '../icons/Icon';
 
 const AI_MODEL = 'auto'; // Use auto-fallback: Gemini first, then Groq if Gemini fails
 
@@ -505,7 +506,7 @@ If no action items found, return []. JSON Schema:
         {/* Header */}
         <div className="border-b border-neutral-100 dark:border-neutral-800 px-4 py-3 sm:p-5 flex justify-between items-center bg-neutral-50/50 dark:bg-neutral-900/50 shrink-0">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <span className="text-xl sm:text-2xl shrink-0">📝</span>
+            <Icon name="file-text" className="w-6 h-6 sm:w-7 sm:h-7 shrink-0" />
             <div className="min-w-0">
               <h2 className="text-sm sm:text-base font-black text-black dark:text-white uppercase truncate">
                 Notepad Rapat & MoM
@@ -521,7 +522,7 @@ If no action items found, return []. JSON Schema:
                 onClick={() => setSidebarOpen(prev => !prev)}
                 className="md:hidden px-2.5 py-1.5 text-[10px] font-black text-neutral-600 dark:text-neutral-300 bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 rounded-xl transition-all"
               >
-                {sidebarOpen ? '✕ Detail' : '⚙ Detail'}
+                {sidebarOpen ? (<><Icon name="x" className="w-3.5 h-3.5 inline-block mr-1" /> Detail</>) : (<><Icon name="settings" className="w-3.5 h-3.5 inline-block mr-1" /> Detail</>)}
               </button>
             )}
             {activeTab === 'review' && (
@@ -536,7 +537,7 @@ If no action items found, return []. JSON Schema:
               onClick={onClose}
               className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 flex items-center justify-center text-neutral-500 hover:text-black dark:hover:text-white transition-all text-sm font-bold shrink-0"
             >
-              ✕
+              <Icon name="x" className="w-4 h-4" />
             </button>
           </div>
         </div>
@@ -611,7 +612,7 @@ If no action items found, return []. JSON Schema:
                 {/* Clear */}
                 <button onClick={() => setShowConfirmClear(true)}
                   className="w-full py-2.5 border border-red-200 text-red-500 hover:bg-red-50 dark:border-red-900/30 dark:hover:bg-red-950/20 rounded-xl text-xs font-black uppercase tracking-wider transition-colors">
-                  🗑 Hapus Semua Catatan
+                  <Icon name="trash" className="w-3.5 h-3.5 inline-block mr-1" /> Hapus Semua Catatan
                 </button>
               </div>
 
@@ -707,7 +708,7 @@ If no action items found, return []. JSON Schema:
                     ) : generatedMoM ? (
                       <><span>🔄</span> Buat Ulang dengan AI</>
                     ) : (
-                      <><span>✨</span> Proses Catatan dengan AI</>
+                      <><Icon name="sparkles" className="w-4 h-4 inline-block mr-1" /> Proses Catatan dengan AI</>
                     )}
                   </button>
                 </div>
@@ -727,7 +728,7 @@ If no action items found, return []. JSON Schema:
                   </div>
                   <button onClick={handleCopyMoM}
                     className="shrink-0 text-[10px] sm:text-xs font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 px-2.5 sm:px-3 py-1.5 rounded-xl border border-indigo-200/50 hover:bg-indigo-100 transition-colors flex items-center gap-1">
-                    📋 Salin
+                    <Icon name="clipboard-list" className="w-3.5 h-3.5 inline-block mr-1" /> Salin
                   </button>
                 </div>
                 <div id="rendered-mom-content"
@@ -764,7 +765,7 @@ If no action items found, return []. JSON Schema:
                             👤 {task.requester}
                           </span>
                           <span className="text-[9px] bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-1.5 py-0.5 rounded font-black border border-neutral-200 dark:border-neutral-700">
-                            📅 {task.deadline}
+                            <Icon name="calendar" className="w-3 h-3 inline-block mr-1" /> {task.deadline}
                           </span>
                         </div>
                       </div>
@@ -802,7 +803,7 @@ If no action items found, return []. JSON Schema:
         <div className="fixed inset-0 bg-black/55 backdrop-blur-sm flex items-center justify-center z-[250] p-4">
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl p-6 max-w-sm w-full text-center">
             <div className="w-12 h-12 bg-red-100 dark:bg-red-950/40 text-red-500 rounded-full flex items-center justify-center text-xl mx-auto mb-4">
-              ⚠️
+              <Icon name="alert-triangle" className="w-6 h-6" />
             </div>
             <h3 className="text-base font-black text-black dark:text-white mb-2">Hapus Notepad</h3>
             <p className="text-xs text-neutral-500 dark:text-neutral-400 font-semibold mb-6 leading-relaxed">

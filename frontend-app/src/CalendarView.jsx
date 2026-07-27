@@ -1,4 +1,5 @@
 import React from 'react';
+import { Icon } from './components/icons/Icon';
 
 export default function CalendarView({
   calDate,
@@ -585,7 +586,7 @@ export default function CalendarView({
             })
           ) : (
             <div className="h-full min-h-75 flex flex-col justify-center items-center text-center p-8">
-              <span className="text-5xl mb-4">📅</span>
+              <Icon name="calendar" className="w-12 h-12 mb-4 text-slate-400" />
               <h3 className="text-base font-bold text-slate-700 dark:text-slate-300">No Tasks Scheduled</h3>
               <p className="text-xs text-slate-400 dark:text-slate-500 max-w-sm mt-1">
                 There are no tasks or leaves scheduled for {monthNames[month]} {year}. Use the navigation at the top to check other months.

@@ -7,6 +7,7 @@ import ChatSidebar from './components/ChatWorkspace/ChatSidebar';
 import ChatHeader from './components/ChatWorkspace/ChatHeader';
 import ChatMessageList from './components/ChatWorkspace/ChatMessageList';
 import ChatInputArea from './components/ChatWorkspace/ChatInputArea';
+import { Icon } from './components/icons/Icon';
 export default function ChatWorkspaceModal({
   setIsChatWorkspaceOpen,
   boards,
@@ -775,7 +776,7 @@ export default function ChatWorkspaceModal({
       {/* Header */}
       <header className="h-16 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex items-center justify-between px-6 shrink-0">
         <div className="flex items-center gap-3">
-          <span className="text-2xl">📱</span>
+          <Icon name="smartphone" className="w-6 h-6" />
           <h2 className="text-lg font-black text-black dark:text-white uppercase tracking-wider">
             {tMsg('Workspace Chat', 'Ruang Kerja Obrolan')}
           </h2>
@@ -784,9 +785,7 @@ export default function ChatWorkspaceModal({
           onClick={close}
           className="w-8 h-8 flex items-center justify-center bg-neutral-200 dark:bg-neutral-800 rounded-full hover:bg-neutral-300 dark:hover:bg-neutral-700 transition-colors text-black dark:text-white font-bold"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <Icon name="x" className="w-5 h-5" strokeWidth={2.5} />
         </button>
       </header>
 
@@ -879,13 +878,11 @@ export default function ChatWorkspaceModal({
                           isDesktopSidebarOpen ? 'md:hidden' : ''
                         }`}
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                        </svg>
+                        <Icon name="chevron-right" className="w-5 h-5" strokeWidth={2} />
                       </button>
                       <div>
                         <h2 className="text-lg sm:text-xl font-black text-black dark:text-white flex items-center gap-2">
-                          <span className="hidden sm:inline">💬</span>{' '}
+                          <Icon name="message-circle" className="w-4 h-4 hidden sm:inline" />{' '}
                           {tMsg('Inbox & Recent Activity', 'Kotak Masuk & Aktivitas Terbaru')}
                         </h2>
                         <p className="hidden sm:block text-xs text-neutral-500 font-medium mt-1">
@@ -898,7 +895,7 @@ export default function ChatWorkspaceModal({
                         onClick={handleMarkAllInboxAsRead}
                         className="text-xs font-bold bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-3 py-1.5 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
                       >
-                        ✅ {tMsg('Mark all read', 'Tandai semua dibaca')}
+<Icon name="check-circle" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Mark all read', 'Tandai semua dibaca')}
                       </button>
                       <button
                         onClick={() => {
@@ -917,7 +914,7 @@ export default function ChatWorkspaceModal({
                       </div>
                     ) : inboxChats.length === 0 ? (
                       <div className="text-center py-10 text-neutral-500">
-                        <span className="text-4xl mb-4 block opacity-50">📭</span>
+<Icon name="inbox" className="w-10 h-10 mb-4 opacity-50" />
                         <p className="font-medium text-sm">No recent messages found.</p>
                       </div>
                     ) : (
@@ -949,9 +946,9 @@ export default function ChatWorkspaceModal({
                           const privMatch = displayMessage.match(/<!--PRIVATE:([\w.-]+)-->/);
                           if (privMatch) {
                             if (privMatch[1] === currentUser) {
-                              displayMessage = '🔒 ' + displayMessage.replace(/<!--PRIVATE:[\w.-]+-->\s*/, '');
+                              displayMessage = '[Private] ' + displayMessage.replace(/<!--PRIVATE:[\w.-]+-->\s*/, '');
                             } else {
-                              displayMessage = '🔒 [Private Message]';
+                              displayMessage = '[Private Message]';
                             }
                           }
                           // Clean HTML and Markdown elements from the preview text
@@ -990,7 +987,7 @@ export default function ChatWorkspaceModal({
                               }`}
                             >
                               <div className="w-10 h-10 rounded-xl bg-neutral-50 dark:bg-neutral-850 flex items-center justify-center text-lg shrink-0 border border-neutral-100 dark:border-neutral-800 shadow-sm group-hover:scale-105 transition-transform">
-                                {chat.is_dm ? '💬' : chat.is_project_chat ? '🏢' : '📋'}
+                                <Icon name={chat.is_dm ? 'message-circle' : chat.is_project_chat ? 'building' : 'clipboard-list'} className="w-5 h-5 shrink-0" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between gap-3">
@@ -1132,14 +1129,12 @@ export default function ChatWorkspaceModal({
                     }}
                     className="p-2 text-neutral-500 hover:text-black dark:hover:text-white transition-colors font-bold flex items-center gap-2 text-xs uppercase tracking-widest"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                    </svg>{' '}
+                    <Icon name="chevron-right" className="w-5 h-5" strokeWidth={2} />{' '}
                     {tMsg('Menu', 'Menu')}
                   </button>
                 </div>
                 <div className="flex-1 flex flex-col items-center justify-center text-neutral-400 p-8 text-center">
-                  <span className="text-6xl mb-4 opacity-50">💬</span>
+                  <Icon name="message-circle" className="w-16 h-16 mb-4 opacity-50" />
                   <h3 className="text-lg font-bold text-black dark:text-white mb-2">No chat selected</h3>
                   <p className="text-sm font-medium">
                     Choose an Inbox message, Project, or Task from the sidebar to start chatting.
@@ -1171,7 +1166,7 @@ export default function ChatWorkspaceModal({
         <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-100 p-4 transition-opacity duration-200 opacity-100">
           <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-sm border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] text-center mac-animate">
             <div className="w-20 h-20 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm">
-              ⚠️
+              <Icon name="alert-triangle" className="w-10 h-10" />
             </div>
             <h3 className="text-2xl font-black text-black dark:text-white mb-4 uppercase">
               Delete Chat?
@@ -1216,7 +1211,7 @@ export default function ChatWorkspaceModal({
         <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-100 p-4 transition-opacity duration-200 opacity-100">
           <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-sm border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] text-center mac-animate">
             <div className="w-20 h-20 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm">
-              ⚠️
+              <Icon name="alert-triangle" className="w-10 h-10" />
             </div>
             <h3 className="text-2xl font-black text-black dark:text-white mb-4 uppercase">
               {tMsg('Delete Message?', 'Hapus Pesan?')}

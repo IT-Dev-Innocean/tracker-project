@@ -1,5 +1,6 @@
 import React from 'react';
 import { Avatar } from '../../SharedUI';
+import { Icon } from '../icons/Icon';
 import { stripHtml } from '../../Utils';
 
 export default function ChatHeader({
@@ -31,14 +32,15 @@ export default function ChatHeader({
             isDesktopSidebarOpen ? 'md:hidden' : ''
           }`}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-          </svg>
+          <Icon name="chevron-right" className="w-5 h-5" strokeWidth={2} />
         </button>
         {activeChat.type === 'dm' ? (
           <Avatar name={activeChat.partner} url={avatarsMap[activeChat.partner]} size="w-8 h-8" />
         ) : (
-          <span className="text-2xl">{activeChat.type === 'project' ? '🏢' : '📋'}</span>
+          <Icon
+            name={activeChat.type === 'project' ? 'building' : 'clipboard-list'}
+            className="w-6 h-6 text-neutral-500"
+          />
         )}
         <div className="min-w-0">
           <h3 className="font-bold text-sm text-black dark:text-white truncate">
@@ -55,7 +57,10 @@ export default function ChatHeader({
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <div className="relative hidden sm:block w-40 md:w-56">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 text-xs">🔍</span>
+          <Icon
+            name="search"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none"
+          />
           <input
             type="text"
             placeholder={tMsg('Search messages...', 'Cari pesan...')}
@@ -66,9 +71,9 @@ export default function ChatHeader({
           {chatSearchQuery && (
             <button
               onClick={() => setChatSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black dark:hover:text-white p-1 font-bold"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black dark:hover:text-white p-1"
             >
-              ✖
+              <Icon name="x" className="w-3.5 h-3.5" />
             </button>
           )}
           {chatSearchQuery && (
@@ -139,14 +144,7 @@ export default function ChatHeader({
           onClick={handleMeetNow}
           className="text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors uppercase tracking-widest"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2.5"
-              d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-            ></path>
-          </svg>
+          <Icon name="video" className="w-4 h-4" strokeWidth={2.5} />
           <span className="hidden sm:inline">Meet Now</span>
         </button>
         {activeChat.type === 'task' && (
@@ -154,9 +152,10 @@ export default function ChatHeader({
             onClick={() => {
               if (handleNotificationTaskClick) handleNotificationTaskClick(activeChat.id);
             }}
-            className="text-[10px] font-bold bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-1.5 rounded-lg shadow-sm transition-colors uppercase tracking-widest border border-indigo-200 dark:border-indigo-800/50"
+            className="text-[10px] font-bold bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-1.5 rounded-lg shadow-sm transition-colors uppercase tracking-widest border border-indigo-200 dark:border-indigo-800/50 flex items-center gap-1"
           >
-            View Task ↗
+            View Task
+            <Icon name="arrow-up-right" className="w-3.5 h-3.5" />
           </button>
         )}
       </div>

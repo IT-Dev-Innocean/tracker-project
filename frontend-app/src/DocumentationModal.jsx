@@ -1,6 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useCloseAnimation, HighlightText } from './Utils';
+import { Icon } from './components/icons/Icon';
+
+const DOC_PAGE_ICONS = {
+  overview: 'book-open',
+  workspace: 'folder',
+  tasks: 'clipboard-list',
+  views: 'layers',
+  analytics: 'trending-up',
+  filters: 'filter',
+  deadlines: 'calendar',
+  collab: 'message-circle',
+  assistant: 'sparkles',
+  account: 'user',
+  support: 'ticket',
+  security: 'shield',
+  admin: 'settings',
+};
 
 // Helper untuk menghasilkan cuplikan pencarian (snippet)
 const generateSnippet = (text, query) => {
@@ -901,12 +918,10 @@ export default function DocumentationModal({ setIsDocsOpen, isSuperAdmin, langua
               onClick={() => setIsMobileNavOpen(true)}
               className="md:hidden p-2 -ml-2 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
-              </svg>
+              <Icon name="menu" className="w-5 h-5" />
             </button>
             <h2 className="text-base md:text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <span className="text-indigo-600">📖</span>{' '}
+              <Icon name="book-open" className="w-5 h-5 text-indigo-600" />{' '}
               <span className="sm:inline">{tMsg('Help Center', 'Pusat Bantuan')}</span>
             </h2>
           </div>
@@ -914,12 +929,12 @@ export default function DocumentationModal({ setIsDocsOpen, isSuperAdmin, langua
             onClick={close}
             className="md:hidden w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-500 font-bold"
           >
-            ✖
+            <Icon name="x" className="w-4 h-4" />
           </button>
         </div>
 
         <div className="flex items-center gap-4 flex-1 justify-center w-full md:max-w-lg mx-auto relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+          <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             placeholder={tMsgStr('Search documentation...', 'Cari dokumentasi...')}
@@ -958,7 +973,7 @@ export default function DocumentationModal({ setIsDocsOpen, isSuperAdmin, langua
           onClick={close}
           className="hidden md:flex w-8 h-8 items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-500 font-bold"
         >
-          ✖
+          <Icon name="x" className="w-4 h-4" />
         </button>
       </header>
 
@@ -978,7 +993,7 @@ export default function DocumentationModal({ setIsDocsOpen, isSuperAdmin, langua
                 onClick={() => setIsMobileNavOpen(false)}
                 className="w-8 h-8 flex items-center justify-center bg-slate-200 dark:bg-slate-800 rounded-full text-slate-900 dark:text-white font-bold"
               >
-                ✖
+                <Icon name="x" className="w-4 h-4" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
@@ -1061,7 +1076,7 @@ export default function DocumentationModal({ setIsDocsOpen, isSuperAdmin, langua
 
             {/* Page Header */}
             <h1 className="text-2xl md:text-5xl font-extrabold text-slate-900 dark:text-white mb-4 flex items-center gap-3">
-              <span className="text-3xl md:text-4xl">{activePage.icon}</span>{' '}
+              <Icon name={DOC_PAGE_ICONS[activePage.id] || 'book-open'} className="w-8 h-8 md:w-10 md:h-10 shrink-0" />{' '}
               <HighlightText text={activePage.title} query={highlightQuery} />
             </h1>
             <p className="text-base md:text-lg text-slate-600 dark:text-slate-400 leading-relaxed mb-10 md:mb-12 pb-10 md:pb-12 border-b border-slate-200 dark:border-slate-800">
@@ -1098,7 +1113,7 @@ export default function DocumentationModal({ setIsDocsOpen, isSuperAdmin, langua
             <div className="mt-20 pt-10 border-t border-slate-200 dark:border-slate-800">
               {feedbackState[activePageId] ? (
                 <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-                  ✅ {tMsg('Thanks for your feedback!', 'Terima kasih atas masukan Anda!')}
+                  <Icon name="check-circle" className="w-4 h-4 inline-block mr-1 text-emerald-500" /> {tMsg('Thanks for your feedback!', 'Terima kasih atas masukan Anda!')}
                 </p>
               ) : (
                 <div className="flex items-center gap-4">
@@ -1142,7 +1157,7 @@ export default function DocumentationModal({ setIsDocsOpen, isSuperAdmin, langua
                         className="p-5 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group"
                       >
                         <h5 className="font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                          <span>{relatedPage.icon}</span> {relatedPage.title}
+                          <Icon name={DOC_PAGE_ICONS[relatedPage.id] || 'book-open'} className="w-4 h-4 inline-block mr-1" /> {relatedPage.title}
                         </h5>
                         <p className="text-xs text-slate-500 line-clamp-2">{relatedPage.desc}</p>
                       </div>

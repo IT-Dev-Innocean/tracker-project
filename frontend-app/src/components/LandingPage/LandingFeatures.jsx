@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Icon } from '../icons/Icon';
 
 export default function LandingFeatures({ showAuthForm }) {
   const [activeFeatureTab, setActiveFeatureTab] = useState('kanban');
@@ -21,31 +22,31 @@ export default function LandingFeatures({ showAuthForm }) {
     {
       id: 'kanban',
       title: 'Kanban Board',
-      icon: '📋',
+      icon: 'clipboard-list',
       desc: 'Drag-and-drop cards across customizable columns. Perfect for agile workflows and visualizing daily progress.',
     },
     {
       id: 'list',
       title: 'Table List',
-      icon: '🗂️',
+      icon: 'layers',
       desc: 'A compact, spreadsheet-like view for managing tasks. Ideal for bulk actions and quick data entry.',
     },
     {
       id: 'timeline',
       title: 'Gantt Timeline',
-      icon: '🛤️',
+      icon: 'gantt-chart',
       desc: 'Map out complex project schedules. Drag task edges to adjust durations and balance team workloads visually.',
     },
     {
       id: 'calendar',
       title: 'Smart Calendar',
-      icon: '📅',
+      icon: 'calendar',
       desc: 'Track deadlines effortlessly. Automatically skips weekends and national holidays for accurate planning.',
     },
     {
       id: 'analytics',
       title: 'Analytics',
-      icon: '📊',
+      icon: 'trending-up',
       desc: 'Real-time project health scores, ETC workload distribution, and AI-generated executive summaries.',
     },
   ];
@@ -224,7 +225,7 @@ export default function LandingFeatures({ showAuthForm }) {
                           : 'text-slate-500 dark:text-slate-300'
                       }`}
                     >
-                      <span>{feature.icon}</span> {feature.title}
+                      <Icon name={feature.icon} className="w-5 h-5 shrink-0" /> {feature.title}
                     </h3>
                     <p
                       className={`text-sm leading-relaxed font-medium ${
@@ -279,42 +280,42 @@ export default function LandingFeatures({ showAuthForm }) {
               </h3>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 <div className="bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 text-center shadow-sm flex flex-col items-center justify-center transition-all hover:border-indigo-500">
-                  <span className="text-3xl mb-3">⚛️</span>
+                  <Icon iconify="simple-icons:react" className="w-8 h-8 mb-3" />
                   <span className="text-xs font-black uppercase tracking-widest text-slate-800 dark:text-white">
                     React 18
                   </span>
                   <span className="text-[10px] font-medium text-neutral-500 mt-1">Tailwind • Vite</span>
                 </div>
                 <div className="bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 text-center shadow-sm flex flex-col items-center justify-center transition-all hover:border-emerald-500">
-                  <span className="text-3xl mb-3">🐍</span>
+                  <Icon iconify="simple-icons:fastapi" className="w-8 h-8 mb-3" />
                   <span className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">
                     FastAPI
                   </span>
                   <span className="text-[10px] font-medium text-neutral-500 mt-1">Python • SQLAlchemy</span>
                 </div>
                 <div className="bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 text-center shadow-sm flex flex-col items-center justify-center transition-all hover:border-blue-500">
-                  <span className="text-3xl mb-3">🐘</span>
+                  <Icon iconify="simple-icons:postgresql" className="w-8 h-8 mb-3" />
                   <span className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">
                     PostgreSQL
                   </span>
                   <span className="text-[10px] font-medium text-neutral-500 mt-1">Neon Serverless</span>
                 </div>
                 <div className="bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 text-center shadow-sm flex flex-col items-center justify-center transition-all hover:border-amber-500">
-                  <span className="text-3xl mb-3">🧠</span>
+                  <Icon name="brain" className="w-8 h-8 mb-3" />
                   <span className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">
                     Dual AI
                   </span>
                   <span className="text-[10px] font-medium text-neutral-500 mt-1">Gemini • GPT-OSS</span>
                 </div>
                 <div className="bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 text-center shadow-sm flex flex-col items-center justify-center transition-all hover:border-sky-500">
-                  <span className="text-3xl mb-3">☁️</span>
+                  <Icon iconify="simple-icons:vercel" className="w-8 h-8 mb-3" />
                   <span className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">
                     Cloud Native
                   </span>
                   <span className="text-[10px] font-medium text-neutral-500 mt-1">Vercel • Render</span>
                 </div>
                 <div className="bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 text-center shadow-sm flex flex-col items-center justify-center transition-all hover:border-red-500">
-                  <span className="text-3xl mb-3">🛡️</span>
+                  <Icon name="shield" className="w-8 h-8 mb-3" />
                   <span className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white">
                     Zero-Trust
                   </span>
@@ -331,9 +332,7 @@ export default function LandingFeatures({ showAuthForm }) {
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none group-hover:bg-indigo-500/10 dark:group-hover:bg-indigo-500/20 transition-colors"></div>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 dark:bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none group-hover:bg-indigo-500/10 dark:group-hover:bg-indigo-500/20 transition-colors"></div>
-                <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-indigo-100 dark:border-indigo-800/50">
-                  🔐
-                </div>
+                <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-indigo-100 dark:border-indigo-800/50"><Icon name="shield-check" className="w-6 h-6" /></div>
                 <h3 className="font-black text-slate-900 dark:text-white text-lg mb-2">
                   Zero-Trust Security
                 </h3>
@@ -347,9 +346,7 @@ export default function LandingFeatures({ showAuthForm }) {
                 style={{ animationDelay: '200ms' }}
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 dark:bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none group-hover:bg-blue-500/10 dark:group-hover:bg-blue-500/20 transition-colors"></div>
-                <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-blue-100 dark:border-blue-800/50">
-                  ⏳
-                </div>
+                <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-blue-100 dark:border-blue-800/50"><Icon name="clock" className="w-6 h-6" /></div>
                 <h3 className="font-black text-slate-900 dark:text-white text-lg mb-2">
                   Intelligent Workflows
                 </h3>
@@ -363,9 +360,7 @@ export default function LandingFeatures({ showAuthForm }) {
                 style={{ animationDelay: '300ms' }}
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 dark:bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none group-hover:bg-emerald-500/10 dark:group-hover:bg-emerald-500/20 transition-colors"></div>
-                <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-emerald-100 dark:border-emerald-800/50">
-                  🤖
-                </div>
+                <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-emerald-100 dark:border-emerald-800/50"><Icon name="bot" className="w-6 h-6" /></div>
                 <h3 className="font-black text-slate-900 dark:text-white text-lg mb-2">
                   Multi-AI Co-Pilot
                 </h3>
@@ -379,9 +374,7 @@ export default function LandingFeatures({ showAuthForm }) {
                 style={{ animationDelay: '100ms' }}
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/5 dark:bg-sky-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none group-hover:bg-sky-500/10 dark:group-hover:bg-sky-500/20 transition-colors"></div>
-                <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-sky-100 dark:border-sky-800/50">
-                  💬
-                </div>
+                <div className="w-12 h-12 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-sky-100 dark:border-sky-800/50"><Icon name="message-circle" className="w-6 h-6" /></div>
                 <h3 className="font-black text-slate-900 dark:text-white text-lg mb-2">
                   Unified Collaboration
                 </h3>
@@ -395,9 +388,7 @@ export default function LandingFeatures({ showAuthForm }) {
                 style={{ animationDelay: '200ms' }}
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 dark:bg-amber-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none group-hover:bg-amber-500/10 dark:group-hover:bg-amber-500/20 transition-colors"></div>
-                <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-amber-100 dark:border-amber-800/50">
-                  📊
-                </div>
+                <div className="w-12 h-12 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-amber-100 dark:border-amber-800/50"><Icon name="trending-up" className="w-6 h-6" /></div>
                 <h3 className="font-black text-slate-900 dark:text-white text-lg mb-2">
                   Actionable Analytics
                 </h3>
@@ -411,9 +402,7 @@ export default function LandingFeatures({ showAuthForm }) {
                 style={{ animationDelay: '300ms' }}
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-slate-500/5 dark:bg-slate-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none group-hover:bg-slate-500/10 dark:group-hover:bg-slate-500/20 transition-colors"></div>
-                <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-slate-200 dark:border-slate-700/50">
-                  ⚡
-                </div>
+                <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 rounded-xl flex items-center justify-center text-xl mb-6 shadow-sm border border-slate-200 dark:border-slate-700/50"><Icon name="zap" className="w-6 h-6" /></div>
                 <h3 className="font-black text-slate-900 dark:text-white text-lg mb-2">
                   High-Performance Engine
                 </h3>
@@ -431,14 +420,7 @@ export default function LandingFeatures({ showAuthForm }) {
               className="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm transition-all animate-bounce"
               title="Next Section"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                ></path>
-              </svg>
+              <Icon name="chevron-down" className="w-5 h-5" />
             </button>
           </div>
         </section>
@@ -494,10 +476,10 @@ export default function LandingFeatures({ showAuthForm }) {
                   </tr>
                 </thead>
                 <tbody className="text-xs sm:text-sm font-medium">
-                  {/* Group 0: 🚀 Deployment & Cost */}
+                  {/* Group 0: <Icon name="rocket" className="w-4 h-4 inline-block mr-1" /> Deployment & Cost */}
                   <tr>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 font-black uppercase tracking-widest text-indigo-600 text-xs sm:text-sm border-b-2 border-neutral-200">
-                      🚀 Deployment & Cost
+                      <Icon name="rocket" className="w-4 h-4 inline-block mr-1" /> Deployment & Cost
                     </td>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 border-b-2 border-neutral-200 bg-neutral-50"></td>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 border-b-2 border-neutral-200"></td>
@@ -534,19 +516,19 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         AUTO-PROVISIONING
                       </span>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌{' '}
+                      <Icon name="x" className="w-5 h-5 inline-block text-red-400" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         MANUAL INVITES
                       </span>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         ENTERPRISE ADD-ON
                       </span>
@@ -566,7 +548,7 @@ export default function LandingFeatures({ showAuthForm }) {
                       UNLIMITED
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         LIMITED ON FREE TIER
                       </span>
@@ -582,12 +564,10 @@ export default function LandingFeatures({ showAuthForm }) {
                         configurations.
                       </div>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl">✅</td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌{' '}
+                      <Icon name="x" className="w-5 h-5 inline-block text-red-400" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         WEEKS OF CONFIG
                       </span>
@@ -602,24 +582,20 @@ export default function LandingFeatures({ showAuthForm }) {
                         The interface updates instantly before the server responds, ensuring a lag-free experience.
                       </div>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         NETWORK DEPENDENT
                       </span>
                     </td>
                   </tr>
 
-                  {/* Group 1: 🤖 AI & Smart Assistant */}
+                  {/* Group 1: <Icon name="bot" className="w-4 h-4 inline-block mr-1" /> AI & Smart Assistant */}
                   <tr>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 font-black uppercase tracking-widest text-indigo-600 text-xs sm:text-sm border-b-2 border-neutral-200">
-                      🤖 AI & Smart Assistant
+                      <Icon name="bot" className="w-4 h-4 inline-block mr-1" /> AI & Smart Assistant
                     </td>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 border-b-2 border-neutral-200 bg-neutral-50"></td>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 border-b-2 border-neutral-200"></td>
@@ -632,14 +608,10 @@ export default function LandingFeatures({ showAuthForm }) {
                         Powered by GPT-OSS 120B and Google Gemini with automatic failover to prevent downtime.
                       </div>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         SEPARATE SUBSCRIPTION
                       </span>
@@ -655,16 +627,14 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         NATURAL PROMPT TO FORM
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         PREMIUM ONLY
                       </span>
@@ -681,16 +651,14 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         ASSIGNEE VS REQUESTER
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         NEEDS MANUAL TAGGING
                       </span>
@@ -706,16 +674,14 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         AI-DRAFTED & AUTO-SCHEDULED
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         EXTERNAL AUTOMATION
                       </span>
@@ -729,16 +695,14 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         READS BRIEFS & COMMENTS
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         LACKS FULL CONTEXT
                       </span>
@@ -754,16 +718,14 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         BULK CREATE TASKS
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         NEEDS ZAPIER / MAKE
                       </span>
@@ -779,17 +741,13 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         ASCII TERMINAL UI
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                   </tr>
                   <tr className="hover:bg-neutral-50 transition-colors">
                     <td className="p-4 md:p-6 border-b border-neutral-100">
@@ -801,26 +759,24 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         INTERACTIVE PILLS
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         STATIC NOTEPADS
                       </span>
                     </td>
                   </tr>
 
-                  {/* Group 2: 📊 Workload & Analytics */}
+                  {/* Group 2: <Icon name="trending-up" className="w-4 h-4 inline-block mr-1" /> Workload & Analytics */}
                   <tr>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 font-black uppercase tracking-widest text-indigo-600 text-xs sm:text-sm border-b-2 border-neutral-200">
-                      📊 Workload & Analytics
+                      <Icon name="trending-up" className="w-4 h-4 inline-block mr-1" /> Workload & Analytics
                     </td>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 border-b-2 border-neutral-200 bg-neutral-50"></td>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 border-b-2 border-neutral-200"></td>
@@ -835,16 +791,14 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         KEEPS UI FAST
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         MANUAL ARCHIVE
                       </span>
@@ -861,16 +815,14 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         40-HOUR CAPACITY ENGINE
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         TASK-COUNT ONLY
                       </span>
@@ -887,16 +839,14 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         WITH AI SUMMARY
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         EXPENSIVE ADD-ON
                       </span>
@@ -912,14 +862,10 @@ export default function LandingFeatures({ showAuthForm }) {
                         work.
                       </div>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         PREMIUM DASHBOARDS
                       </span>
@@ -934,27 +880,24 @@ export default function LandingFeatures({ showAuthForm }) {
                         Live charts tracking project velocity, completion rates, and individual workload distribution.
                       </div>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡
+                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70"><Icon name="minus" className="w-5 h-5 inline-block text-amber-500 mx-auto" />
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         MANUAL PIVOT
                       </span>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         PAID TIER LIMITS
                       </span>
                     </td>
                   </tr>
 
-                  {/* Group 3: ⏳ Time & Deadlines */}
+                  {/* Group 3: <Icon name="clock" className="w-4 h-4 inline-block mr-1" /> Time & Deadlines */}
                   <tr>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 font-black uppercase tracking-widest text-indigo-600 text-xs sm:text-sm border-b-2 border-neutral-200">
-                      ⏳ Time & Deadlines
+                      <Icon name="clock" className="w-4 h-4 inline-block mr-1" /> Time & Deadlines
                     </td>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 border-b-2 border-neutral-200 bg-neutral-50"></td>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 border-b-2 border-neutral-200"></td>
@@ -976,7 +919,7 @@ export default function LandingFeatures({ showAuthForm }) {
                       🔴
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         MANUAL CONFIG
                       </span>
@@ -991,15 +934,9 @@ export default function LandingFeatures({ showAuthForm }) {
                         Automatically bypasses weekends and national red dates when calculating project timelines.
                       </div>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                   </tr>
                   <tr className="hover:bg-neutral-50 transition-colors">
                     <td className="p-4 md:p-6 border-b border-neutral-100">
@@ -1010,14 +947,10 @@ export default function LandingFeatures({ showAuthForm }) {
                         Drag the edges of a task directly on the Gantt or Calendar view to adjust its duration.
                       </div>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         PREMIUM FEATURE
                       </span>
@@ -1039,7 +972,7 @@ export default function LandingFeatures({ showAuthForm }) {
                       🔴
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         REQUIRES PLUGINS
                       </span>
@@ -1055,16 +988,14 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         AUTO-SPAWN ON DONE
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         REQUIRES EXTERNAL BOT
                       </span>
@@ -1080,26 +1011,24 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         IN-APP FEATURE
                       </span>
                     </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌{' '}
+                      <Icon name="x" className="w-5 h-5 inline-block text-red-400" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         NEEDS HR SOFTWARE
                       </span>
                     </td>
                   </tr>
 
-                  {/* Group 4: 💬 Collaboration & Workspace */}
+                  {/* Group 4: <Icon name="message-circle" className="w-4 h-4 inline-block mr-1" /> Collaboration & Workspace */}
                   <tr>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 font-black uppercase tracking-widest text-indigo-600 text-xs sm:text-sm border-b-2 border-neutral-200">
-                      💬 Collaboration & Workspace
+                      <Icon name="message-circle" className="w-4 h-4 inline-block mr-1" /> Collaboration & Workspace
                     </td>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 border-b-2 border-neutral-200 bg-neutral-50"></td>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 border-b-2 border-neutral-200"></td>
@@ -1115,14 +1044,14 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         HARD-DISABLED COLLAB
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl">✅</td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         OFTEN MIXED SPACES
                       </span>
@@ -1137,14 +1066,10 @@ export default function LandingFeatures({ showAuthForm }) {
                         Dedicated channels for every project, specific task threads, and 1-on-1 direct messages.
                       </div>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         NEEDS EXTERNAL CHAT
                       </span>
@@ -1159,16 +1084,14 @@ export default function LandingFeatures({ showAuthForm }) {
                         Monitor all your assigned tasks across multiple workspaces from a single unified view.
                       </div>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌{' '}
+                      <Icon name="x" className="w-5 h-5 inline-block text-red-400" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         MANUAL SEARCH
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl">✅</td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
                   </tr>
                   <tr className="hover:bg-neutral-50 transition-colors">
                     <td className="p-4 md:p-6 border-b border-neutral-100">
@@ -1179,13 +1102,9 @@ export default function LandingFeatures({ showAuthForm }) {
                         Break down main tasks into checklists and assign specific items to different team members.
                       </div>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl">✅</td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
                   </tr>
                   <tr className="hover:bg-neutral-50 transition-colors">
                     <td className="p-4 md:p-6 border-b border-neutral-100">
@@ -1196,13 +1115,9 @@ export default function LandingFeatures({ showAuthForm }) {
                         Tag colleagues using @username to instantly send them an email and in-app notification.
                       </div>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl">✅</td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
                   </tr>
                   <tr className="hover:bg-neutral-50 transition-colors">
                     <td className="p-4 md:p-6 border-b border-neutral-100">
@@ -1214,16 +1129,14 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         AUTO-URL GENERATOR
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         NEEDS PLUGIN
                       </span>
@@ -1239,21 +1152,20 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         1-CLICK TELEPORT
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70"><Icon name="minus" className="w-5 h-5 inline-block text-amber-500 mx-auto" />
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl">✅</td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
                   </tr>
 
-                  {/* Group 5: 🛡️ Platform & Security */}
+                  {/* Group 5: <Icon name="shield" className="w-4 h-4 inline-block mr-1" /> Platform & Security */}
                   <tr>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 font-black uppercase tracking-widest text-indigo-600 text-xs sm:text-sm border-b-2 border-neutral-200">
-                      🛡️ Platform & Security
+                      <Icon name="shield" className="w-4 h-4 inline-block mr-1" /> Platform & Security
                     </td>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 border-b-2 border-neutral-200 bg-neutral-50"></td>
                     <td className="px-4 py-6 md:px-6 md:pt-10 md:pb-4 border-b-2 border-neutral-200"></td>
@@ -1268,14 +1180,10 @@ export default function LandingFeatures({ showAuthForm }) {
                         Strictly allows logins only from whitelisted corporate domains.
                       </div>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         ENTERPRISE TIER ONLY
                       </span>
@@ -1291,15 +1199,14 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         CI/CD VALIDATED
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70"><Icon name="minus" className="w-5 h-5 inline-block text-amber-500 mx-auto" />
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl">✅</td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
                   </tr>
                   <tr className="hover:bg-neutral-50 transition-colors">
                     <td className="p-4 md:p-6 border-b border-neutral-100">
@@ -1312,18 +1219,18 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         IMMUTABLE TRACKING
                       </span>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌{' '}
+                      <Icon name="x" className="w-5 h-5 inline-block text-red-400" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         CAN BE OVERWRITTEN
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl">✅</td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
                   </tr>
                   <tr className="hover:bg-neutral-50 transition-colors">
                     <td className="p-4 md:p-6 border-b border-neutral-100">
@@ -1334,17 +1241,15 @@ export default function LandingFeatures({ showAuthForm }) {
                         Strict permission levels for Super Admins, Project Owners, and regular Team Members.
                       </div>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌{' '}
+                      <Icon name="x" className="w-5 h-5 inline-block text-red-400" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         ALL OR NOTHING
                       </span>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         ADVANCED TIERS
                       </span>
@@ -1359,14 +1264,10 @@ export default function LandingFeatures({ showAuthForm }) {
                         Automatically deletes 6-month-old completed tasks and 1-year-old chats to prevent server bloat.
                       </div>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅
-                    </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌
-                    </td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl"><Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500 mx-auto" /></td>
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale"><Icon name="x" className="w-5 h-5 inline-block text-red-400 mx-auto" /></td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         ENTERPRISE TIER ONLY
                       </span>
@@ -1382,19 +1283,18 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         INTERACTIVE CART UI
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70"><Icon name="minus" className="w-5 h-5 inline-block text-amber-500 mx-auto" />
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         MANUAL ROWS
                       </span>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌{' '}
+                      <Icon name="x" className="w-5 h-5 inline-block text-red-400" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         SLOW FORMS
                       </span>
@@ -1410,19 +1310,19 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         GOOGLE-LIKE ENGINE
                       </span>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌{' '}
+                      <Icon name="x" className="w-5 h-5 inline-block text-red-400" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         EXACT MATCH ONLY
                       </span>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡{' '}
+                      <Icon name="minus" className="w-5 h-5 inline-block text-amber-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         BASIC SUBSTRING
                       </span>
@@ -1438,16 +1338,15 @@ export default function LandingFeatures({ showAuthForm }) {
                       </div>
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 bg-neutral-50 text-center text-xl sm:text-2xl">
-                      ✅{' '}
+                      <Icon name="check-circle" className="w-5 h-5 inline-block text-emerald-500" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         100% DATA OWNERSHIP
                       </span>
                     </td>
-                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70">
-                      🟡
+                    <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-70"><Icon name="minus" className="w-5 h-5 inline-block text-amber-500 mx-auto" />
                     </td>
                     <td className="p-4 md:p-6 border-b border-neutral-100 text-center text-xl sm:text-2xl opacity-30 grayscale">
-                      ❌{' '}
+                      <Icon name="x" className="w-5 h-5 inline-block text-red-400" /> 
                       <span className="block text-[8px] font-bold text-neutral-500 uppercase tracking-widest mt-1">
                         3RD PARTY SERVERS
                       </span>
@@ -1464,14 +1363,7 @@ export default function LandingFeatures({ showAuthForm }) {
               className="w-10 h-10 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 shadow-sm transition-all animate-bounce"
               title="Next Section"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                ></path>
-              </svg>
+              <Icon name="chevron-down" className="w-5 h-5" />
             </button>
           </div>
         </section>

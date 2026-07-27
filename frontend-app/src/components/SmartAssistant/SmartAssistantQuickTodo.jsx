@@ -1,5 +1,6 @@
 import React from 'react';
 import { LoadingSpinner } from '../../Utils';
+import { Icon } from '../icons/Icon';
 
 export default function SmartAssistantQuickTodo({
   selectedBoard,
@@ -51,7 +52,7 @@ export default function SmartAssistantQuickTodo({
           ◀ {tMsg('Menu', 'Menu')}
         </button>
         <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 flex-1 justify-center">
-          ⚡ {tMsg('Quick To-Do', 'To-Do Cepat')}
+          <Icon name="zap" className="w-4 h-4 inline-block mr-1" /> {tMsg('Quick To-Do', 'To-Do Cepat')}
         </span>
         <button
           onClick={() => {
@@ -73,7 +74,7 @@ export default function SmartAssistantQuickTodo({
       <div className="flex-1 overflow-y-auto p-5 custom-scrollbar flex flex-col justify-start bg-neutral-50/50 dark:bg-neutral-950 relative">
         {quickTasks.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40 mac-animate">
-            <span className="text-6xl mb-4">📝</span>
+            <Icon name="file-text" className="w-16 h-16 mb-4 text-neutral-300" />
             <p className="text-sm font-bold text-neutral-500">
               {tMsg('Type below to add tasks', 'Ketik di bawah untuk menambah tugas')}
             </p>
@@ -93,7 +94,7 @@ export default function SmartAssistantQuickTodo({
                     onClick={() => setQuickTasks((prev) => prev.filter((x) => x.id !== t.id))}
                     className="text-neutral-400 hover:text-red-500 bg-neutral-100 dark:bg-neutral-800 hover:bg-red-50 dark:hover:bg-red-900/30 p-1.5 rounded-lg transition-colors shrink-0"
                   >
-                    ✖
+                    <Icon name="x" className="w-4 h-4" />
                   </button>
                 </div>
               ))}
@@ -121,7 +122,7 @@ export default function SmartAssistantQuickTodo({
                   disabled={isSavingQuickTasks}
                   className="w-full bg-emerald-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:bg-emerald-700 transition-colors uppercase tracking-widest text-[10px] flex items-center justify-center gap-1.5"
                 >
-                  {isSavingQuickTasks ? <LoadingSpinner /> : '🚀'}
+                  {isSavingQuickTasks ? <LoadingSpinner /> : <Icon name="rocket" className="w-5 h-5" />}
                   {isSavingQuickTasks
                     ? tMsg('Saving...', 'Menyimpan...')
                     : tMsg(`Save ${quickTasks.length} Tasks to`, `Simpan ${quickTasks.length} Tugas ke`)}

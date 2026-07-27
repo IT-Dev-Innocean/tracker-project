@@ -1,5 +1,6 @@
 import React from 'react';
 import { useCloseAnimation } from './Utils';
+import { Icon } from './components/icons/Icon';
 
 export default function TermsOfServiceModal({ setIsTermsOpen, language }) {
   const [isClosing, close] = useCloseAnimation(() => setIsTermsOpen(false));
@@ -25,7 +26,7 @@ export default function TermsOfServiceModal({ setIsTermsOpen, language }) {
             onClick={close}
             className="bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm text-black dark:text-white px-6 py-3.5 rounded-full font-bold uppercase tracking-widest text-xs transition-colors flex items-center gap-2 w-full md:w-auto justify-center"
           >
-            <span>✖</span> {tMsg('Close Document', 'Tutup Dokumen')}
+            <Icon name="x" className="w-4 h-4 inline-block mr-1" /> {tMsg('Close Document', 'Tutup Dokumen')}
           </button>
         </div>
 

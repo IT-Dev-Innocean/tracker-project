@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import axios from 'axios';
 import DOMPurify from 'dompurify';
 import { Avatar } from './SharedUI';
+import { Icon } from './components/icons/Icon';
 
 export default function AnalyticsView({
   filteredTasks,
@@ -380,7 +381,7 @@ export default function AnalyticsView({
     language === 'id'
       ? 'Beban kerja tim Anda terlihat sangat seimbang. Semua orang bekerja dengan kecepatan yang sehat!'
       : "Your team's workload looks nicely balanced. Everyone is operating at a healthy pace!";
-  let insightIcon = '✨';
+  let insightIcon = 'sparkles';
   let insightColor =
     'bg-emerald-50/50 dark:bg-emerald-900/10 text-emerald-900 dark:text-emerald-200 border-emerald-200/70 dark:border-emerald-800/50';
 
@@ -391,7 +392,7 @@ export default function AnalyticsView({
   const criticalRangeStr = getTaskRangeStr(topCriticalMembers, true);
 
   if (maxActiveEtc >= 40 && maxCritical > 0) {
-    insightIcon = '🚨';
+    insightIcon = 'circle-alert';
     insightColor =
       'bg-red-50/50 dark:bg-red-900/10 text-red-900 dark:text-red-200 border-red-200/70 dark:border-red-800/50';
     if (isSamePeople) {
@@ -428,7 +429,7 @@ export default function AnalyticsView({
         : `Attention! ${topCriticalStr} ${
             topCriticalMembers.length > 1 ? 'have' : 'has'
           } ${criticalRangeStr} critical/overdue task(s). They might need immediate backup to clear the bottleneck.`;
-    insightIcon = '🚨';
+    insightIcon = 'circle-alert';
     insightColor =
       'bg-red-50/50 dark:bg-red-900/10 text-red-900 dark:text-red-200 border-red-200/70 dark:border-red-800/50';
   } else if (maxActiveEtc >= 24) {
@@ -438,7 +439,7 @@ export default function AnalyticsView({
         : `It looks like ${topMembersStr} ${
             topMembers.length > 1 ? 'are' : 'is'
           } currently carrying a heavy load with ${taskRangeStr} active requests. Consider checking in or redistributing some tasks to support them!`;
-    insightIcon = '🤝';
+    insightIcon = 'handshake';
     insightColor =
       'bg-indigo-50/50 dark:bg-indigo-900/10 text-indigo-900 dark:text-indigo-200 border-indigo-200/70 dark:border-indigo-800/50';
   }
@@ -534,7 +535,7 @@ export default function AnalyticsView({
           className={`summary-card p-5 rounded-2xl border shadow-sm flex flex-col gap-3 transition-all ${insightColor}`}
         >
           <div className="flex items-center gap-3">
-            <div className="text-2xl leading-none">{insightIcon}</div>
+            <Icon name={insightIcon} className="w-6 h-6 shrink-0" />
             <h4 className="text-[10px] font-black uppercase tracking-widest opacity-70">
               {language === 'id' ? 'Peringatan Kesehatan Sistem' : 'System Health Alert'}
             </h4>
@@ -546,7 +547,7 @@ export default function AnalyticsView({
         <div className="summary-card p-5 rounded-2xl border shadow-sm flex flex-col gap-3 transition-all bg-indigo-50/50 dark:bg-indigo-900/10 text-indigo-900 dark:text-indigo-200 border-indigo-200/70 dark:border-indigo-800/50">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-3">
-              <div className="text-2xl leading-none">✨</div>
+              <Icon name="sparkles" className="w-6 h-6 shrink-0" />
               <h4 className="text-[10px] font-black uppercase tracking-widest opacity-70">
                 {language === 'id' ? 'Ringkasan Eksekutif AI' : 'Executive AI Summary'}{' '}
                 {aiProvider && `• ${aiProvider}`}
@@ -563,8 +564,8 @@ export default function AnalyticsView({
                     ? 'Membuat...'
                     : 'Generating...'
                   : language === 'id'
-                  ? '✨ Buat Ringkasan AI'
-                  : '✨ Generate Insight'}
+                  ? (<><Icon name="sparkles" className="w-3.5 h-3.5 inline-block mr-1" /> Buat Ringkasan AI</>)
+                  : (<><Icon name="sparkles" className="w-3.5 h-3.5 inline-block mr-1" /> Generate Insight</>)}
               </button>
             )}
           </div>
@@ -1288,7 +1289,7 @@ export default function AnalyticsView({
           <div className="flex-1 space-y-3 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
             {stalledTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-6 opacity-70">
-                <span className="text-4xl mb-2">✨</span>
+                <Icon name="sparkles" className="w-10 h-10 mb-2" />
                 <p className="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-widest text-center">
                   Zero Bottlenecks.
                   <br />

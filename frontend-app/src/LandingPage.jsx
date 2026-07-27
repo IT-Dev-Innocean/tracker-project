@@ -8,6 +8,7 @@ import LandingAISection from './components/LandingPage/LandingAISection';
 import LandingFeatures from './components/LandingPage/LandingFeatures';
 import LandingFAQ from './components/LandingPage/LandingFAQ';
 import LandingCTA from './components/LandingPage/LandingCTA';
+import { Icon } from './components/icons/Icon';
 
 export default function LandingPage({
   showAuthForm,
@@ -142,9 +143,7 @@ export default function LandingPage({
           }`}
           title="Jump to Top"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 15l7-7 7 7"></path>
-          </svg>
+          <Icon name="chevron-up" className="w-5 h-5" />
         </button>
 
         {isPrivacyOpen && <PrivacyPolicyModal setIsPrivacyOpen={setIsPrivacyOpen} />}
@@ -154,7 +153,7 @@ export default function LandingPage({
           <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 transition-opacity duration-200">
             <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-sm border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] text-center mac-animate">
               <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl shadow-sm border border-blue-200 dark:border-blue-800/50">
-                🎧
+                <Icon name="headphones" className="w-8 h-8" />
               </div>
               <h3 className="text-xl font-black text-black dark:text-white mb-4 uppercase">
                 Coming Soon
@@ -191,7 +190,7 @@ export default function LandingPage({
         onClick={() => setShowAuthForm(false)}
         className="absolute top-8 left-8 text-neutral-400 hover:text-black dark:hover:text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-colors"
       >
-        ← Back
+        <Icon name="arrow-left" className="w-4 h-4" /> Back
       </button>
 
       <AuthForms

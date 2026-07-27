@@ -1,3 +1,4 @@
+import { Icon } from '../icons/Icon';
 import React, { useState } from 'react';
 
 export default function LandingFAQ() {
@@ -84,14 +85,7 @@ export default function LandingFAQ() {
               className="w-10 h-10 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:border-indigo-300 dark:hover:border-indigo-700 shadow-sm transition-all animate-bounce"
               title="Next Section"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M19 14l-7 7m0 0l-7-7m7 7V3"
-                ></path>
-              </svg>
+              <Icon name="chevron-down" className="w-5 h-5" />
             </button>
           </div>
         </section>

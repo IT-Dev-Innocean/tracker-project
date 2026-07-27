@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { IconPerson, IconPlus, Avatar, SegmentedControl } from './SharedUI';
+import { Icon } from './components/icons/Icon';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { HighlightText, stripHtml, useCloseAnimation, LoadingSpinner, renderRichText } from './Utils';
 
@@ -11,7 +12,7 @@ export function BaseConfirmModal({
   description,
   confirmText,
   cancelText,
-  icon = '⚠️',
+  icon = 'alert-triangle',
   color = 'red',
   isSubmitting = false,
   matchText = null,
@@ -52,7 +53,7 @@ export function BaseConfirmModal({
         <div
           className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border ${theme.iconBg}`}
         >
-          {icon}
+          <Icon name={icon} className="w-10 h-10" strokeWidth={1.5} />
         </div>
         <h3 className="text-xl sm:text-2xl font-black text-black dark:text-white mb-4 uppercase">
           {title}
@@ -140,7 +141,7 @@ export function WelcomeTourModal({
         }`}
       >
         <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-indigo-200 dark:border-indigo-800/50 hover:scale-110 transition-transform cursor-default">
-          👋
+          <Icon name="handshake" className="w-10 h-10" />
         </div>
         <h2 className="text-2xl font-black text-black dark:text-white uppercase mb-2">
           {tMsg('Welcome to Tracker', 'Selamat Datang di Tracker')}
@@ -177,8 +178,8 @@ export function WelcomeTourModal({
             </label>
             <SegmentedControl
               options={[
-                { label: '☀️ Light', value: 'light' },
-                { label: '🌙 Dark', value: 'dark' },
+                { label: 'Light', value: 'light' },
+                { label: 'Dark', value: 'dark' },
               ]}
               value={isDarkMode ? 'dark' : 'light'}
               onChange={(val) => setIsDarkMode(val === 'dark')}
@@ -322,7 +323,7 @@ export function TransferOwnershipModal({
       )}
       confirmText={tMsg('Transfer', 'Transfer')}
       cancelText={tMsg('Cancel', 'Batal')}
-      icon="👑"
+      icon="crown"
       color="amber"
       isSubmitting={isSubmitting}
     />
@@ -513,7 +514,7 @@ export function CreateBoardModal({
                     : 'border-neutral-200 dark:border-neutral-700 bg-transparent text-neutral-500 hover:bg-neutral-50 dark:hover:bg-neutral-900'
                 }`}
               >
-                <span className="text-2xl">👥</span>
+                <Icon name="users" className="w-7 h-7" />
                 <span className="text-xs font-bold uppercase tracking-widest">{tMsg('Team', 'Tim')}</span>
               </button>
               <button
@@ -525,7 +526,7 @@ export function CreateBoardModal({
                     : 'border-neutral-200 dark:border-neutral-700 bg-transparent text-neutral-500 hover:bg-neutral-50 dark:hover:bg-neutral-900'
                 }`}
               >
-                <span className="text-2xl">🔒</span>
+                <Icon name="lock" className="w-7 h-7" />
                 <span className="text-xs font-bold uppercase tracking-widest">{tMsg('Private', 'Pribadi')}</span>
               </button>
             </div>
@@ -614,7 +615,7 @@ export function TeamModal({
         }`}
       >
         <h2 className="text-3xl font-black text-black dark:text-white mb-2 flex items-center gap-3">
-          <span className="text-4xl">🤝</span> {tMsg('Project Members', 'Anggota Proyek')}
+          <Icon name="handshake" className="w-9 h-9 shrink-0" /> {tMsg('Project Members', 'Anggota Proyek')}
         </h2>
 
         {isOwner && (
@@ -776,7 +777,7 @@ export function TeamModal({
                               className="text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-600 hover:text-white px-4 py-2.5 rounded-full transition-all border border-indigo-100 dark:border-indigo-800/50 shadow-sm"
                               title={tMsg('Hand over ownership to this user', 'Serahkan kepemilikan ke pengguna ini')}
                             >
-                              👑 <span className="hidden sm:inline">{tMsg('Make Owner', 'Jadikan Pemilik')}</span>
+                              <Icon name="crown" className="w-3.5 h-3.5 inline" /> <span className="hidden sm:inline">{tMsg('Make Owner', 'Jadikan Pemilik')}</span>
                             </button>
                           )}
                           <button
@@ -841,8 +842,8 @@ export function InvitationsModal({
         }`}
       >
         <div className="flex justify-between items-center mb-8 border-b border-neutral-200 dark:border-neutral-800 pb-8">
-          <h2 className="text-3xl font-black text-black dark:text-white">
-            🔔 {tMsg('Invitations', 'Undangan')}
+          <h2 className="text-3xl font-black text-black dark:text-white flex items-center gap-2">
+            <Icon name="bell" className="w-7 h-7" /> {tMsg('Invitations', 'Undangan')}
           </h2>
           <span className="bg-black text-white dark:bg-white dark:text-black font-bold px-3 py-1 rounded-full shadow-sm text-xs">
             {invitations.length} {tMsg('New', 'Baru')}
@@ -852,7 +853,7 @@ export function InvitationsModal({
         <div className="flex-1 overflow-y-auto space-y-6 pr-2">
           {invitations.length === 0 ? (
             <div className="text-center py-10 text-neutral-500 dark:text-neutral-400">
-              <p className="text-5xl mb-4">📭</p>
+              <p className="mb-4 flex justify-center"><Icon name="inbox" className="w-12 h-12 text-neutral-400" /></p>
               <p className="text-sm font-medium">
                 {tMsg('You have no pending invitations.', 'Anda tidak memiliki undangan tertunda.')}
               </p>
@@ -918,12 +919,23 @@ export function ColumnModal({ colModal, setColModal, handleColSubmit, language }
           isClosing ? 'mac-exit' : 'mac-animate'
         }`}
       >
-        <h2 className="text-2xl font-black text-black dark:text-white mb-6 uppercase">
-          {colModal.mode === 'add'
-            ? `➕ ${tMsg('Add New', 'Tambah Baru')} ${colModal.target}`
-            : colModal.mode === 'rename'
-            ? `✏️ ${tMsg('Rename', 'Ubah Nama')} ${colModal.target}`
-            : `⚠️ ${tMsg('Delete', 'Hapus')} ${colModal.target}`}
+        <h2 className="text-2xl font-black text-black dark:text-white mb-6 uppercase flex items-center gap-2">
+          {colModal.mode === 'add' ? (
+            <>
+              <Icon name="plus" className="w-5 h-5" />
+              {tMsg('Add New', 'Tambah Baru')} {colModal.target}
+            </>
+          ) : colModal.mode === 'rename' ? (
+            <>
+              <Icon name="pencil" className="w-5 h-5" />
+              {tMsg('Rename', 'Ubah Nama')} {colModal.target}
+            </>
+          ) : (
+            <>
+              <Icon name="alert-triangle" className="w-5 h-5" />
+              {tMsg('Delete', 'Hapus')} {colModal.target}
+            </>
+          )}
         </h2>
         <form onSubmit={handleColSubmit}>
           {colModal.mode !== 'delete' ? (
@@ -942,7 +954,7 @@ export function ColumnModal({ colModal, setColModal, handleColSubmit, language }
           ) : (
             <div className="mb-8">
               <div className="w-20 h-20 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm">
-                ⚠️
+                <Icon name="alert-triangle" className="w-10 h-10" />
               </div>
               <p className="text-neutral-600 dark:text-neutral-400 text-sm font-medium text-center leading-relaxed">
                 {tMsg('Are you sure you want to delete the', 'Apakah Anda yakin ingin menghapus')} <br />
@@ -1017,7 +1029,7 @@ export function LeaveModal({
         }`}
       >
         <h2 className="text-3xl font-black text-black dark:text-white uppercase mb-2 flex items-center gap-3">
-          🌴 {tMsg('Time Off & Holidays', 'Cuti & Libur Nasional')}
+<Icon name="tree-palm" className="w-7 h-7 inline mr-2" /> {tMsg('Time Off & Holidays', 'Cuti & Libur Nasional')}
         </h2>
         <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 dark:text-neutral-400 mb-8">
           {tMsg(
@@ -1035,7 +1047,7 @@ export function LeaveModal({
               className="text-neutral-400 group-focus-within:text-black dark:group-focus-within:text-white transition-colors w-8 text-center text-xl shrink-0"
               title="Leave Date Range"
             >
-              📅
+              <Icon name="calendar" className="w-5 h-5 inline" />
             </span>
             <div className="flex-1 bg-white dark:bg-black rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 transition-all flex items-center p-1.5 px-3 shadow-sm">
               <div className="flex-1 flex flex-col sm:flex-row items-center gap-2">
@@ -1105,7 +1117,7 @@ export function LeaveModal({
               >
                 <div className="flex items-center gap-4">
                   <span className="text-2xl">
-                    {l.leave_type === 'personal' ? '🌴' : l.leave_type === 'mass_leave' ? '🏖️' : '🎌'}
+                    <Icon name={l.leave_type === 'personal' ? 'tree-palm' : l.leave_type === 'mass_leave' ? 'flag' : 'flag'} className="w-6 h-6" />
                   </span>
                   <div>
                     <p className="font-bold text-sm text-black dark:text-white uppercase tracking-wider">
@@ -1165,7 +1177,7 @@ export function FeedbackModal({
         }`}
       >
         <div className="w-16 h-16 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-500 rounded-full flex items-center justify-center mb-6 text-3xl shadow-sm border border-yellow-200 dark:border-yellow-800/50">
-          💡
+          <Icon name="lightbulb" className="w-8 h-8" />
         </div>
         <h2 className="text-3xl font-black text-black dark:text-white mb-2">
           {tMsg('Submit Idea', 'Kirim Ide')}
@@ -1237,7 +1249,7 @@ export function ContactSupportModal({
         }`}
       >
         <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 text-blue-500 rounded-full flex items-center justify-center mb-6 text-3xl shadow-sm border border-blue-200 dark:border-blue-800/50">
-          🎧
+          <Icon name="headphones" className="w-8 h-8" />
         </div>
         <h2 className="text-3xl font-black text-black dark:text-white mb-2">
           {tMsg('Contact Support', 'Hubungi Dukungan')}
@@ -1300,7 +1312,7 @@ export function LogoutConfirmModal({ setIsLogoutConfirmOpen, handleLogout, langu
       )}
       confirmText={tMsg('Sign Out', 'Keluar')}
       cancelText={tMsg('Cancel', 'Batal')}
-      icon="🚪"
+      icon="logout"
     />
   );
 }
@@ -1381,7 +1393,7 @@ export function NotificationModal({
               : 'bg-blue-50 dark:bg-blue-900/30 text-blue-500 border-blue-200 dark:border-blue-800/50'
           }`}
         >
-          {notification.type === 'error' ? '⚠️' : notification.type === 'success' ? '✅' : 'ℹ️'}
+          <Icon name={notification.type === 'error' ? 'alert-triangle' : notification.type === 'success' ? 'check-circle' : 'info'} className="w-8 h-8 sm:w-10 sm:h-10" />
         </div>
         <div className={`flex-1 ${isToast ? 'min-w-0' : 'w-full'}`}>
           <h3
@@ -1416,7 +1428,7 @@ export function NotificationModal({
             onClick={close}
             className="text-neutral-400 hover:text-black dark:hover:text-white transition-colors self-start ml-2 shrink-0"
           >
-            ✖
+            <Icon name="x" className="w-4 h-4" />
           </button>
         )}
       </div>
@@ -1468,12 +1480,10 @@ export function MyTicketsModal({ setIsMyTicketsOpen, language, setSelectedTask, 
       >
         <div className="flex justify-between items-center mb-6 border-b border-neutral-200 dark:border-neutral-800 pb-6 shrink-0">
           <h2 className="text-2xl font-black text-black dark:text-white uppercase flex items-center gap-3">
-            <span className="text-3xl">🎫</span> {tMsg('My Tickets & Feedback', 'Tiket & Masukan Saya')}
+            <Icon name="ticket" className="w-7 h-7" /> {tMsg('My Tickets & Feedback', 'Tiket & Masukan Saya')}
           </h2>
           <button onClick={close} className="text-neutral-500 hover:text-black dark:hover:text-white transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
+            <Icon name="x" className="w-6 h-6" strokeWidth={3} />
           </button>
         </div>
 
@@ -1486,7 +1496,7 @@ export function MyTicketsModal({ setIsMyTicketsOpen, language, setSelectedTask, 
                 : 'text-neutral-400 hover:text-black dark:hover:text-white'
             }`}
           >
-            💡 {tMsg('System Feedback', 'Masukan Sistem')}
+            <Icon name="lightbulb" className="w-8 h-8" /> {tMsg('System Feedback', 'Masukan Sistem')}
           </button>
           <button
             onClick={() => setActiveTab('Support')}
@@ -1496,7 +1506,7 @@ export function MyTicketsModal({ setIsMyTicketsOpen, language, setSelectedTask, 
                 : 'text-neutral-400 hover:text-black dark:hover:text-white'
             }`}
           >
-            🎧 {tMsg('Contact Support', 'Dukungan IT')}
+            <Icon name="headphones" className="w-8 h-8" /> {tMsg('Contact Support', 'Dukungan IT')}
           </button>
         </div>
 
@@ -1507,7 +1517,7 @@ export function MyTicketsModal({ setIsMyTicketsOpen, language, setSelectedTask, 
             </div>
           ) : filteredTickets.length === 0 ? (
             <div className="text-center py-10 text-neutral-500 dark:text-neutral-400">
-              <p className="text-4xl mb-4">📭</p>
+              <p className="mb-4 flex justify-center"><Icon name="inbox" className="w-10 h-10 text-neutral-400" /></p>
               <p className="text-sm font-medium">
                 {tMsg('No items found in this category.', 'Tidak ada item ditemukan di kategori ini.')}
               </p>

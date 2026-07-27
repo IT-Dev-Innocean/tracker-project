@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
+import { Icon } from '../icons/Icon';
 
 export default function TaskDetailSubtasks({
   tMsg,
@@ -24,8 +25,8 @@ export default function TaskDetailSubtasks({
   return (
     <div className="mt-10 pt-8 border-t border-neutral-200 dark:border-neutral-800">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-sm font-black uppercase tracking-wider text-black dark:text-white">
-          📋 {tMsg('Sub-task Checklist', 'Daftar Periksa Sub-tugas')}
+        <h3 className="text-sm font-black uppercase tracking-wider text-black dark:text-white flex items-center gap-2">
+          <Icon name="clipboard-list" className="w-4 h-4" /> {tMsg('Sub-task Checklist', 'Daftar Periksa Sub-tugas')}
         </h3>
         <span className="text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest">
           {isPreviewMode ? selectedTask.subtask_done : subtasks.filter((s) => s.is_done).length}/
@@ -76,8 +77,8 @@ export default function TaskDetailSubtasks({
             ))}
           </div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="bg-black/80 text-white font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-widest shadow-xl backdrop-blur-md text-center">
-              🔒{' '}
+            <span className="bg-black/80 text-white font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-widest shadow-xl backdrop-blur-md text-center inline-flex items-center gap-2">
+              <Icon name="lock" className="w-3.5 h-3.5" />
               {currentUser
                 ? tMsg('Project Members Only', 'Khusus Anggota Proyek')
                 : tMsg('Login to View Checklists', 'Login untuk Melihat Daftar Periksa')}
@@ -109,9 +110,7 @@ export default function TaskDetailSubtasks({
                           : ''
                       }`}
                     >
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM8 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM8 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM16 6a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM16 12a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM16 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0z" />
-                      </svg>
+                      <Icon name="grip-vertical" className="w-4 h-4" />
                     </div>
                     <input
                       type="checkbox"
@@ -158,7 +157,7 @@ export default function TaskDetailSubtasks({
                         className="text-neutral-400 hover:text-red-500 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity text-sm md:text-xs font-bold mt-0.5 md:mt-1 px-2 py-1 md:p-0"
                         title="Delete Subtask"
                       >
-                        ✖
+                        <Icon name="x" className="w-3.5 h-3.5" />
                       </button>
                     )}
                   </div>
