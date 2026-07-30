@@ -7,7 +7,9 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 # Import get_db and User model from database
-from database import get_db, User
+from database import get_db, User, TeamMembership
+
+SYSTEM_ROLES = {"admin", "manager", "staff"}
 
 # Konfigurasi Keamanan (JWT & Bcrypt)
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -65,4 +67,88 @@ def get_current_user(
     except jwt.PyJWTError:
         raise HTTPException(
             status_code=401, detail="Invalid authentication credentials"
+        )
+
+
+def effective_system_role(user: User) -> str:
+    """Read the new role while preserving legacy is_superadmin behavior."""
+    if getattr(user, "is_superadmin", 0) == 1:
+        return "admin"
+    role = getattr(user, "system_role", None) or "staff"
+    return role if role in SYSTEM_ROLES else "staff"
+
+
+def get_current_user_record(
+    username: str = Depends(get_current_user), db: Session = Depends(get_db)
+) -> User:
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User account no longer exists")
+    return user
+
+
+def require_roles(*allowed_roles):
+    allowed = set(allowed_roles)
+
+    def dependency(user: User = Depends(get_current_user_record)) -> User:
+        if effective_system_role(user) not in allowed:
+            raise HTTPException(status_code=403, detail="Insufficient system role")
+        return user
+
+    return dependency
+
+
+require_admin = require_roles("admin")
+require_manager_or_admin = require_roles("admin", "manager")
+
+
+def is_admin_user(user: User) -> bool:
+    return effective_system_role(user) == "admin"
+
+
+def user_managed_team_ids(db: Session, username: str):
+    return {
+        row[0]
+        for row in db.query(TeamMembership.team_id)
+        .filter(
+            TeamMembership.username == username,
+            TeamMembership.membership_role == "manager",
+        )
+        .all()
+    }
+
+
+def can_manage_staff(db: Session, actor: User, target: User) -> bool:
+    """Admins manage anyone; managers manage staff sharing a managed team."""
+    actor_role = effective_system_role(actor)
+    if actor_role == "admin":
+        return True
+    if actor_role != "manager" or effective_system_role(target) != "staff":
+        return False
+    managed_ids = user_managed_team_ids(db, actor.username)
+    if not managed_ids:
+        return False
+    return (
+        db.query(TeamMembership.id)
+        .filter(
+            TeamMembership.username == target.username,
+            TeamMembership.membership_role == "staff",
+            TeamMembership.team_id.in_(managed_ids),
+        )
+        .first()
+        is not None
+    )
+
+
+def ensure_not_last_admin(db: Session, user: User):
+    if effective_system_role(user) != "admin":
+        return
+    admin_count = sum(
+        1 for candidate in db.query(User).all()
+        if effective_system_role(candidate) == "admin"
+    )
+    if admin_count <= 1:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot demote or delete the last Admin.",
         )

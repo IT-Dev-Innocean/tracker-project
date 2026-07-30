@@ -5,20 +5,35 @@ import re
 import json
 from datetime import datetime, timedelta
 import os
+import base64
+from collections import defaultdict
 
-from database import get_db, User, Request, Subtask, Board, BoardMember, LeaveDay, LeaveRecord, Comment, Notification, DirectMessage
+from database import (
+    get_db,
+    User,
+    Request,
+    Subtask,
+    Board,
+    BoardMember,
+    LeaveDay,
+    LeaveRecord,
+    Comment,
+    Notification,
+    DirectMessage,
+    Team,
+    TeamMembership,
+    GroqTokenLedger,
+    FileAsset,
+)
 from schemas import *
 from dependencies import *
 from utils import *
+from services.groq_quota import current_period, quota_snapshot
 
 router = APIRouter()
 
 @router.get("/api/admin/config")
-def get_system_config(current_user: str = Depends(get_current_user)):
-    if current_user != "admin":
-        raise HTTPException(
-            status_code=403, detail="Only 'admin' can access system configuration."
-        )
+def get_system_config(admin: User = Depends(require_admin)):
     return {
         "smtp_server": os.getenv("SMTP_SERVER", ""),
         "smtp_port": os.getenv("SMTP_PORT", ""),
@@ -36,12 +51,8 @@ def get_system_config(current_user: str = Depends(get_current_user)):
 
 @router.put("/api/admin/config")
 def update_system_config(
-    payload: SystemConfigModel, current_user: str = Depends(get_current_user)
+    payload: SystemConfigModel, admin: User = Depends(require_admin)
 ):
-    if current_user != "admin":
-        raise HTTPException(
-            status_code=403, detail="Only 'admin' can modify system configuration."
-        )
 
     if payload.smtp_server is not None:
         update_env_var("SMTP_SERVER", payload.smtp_server)
@@ -71,15 +82,10 @@ def update_system_config(
 @router.post("/api/admin/verify-sudo")
 def verify_sudo(
     payload: SudoVerifyModel,
-    current_user: str = Depends(get_current_user),
+    admin: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    if current_user != "admin":
-        raise HTTPException(
-            status_code=403, detail="Only admin can perform this action."
-        )
-    user = db.query(User).filter(User.username == current_user).first()
-    if not user or not verify_password(payload.password, user.password):
+    if not verify_password(payload.password, admin.password):
         raise HTTPException(status_code=400, detail="Incorrect password.")
     return {"message": "Verified"}
 
@@ -103,6 +109,8 @@ def get_all_users(
                 "deletion_date": u.deletion_date,
                 "created_at": u.created_at,
                 "is_superadmin": u.is_superadmin,
+                "system_role": effective_system_role(u),
+                "groq_monthly_token_allowance": u.groq_monthly_token_allowance,
                 "timesheet_approver": u.timesheet_approver,
             }
             for u in users
@@ -124,6 +132,8 @@ def update_user_status(
         raise HTTPException(status_code=404)
     if username == "admin":
         raise HTTPException(status_code=400, detail="Cannot modify root admin")
+    if payload.status == "pending_deletion":
+        ensure_not_last_admin(db, user)
 
     user.account_status = payload.status
     if payload.status == "pending_deletion":
@@ -155,7 +165,13 @@ def toggle_superadmin(
     if not user:
         raise HTTPException(status_code=404)
 
-    user.is_superadmin = 1 if user.is_superadmin == 0 else 0
+    if effective_system_role(user) == "admin":
+        ensure_not_last_admin(db, user)
+        user.system_role = "staff"
+        user.is_superadmin = 0
+    else:
+        user.system_role = "admin"
+        user.is_superadmin = 1
     db.commit()
     status_str = (
         "promoted to Super Admin"
@@ -177,6 +193,7 @@ def manual_verify_user(
     user = db.query(User).filter(User.username == username).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    ensure_not_last_admin(db, user)
 
     if user.is_verified == 1:
         return {"message": f"User @{username} is already verified."}
@@ -235,6 +252,9 @@ def admin_delete_user(
     db.query(Notification).filter(Notification.user_username == username).delete()
     db.query(BoardMember).filter(BoardMember.member_username == username).delete()
     db.query(LeaveRecord).filter(LeaveRecord.username == username).delete()
+    db.query(TeamMembership).filter(TeamMembership.username == username).delete()
+    db.query(GroqTokenLedger).filter(GroqTokenLedger.username == username).delete()
+    db.query(FileAsset).filter(FileAsset.uploader_username == username).delete()
 
     try:
         db.delete(user)
@@ -327,3 +347,285 @@ def set_timesheet_approver(
     db.commit()
     msg = f"Timesheet approver for @{user.username} cleared." if not approver else f"Timesheet approver for @{user.username} set to @{approver.username}."
     return {"message": msg}
+
+
+def _avatar_database_bytes(avatar):
+    if not avatar or not avatar.startswith("data:") or "," not in avatar:
+        return 0
+    header, encoded = avatar.split(",", 1)
+    if ";base64" not in header:
+        return len(encoded.encode("utf-8"))
+    try:
+        return len(base64.b64decode(encoded, validate=False))
+    except Exception:
+        return len(encoded.encode("utf-8"))
+
+
+def _storage_snapshot(db: Session):
+    avatar_rows = db.query(User.username, User.avatar).all()
+    avatar_by_user = {
+        username: _avatar_database_bytes(avatar)
+        for username, avatar in avatar_rows
+        if _avatar_database_bytes(avatar)
+    }
+    assets = db.query(FileAsset).all()
+    metadata_bytes = sum(
+        len(
+            "|".join(
+                [
+                    asset.original_filename or "",
+                    asset.content_type or "",
+                    asset.storage_kind or "",
+                    asset.uploader_username or "",
+                ]
+            ).encode("utf-8")
+        )
+        for asset in assets
+    )
+    declared_attachment_bytes = sum(max(0, asset.size_bytes or 0) for asset in assets)
+    resources = [
+        {
+            "id": f"avatar:{username}",
+            "name": f"Avatar @{username}",
+            "owner_username": username,
+            "type": "avatar",
+            "size_bytes": size,
+            "updated_at": None,
+        }
+        for username, size in avatar_by_user.items()
+    ]
+    resources.extend(
+        {
+            "id": f"asset:{asset.id}",
+            "name": asset.original_filename,
+            "owner_username": asset.uploader_username,
+            "type": asset.content_type or "attachment",
+            "size_bytes": asset.size_bytes or 0,
+            "updated_at": asset.created_at,
+        }
+        for asset in assets
+    )
+    return {
+        "database_backed_avatar_bytes": sum(avatar_by_user.values()),
+        "avatar_bytes_by_user": avatar_by_user,
+        "attachment_count": len(assets),
+        "attachment_metadata_bytes": metadata_bytes,
+        "attachment_declared_content_bytes": declared_attachment_bytes,
+        "database_accounted_bytes": sum(avatar_by_user.values()) + metadata_bytes,
+        "resources": resources,
+        "note": "Attachment content bytes are declared metadata only; no external or binary storage is assumed.",
+    }
+
+
+@router.get("/api/admin/dashboard/stats")
+def admin_dashboard_stats(
+    admin: User = Depends(require_admin), db: Session = Depends(get_db)
+):
+    role_counts = {"admin": 0, "manager": 0, "staff": 0}
+    users = db.query(User).all()
+    for user in users:
+        role_counts[effective_system_role(user)] += 1
+    period = current_period()
+    groq_tokens = int(
+        db.query(func.coalesce(func.sum(GroqTokenLedger.total_tokens), 0))
+        .filter(GroqTokenLedger.period == period)
+        .scalar()
+        or 0
+    )
+    return {
+        "users": {"total": len(users), "by_role": role_counts},
+        "teams": db.query(Team).count(),
+        "projects": db.query(Board).count(),
+        "tasks": {
+            "total": db.query(Request).count(),
+            "active": db.query(Request)
+            .filter(Request.status.notin_(["Done", "Rejected"]))
+            .count(),
+        },
+        "groq": {"period": period, "tokens_used": groq_tokens},
+        "storage": _storage_snapshot(db),
+    }
+
+
+@router.put("/api/admin/users/{username}/role")
+def update_user_role(
+    username: str,
+    payload: UserRoleUpdateModel,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    target = db.query(User).filter(User.username == username).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    role = payload.system_role.lower()
+    if role not in SYSTEM_ROLES:
+        raise HTTPException(status_code=422, detail="Role must be admin, manager, or staff")
+    if username == "admin" and role != "admin":
+        raise HTTPException(status_code=400, detail="Cannot demote root admin")
+    if effective_system_role(target) == "admin" and role != "admin":
+        ensure_not_last_admin(db, target)
+    target.system_role = role
+    target.is_superadmin = 1 if role == "admin" else 0
+    if role == "admin":
+        db.query(TeamMembership).filter(
+            TeamMembership.username == username
+        ).delete()
+    else:
+        db.query(TeamMembership).filter(
+            TeamMembership.username == username,
+            TeamMembership.membership_role != role,
+        ).delete()
+    db.commit()
+    return {
+        "username": target.username,
+        "system_role": effective_system_role(target),
+        "is_superadmin": target.is_superadmin,
+    }
+
+
+@router.delete("/api/admin/users/{username}")
+def delete_user_rest(
+    username: str,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return admin_delete_user(
+        payload=AdminActionModel(username=username),
+        current_user=admin.username,
+        db=db,
+    )
+
+
+@router.get("/api/admin/projects")
+def monitor_projects(
+    admin: User = Depends(require_admin), db: Session = Depends(get_db)
+):
+    projects = []
+    for board in db.query(Board).order_by(Board.id.desc()).all():
+        tasks = db.query(Request).filter(Request.board_id == board.id)
+        team = db.query(Team).filter(Team.id == board.team_id).first() if board.team_id else None
+        member_count = db.query(BoardMember).filter(
+            BoardMember.board_id == board.id,
+            BoardMember.status == "accepted",
+        ).count()
+        projects.append(
+            {
+                "id": board.id,
+                "name": board.name,
+                "owner_username": board.owner_username,
+                "created_at": board.created_at,
+                "last_activity_date": board.last_activity_date,
+                "is_private": bool(board.is_private),
+                "team_id": board.team_id,
+                "team_name": team.name if team else None,
+                "member_count": member_count,
+                "accepted_member_count": member_count,
+                "status": "active",
+                "task_count": tasks.count(),
+                "active_task_count": tasks.filter(
+                    Request.status.notin_(["Done", "Rejected"])
+                ).count(),
+            }
+        )
+    return {"projects": projects}
+
+
+@router.put("/api/admin/projects/{project_id}")
+def update_project_governance(
+    project_id: int,
+    payload: AdminProjectUpdateModel,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    board = db.query(Board).filter(Board.id == project_id).first()
+    if not board:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if payload.owner_username is not None:
+        owner = db.query(User).filter(User.username == payload.owner_username).first()
+        if not owner:
+            raise HTTPException(status_code=404, detail="Project owner not found")
+        board.owner_username = owner.username
+    if payload.team_id is not None:
+        team = db.query(Team).filter(Team.id == payload.team_id).first()
+        if not team:
+            raise HTTPException(status_code=404, detail="Team not found")
+        board.team_id = team.id
+    else:
+        board.team_id = None
+    db.commit()
+    return {"message": "Project governance updated"}
+
+
+@router.put("/api/admin/users/{username}/groq-credit")
+def update_groq_credit(
+    username: str,
+    payload: GroqCreditUpdateModel,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    if payload.monthly_token_allowance < 0:
+        raise HTTPException(status_code=422, detail="Allowance cannot be negative")
+    target = db.query(User).filter(User.username == username).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+    target.groq_monthly_token_allowance = payload.monthly_token_allowance
+    db.commit()
+    return {"username": username, **quota_snapshot(db, target)}
+
+
+@router.get("/api/admin/groq-usage")
+def get_groq_usage(
+    period: str = None,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    period = period or current_period()
+    if not re.match(r"^\d{4}-(0[1-9]|1[0-2])$", period):
+        raise HTTPException(status_code=422, detail="Period must use YYYY-MM")
+    grouped = {
+        username: {
+            "prompt_tokens": prompt or 0,
+            "completion_tokens": completion or 0,
+            "total_tokens": total or 0,
+            "request_count": count or 0,
+        }
+        for username, prompt, completion, total, count in db.query(
+            GroqTokenLedger.username,
+            func.sum(GroqTokenLedger.prompt_tokens),
+            func.sum(GroqTokenLedger.completion_tokens),
+            func.sum(GroqTokenLedger.total_tokens),
+            func.count(GroqTokenLedger.id),
+        )
+        .filter(GroqTokenLedger.period == period)
+        .group_by(GroqTokenLedger.username)
+        .all()
+    }
+    users = []
+    for user in db.query(User).order_by(User.username).all():
+        usage = grouped.get(
+            user.username,
+            {
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "total_tokens": 0,
+                "request_count": 0,
+            },
+        )
+        allowance = max(0, user.groq_monthly_token_allowance or 0)
+        users.append(
+            {
+                "username": user.username,
+                "allowance": allowance,
+                **usage,
+                "remaining": max(0, allowance - usage["total_tokens"]),
+                "exhausted": usage["total_tokens"] >= allowance,
+            }
+        )
+    return {"period": period, "users": users}
+
+
+@router.get("/api/admin/storage")
+def get_storage_breakdown(
+    admin: User = Depends(require_admin), db: Session = Depends(get_db)
+):
+    return _storage_snapshot(db)

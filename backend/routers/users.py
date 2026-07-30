@@ -30,6 +30,8 @@ def get_profile(
         "avatar": user.avatar,
         "account_status": user.account_status,
         "is_superadmin": user.is_superadmin,
+        "system_role": effective_system_role(user),
+        "groq_monthly_token_allowance": user.groq_monthly_token_allowance,
         "timesheet_approver": user.timesheet_approver,
     }
 

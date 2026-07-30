@@ -10,7 +10,7 @@ from database import get_db, User, Request, Subtask, Board, BoardMember, LeaveDa
 from schemas import *
 from dependencies import *
 from utils import *
-from routers.ai import generate_ai_text
+from routers.ai import generate_ai_text_internal
 
 router = APIRouter()
 
@@ -1145,7 +1145,12 @@ Use markdown for formatting. Do not wrap your response in JSON. Respond in the s
     payload_req = AIGenerateModel(prompt=prompt, provider="auto")
 
     try:
-        ai_response = generate_ai_text(payload=payload_req, current_user=current_user, db=db)
+        ai_response = generate_ai_text_internal(
+            payload=payload_req,
+            current_user=current_user,
+            db=db,
+            usage_endpoint="task_ai_reply",
+        )
         ai_response_text = ai_response["text"]
     except HTTPException as he:
         raise he

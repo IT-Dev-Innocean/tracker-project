@@ -1,0 +1,101 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply font-sans antialiased;
+  }
+
+  *,
+  *::before,
+  *::after {
+    @apply border-cu-border;
+  }
+
+  body,
+  #root {
+    @apply min-h-screen bg-cu-bg font-sans text-cu-text;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-cu-hover rounded-full;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #333 transparent;
+  }
+
+  .animate-float {
+    animation: landing-float 6s ease-in-out infinite;
+  }
+
+  .animate-float-reverse {
+    animation: landing-float-reverse 5s ease-in-out infinite;
+  }
+
+  .reveal-on-scroll {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  .animate-reveal {
+    animation: landing-reveal 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@keyframes landing-float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-0.5deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(0.5deg);
+  }
+}
+
+@keyframes landing-float-reverse {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(10px);
+  }
+}
+
+@keyframes landing-reveal {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-float-reverse,
+  .animate-reveal {
+    animation: none;
+  }
+
+  .reveal-on-scroll {
+    opacity: 1;
+    transform: none;
+  }
+}

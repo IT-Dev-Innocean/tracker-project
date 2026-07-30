@@ -182,3 +182,31 @@ class TimesheetApproveModel(BaseModel):
 class TimesheetApproverUpdateModel(BaseModel):
     approver_username: Optional[str] = None
 
+
+class UserRoleUpdateModel(BaseModel):
+    system_role: str
+
+
+class GroqCreditUpdateModel(BaseModel):
+    monthly_token_allowance: int
+
+
+class TeamCreateModel(BaseModel):
+    name: str
+    description: Optional[str] = None
+
+
+class TeamUpdateModel(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+
+class TeamAssignmentModel(BaseModel):
+    username: str
+    membership_role: str = "staff"
+
+
+class AdminProjectUpdateModel(BaseModel):
+    owner_username: Optional[str] = None
+    team_id: Optional[int] = None
+

@@ -73,7 +73,9 @@ def _build_cors_origins() -> list:
     """Gabungkan localhost + FRONTEND_URL (comma-separated) + FRONTEND_URLS."""
     origins = {
         "http://localhost:5173",
+        "http://localhost:5174",
         "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
         "https://iid-tracker.netlify.app",
     }
     for key in ("FRONTEND_URL", "FRONTEND_URLS"):
@@ -612,6 +614,8 @@ from routers.ai import router as ai_router
 app.include_router(ai_router)
 from routers.timesheets import router as timesheets_router
 app.include_router(timesheets_router, prefix="/api/timesheets")
+from routers.teams import router as teams_router
+app.include_router(teams_router)
 
 def run_startup_auto_nudge():
     # Gunakan waktu WIB (Asia/Jakarta = UTC+7)

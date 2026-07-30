@@ -438,7 +438,10 @@ def can_modify_system_ticket(db: Session, username: str) -> bool:
 
 def is_user_superadmin(db: Session, username: str):
     user = db.query(User).filter(User.username == username).first()
-    return user and user.is_superadmin == 1
+    if not user:
+        return False
+    # Keep legacy callers working while authorization moves to system_role.
+    return user.is_superadmin == 1 or getattr(user, "system_role", "staff") == "admin"
 
 
 def is_task_admin(db: Session, task: Request, username: str):

@@ -3,7 +3,18 @@ from pathlib import Path
 from dotenv import load_dotenv
 import bcrypt
 import json
-from sqlalchemy import create_engine, Column, Integer, String, Text, text, DateTime, Boolean, Float
+from sqlalchemy import (
+    create_engine,
+    Column,
+    Integer,
+    String,
+    Text,
+    text,
+    DateTime,
+    Boolean,
+    Float,
+    UniqueConstraint,
+)
 from datetime import datetime
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -92,6 +103,9 @@ class User(Base):
     )  # active, suspended, pending_deletion
     deletion_date = Column(DateTime, nullable=True)
     is_superadmin = Column(Integer, default=0)
+    # Global application role. Project ownership remains derived from Board.owner_username.
+    system_role = Column(String(20), nullable=False, default="staff", index=True)
+    groq_monthly_token_allowance = Column(Integer, nullable=False, default=100000)
     timesheet_approver = Column(String(50), nullable=True)
 
 
@@ -106,6 +120,8 @@ class Board(Base):
     last_activity_date = Column(DateTime, nullable=True)
     deletion_date = Column(DateTime, nullable=True)
     is_private = Column(Integer, default=0)
+    # Optional organization team responsible for this project.
+    team_id = Column(Integer, nullable=True, index=True)
 
 
 class BoardMember(Base):
@@ -172,6 +188,59 @@ class SecurityLog(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class Team(Base):
+    __tablename__ = "teams"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class TeamMembership(Base):
+    __tablename__ = "team_memberships"
+    __table_args__ = (
+        UniqueConstraint("team_id", "username", name="uq_team_membership"),
+    )
+    id = Column(Integer, primary_key=True, index=True)
+    team_id = Column(Integer, nullable=False, index=True)
+    username = Column(String(50), nullable=False, index=True)
+    # Mirrors the member's responsibility inside this team, not project ownership.
+    membership_role = Column(String(20), nullable=False, default="staff")
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class GroqTokenLedger(Base):
+    __tablename__ = "groq_token_ledger"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), nullable=False, index=True)
+    period = Column(String(7), nullable=False, index=True)  # YYYY-MM, UTC calendar month
+    prompt_tokens = Column(Integer, nullable=False, default=0)
+    completion_tokens = Column(Integer, nullable=False, default=0)
+    total_tokens = Column(Integer, nullable=False, default=0)
+    model = Column(String(100), nullable=False)
+    endpoint = Column(String(100), nullable=False, default="ai_generate")
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class FileAsset(Base):
+    """Attachment metadata. Binary payload storage is intentionally not implied."""
+
+    __tablename__ = "file_assets"
+    id = Column(Integer, primary_key=True, index=True)
+    uploader_username = Column(String(50), nullable=False, index=True)
+    request_id = Column(Integer, nullable=True, index=True)
+    comment_id = Column(Integer, nullable=True, index=True)
+    original_filename = Column(String(255), nullable=False)
+    content_type = Column(String(150), nullable=True)
+    size_bytes = Column(Integer, nullable=False, default=0)
+    storage_kind = Column(String(30), nullable=False, default="metadata_only")
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+# Compatibility name for code that refers to attachments rather than file assets.
+Attachment = FileAsset
+
+
 def get_security_log(db, key: str, default_value=None):
     log = db.query(SecurityLog).filter(SecurityLog.key == key).first()
     if log and log.value:
@@ -207,11 +276,13 @@ def setup_db():
                 full_name="System Admin",
                 password=hashed_pw,
                 is_superadmin=1,
+                system_role="admin",
             )
             db.add(new_admin)
             db.commit()
-        elif admin.is_superadmin == 0:
+        elif admin.is_superadmin == 0 or admin.system_role != "admin":
             admin.is_superadmin = 1
+            admin.system_role = "admin"
             db.commit()
 
         elif not admin.password.startswith("$2b$"):

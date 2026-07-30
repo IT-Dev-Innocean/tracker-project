@@ -13,12 +13,15 @@ from database import get_db, User, Request, Subtask, Board, BoardMember, LeaveDa
 from schemas import *
 from dependencies import *
 from utils import *
+from services.groq_quota import require_groq_quota, record_groq_usage
 
 router = APIRouter()
 
-@router.post("/api/ai/generate")
-def generate_ai_text(
-    payload: AIGenerateModel, current_user: str = Depends(get_current_user), db: Session = Depends(get_db)
+def generate_ai_text_internal(
+    payload: AIGenerateModel,
+    current_user: str,
+    db: Session,
+    usage_endpoint: str = "ai_generate",
 ):
     now_time = time.time()
     last_generate_time = get_security_log(db, f"ai_generate:{current_user}", 0)
@@ -54,6 +57,7 @@ def generate_ai_text(
             raise Exception(error_str)
 
     def call_llama():
+        require_groq_quota(db, current_user)
         if not groq_api_key:
             raise Exception("Groq API Key missing in .env")
         headers = {
@@ -72,9 +76,23 @@ def generate_ai_text(
         if response.status_code == 429:
             raise Exception("Groq AI limit reached. Please wait a moment.")
         response.raise_for_status()
+        response_data = response.json()
+        usage = response_data.get("usage") or {}
+        record_groq_usage(
+            db,
+            current_user,
+            usage,
+            data["model"],
+            usage_endpoint,
+        )
         return {
-            "text": response.json()["choices"][0]["message"]["content"],
+            "text": response_data["choices"][0]["message"]["content"],
             "provider": "GPT-OSS 120B (Groq)",
+            "usage": {
+                "prompt_tokens": int(usage.get("prompt_tokens") or 0),
+                "completion_tokens": int(usage.get("completion_tokens") or 0),
+                "total_tokens": int(usage.get("total_tokens") or 0),
+            },
         }
 
     # Strict User Selection
@@ -83,9 +101,11 @@ def generate_ai_text(
             return call_gemini()
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Gemini Error: {str(e)}")
-    elif payload.provider == "llama":
+    elif payload.provider in ("llama", "groq"):
         try:
             return call_llama()
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Groq Error: {str(e)}")
 
@@ -99,6 +119,12 @@ def generate_ai_text(
     if groq_api_key:
         try:
             return call_llama()
+        except HTTPException as e:
+            # Auto may use Gemini first, but must never silently ignore an
+            # explicitly exhausted per-user Groq allowance on fallback.
+            if e.status_code == 429:
+                raise
+            error_msgs.append(f"Groq: {str(e.detail)}")
         except Exception as e:
             error_msgs.append(f"Groq: {str(e)}")
 
@@ -112,4 +138,13 @@ def generate_ai_text(
     raise HTTPException(
         status_code=500, detail="AI generation failed. " + " | ".join(error_msgs)
     )
+
+
+@router.post("/api/ai/generate")
+def generate_ai_text(
+    payload: AIGenerateModel,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return generate_ai_text_internal(payload, current_user, db, "ai_generate")
 

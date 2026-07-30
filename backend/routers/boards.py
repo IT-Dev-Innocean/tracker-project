@@ -827,12 +827,36 @@ def manage_board(
 ):
     if not check_board_access(db, board_id, current_user):
         raise HTTPException(status_code=403)
+    board = db.query(Board).filter(Board.id == board_id).first()
     members = db.query(BoardMember).filter(BoardMember.board_id == board_id).all()
+    can_manage = bool(
+        board
+        and (
+            board.owner_username == current_user
+            or is_user_superadmin(db, current_user)
+        )
+    )
     return {
         "team": [
-            {"id": m.id, "username": m.member_username, "status": m.status}
+            {
+                "id": m.id,
+                "username": m.member_username,
+                "status": m.status,
+                "email": user.email if user else None,
+                "avatar": user.avatar if user else None,
+                "board_role": "member",
+            }
             for m in members
-        ]
+            for user in [db.query(User).filter(User.username == m.member_username).first()]
+        ],
+        "owner_username": board.owner_username if board else None,
+        "permissions": {
+            "can_invite": can_manage,
+            "can_revoke": can_manage,
+            "can_transfer_ownership": bool(
+                board and board.owner_username == current_user
+            ),
+        },
     }
 
 
