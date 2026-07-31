@@ -115,7 +115,6 @@ export function WelcomeTourModal({
   setLanguage,
   isDarkMode,
   setIsDarkMode,
-  setIsProactiveAIOpen,
   currentUser,
 }) {
   const [isClosing, close] = useCloseAnimation((action) => {
@@ -124,7 +123,6 @@ export function WelcomeTourModal({
       startDriverTour();
     } else {
       localStorage.setItem(`innocean_tour_done_v2_${currentUser}`, 'true');
-      setIsProactiveAIOpen(true);
     }
   });
   const tMsg = (en, id) => (language === 'id' ? id : en);
