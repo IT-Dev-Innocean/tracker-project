@@ -796,7 +796,6 @@ export default function AppModals() {
           setLanguage={setLanguage}
           isDarkMode={isDarkMode}
           setIsDarkMode={setIsDarkMode}
-          setIsProactiveAIOpen={setIsProactiveAIOpen}
           currentUser={currentUser}
         />
       )}

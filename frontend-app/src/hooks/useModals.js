@@ -43,16 +43,6 @@ export function useModals() {
     if (typeof window !== 'undefined') {
       const savedState = localStorage.getItem('innocean_proactive_ai_open');
       if (savedState === 'true') return true;
-
-      const currentUsr = localStorage.getItem('innocean_username');
-      const hasSeenTour = localStorage.getItem(`innocean_tour_done_v2_${currentUsr}`);
-      const legacyTour = localStorage.getItem('innocean_tour_done_v2');
-      const hasCompletedTour = hasSeenTour || legacyTour;
-
-      const justLoggedIn = sessionStorage.getItem('innocean_just_logged_in');
-      if (justLoggedIn === 'true') {
-        if (hasCompletedTour) return true;
-      }
     }
     return false;
   });

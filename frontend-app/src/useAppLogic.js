@@ -791,7 +791,6 @@ export default function useAppLogic() {
       onDestroyStarted: () => {
         if (!selectedBoard || selectedBoard.id === 'global') {
           localStorage.setItem(`innocean_tour_done_v2_${currentUser}`, 'true');
-          setIsProactiveAIOpen(true);
         } else {
           localStorage.setItem(`innocean_board_tour_done_v2_${currentUser}`, 'true');
         }
