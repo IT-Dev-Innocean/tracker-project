@@ -5,6 +5,7 @@ import { useAuth } from './hooks/useAuth';
 import { useTask } from './hooks/useTask';
 import { useBoard } from './hooks/useBoard';
 import { useUISettings } from './hooks/useUISettings';
+import { TIMESHEETS_UI_ENABLED } from './featureFlags';
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import axios from 'axios'; 
 import { useGoogleLogin } from '@react-oauth/google';
@@ -349,11 +350,17 @@ export default function useAppLogic() {
   const [teamMembers, setTeamMembers] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [showTimesheets, setShowTimesheets] = useState(() => {
+    // Feature hidden from UI; keep state/API wiring for a quick re-enable later.
+    if (!TIMESHEETS_UI_ENABLED) return false;
     if (typeof window !== 'undefined') return localStorage.getItem('innocean_show_timesheets') === 'true';
     return false;
   });
 
   useEffect(() => {
+    if (!TIMESHEETS_UI_ENABLED) {
+      if (showTimesheets) setShowTimesheets(false);
+      return;
+    }
     if (typeof window !== 'undefined') {
       localStorage.setItem('innocean_show_timesheets', String(showTimesheets));
     }

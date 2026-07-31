@@ -4,6 +4,7 @@ import { Avatar, IconPlus } from '../SharedUI';
 import { HighlightText } from '../Utils';
 import InnoceanLogo from './InnoceanLogo';
 import { Icon } from './icons/Icon';
+import { TIMESHEETS_UI_ENABLED } from '../featureFlags';
 
 function NotificationTypeIcon({ type }) {
   if (type === 'task_assigned') return <Icon name="arrow-right" className="w-5 h-5" />;
@@ -664,30 +665,32 @@ export default function Sidebar() {
             </div>
           )}
 
-          <div className='mb-6 px-2'>
-            <button
-              onClick={() => {
-                setSelectedBoard(null);
-                setShowTimesheets?.(true);
-                setIsMobileMenuOpen(false);
-                setIsProactiveAIOpen(false);
-              }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                showTimesheets
-                  ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
-                  : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
-              } ${isCollapsed ? 'justify-center' : ''}`}
-              title={tMsg('Timesheets', 'Lembar Waktu')}>
-              <div className='w-6 h-6 flex items-center justify-center'>
-                <Icon name="clock" className="w-5 h-5" />
-              </div>
-              {!isCollapsed && (
-                <span className='text-sm truncate'>
-                  {tMsg('Timesheets', 'Lembar Waktu')}
-                </span>
-              )}
-            </button>
-          </div>
+          {TIMESHEETS_UI_ENABLED && (
+            <div className='mb-6 px-2'>
+              <button
+                onClick={() => {
+                  setSelectedBoard(null);
+                  setShowTimesheets?.(true);
+                  setIsMobileMenuOpen(false);
+                  setIsProactiveAIOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                  showTimesheets
+                    ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
+                    : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+                } ${isCollapsed ? 'justify-center' : ''}`}
+                title={tMsg('Timesheets', 'Lembar Waktu')}>
+                <div className='w-6 h-6 flex items-center justify-center'>
+                  <Icon name="clock" className="w-5 h-5" />
+                </div>
+                {!isCollapsed && (
+                  <span className='text-sm truncate'>
+                    {tMsg('Timesheets', 'Lembar Waktu')}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
 
           {favorites.length > 0 && (
             <div className='mb-6'>
