@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useCloseAnimation, HighlightText, LoadingSpinner } from './Utils';
+import { HighlightText, LoadingSpinner } from './Utils';
 import { Icon } from './components/icons/Icon';
 
 export default function AdminModal({
-  setIsAdminModalOpen,
   adminUsers,
   handleDeleteUser,
   handleUpdateUserStatus,
@@ -21,7 +20,6 @@ export default function AdminModal({
   const [offboardDate, setOffboardDate] = useState('');
   const [showDeleteChoice, setShowDeleteChoice] = useState(false);
   const [deleteChoiceUser, setDeleteChoiceUser] = useState(null);
-  const [isClosing, close] = useCloseAnimation(() => setIsAdminModalOpen(false));
   const tMsg = (en, id) => (language === 'id' ? id : en);
 
   const [userSearchQuery, setUserSearchQuery] = useState('');
@@ -265,65 +263,64 @@ export default function AdminModal({
   };
 
   return (
-    <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[80] p-2 sm:p-4 transition-opacity duration-200 ${
-        isClosing ? 'opacity-0' : 'opacity-100'
-      }`}
-    >
-      <div
-        className={`bg-white dark:bg-neutral-950 p-4 sm:p-6 lg:p-8 border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] w-[95vw] max-w-7xl max-h-[90vh] flex flex-col relative overflow-hidden ${
-          isClosing ? 'mac-exit' : 'mac-animate'
-        }`}
-      >
-        <div className="flex justify-between items-center mb-6 border-b border-neutral-200 dark:border-neutral-800 pb-6 shrink-0">
-          <div>
-            <h2 className="text-3xl font-black text-black dark:text-white flex items-center gap-3">
-              {tMsg('Admin Dashboard', 'Dasbor Admin')}
-            </h2>
-            <div className="flex items-center gap-4 mt-4 border-b border-neutral-200 dark:border-neutral-800 pb-px">
+    <div className="flex-1 overflow-auto p-4 sm:p-8 scrollbar-thin relative">
+      <div className="mx-auto max-w-7xl space-y-5">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-neutral-400">
+            {tMsg('Administrator', 'Administrator')}
+          </div>
+          <h1 className="mt-1 text-2xl font-black text-black dark:text-white">
+            {tMsg('Admin Dashboard', 'Dasbor Admin')}
+          </h1>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            {tMsg(
+              'Manage users, projects, and system settings for your workspace.',
+              'Kelola pengguna, proyek, dan pengaturan sistem untuk workspace Anda.'
+            )}
+          </p>
+          <div className="mt-5 flex items-center gap-4 overflow-x-auto border-b border-neutral-200 dark:border-neutral-800 pb-px">
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`shrink-0 pb-2 text-sm font-medium transition-colors ${
+                activeTab === 'users'
+                  ? 'border-b-2 border-black dark:border-white text-black dark:text-white font-bold'
+                  : 'text-neutral-400 hover:text-black dark:hover:text-white'
+              }`}
+            >
+              {tMsg('User Management', 'Manajemen Pengguna')}
+            </button>
+            {currentUser === 'admin' && (
               <button
-                onClick={() => setActiveTab('users')}
-                className={`pb-2 text-base font-medium transition-colors ${
-                  activeTab === 'users'
-                    ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold'
+                onClick={handleConfigTabClick}
+                className={`shrink-0 pb-2 text-sm font-medium transition-colors ${
+                  activeTab === 'config'
+                    ? 'border-b-2 border-black dark:border-white text-black dark:text-white font-bold'
                     : 'text-neutral-400 hover:text-black dark:hover:text-white'
                 }`}
               >
-                {tMsg('User Management', 'Manajemen Pengguna')}
+                {tMsg('System Configuration', 'Konfigurasi Sistem')}
               </button>
-              {currentUser === 'admin' && (
-                <button
-                  onClick={handleConfigTabClick}
-                  className={`pb-2 text-base font-medium transition-colors ${
-                    activeTab === 'config'
-                      ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold'
-                      : 'text-neutral-400 hover:text-black dark:hover:text-white'
-                  }`}
-                >
-                  {tMsg('System Configuration', 'Konfigurasi Sistem')}
-                </button>
-              )}
-              <button
-                onClick={handleProjectsTabClick}
-                className={`pb-2 text-base font-medium transition-colors ${
-                  activeTab === 'projects'
-                    ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold'
-                    : 'text-neutral-400 hover:text-black dark:hover:text-white'
-                }`}
-              >
-                {tMsg('Project Management', 'Manajemen Proyek')}
-              </button>
-              <button
-                onClick={() => setActiveTab('approvers')}
-                className={`pb-2 text-base font-medium transition-colors ${
-                  activeTab === 'approvers'
-                    ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400 font-bold'
-                    : 'text-neutral-400 hover:text-black dark:hover:text-white'
-                }`}
-              >
-                {tMsg('Approver Management', 'Manajemen Penyetuju')}
-              </button>
-            </div>
+            )}
+            <button
+              onClick={handleProjectsTabClick}
+              className={`shrink-0 pb-2 text-sm font-medium transition-colors ${
+                activeTab === 'projects'
+                  ? 'border-b-2 border-black dark:border-white text-black dark:text-white font-bold'
+                  : 'text-neutral-400 hover:text-black dark:hover:text-white'
+              }`}
+            >
+              {tMsg('Project Management', 'Manajemen Proyek')}
+            </button>
+            <button
+              onClick={() => setActiveTab('approvers')}
+              className={`shrink-0 pb-2 text-sm font-medium transition-colors ${
+                activeTab === 'approvers'
+                  ? 'border-b-2 border-black dark:border-white text-black dark:text-white font-bold'
+                  : 'text-neutral-400 hover:text-black dark:hover:text-white'
+              }`}
+            >
+              {tMsg('Approver Management', 'Manajemen Penyetuju')}
+            </button>
           </div>
         </div>
 
@@ -1364,15 +1361,7 @@ export default function AdminModal({
             </form>
           </div>
         )}
-
-        <div className="mt-6 pt-6 border-t border-neutral-200 dark:border-neutral-800 flex justify-end">
-          <button
-            onClick={close}
-            className="px-10 py-4 rounded-full font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors uppercase tracking-widest text-xs"
-          >
-            {tMsg('Close Panel', 'Tutup Panel')}
-          </button>
-        </div>
+      </div>
 
         {/* Delete Choice Modal */}
         {showDeleteChoice && deleteChoiceUser && (
@@ -1734,7 +1723,6 @@ export default function AdminModal({
             </form>
           </div>
         )}
-      </div>
 
       {approverModalOpen && (
         <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-4 mac-animate">

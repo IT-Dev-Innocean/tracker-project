@@ -54,6 +54,7 @@ import MobileTopBar from './components/Layout/MobileTopBar';
 import MainToolbar from './components/Layout/MainToolbar';
 import HomeDashboard from './components/HomeDashboard';
 import TimesheetView from './TimesheetView';
+import TeamsDirectory from './TeamsDirectory';
 
 import './api/axiosSetup';
 
@@ -147,6 +148,9 @@ function App() {
     closeNotif,
     showTimesheets,
     setShowTimesheets,
+    showTeams,
+    setShowTeams,
+    showAdmin,
     setIsAuthenticated,
     setCurrentUser,
     setIsLoginMode,
@@ -1273,7 +1277,25 @@ function App() {
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
           <MobileTopBar />
           {!selectedBoard ? (
-            showTimesheets ? <TimesheetView currentUser={currentUser} tasks={tasks} boards={boards} /> : <HomeDashboard />
+            showTimesheets ? (
+              <TimesheetView currentUser={currentUser} tasks={tasks} boards={boards} />
+            ) : showAdmin ? (
+              <AdminModal
+                adminUsers={adminUsers}
+                handleDeleteUser={handleDeleteUser}
+                handleUpdateUserStatus={handleUpdateUserStatus}
+                handleToggleSuperAdmin={handleToggleSuperAdmin}
+                handleManualVerify={handleManualVerify}
+                currentUser={currentUser}
+                language={language}
+                showNotification={showNotification}
+                setAdminUsers={setAdminUsers}
+              />
+            ) : showTeams ? (
+              <TeamsDirectory />
+            ) : (
+              <HomeDashboard />
+            )
           ) : (
             <div className="flex-1 flex flex-col w-full min-h-0 overflow-hidden">
               <MainToolbar />

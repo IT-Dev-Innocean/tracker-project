@@ -49,8 +49,6 @@ export default function MobileTopBar() {
     isInstallable,
     handleInstallClick,
     setIsLogoutConfirmOpen,
-    isSuperAdmin,
-    openAdminModal,
   } = useAppContext();
 
   const tMsg = (en, id) => (language === 'id' ? id : en);
@@ -186,16 +184,6 @@ export default function MobileTopBar() {
           {isMobileProfileOpen && (
             <div className='absolute top-full right-0 mt-2 w-56 z-50'>
               <div className='bg-white/95 dark:bg-black/95 backdrop-blur-xl shadow-xl border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden py-1'>
-                {isSuperAdmin && (
-                  <button
-                    onClick={() => {
-                      openAdminModal();
-                      setIsMobileProfileOpen(false);
-                    }}
-                    className='w-full text-left px-4 py-3 text-sm font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 flex items-center gap-2 transition-colors'>
-                    <Icon name="lock" className="w-4 h-4" /> {tMsg('Manage Users', 'Kelola Pengguna')}
-                  </button>
-                )}
                 <button
                   onClick={() => {
                     setIsSettingsOpen(true);

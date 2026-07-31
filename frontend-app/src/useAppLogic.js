@@ -5,7 +5,11 @@ import { useAuth } from './hooks/useAuth';
 import { useTask } from './hooks/useTask';
 import { useBoard } from './hooks/useBoard';
 import { useUISettings } from './hooks/useUISettings';
-import { TIMESHEETS_UI_ENABLED } from './featureFlags';
+import {
+  MASTER_VIEW_UI_ENABLED,
+  TIMESHEETS_UI_ENABLED,
+  TODO_LIST_UI_ENABLED,
+} from './featureFlags';
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import axios from 'axios'; 
 import { useGoogleLogin } from '@react-oauth/google';
@@ -355,6 +359,9 @@ export default function useAppLogic() {
     if (typeof window !== 'undefined') return localStorage.getItem('innocean_show_timesheets') === 'true';
     return false;
   });
+  const [showTeams, setShowTeams] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
+  const [sidebarNav, setSidebarNav] = useState('home'); // home | projects | teams | admin
 
   useEffect(() => {
     if (!TIMESHEETS_UI_ENABLED) {
@@ -375,10 +382,44 @@ export default function useAppLogic() {
   const [selectedBoard, setSelectedBoard] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('innocean_selected_board');
-      return saved && saved !== 'null' && saved !== 'undefined' ? JSON.parse(saved) : null;
+      if (!saved || saved === 'null' || saved === 'undefined') return null;
+      try {
+        const parsed = JSON.parse(saved);
+        if (!MASTER_VIEW_UI_ENABLED && parsed?.id === 'global') return null;
+        if (
+          !TODO_LIST_UI_ENABLED &&
+          parsed?.name?.toLowerCase() === 'to-do list' &&
+          parsed?.is_private
+        ) {
+          return null;
+        }
+        return parsed;
+      } catch {
+        return null;
+      }
     }
     return null;
   });
+
+  useEffect(() => {
+    if (!MASTER_VIEW_UI_ENABLED && selectedBoard?.id === 'global') {
+      setSelectedBoard(null);
+      setSidebarNav('home');
+    }
+  }, [selectedBoard]);
+
+  useEffect(() => {
+    if (
+      !TODO_LIST_UI_ENABLED &&
+      selectedBoard &&
+      selectedBoard.name?.toLowerCase() === 'to-do list' &&
+      selectedBoard.is_private
+    ) {
+      setSelectedBoard(null);
+      setSidebarNav('home');
+    }
+  }, [selectedBoard]);
+
   const [newBoardName, setNewBoardName] = useState('');
   const [isPrivateBoard, setIsPrivateBoard] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState(null);
@@ -4026,12 +4067,23 @@ export default function useAppLogic() {
     }
   };
 
-  const openAdminModal = () => {
-    axios
+  const refreshAdminUsers = () => {
+    return axios
       .get('/api/admin/users')
       .then((res) => {
         setAdminUsers(res.data.users || []);
-        setIsAdminModalOpen(true);
+        return res.data.users || [];
+      });
+  };
+
+  const openAdminModal = () => {
+    refreshAdminUsers()
+      .then(() => {
+        setSelectedBoard(null);
+        setShowTeams(false);
+        setShowTimesheets(false);
+        setShowAdmin(true);
+        setSidebarNav('admin');
       })
       .catch((err) => showNotification('Failed to load users or unauthorized', 'error'));
   };
@@ -4041,7 +4093,7 @@ export default function useAppLogic() {
       .put(`/api/admin/users/superadmin`, { username, status: '' })
       .then((res) => {
         showNotification(res.data.message, 'success');
-        openAdminModal();
+        refreshAdminUsers();
       })
       .catch((err) => showNotification(err.response?.data?.detail || 'Failed to update role', 'error'));
   };
@@ -4051,7 +4103,7 @@ export default function useAppLogic() {
       .put(`/api/admin/users/verify`, { username, status: '' })
       .then((res) => {
         showNotification(res.data.message, 'success');
-        openAdminModal();
+        refreshAdminUsers();
       })
       .catch((err) => showNotification(err.response?.data?.detail || 'Failed to verify user', 'error'));
   };
@@ -4061,7 +4113,7 @@ export default function useAppLogic() {
       .put(`/api/admin/users/status`, { username, status, offboard_date: offboardDate })
       .then((res) => {
         showNotification(res.data.message, 'success');
-        openAdminModal();
+        refreshAdminUsers();
       })
       .catch((err) => showNotification(err.response?.data?.detail || 'Failed to update status', 'error'));
   };
@@ -4099,7 +4151,7 @@ export default function useAppLogic() {
       .post(`/api/admin/users/delete`, { username, status: '' })
       .then(() => {
         showNotification(`User @${username} deleted`, 'success');
-        openAdminModal();
+        refreshAdminUsers();
       })
       .catch((err) => showNotification(err.response?.data?.detail || 'Failed to delete user', 'error'));
   };
@@ -4316,7 +4368,7 @@ export default function useAppLogic() {
         isFormOpen ||
         selectedTask ||
         isLeaveModalOpen ||
-        isAdminModalOpen ||
+        showAdmin ||
         isFeedbackOpen ||
         isSupportOpen ||
         isTeamModalOpen ||
@@ -4338,7 +4390,7 @@ export default function useAppLogic() {
         setIsFormOpen(false);
         setSelectedTask(null);
         setIsLeaveModalOpen(false);
-        setIsAdminModalOpen(false);
+        setShowAdmin(false);
         setIsFeedbackOpen(false);
         setIsSupportOpen(false);
         setIsTeamModalOpen(false);
@@ -4370,7 +4422,7 @@ export default function useAppLogic() {
     isFormOpen,
     selectedTask,
     isLeaveModalOpen,
-    isAdminModalOpen,
+    showAdmin,
     isFeedbackOpen,
     isSupportOpen,
     selectedBoard,
@@ -4513,6 +4565,12 @@ export default function useAppLogic() {
     isNotifOpen,
     showTimesheets,
     setShowTimesheets,
+    showTeams,
+    setShowTeams,
+    showAdmin,
+    setShowAdmin,
+    sidebarNav,
+    setSidebarNav,
     isNotifClosing,
     commentToDelete,
     memberToRevoke,

@@ -4,7 +4,11 @@ import { Avatar, IconPlus } from '../SharedUI';
 import { HighlightText } from '../Utils';
 import InnoceanLogo from './InnoceanLogo';
 import { Icon } from './icons/Icon';
-import { TIMESHEETS_UI_ENABLED } from '../featureFlags';
+import {
+  MASTER_VIEW_UI_ENABLED,
+  TIMESHEETS_UI_ENABLED,
+  TODO_LIST_UI_ENABLED,
+} from '../featureFlags';
 
 function NotificationTypeIcon({ type }) {
   if (type === 'task_assigned') return <Icon name="arrow-right" className="w-5 h-5" />;
@@ -74,6 +78,13 @@ export default function Sidebar() {
     setBoardToDelete,
     showTimesheets,
     setShowTimesheets,
+    showTeams,
+    setShowTeams,
+    showAdmin,
+    setShowAdmin,
+    sidebarNav,
+    setSidebarNav,
+    userDirectory,
   } = useAppContext();
 
   const tMsg = (en, id) => (language === 'id' ? id : en);
@@ -240,6 +251,9 @@ export default function Sidebar() {
         title={isCollapsed ? board.name : undefined}
         onClick={() => {
           setSelectedBoard(board);
+          setSidebarNav?.('projects');
+          setShowTeams?.(false);
+          setShowAdmin?.(false);
           setShowTimesheets?.(false);
           setIsMobileMenuOpen(false);
           setIsProactiveAIOpen(false);
@@ -248,16 +262,20 @@ export default function Sidebar() {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
             setSelectedBoard(board);
+            setSidebarNav?.('projects');
+            setShowTeams?.(false);
+            setShowAdmin?.(false);
+            setShowTimesheets?.(false);
             setIsMobileMenuOpen(false);
             setIsProactiveAIOpen(false);
           }
         }}
         className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all group relative cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-          isActive && !showTimesheets
+          isActive && !showTimesheets && !showTeams && !showAdmin
             ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white'
             : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400'
         }`}>
-        {isActive && !showTimesheets && (
+        {isActive && !showTimesheets && !showTeams && !showAdmin && (
           <div className='absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-black dark:bg-white rounded-r-md'></div>
         )}
         <div className='flex items-center gap-3 min-w-0'>
@@ -607,55 +625,165 @@ export default function Sidebar() {
               </button>
             </div>
           )}
-          <div className={`mb-2 ${isCollapsed ? 'mt-0' : 'mt-2'}`}>
+          <div className={`mb-3 space-y-0.5 ${isCollapsed ? 'mt-0 px-0' : 'mt-2 px-0'}`}>
             <button
               onClick={() => {
-                setSelectedBoard({
-                  id: 'global',
-                  name: tMsg('See the Big Picture', 'Lihat Gambaran Besar'),
-                  owner_username: currentUser,
-                  role: 'owner',
-                  isVirtual: true,
-                });
+                setSelectedBoard(null);
+                setShowTeams?.(false);
+                setShowAdmin?.(false);
                 setShowTimesheets?.(false);
+                setSidebarNav?.('home');
                 setIsMobileMenuOpen(false);
                 setIsProactiveAIOpen(false);
               }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all tour-global-board ${
-                selectedBoard?.id === 'global' && !showTimesheets
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                sidebarNav === 'home' && !selectedBoard && !showTeams && !showAdmin && !showTimesheets
                   ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
                   : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
               } ${isCollapsed ? 'justify-center' : ''}`}
-              title={tMsg('See the Big Picture', 'Lihat Gambaran Besar')}>
+              title={tMsg('Home', 'Beranda')}>
               <div className='w-6 h-6 flex items-center justify-center'>
-                <Icon name="globe" className="w-5 h-5" />
+                <Icon name="home" className="w-5 h-5" />
+              </div>
+              {!isCollapsed && <span className='text-sm truncate'>{tMsg('Home', 'Beranda')}</span>}
+            </button>
+
+            <button
+              onClick={() => {
+                setShowTeams?.(false);
+                setShowAdmin?.(false);
+                setShowTimesheets?.(false);
+                setSidebarNav?.('projects');
+                if (selectedBoard?.id === 'global') setSelectedBoard(null);
+                setIsMobileMenuOpen(false);
+                setIsProactiveAIOpen(false);
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                (sidebarNav === 'projects' || (!!selectedBoard && selectedBoard.id !== 'global')) &&
+                !showTeams &&
+                !showAdmin &&
+                !showTimesheets
+                  ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
+                  : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+              } ${isCollapsed ? 'justify-center' : ''}`}
+              title={tMsg('Projects', 'Proyek')}>
+              <div className='w-6 h-6 flex items-center justify-center'>
+                <Icon name="folder" className="w-5 h-5" />
+              </div>
+              {!isCollapsed && <span className='text-sm truncate'>{tMsg('Projects', 'Proyek')}</span>}
+            </button>
+
+            <button
+              onClick={() => {
+                setSelectedBoard(null);
+                setShowTimesheets?.(false);
+                setShowAdmin?.(false);
+                setShowTeams?.(true);
+                setSidebarNav?.('teams');
+                setIsMobileMenuOpen(false);
+                setIsProactiveAIOpen(false);
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                showTeams || sidebarNav === 'teams'
+                  ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
+                  : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+              } ${isCollapsed ? 'justify-center' : ''}`}
+              title={tMsg('Teams', 'Tim')}>
+              <div className='w-6 h-6 flex items-center justify-center'>
+                <Icon name="users" className="w-5 h-5" />
               </div>
               {!isCollapsed && (
-                <span className='text-sm truncate'>
-                  {tMsg('See the Big Picture', 'Lihat Gambaran Besar')}
+                <span className='text-sm truncate flex-1 text-left'>{tMsg('Teams', 'Tim')}</span>
+              )}
+              {!isCollapsed && (
+                <span className='text-[10px] font-bold text-neutral-400'>
+                  {(userDirectory || []).length || 0}
                 </span>
               )}
             </button>
-          </div>
 
-          {todoListBoard && (
-            <div className='mb-2 px-2'>
+            {isSuperAdmin && (
               <button
                 onClick={() => {
-                  setSelectedBoard(todoListBoard);
-                  setShowTimesheets?.(false);
+                  openAdminModal();
                   setIsMobileMenuOpen(false);
                   setIsProactiveAIOpen(false);
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                  selectedBoard?.id === todoListBoard.id && !showTimesheets
+                  showAdmin || sidebarNav === 'admin'
+                    ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
+                    : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+                } ${isCollapsed ? 'justify-center' : ''}`}
+                title={tMsg('Administrator', 'Administrator')}>
+                <div className='w-6 h-6 flex items-center justify-center'>
+                  <Icon name="shield" className="w-5 h-5" />
+                </div>
+                {!isCollapsed && (
+                  <span className='text-sm truncate'>
+                    {tMsg('Administrator', 'Administrator')}
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
+
+          {MASTER_VIEW_UI_ENABLED && (
+            <div className='mb-2'>
+              <button
+                onClick={() => {
+                  setSelectedBoard({
+                    id: 'global',
+                    name: tMsg('See the Big Picture', 'Lihat Gambaran Besar'),
+                    owner_username: currentUser,
+                    role: 'owner',
+                    isVirtual: true,
+                  });
+                  setShowTeams?.(false);
+                  setShowAdmin?.(false);
+                  setShowTimesheets?.(false);
+                  setSidebarNav?.('projects');
+                  setIsMobileMenuOpen(false);
+                  setIsProactiveAIOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all tour-global-board ${
+                  selectedBoard?.id === 'global' && !showTimesheets && !showTeams && !showAdmin
+                    ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
+                    : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+                } ${isCollapsed ? 'justify-center' : ''}`}
+                title={tMsg('See the Big Picture', 'Lihat Gambaran Besar')}>
+                <div className='w-6 h-6 flex items-center justify-center'>
+                  <Icon name="globe" className="w-5 h-5" />
+                </div>
+                {!isCollapsed && (
+                  <span className='text-sm truncate'>
+                    {tMsg('See the Big Picture', 'Lihat Gambaran Besar')}
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+
+          {TODO_LIST_UI_ENABLED && todoListBoard && (
+            <div className='mb-2'>
+              <button
+                onClick={() => {
+                  setSelectedBoard(todoListBoard);
+                  setShowTeams?.(false);
+                  setShowAdmin?.(false);
+                  setShowTimesheets?.(false);
+                  setSidebarNav?.('projects');
+                  setIsMobileMenuOpen(false);
+                  setIsProactiveAIOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                  selectedBoard?.id === todoListBoard.id && !showTimesheets && !showTeams && !showAdmin
                     ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
                     : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
                 } ${isCollapsed ? 'justify-center' : ''}`}
                 title={tMsg('My To-Do List', 'Daftar Tugas Saya')}>
-              <div className='w-6 h-6 flex items-center justify-center'>
-                <Icon name="file-text" className="w-5 h-5" />
-              </div>
+                <div className='w-6 h-6 flex items-center justify-center'>
+                  <Icon name="file-text" className="w-5 h-5" />
+                </div>
                 {!isCollapsed && (
                   <span className='text-sm truncate'>
                     {tMsg('My To-Do List', 'Daftar Tugas Saya')}
@@ -666,11 +794,14 @@ export default function Sidebar() {
           )}
 
           {TIMESHEETS_UI_ENABLED && (
-            <div className='mb-6 px-2'>
+            <div className='mb-4'>
               <button
                 onClick={() => {
                   setSelectedBoard(null);
+                  setShowTeams?.(false);
+                  setShowAdmin?.(false);
                   setShowTimesheets?.(true);
+                  setSidebarNav?.('home');
                   setIsMobileMenuOpen(false);
                   setIsProactiveAIOpen(false);
                 }}
@@ -692,58 +823,94 @@ export default function Sidebar() {
             </div>
           )}
 
-          {favorites.length > 0 && (
-            <div className='mb-6'>
+          {showTeams ? (
+            <div className='mb-4'>
               {!isCollapsed && (
-                <h3 className='px-3 text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase mb-2'>
-                  {tMsg('Pinned Projects', 'Proyek Disematkan')}
+                <h3 className='px-3 mb-2 text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase'>
+                  {tMsg('Directory', 'Direktori')}
                 </h3>
               )}
-              <div className='flex flex-col gap-0.5'>
-                {favorites.map((b) => renderBoardItem(b, true))}
-              </div>
+              <button
+                onClick={() => {
+                  setShowTeams?.(true);
+                  setSelectedBoard(null);
+                  setSidebarNav?.('teams');
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-medium ${
+                  isCollapsed ? 'justify-center' : ''
+                }`}
+                title={tMsg('All People', 'Semua Orang')}>
+                <div className='w-6 h-6 flex items-center justify-center'>
+                  <Icon name="user" className="w-5 h-5" />
+                </div>
+                {!isCollapsed && (
+                  <>
+                    <span className='text-sm truncate flex-1 text-left'>
+                      {tMsg('All People', 'Semua Orang')}
+                    </span>
+                    <span className='text-[10px] font-bold text-neutral-400'>
+                      {(userDirectory || []).length || 0}
+                    </span>
+                  </>
+                )}
+              </button>
             </div>
-          )}
+          ) : (
+            <>
+              {favorites.length > 0 && (
+                <div className='mb-6'>
+                  {!isCollapsed && (
+                    <h3 className='px-3 text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase mb-2'>
+                      {tMsg('Pinned Projects', 'Proyek Disematkan')}
+                    </h3>
+                  )}
+                  <div className='flex flex-col gap-0.5'>
+                    {favorites.map((b) => renderBoardItem(b, true))}
+                  </div>
+                </div>
+              )}
 
-          <div className='mb-4'>
-            {!isCollapsed && (
-              <div className='flex items-center justify-between px-3 mb-2'>
-                <h3 className='text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase'>
-                  {tMsg('All Projects', 'Semua Proyek')}
-                </h3>
-                <select
-                  value={sortMode}
-                  onChange={(e) => handleSortChange(e.target.value)}
-                  className='bg-transparent text-[10px] text-neutral-500 hover:text-black dark:hover:text-white cursor-pointer outline-none font-bold uppercase tracking-wider text-right'
-                  title={tMsg('Sort Projects', 'Urutkan Proyek')}>
-                  <option
-                    value='recent'
-                    className='bg-white dark:bg-neutral-900 text-black dark:text-white'>
-                    {tMsg('Recent', 'Terbaru')}
-                  </option>
-                  <option
-                    value='active'
-                    className='bg-white dark:bg-neutral-900 text-black dark:text-white'>
-                    {tMsg('Active', 'Teraktif')}
-                  </option>
-                  <option
-                    value='alphabet'
-                    className='bg-white dark:bg-neutral-900 text-black dark:text-white'>
-                    {tMsg('A-Z', 'A-Z')}
-                  </option>
-                </select>
+              <div className='mb-4'>
+                {!isCollapsed && (
+                  <div className='flex items-center justify-between px-3 mb-2'>
+                    <h3 className='text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase'>
+                      {tMsg('All Projects', 'Semua Proyek')}
+                    </h3>
+                    <select
+                      value={sortMode}
+                      onChange={(e) => handleSortChange(e.target.value)}
+                      className='bg-transparent text-[10px] text-neutral-500 hover:text-black dark:hover:text-white cursor-pointer outline-none font-bold uppercase tracking-wider text-right'
+                      title={tMsg('Sort Projects', 'Urutkan Proyek')}>
+                      <option
+                        value='recent'
+                        className='bg-white dark:bg-neutral-900 text-black dark:text-white'>
+                        {tMsg('Recent', 'Terbaru')}
+                      </option>
+                      <option
+                        value='active'
+                        className='bg-white dark:bg-neutral-900 text-black dark:text-white'>
+                        {tMsg('Active', 'Teraktif')}
+                      </option>
+                      <option
+                        value='alphabet'
+                        className='bg-white dark:bg-neutral-900 text-black dark:text-white'>
+                        {tMsg('A-Z', 'A-Z')}
+                      </option>
+                    </select>
+                  </div>
+                )}
+                <div className='flex flex-col gap-0.5 tour-project-card'>
+                  {displayBoards.length === 0
+                    ? !isCollapsed && (
+                        <div className='px-3 py-2 text-xs text-neutral-400 italic'>
+                          {tMsg('No projects yet', 'Belum ada proyek')}
+                        </div>
+                      )
+                    : displayBoards.map((b) => renderBoardItem(b))}
+                </div>
               </div>
-            )}
-            <div className='flex flex-col gap-0.5 tour-project-card'>
-              {displayBoards.length === 0
-                ? !isCollapsed && (
-                    <div className='px-3 py-2 text-xs text-neutral-400 italic'>
-                      {tMsg('No projects yet', 'Belum ada proyek')}
-                    </div>
-                  )
-                : displayBoards.map((b) => renderBoardItem(b))}
-            </div>
-          </div>
+            </>
+          )}
         </div>
 
         <div className='p-3 border-t border-neutral-200/50 dark:border-neutral-800/50 shrink-0 bg-white dark:bg-neutral-950 relative'>
@@ -906,16 +1073,6 @@ export default function Sidebar() {
                 className='absolute bottom-full left-0 pb-2 w-56 z-50'
                 onMouseLeave={() => setIsProfileMenuOpen(false)}>
                 <div className='bg-white/95 dark:bg-black/95 backdrop-blur-xl shadow-xl border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden py-1'>
-                  {isSuperAdmin && (
-                    <button
-                      onClick={() => {
-                        openAdminModal();
-                        setIsProfileMenuOpen(false);
-                      }}
-                      className='w-full text-left px-4 py-3 text-sm font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 flex items-center gap-2 transition-colors'>
-                      <Icon name="lock" className="w-4 h-4" /> {tMsg('Manage Users', 'Kelola Pengguna')}
-                    </button>
-                  )}
                   <button
                     onClick={() => {
                       setIsSettingsOpen(true);

@@ -11,6 +11,9 @@ export default function MainToolbar() {
     selectedBoard,
     setSelectedBoard,
     setIsProactiveAIOpen,
+    setShowTeams,
+    setShowTimesheets,
+    setSidebarNav,
     viewMode,
     showLiveClock,
     showLiveClockDate,
@@ -76,12 +79,15 @@ export default function MainToolbar() {
             <span 
               onClick={() => {
                 setSelectedBoard(null);
+                setShowTeams?.(false);
+                setShowTimesheets?.(false);
+                setSidebarNav?.('home');
                 setIsProactiveAIOpen(false);
               }}
               className="cursor-pointer hover:text-indigo-600 hover:underline transition-colors flex items-center gap-1 shrink-0"
-              title={tMsg('Go to Dashboard', 'Kembali ke Dashboard')}
+              title={tMsg('Go to Home', 'Kembali ke Beranda')}
             >
-              <Icon name="home" className="w-4 h-4" /> <span className="hidden sm:inline">{tMsg('Dashboard', 'Dashboard')}</span>
+              <Icon name="home" className="w-4 h-4" /> <span className="hidden sm:inline">{tMsg('Home', 'Beranda')}</span>
             </span>
             <span className="text-neutral-300 dark:text-neutral-600">/</span>
             <span className="truncate max-w-37.5 sm:max-w-50">
