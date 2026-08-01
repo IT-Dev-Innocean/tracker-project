@@ -74,6 +74,8 @@ def register(user_data: RegisterModel, background_tasks: BackgroundTasks, db: Se
         password=hashed_password,
         is_verified=0,
         created_at=now_str,
+        role="project_owner",
+        is_superadmin=0,
     )
     db.add(new_user)
     db.commit()
@@ -184,6 +186,8 @@ def google_login(payload: GoogleLoginModel, db: Session = Depends(get_db)):
             avatar=picture,
             is_verified=1,
             created_at=now_str,
+            role="project_owner",
+            is_superadmin=0,
         )
         db.add(user)
         db.commit()

@@ -84,6 +84,7 @@ export default function AppModals() {
     formatDateMMM,
     handleEditSubmit,
     isSuperAdmin,
+    workspaceRole,
     accountStatus,
     subtasks,
     handleToggleSubtask,
@@ -386,6 +387,7 @@ export default function AppModals() {
           handleOpenDeleteBoard={handleOpenDeleteBoard}
           handleEditSubmit={handleEditSubmit}
           isSuperAdmin={isSuperAdmin}
+          workspaceRole={workspaceRole}
           currentUser={currentUser}
           selectedBoard={selectedBoard}
           accountStatus={accountStatus}
@@ -602,6 +604,7 @@ export default function AppModals() {
           leaveForm={leaveForm}
           setLeaveForm={setLeaveForm}
           isSuperAdmin={isSuperAdmin}
+          workspaceRole={workspaceRole}
           currentUser={currentUser}
           leaves={leaves}
           handleDeleteLeave={handleDeleteLeave}
@@ -718,6 +721,7 @@ export default function AppModals() {
               handleOpenDeleteBoard={handleOpenDeleteBoard}
               handleEditSubmit={handleEditSubmit}
               isSuperAdmin={isSuperAdmin}
+              workspaceRole={workspaceRole}
               currentUser={currentUser}
               selectedBoard={selectedBoard}
               accountStatus={accountStatus}

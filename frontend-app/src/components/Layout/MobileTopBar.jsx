@@ -2,6 +2,12 @@ import { Avatar } from '../../SharedUI';
 import { useAppContext } from '../../contexts/AppContext';
 import InnoceanLogo from '../InnoceanLogo';
 import { Icon } from '../icons/Icon';
+import {
+  MY_TICKETS_UI_ENABLED,
+  SUBMIT_IDEA_UI_ENABLED,
+  CONTACT_SUPPORT_UI_ENABLED,
+  REPLAY_TOUR_UI_ENABLED,
+} from '../../featureFlags';
 
 function NotificationTypeIcon({ type }) {
   if (type === 'task_assigned') return <Icon name="arrow-right" className="w-5 h-5" />;
@@ -211,15 +217,17 @@ export default function MobileTopBar() {
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
                   <Icon name="sparkles" className="w-4 h-4" /> {tMsg('Smart Assistant', 'Asisten Pintar AI')}
                 </button>
-                <button
-                  onClick={() => {
-                    setIsMyTicketsOpen(true);
-                    setIsMobileProfileOpen(false);
-                  }}
-                  disabled={accountStatus === 'suspended'}
-                  className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                  <Icon name="ticket" className="w-4 h-4" /> {tMsg('My Tickets', 'Tiket Saya')}
-                </button>
+                {MY_TICKETS_UI_ENABLED && (
+                  <button
+                    onClick={() => {
+                      setIsMyTicketsOpen(true);
+                      setIsMobileProfileOpen(false);
+                    }}
+                    disabled={accountStatus === 'suspended'}
+                    className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
+                    <Icon name="ticket" className="w-4 h-4" /> {tMsg('My Tickets', 'Tiket Saya')}
+                  </button>
+                )}
                 <div className='border-t border-neutral-200 dark:border-neutral-800 my-1'></div>
                 <button
                   onClick={() => {
@@ -229,32 +237,38 @@ export default function MobileTopBar() {
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
                   <Icon name="book-open" className="w-4 h-4" /> {tMsg('Documentation', 'Dokumentasi')}
                 </button>
-                <button
-                  onClick={() => {
-                    setIsFeedbackOpen(true);
-                    setIsMobileProfileOpen(false);
-                  }}
-                  disabled={accountStatus === 'suspended'}
-                  className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                  <Icon name="lightbulb" className="w-4 h-4" /> {tMsg('Submit Idea', 'Kirim Masukan')}
-                </button>
-                <button
-                  onClick={() => {
-                    setIsSupportOpen(true);
-                    setIsMobileProfileOpen(false);
-                  }}
-                  disabled={accountStatus === 'suspended'}
-                  className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                  <Icon name="phone" className="w-4 h-4" /> {tMsg('Contact Support', 'Hubungi Dukungan')}
-                </button>
-                <button
-                  onClick={() => {
-                    startTour();
-                    setIsMobileProfileOpen(false);
-                  }}
-                  className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
-                  <Icon name="compass" className="w-4 h-4" /> {tMsg('Replay Tour', 'Ulangi Tur')}
-                </button>
+                {SUBMIT_IDEA_UI_ENABLED && (
+                  <button
+                    onClick={() => {
+                      setIsFeedbackOpen(true);
+                      setIsMobileProfileOpen(false);
+                    }}
+                    disabled={accountStatus === 'suspended'}
+                    className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
+                    <Icon name="lightbulb" className="w-4 h-4" /> {tMsg('Submit Idea', 'Kirim Masukan')}
+                  </button>
+                )}
+                {CONTACT_SUPPORT_UI_ENABLED && (
+                  <button
+                    onClick={() => {
+                      setIsSupportOpen(true);
+                      setIsMobileProfileOpen(false);
+                    }}
+                    disabled={accountStatus === 'suspended'}
+                    className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
+                    <Icon name="phone" className="w-4 h-4" /> {tMsg('Contact Support', 'Hubungi Dukungan')}
+                  </button>
+                )}
+                {REPLAY_TOUR_UI_ENABLED && (
+                  <button
+                    onClick={() => {
+                      startTour();
+                      setIsMobileProfileOpen(false);
+                    }}
+                    className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
+                    <Icon name="compass" className="w-4 h-4" /> {tMsg('Replay Tour', 'Ulangi Tur')}
+                  </button>
+                )}
                 {isInstallable && (
                   <button
                     onClick={() => {

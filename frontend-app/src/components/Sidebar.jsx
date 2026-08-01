@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
-import { Avatar, IconPlus } from '../SharedUI';
+import { IconPlus } from '../SharedUI';
 import { HighlightText } from '../Utils';
 import InnoceanLogo from './InnoceanLogo';
 import { Icon } from './icons/Icon';
@@ -9,18 +9,6 @@ import {
   TIMESHEETS_UI_ENABLED,
   TODO_LIST_UI_ENABLED,
 } from '../featureFlags';
-
-function NotificationTypeIcon({ type }) {
-  if (type === 'task_assigned') return <Icon name="arrow-right" className="w-5 h-5" />;
-  if (type === 'task_completed') return <Icon name="check-circle" className="w-5 h-5" />;
-  if (type === 'comment' || type === 'mention' || type === 'team_chat') {
-    return <Icon name="message-circle" className="w-5 h-5" />;
-  }
-  if (type === 'team_invite' || type === 'access_request') {
-    return <Icon name="handshake" className="w-5 h-5" />;
-  }
-  return <Icon name="bell" className="w-5 h-5" />;
-}
 
 export default function Sidebar() {
   const {
@@ -31,17 +19,10 @@ export default function Sidebar() {
     favoriteBoards,
     setFavoriteBoards,
     notifications,
-    dmConversations,
-    inboxChats,
     setIsCreateBoardOpen,
     isMobileMenuOpen,
     setIsMobileMenuOpen,
     language,
-    setIsSettingsOpen,
-    setIsNotifOpen,
-    isNotifOpen,
-    unreadCount,
-    setIsChatWorkspaceOpen,
     isProactiveAIOpen,
     setIsProactiveAIOpen,
     globalSearchQuery,
@@ -52,27 +33,9 @@ export default function Sidebar() {
     isGlobalSearchClosing,
     closeGlobalSearch,
     handleGlobalSearchSelect,
-    avatarsMap,
     accountStatus,
-    setIsLogoutConfirmOpen,
-    setIsDocsOpen,
-    setIsExportModalOpen,
-    setExportMode,
-    handleReadNotification,
-    handleReadAllNotifications,
-    handleNotificationTaskClick,
-    setIsInvitesModalOpen,
     showNotification,
     formatDateMMM,
-    setIsLeaveModalOpen,
-    setIsMyTicketsOpen,
-    setIsFeedbackOpen,
-    setIsSupportOpen,
-    setIsProjectChatOpen,
-    setDrawerTab,
-    startTour,
-    isInstallable,
-    handleInstallClick,
     isSuperAdmin,
     openAdminModal,
     setBoardToDelete,
@@ -82,12 +45,33 @@ export default function Sidebar() {
     setShowTeams,
     showAdmin,
     setShowAdmin,
+    showProjectManage,
+    setShowProjectManage,
     sidebarNav,
     setSidebarNav,
     userDirectory,
+    workspaceRole,
+    setIsChatWorkspaceOpen,
+    setExportMode,
+    setIsExportModalOpen,
+    inboxChats,
+    dmConversations,
   } = useAppContext();
 
   const tMsg = (en, id) => (language === 'id' ? id : en);
+  const canCreateProjects =
+    workspaceRole === 'admin' ||
+    workspaceRole === 'project_owner' ||
+    (!workspaceRole && isSuperAdmin);
+  const canManageProjectDir =
+    workspaceRole === 'admin' ||
+    workspaceRole === 'project_owner' ||
+    isSuperAdmin;
+  const isAdminRole = workspaceRole === 'admin' || isSuperAdmin;
+  const canOpenTeams =
+    workspaceRole === 'admin' ||
+    workspaceRole === 'project_owner' ||
+    isSuperAdmin;
 
   // Sidebar collapse state
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -95,7 +79,6 @@ export default function Sidebar() {
       return localStorage.getItem('innocean_sidebar_collapsed') === 'true';
     return false;
   });
-  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const toggleCollapse = () => {
     setIsCollapsed((prev) => {
       const next = !prev;
@@ -123,25 +106,23 @@ export default function Sidebar() {
         );
         if (!lastRead) return true;
         return chat.timestamp > lastRead || hasUnreadNotification;
-      } else {
-        const lastRead = localStorage.getItem(
-          `innocean_last_read_task_${chat.task_id}_${currentUser}`
-        );
-        const hasUnreadNotification = (notifications || []).some(
-          (n) =>
-            !n.is_read &&
-            String(n.related_task_id) === String(chat.task_id) &&
-            (n.type === 'comment' ||
-              n.type === 'mention' ||
-              n.type === 'mention_no_email')
-        );
-        if (!lastRead) return true;
-        return chat.timestamp > lastRead || hasUnreadNotification;
       }
+      const lastRead = localStorage.getItem(
+        `innocean_last_read_task_${chat.task_id}_${currentUser}`
+      );
+      const hasUnreadNotification = (notifications || []).some(
+        (n) =>
+          !n.is_read &&
+          String(n.related_task_id) === String(chat.task_id) &&
+          (n.type === 'comment' ||
+            n.type === 'mention' ||
+            n.type === 'mention_no_email')
+      );
+      if (!lastRead) return true;
+      return chat.timestamp > lastRead || hasUnreadNotification;
     }).length;
   }, [inboxChats, notifications, currentUser]);
 
-  // Total unread team chats
   const totalUnreadChats = useMemo(() => {
     const unreadDms = (dmConversations || []).reduce(
       (sum, convo) => sum + (convo.unread_count || 0),
@@ -254,6 +235,7 @@ export default function Sidebar() {
           setSidebarNav?.('projects');
           setShowTeams?.(false);
           setShowAdmin?.(false);
+          setShowProjectManage?.(false);
           setShowTimesheets?.(false);
           setIsMobileMenuOpen(false);
           setIsProactiveAIOpen(false);
@@ -265,19 +247,28 @@ export default function Sidebar() {
             setSidebarNav?.('projects');
             setShowTeams?.(false);
             setShowAdmin?.(false);
+            setShowProjectManage?.(false);
             setShowTimesheets?.(false);
             setIsMobileMenuOpen(false);
             setIsProactiveAIOpen(false);
           }
         }}
         className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all group relative cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-          isActive && !showTimesheets && !showTeams && !showAdmin
+          isActive &&
+          !showTimesheets &&
+          !showTeams &&
+          !showAdmin &&
+          !showProjectManage
             ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white'
             : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400'
         }`}>
-        {isActive && !showTimesheets && !showTeams && !showAdmin && (
-          <div className='absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-black dark:bg-white rounded-r-md'></div>
-        )}
+        {isActive &&
+          !showTimesheets &&
+          !showTeams &&
+          !showAdmin &&
+          !showProjectManage && (
+            <div className='absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-black dark:bg-white rounded-r-md'></div>
+          )}
         <div className='flex items-center gap-3 min-w-0'>
           <div
             className={`w-6 h-6 rounded-md bg-linear-to-br ${gradient} text-white flex items-center justify-center text-[10px] font-bold shrink-0 shadow-sm opacity-90`}>
@@ -293,7 +284,7 @@ export default function Sidebar() {
                 <span
                   className='text-[10px] opacity-60 shrink-0'
                   title={tMsg('Private Project', 'Proyek Privat')}>
-                  <Icon name="lock" className="w-3 h-3" />
+                  <Icon name='lock' className='w-3 h-3' />
                 </span>
               )}
             </div>
@@ -324,7 +315,7 @@ export default function Sidebar() {
                     : tMsg('Pin Project', 'Sematkan Proyek')
                 }>
                 <Icon
-                  name="star"
+                  name='star'
                   className={`w-3.5 h-3.5 ${favoriteBoards.includes(board.id) ? 'fill-current' : ''}`}
                 />
               </button>
@@ -336,7 +327,7 @@ export default function Sidebar() {
                   }}
                   className='p-1 rounded text-neutral-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity'
                   title={tMsg('Delete Project', 'Hapus Proyek')}>
-                  <Icon name="trash" className="w-3.5 h-3.5" />
+                  <Icon name='trash' className='w-3.5 h-3.5' />
                 </button>
               )}
             </div>
@@ -392,7 +383,7 @@ export default function Sidebar() {
               }}
               className='ml-auto p-1.5 text-neutral-400 hover:text-black dark:hover:text-white transition-colors rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800'
               title='Collapse sidebar'>
-              <Icon name="panel-left-close" className="w-6 h-6" />
+              <Icon name='panel-left-close' className='w-6 h-6' />
             </button>
           )}
         </div>
@@ -401,7 +392,7 @@ export default function Sidebar() {
           <div className='px-4 pt-5 pb-2 shrink-0 relative'>
             <div className='relative mb-3 group z-50'>
               <span className='absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 group-hover:text-black dark:group-hover:text-white transition-colors'>
-                <Icon name="search" className="w-4 h-4" />
+                <Icon name='search' className='w-4 h-4' />
               </span>
               <input
                 type='text'
@@ -423,7 +414,7 @@ export default function Sidebar() {
                     closeGlobalSearch();
                   }}
                   className='absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black dark:hover:text-white font-bold text-xs'>
-                  <Icon name="x" className="w-3 h-3" />
+                  <Icon name='x' className='w-3 h-3' />
                 </button>
               )}
 
@@ -448,7 +439,8 @@ export default function Sidebar() {
                         {matchedGlobalBoards.length > 0 && (
                           <div className='mb-2'>
                             <div className='px-5 py-1.5 text-[9px] font-bold text-black dark:text-white uppercase tracking-widest bg-neutral-100 dark:bg-neutral-900'>
-                              <Icon name="folder" className="w-3 h-3 inline" /> Projects
+                              <Icon name='folder' className='w-3 h-3 inline' />{' '}
+                              Projects
                             </div>
                             {matchedGlobalBoards.map((b) => (
                               <div
@@ -459,7 +451,10 @@ export default function Sidebar() {
                                   closeGlobalSearch();
                                 }}
                                 className='px-5 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 cursor-pointer border-b border-neutral-100 dark:border-neutral-800/50 transition-colors flex items-center gap-3'>
-                                <Icon name="folder-open" className="w-5 h-5 shrink-0" />
+                                <Icon
+                                  name='folder-open'
+                                  className='w-5 h-5 shrink-0'
+                                />
                                 <div className='flex flex-col min-w-0'>
                                   <span className='text-sm font-bold text-black dark:text-white truncate'>
                                     <HighlightText
@@ -483,7 +478,11 @@ export default function Sidebar() {
                         {globalSearchResults.length > 0 && (
                           <div className='mb-1'>
                             <div className='px-5 py-1.5 text-[9px] font-bold text-black dark:text-white uppercase tracking-widest bg-neutral-100 dark:bg-neutral-900'>
-                              <Icon name="clipboard-list" className="w-3 h-3 inline" /> Tasks
+                              <Icon
+                                name='clipboard-list'
+                                className='w-3 h-3 inline'
+                              />{' '}
+                              Tasks
                             </div>
                             {globalSearchResults.map((t) => (
                               <div
@@ -520,7 +519,10 @@ export default function Sidebar() {
                                         closeGlobalSearch();
                                       }
                                     }}>
-                                    <Icon name="folder-open" className="w-3 h-3 inline" />{' '}
+                                    <Icon
+                                      name='folder-open'
+                                      className='w-3 h-3 inline'
+                                    />{' '}
                                     <HighlightText
                                       text={t.board_name}
                                       query={globalSearchQuery}
@@ -542,7 +544,10 @@ export default function Sidebar() {
                                         &bull;
                                       </span>
                                       <span className='truncate flex items-center gap-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400'>
-                                        <Icon name="user" className="w-3 h-3 inline" />{' '}
+                                        <Icon
+                                          name='user'
+                                          className='w-3 h-3 inline'
+                                        />{' '}
                                         <HighlightText
                                           text={t.requester}
                                           query={globalSearchQuery}
@@ -556,7 +561,11 @@ export default function Sidebar() {
                                         &bull;
                                       </span>
                                       <span className='text-neutral-500 dark:text-slate-400 text-[10px] font-medium'>
-                                        <Icon name="calendar" className="w-3 h-3 inline" /> {formatDateMMM(t.deadline)}
+                                        <Icon
+                                          name='calendar'
+                                          className='w-3 h-3 inline'
+                                        />{' '}
+                                        {formatDateMMM(t.deadline)}
                                       </span>
                                     </>
                                   )}
@@ -598,16 +607,18 @@ export default function Sidebar() {
               )}
             </div>
 
-            <button
-              onClick={() => {
-                setIsCreateBoardOpen(true);
-                setIsMobileMenuOpen(false);
-              }}
-              disabled={accountStatus === 'suspended'}
-              className='w-full flex items-center gap-2 justify-center bg-black dark:bg-white text-white dark:text-black hover:opacity-80 font-bold py-2 px-4 rounded-lg transition-opacity disabled:opacity-50 text-sm shadow-sm'>
-              <IconPlus className='w-4 h-4' />{' '}
-              {tMsg('New Project', 'Proyek Baru')}
-            </button>
+            {canCreateProjects && (
+              <button
+                onClick={() => {
+                  setIsCreateBoardOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
+                disabled={accountStatus === 'suspended'}
+                className='w-full flex items-center gap-2 justify-center bg-black dark:bg-white text-white dark:text-black hover:opacity-80 font-bold py-2 px-4 rounded-lg transition-opacity disabled:opacity-50 text-sm shadow-sm'>
+                <IconPlus className='w-4 h-4' />{' '}
+                {tMsg('New Project', 'Proyek Baru')}
+              </button>
+            )}
           </div>
         )}
 
@@ -621,45 +632,61 @@ export default function Sidebar() {
                 onClick={toggleCollapse}
                 className='w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors'
                 title='Expand sidebar'>
-                <Icon name="panel-left-open" className="w-6 h-6" />
+                <Icon name='panel-left-open' className='w-6 h-6' />
               </button>
             </div>
           )}
-          <div className={`mb-3 space-y-0.5 ${isCollapsed ? 'mt-0 px-0' : 'mt-2 px-0'}`}>
+          <div
+            className={`mb-8 space-y-0.5 ${isCollapsed ? 'mt-0 px-0' : 'mt-2 px-0'}`}>
             <button
               onClick={() => {
                 setSelectedBoard(null);
                 setShowTeams?.(false);
                 setShowAdmin?.(false);
+                setShowProjectManage?.(false);
                 setShowTimesheets?.(false);
                 setSidebarNav?.('home');
                 setIsMobileMenuOpen(false);
                 setIsProactiveAIOpen(false);
               }}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                sidebarNav === 'home' && !selectedBoard && !showTeams && !showAdmin && !showTimesheets
+                sidebarNav === 'home' &&
+                !selectedBoard &&
+                !showTeams &&
+                !showAdmin &&
+                !showProjectManage &&
+                !showTimesheets
                   ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
                   : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
               } ${isCollapsed ? 'justify-center' : ''}`}
               title={tMsg('Home', 'Beranda')}>
               <div className='w-6 h-6 flex items-center justify-center'>
-                <Icon name="home" className="w-5 h-5" />
+                <Icon name='home' className='w-5 h-5' />
               </div>
-              {!isCollapsed && <span className='text-sm truncate'>{tMsg('Home', 'Beranda')}</span>}
+              {!isCollapsed && (
+                <span className='text-sm truncate'>
+                  {tMsg('Home', 'Beranda')}
+                </span>
+              )}
             </button>
 
+            {canManageProjectDir && (
             <button
               onClick={() => {
                 setShowTeams?.(false);
                 setShowAdmin?.(false);
                 setShowTimesheets?.(false);
+                setSelectedBoard(null);
                 setSidebarNav?.('projects');
-                if (selectedBoard?.id === 'global') setSelectedBoard(null);
+                // Project Owner / Admin: buka halaman manajemen proyek langsung
+                setShowProjectManage?.(true);
                 setIsMobileMenuOpen(false);
                 setIsProactiveAIOpen(false);
               }}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                (sidebarNav === 'projects' || (!!selectedBoard && selectedBoard.id !== 'global')) &&
+                (sidebarNav === 'projects' ||
+                  (!!selectedBoard && selectedBoard.id !== 'global') ||
+                  showProjectManage) &&
                 !showTeams &&
                 !showAdmin &&
                 !showTimesheets
@@ -668,44 +695,84 @@ export default function Sidebar() {
               } ${isCollapsed ? 'justify-center' : ''}`}
               title={tMsg('Projects', 'Proyek')}>
               <div className='w-6 h-6 flex items-center justify-center'>
-                <Icon name="folder" className="w-5 h-5" />
-              </div>
-              {!isCollapsed && <span className='text-sm truncate'>{tMsg('Projects', 'Proyek')}</span>}
-            </button>
-
-            <button
-              onClick={() => {
-                setSelectedBoard(null);
-                setShowTimesheets?.(false);
-                setShowAdmin?.(false);
-                setShowTeams?.(true);
-                setSidebarNav?.('teams');
-                setIsMobileMenuOpen(false);
-                setIsProactiveAIOpen(false);
-              }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                showTeams || sidebarNav === 'teams'
-                  ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
-                  : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
-              } ${isCollapsed ? 'justify-center' : ''}`}
-              title={tMsg('Teams', 'Tim')}>
-              <div className='w-6 h-6 flex items-center justify-center'>
-                <Icon name="users" className="w-5 h-5" />
+                <Icon name='folder' className='w-5 h-5' />
               </div>
               {!isCollapsed && (
-                <span className='text-sm truncate flex-1 text-left'>{tMsg('Teams', 'Tim')}</span>
-              )}
-              {!isCollapsed && (
-                <span className='text-[10px] font-bold text-neutral-400'>
-                  {(userDirectory || []).length || 0}
+                <span className='text-sm truncate'>
+                  {tMsg('Projects', 'Proyek')}
                 </span>
               )}
             </button>
+            )}
 
-            {isSuperAdmin && (
+            {canOpenTeams && (
+              <button
+                onClick={() => {
+                  setSelectedBoard(null);
+                  setShowTimesheets?.(false);
+                  setShowAdmin?.(false);
+                  setShowProjectManage?.(false);
+                  setShowTeams?.(true);
+                  setSidebarNav?.('teams');
+                  setIsMobileMenuOpen(false);
+                  setIsProactiveAIOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                  showTeams || sidebarNav === 'teams'
+                    ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
+                    : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+                } ${isCollapsed ? 'justify-center' : ''}`}
+                title={tMsg('Teams', 'Tim')}>
+                <div className='w-6 h-6 flex items-center justify-center'>
+                  <Icon name='users' className='w-5 h-5' />
+                </div>
+                {!isCollapsed && (
+                  <span className='text-sm truncate flex-1 text-left'>
+                    {tMsg('Teams', 'Tim')}
+                  </span>
+                )}
+                {!isCollapsed && (
+                  <span className='text-[10px] font-bold text-neutral-400'>
+                    {(userDirectory || []).length || 0}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {TIMESHEETS_UI_ENABLED && (
+              <button
+                onClick={() => {
+                  setSelectedBoard(null);
+                  setShowTeams?.(false);
+                  setShowAdmin?.(false);
+                  setShowProjectManage?.(false);
+                  setShowTimesheets?.(true);
+                  setSidebarNav?.('home');
+                  setIsMobileMenuOpen(false);
+                  setIsProactiveAIOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                  showTimesheets
+                    ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
+                    : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+                } ${isCollapsed ? 'justify-center' : ''}`}
+                title={tMsg('Timesheets', 'Lembar Waktu')}>
+                <div className='w-6 h-6 flex items-center justify-center'>
+                  <Icon name='clock' className='w-5 h-5' />
+                </div>
+                {!isCollapsed && (
+                  <span className='text-sm truncate'>
+                    {tMsg('Timesheets', 'Lembar Waktu')}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {isAdminRole && (
               <button
                 onClick={() => {
                   openAdminModal();
+                  setShowProjectManage?.(false);
                   setIsMobileMenuOpen(false);
                   setIsProactiveAIOpen(false);
                 }}
@@ -716,7 +783,7 @@ export default function Sidebar() {
                 } ${isCollapsed ? 'justify-center' : ''}`}
                 title={tMsg('Administrator', 'Administrator')}>
                 <div className='w-6 h-6 flex items-center justify-center'>
-                  <Icon name="shield" className="w-5 h-5" />
+                  <Icon name='shield' className='w-5 h-5' />
                 </div>
                 {!isCollapsed && (
                   <span className='text-sm truncate'>
@@ -746,13 +813,16 @@ export default function Sidebar() {
                   setIsProactiveAIOpen(false);
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all tour-global-board ${
-                  selectedBoard?.id === 'global' && !showTimesheets && !showTeams && !showAdmin
+                  selectedBoard?.id === 'global' &&
+                  !showTimesheets &&
+                  !showTeams &&
+                  !showAdmin
                     ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
                     : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
                 } ${isCollapsed ? 'justify-center' : ''}`}
                 title={tMsg('See the Big Picture', 'Lihat Gambaran Besar')}>
                 <div className='w-6 h-6 flex items-center justify-center'>
-                  <Icon name="globe" className="w-5 h-5" />
+                  <Icon name='globe' className='w-5 h-5' />
                 </div>
                 {!isCollapsed && (
                   <span className='text-sm truncate'>
@@ -776,47 +846,20 @@ export default function Sidebar() {
                   setIsProactiveAIOpen(false);
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                  selectedBoard?.id === todoListBoard.id && !showTimesheets && !showTeams && !showAdmin
+                  selectedBoard?.id === todoListBoard.id &&
+                  !showTimesheets &&
+                  !showTeams &&
+                  !showAdmin
                     ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
                     : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
                 } ${isCollapsed ? 'justify-center' : ''}`}
                 title={tMsg('My To-Do List', 'Daftar Tugas Saya')}>
                 <div className='w-6 h-6 flex items-center justify-center'>
-                  <Icon name="file-text" className="w-5 h-5" />
+                  <Icon name='file-text' className='w-5 h-5' />
                 </div>
                 {!isCollapsed && (
                   <span className='text-sm truncate'>
                     {tMsg('My To-Do List', 'Daftar Tugas Saya')}
-                  </span>
-                )}
-              </button>
-            </div>
-          )}
-
-          {TIMESHEETS_UI_ENABLED && (
-            <div className='mb-4'>
-              <button
-                onClick={() => {
-                  setSelectedBoard(null);
-                  setShowTeams?.(false);
-                  setShowAdmin?.(false);
-                  setShowTimesheets?.(true);
-                  setSidebarNav?.('home');
-                  setIsMobileMenuOpen(false);
-                  setIsProactiveAIOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                  showTimesheets
-                    ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
-                    : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
-                } ${isCollapsed ? 'justify-center' : ''}`}
-                title={tMsg('Timesheets', 'Lembar Waktu')}>
-                <div className='w-6 h-6 flex items-center justify-center'>
-                  <Icon name="clock" className="w-5 h-5" />
-                </div>
-                {!isCollapsed && (
-                  <span className='text-sm truncate'>
-                    {tMsg('Timesheets', 'Lembar Waktu')}
                   </span>
                 )}
               </button>
@@ -841,7 +884,7 @@ export default function Sidebar() {
                 }`}
                 title={tMsg('All People', 'Semua Orang')}>
                 <div className='w-6 h-6 flex items-center justify-center'>
-                  <Icon name="user" className="w-5 h-5" />
+                  <Icon name='user' className='w-5 h-5' />
                 </div>
                 {!isCollapsed && (
                   <>
@@ -913,262 +956,41 @@ export default function Sidebar() {
           )}
         </div>
 
-        <div className='p-3 border-t border-neutral-200/50 dark:border-neutral-800/50 shrink-0 bg-white dark:bg-neutral-950 relative'>
-          <div
-            className={`flex ${
-              isCollapsed ? 'flex-col' : 'items-center justify-between'
-            } gap-1 mb-2 tour-quick-actions`}>
+        {/* Mobile-only: Chat & Export di bawah sidebar (dibuka via hamburger) */}
+        <div className='md:hidden p-3 border-t border-neutral-200/50 dark:border-neutral-800/50 shrink-0 bg-white dark:bg-neutral-950'>
+          <div className='flex items-center gap-2 tour-quick-actions'>
             <button
-              onClick={() => setIsChatWorkspaceOpen(true)}
-              className='flex-1 flex justify-center items-center py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 transition-colors relative'
+              type='button'
+              onClick={() => {
+                setIsChatWorkspaceOpen(true);
+                setIsMobileMenuOpen(false);
+              }}
+              className='flex-1 flex flex-col items-center gap-0.5 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 transition-colors relative'
               title={tMsg('Chat', 'Obrolan')}>
-              <Icon name="message-circle" className="w-4 h-4" />
+              <Icon name='message-circle' className='w-5 h-5' />
+              <span className='text-[10px] font-semibold'>
+                {tMsg('Chat', 'Obrolan')}
+              </span>
               {totalUnreadChats > 0 && (
-                <span className='absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border border-white dark:border-black scale-90 min-w-4 text-center leading-none'>
+                <span className='absolute top-1 right-3 bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border border-white dark:border-black scale-90 min-w-4 text-center leading-none'>
                   {totalUnreadChats}
                 </span>
               )}
             </button>
             <button
+              type='button'
               onClick={() => {
                 setExportMode('global');
                 setIsExportModalOpen(true);
+                setIsMobileMenuOpen(false);
               }}
-              className='flex-1 flex justify-center items-center py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 transition-colors'
-              title={tMsg('Get All My Data', 'Dapatkan Semua Data')}>
-              <Icon name="globe" className="w-4 h-4" />
+              className='flex-1 flex flex-col items-center gap-0.5 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 transition-colors'
+              title={tMsg('Export', 'Ekspor')}>
+              <Icon name='globe' className='w-5 h-5' />
+              <span className='text-[10px] font-semibold'>
+                {tMsg('Export', 'Ekspor')}
+              </span>
             </button>
-            <button
-              onClick={() => setIsNotifOpen(!isNotifOpen)}
-              className='flex-1 flex justify-center items-center py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 transition-colors relative'
-              title={tMsg('Notifications', 'Notifikasi')}>
-              <Icon name="bell" className="w-4 h-4" />
-              {unreadCount > 0 && (
-                <span className='absolute -top-1 -right-1 bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border border-white dark:border-black scale-90 min-w-4 text-center leading-none'>
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className='flex-1 flex justify-center items-center py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 transition-colors'
-              title={tMsg('Settings', 'Pengaturan')}>
-              <Icon name="settings" className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Notification dropdown panel - shown inline at bottom of sidebar (Desktop only) */}
-          <div className='hidden md:block'>
-            {isNotifOpen && (
-              <>
-                <div
-                  className='fixed inset-0 z-40'
-                  onClick={() => setIsNotifOpen(false)}></div>
-                <div className='absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl z-50 flex flex-col max-h-112.5 overflow-hidden'>
-                  <div className='p-3 border-b border-neutral-100 dark:border-neutral-800 flex justify-between items-center sticky top-0 bg-white dark:bg-neutral-900'>
-                    <h3 className='font-bold text-sm text-black dark:text-white'>
-                      {tMsg('Notifications', 'Notifikasi')}
-                    </h3>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={handleReadAllNotifications}
-                        className='text-xs text-indigo-500 font-bold hover:underline'>
-                        {tMsg('Mark all read', 'Tandai semua dibaca')}
-                      </button>
-                    )}
-                  </div>
-                  <div className='overflow-y-auto flex-1'>
-                    {notifications.length === 0 ? (
-                      <div className='p-8 text-center text-neutral-400 text-sm'>
-                        <Icon name="mail" className="w-8 h-8 mx-auto mb-2 opacity-60" />
-                        {tMsg('No notifications yet.', 'Belum ada notifikasi.')}
-                      </div>
-                    ) : (
-                      notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          onClick={() => {
-                            if (!n.is_read) handleReadNotification(n.id);
-                            if (
-                              n.related_task_id &&
-                              n.type !== 'team_chat' &&
-                              n.type !== 'team_chat_no_email' &&
-                              n.type !== 'team_invite' &&
-                              n.type !== 'access_request'
-                            ) {
-                              handleNotificationTaskClick(n.related_task_id);
-                            } else if (n.type === 'team_invite') {
-                              setIsInvitesModalOpen(true);
-                            }
-                            setIsNotifOpen(false);
-                          }}
-                          className={`p-3 border-b border-neutral-100 dark:border-neutral-800 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors ${
-                            !n.is_read
-                              ? 'bg-indigo-50/50 dark:bg-indigo-900/10'
-                              : ''
-                          }`}>
-                          <div className='flex gap-2.5 items-start'>
-                            <span className='shrink-0'>
-                              <NotificationTypeIcon type={n.type} />
-                            </span>
-                            <div className='flex-1 min-w-0'>
-                              <p
-                                className={`text-xs leading-snug ${
-                                  !n.is_read
-                                    ? 'font-bold text-black dark:text-white'
-                                    : 'text-neutral-600 dark:text-neutral-400'
-                                }`}>
-                                {n.message?.replace(/<!--TASK_ID:\d+-->/g, '')}
-                              </p>
-                              <p className='text-[10px] text-neutral-400 mt-0.5'>
-                                {formatDateMMM(n.timestamp)}
-                              </p>
-                            </div>
-                            {!n.is_read && (
-                              <div className='w-2 h-2 bg-indigo-500 rounded-full shrink-0 mt-1'></div>
-                            )}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className='relative hidden md:block'>
-            {isProfileMenuOpen && (
-              <div
-                className='fixed inset-0 z-40 md:hidden'
-                onClick={() => setIsProfileMenuOpen(false)}></div>
-            )}
-            <div
-              onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-              onMouseEnter={() => setIsProfileMenuOpen(true)}
-              className={`flex items-center gap-3 px-2 py-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg cursor-pointer transition-colors tour-account-menu ${
-                isCollapsed ? 'justify-center' : ''
-              }`}>
-              <Avatar
-                name={currentUser}
-                url={avatarsMap[currentUser]}
-                size='w-8 h-8'
-                textClass='text-xs'
-              />
-              {!isCollapsed && (
-                <div className='flex-1 min-w-0'>
-                  <div className='text-sm font-bold text-black dark:text-white truncate transition-colors'>
-                    {currentUser}
-                  </div>
-                  <div className='text-[10px] text-neutral-500 truncate transition-colors'>
-                    {tMsg('Workspace User', 'Pengguna Workspace')}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Profile Dropdown */}
-            {isProfileMenuOpen && (
-              <div
-                className='absolute bottom-full left-0 pb-2 w-56 z-50'
-                onMouseLeave={() => setIsProfileMenuOpen(false)}>
-                <div className='bg-white/95 dark:bg-black/95 backdrop-blur-xl shadow-xl border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden py-1'>
-                  <button
-                    onClick={() => {
-                      setIsSettingsOpen(true);
-                      setIsProfileMenuOpen(false);
-                    }}
-                    className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
-                    <Icon name="settings" className="w-4 h-4" /> {tMsg('Settings', 'Pengaturan')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsLeaveModalOpen(true);
-                      setIsProfileMenuOpen(false);
-                    }}
-                    disabled={accountStatus === 'suspended'}
-                    className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                    <Icon name="calendar-days" className="w-4 h-4" /> {tMsg('Time Off', 'Cuti')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsProjectChatOpen(true);
-                      setDrawerTab('assistant');
-                      setIsProfileMenuOpen(false);
-                    }}
-                    disabled={accountStatus === 'suspended'}
-                    className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                    <Icon name="sparkles" className="w-4 h-4" />{' '}
-                    {tMsg('Smart Assistant', 'Asisten Pintar AI')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsMyTicketsOpen(true);
-                      setIsProfileMenuOpen(false);
-                    }}
-                    disabled={accountStatus === 'suspended'}
-                    className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                    <Icon name="ticket" className="w-4 h-4" /> {tMsg('My Tickets', 'Tiket Saya')}
-                  </button>
-                  <div className='border-t border-neutral-200 dark:border-neutral-800 my-1'></div>
-                  <button
-                    onClick={() => {
-                      setIsDocsOpen(true);
-                      setIsProfileMenuOpen(false);
-                    }}
-                    className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
-                    <Icon name="book-open" className="w-4 h-4" /> {tMsg('Documentation', 'Dokumentasi')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsFeedbackOpen(true);
-                      setIsProfileMenuOpen(false);
-                    }}
-                    disabled={accountStatus === 'suspended'}
-                    className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                    <Icon name="lightbulb" className="w-4 h-4" /> {tMsg('Submit Idea', 'Kirim Masukan')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsSupportOpen(true);
-                      setIsProfileMenuOpen(false);
-                    }}
-                    disabled={accountStatus === 'suspended'}
-                    className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                    <Icon name="phone" className="w-4 h-4" />{' '}
-                    {tMsg('Contact Support', 'Hubungi Dukungan')}
-                  </button>
-                  <button
-                    onClick={() => {
-                      startTour();
-                      setIsProfileMenuOpen(false);
-                    }}
-                    className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
-                    <Icon name="compass" className="w-4 h-4" /> {tMsg('Replay Tour', 'Ulangi Tur')}
-                  </button>
-                  {isInstallable && (
-                    <button
-                      onClick={() => {
-                        handleInstallClick();
-                        setIsProfileMenuOpen(false);
-                      }}
-                      className='w-full text-left px-4 py-3 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-2 transition-colors mt-1 rounded-lg'>
-                      <Icon name="download" className="w-4 h-4" />
-                      {tMsg('Install App', 'Instal Aplikasi')}
-                    </button>
-                  )}
-                  <div className='border-t border-neutral-200 dark:border-neutral-800 my-1'></div>
-                  <button
-                    onClick={() => {
-                      setIsLogoutConfirmOpen(true);
-                      setIsProfileMenuOpen(false);
-                    }}
-                    className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2 transition-colors'>
-                    <Icon name="logout" className="w-4 h-4" /> {tMsg('Logout', 'Keluar')}
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </aside>

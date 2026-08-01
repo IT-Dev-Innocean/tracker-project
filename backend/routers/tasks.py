@@ -427,6 +427,11 @@ def update_task_status(
 
     if not has_task_read_access(db, task, current_user):
         raise HTTPException(status_code=403, detail="Access denied")
+    if not can_modify_tasks(db, current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Staff role is view-only and cannot change task status.",
+        )
     assignees = {a.lower() for a in get_assignees(task.requester)}
     if not is_task_admin(db, task, current_user) and current_user.lower() not in assignees:
         raise HTTPException(
@@ -499,6 +504,11 @@ def edit_task_details(
 
     if not has_task_read_access(db, task, current_user):
         raise HTTPException(status_code=403, detail="Access denied")
+    if not can_modify_tasks(db, current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Staff role is view-only and cannot edit tasks.",
+        )
     assignees = {a.lower() for a in get_assignees(task.requester)}
     if not is_task_admin(db, task, current_user) and current_user.lower() not in assignees:
         raise HTTPException(
@@ -983,6 +993,12 @@ def add_comment(
     ):
         raise HTTPException(
             status_code=403, detail="Only involved members can comment on this task."
+        )
+
+    if not can_write_comments(db, current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Staff role can view comments but cannot write them.",
         )
 
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

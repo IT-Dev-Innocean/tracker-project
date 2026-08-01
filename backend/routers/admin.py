@@ -88,8 +88,8 @@ def verify_sudo(
 def get_all_users(
     current_user: str = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    if not is_user_superadmin(db, current_user):
-        raise HTTPException(status_code=403, detail="Admin access required")
+    if not can_manage_workspace_users(db, current_user):
+        raise HTTPException(status_code=403, detail="Admin or Project Owner access required")
     users = db.query(User).all()
     return {
         "users": [
@@ -103,6 +103,7 @@ def get_all_users(
                 "deletion_date": u.deletion_date,
                 "created_at": u.created_at,
                 "is_superadmin": u.is_superadmin,
+                "role": get_user_role(db, u.username),
                 "timesheet_approver": u.timesheet_approver,
             }
             for u in users
@@ -117,13 +118,15 @@ def update_user_status(
     db: Session = Depends(get_db),
 ):
     username = payload.username
-    if not is_user_superadmin(db, current_user):
+    if not can_manage_workspace_users(db, current_user):
         raise HTTPException(status_code=403)
     user = db.query(User).filter(User.username == username).first()
     if not user:
         raise HTTPException(status_code=404)
     if username == "admin":
         raise HTTPException(status_code=400, detail="Cannot modify root admin")
+    if get_user_role(db, username) == ROLE_ADMIN and get_user_role(db, current_user) != ROLE_ADMIN:
+        raise HTTPException(status_code=403, detail="Only Admin can modify Admin users")
 
     user.account_status = payload.status
     if payload.status == "pending_deletion":
@@ -140,12 +143,49 @@ def update_user_status(
     return {"message": f"User status updated to {payload.status.replace('_', ' ')}"}
 
 
+@router.put("/api/admin/users/role")
+def set_user_role(
+    payload: UserRoleUpdateModel,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not can_manage_workspace_users(db, current_user):
+        raise HTTPException(status_code=403, detail="Admin or Project Owner access required")
+    role = (payload.role or "").strip().lower()
+    if role not in VALID_USER_ROLES:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid role. Use admin, project_owner, manager, or staff.",
+        )
+    actor_role = get_user_role(db, current_user)
+    if role == ROLE_ADMIN and actor_role != ROLE_ADMIN:
+        raise HTTPException(status_code=403, detail="Only Admin can assign Admin role")
+    if payload.username == "admin" and role != ROLE_ADMIN:
+        raise HTTPException(status_code=400, detail="Cannot demote root admin")
+    if get_user_role(db, payload.username) == ROLE_ADMIN and actor_role != ROLE_ADMIN:
+        raise HTTPException(status_code=403, detail="Only Admin can modify Admin users")
+    user = db.query(User).filter(User.username == payload.username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    sync_user_role_flags(user, role)
+    db.commit()
+    labels = {
+        ROLE_ADMIN: "Admin",
+        ROLE_PROJECT_OWNER: "Project Owner",
+        ROLE_MANAGER: "Manager",
+        ROLE_STAFF: "Staff",
+    }
+    return {"message": f"User @{payload.username} role updated to {labels.get(role, role)}."}
+
+
 @router.put("/api/admin/users/superadmin")
 def toggle_superadmin(
     payload: AdminActionModel,
     current_user: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    """Legacy toggle — maps to admin <-> project_owner."""
     username = payload.username
     if not is_user_superadmin(db, current_user):
         raise HTTPException(status_code=403)
@@ -155,12 +195,13 @@ def toggle_superadmin(
     if not user:
         raise HTTPException(status_code=404)
 
-    user.is_superadmin = 1 if user.is_superadmin == 0 else 0
+    new_role = ROLE_PROJECT_OWNER if get_user_role(db, username) == ROLE_ADMIN else ROLE_ADMIN
+    sync_user_role_flags(user, new_role)
     db.commit()
     status_str = (
-        "promoted to Super Admin"
-        if user.is_superadmin == 1
-        else "demoted to regular user"
+        "promoted to Admin"
+        if new_role == ROLE_ADMIN
+        else "demoted to Project Owner"
     )
     return {"message": f"User @{username} has been {status_str}."}
 
@@ -172,8 +213,8 @@ def manual_verify_user(
     db: Session = Depends(get_db),
 ):
     username = payload.username
-    if not is_user_superadmin(db, current_user):
-        raise HTTPException(status_code=403, detail="Admin access required")
+    if not can_manage_workspace_users(db, current_user):
+        raise HTTPException(status_code=403, detail="Admin or Project Owner access required")
     user = db.query(User).filter(User.username == username).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -186,6 +227,104 @@ def manual_verify_user(
     return {"message": f"User @{username} has been manually verified."}
 
 
+@router.post("/api/teams/invite")
+def invite_workspace_user(
+    payload: WorkspaceInviteModel,
+    background_tasks: BackgroundTasks,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not can_manage_workspace_users(db, current_user):
+        raise HTTPException(status_code=403, detail="Admin or Project Owner access required")
+
+    email = (payload.email or "").strip().lower()
+    role = (payload.role or ROLE_MANAGER).strip().lower()
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    if not (email.endswith("@innocean.co.id") or email.endswith("@innocean.com")):
+        raise HTTPException(
+            status_code=400,
+            detail="Only @innocean.co.id or @innocean.com emails are allowed.",
+        )
+    if role not in VALID_USER_ROLES:
+        raise HTTPException(status_code=400, detail="Invalid role")
+    actor_role = get_user_role(db, current_user)
+    if role == ROLE_ADMIN and actor_role != ROLE_ADMIN:
+        raise HTTPException(status_code=403, detail="Only Admin can invite as Admin")
+
+    local_part = email.split("@", 1)[0]
+    # Username & full name auto-derived from email when not provided
+    base_username = re.sub(r"[^a-zA-Z0-9_.-]", ".", (payload.username or local_part).strip())
+    base_username = re.sub(r"\.+", ".", base_username).strip(".-_") or "user"
+    if not re.match(r"^[a-zA-Z0-9_.-]+$", base_username):
+        raise HTTPException(status_code=400, detail="Invalid username format")
+
+    full_name = (payload.full_name or "").strip()
+    if not full_name:
+        full_name = " ".join(
+            part.capitalize() for part in re.split(r"[._\-\s]+", local_part) if part
+        ) or local_part
+
+    if db.query(User).filter(User.email == email).first():
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    username = base_username
+    suffix = 1
+    while db.query(User).filter(User.username == username).first():
+        username = f"{base_username}{suffix}"
+        suffix += 1
+        if suffix > 99:
+            raise HTTPException(status_code=400, detail="Unable to generate unique username")
+
+    temp_password = payload.temporary_password or f"Welcome{username[:1].upper()}123!"
+    if len(temp_password) < 8:
+        raise HTTPException(status_code=400, detail="Temporary password must be at least 8 characters")
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    new_user = User(
+        username=username,
+        email=email,
+        full_name=full_name,
+        password=get_password_hash(temp_password),
+        is_verified=1,
+        created_at=now_str,
+        role=role,
+        is_superadmin=1 if role == ROLE_ADMIN else 0,
+    )
+    db.add(new_user)
+    db.commit()
+
+    frontend_url = os.getenv("FRONTEND_URL", "https://iid-tracker.netlify.app").split(",")[0].strip().rstrip("/")
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2>You are invited to INNOCEAN TRACKER</h2>
+      <p>Hi {full_name},</p>
+      <p>@{current_user} invited you to the workspace.</p>
+      <p><strong>Username:</strong> {username}<br/>
+      <strong>Temporary password:</strong> {temp_password}</p>
+      <p>Please sign in and change your password immediately.</p>
+      <p><a href="{frontend_url}">Open Tracker</a></p>
+    </div>
+    """
+    try:
+        from services.email_service import send_email
+        background_tasks.add_task(
+            send_email,
+            email,
+            "Invitation to INNOCEAN TRACKER",
+            html_body,
+        )
+    except Exception:
+        pass
+
+    return {
+        "message": f"User @{username} invited successfully.",
+        "username": username,
+        "temporary_password": temp_password,
+    }
+
+
 @router.post("/api/admin/users/delete")
 def admin_delete_user(
     payload: AdminActionModel,
@@ -193,10 +332,12 @@ def admin_delete_user(
     db: Session = Depends(get_db),
 ):
     username = payload.username
-    if not is_user_superadmin(db, current_user):
-        raise HTTPException(status_code=403, detail="Admin access required")
+    if not can_manage_workspace_users(db, current_user):
+        raise HTTPException(status_code=403, detail="Admin or Project Owner access required")
     if username == "admin":
         raise HTTPException(status_code=400, detail="Cannot delete root admin")
+    if get_user_role(db, username) == ROLE_ADMIN and get_user_role(db, current_user) != ROLE_ADMIN:
+        raise HTTPException(status_code=403, detail="Only Admin can delete Admin users")
 
     user = db.query(User).filter(User.username == username).first()
     if not user:
@@ -252,10 +393,12 @@ def admin_delete_user(
 def get_all_boards_admin(
     current_user: str = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    if not is_user_superadmin(db, current_user):
-        raise HTTPException(status_code=403, detail="Admin access required")
+    if not can_manage_projects(db, current_user):
+        raise HTTPException(status_code=403, detail="Project management access required")
 
+    # Admin & Project Owner can see every project in the workspace
     boards = db.query(Board).all()
+
     res = []
     for b in boards:
         owner = db.query(User).filter(User.username == b.owner_username).first()
@@ -279,12 +422,14 @@ def admin_transfer_board(
     current_user: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if not is_user_superadmin(db, current_user):
-        raise HTTPException(status_code=403, detail="Admin access required")
-
     board = db.query(Board).filter(Board.id == board_id).first()
     if not board:
         raise HTTPException(status_code=404, detail="Project not found")
+
+    is_admin = is_user_superadmin(db, current_user)
+    can_manage = can_manage_projects(db, current_user)
+    if not is_admin and not can_manage:
+        raise HTTPException(status_code=403, detail="Only admin or project owner can transfer")
 
     new_user = db.query(User).filter(User.username == payload.new_owner).first()
     if not new_user:

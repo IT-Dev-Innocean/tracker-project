@@ -55,10 +55,16 @@ export default function MainToolbar() {
     assigneeOptions,
     teamMembers,
     setColModal,
+    workspaceRole,
   } = useAppContext();
 
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = React.useState(false);
   const tMsg = (en, id) => (language === 'id' ? id : en);
+  const canCreateTasks =
+    workspaceRole === 'admin' ||
+    workspaceRole === 'project_owner' ||
+    workspaceRole === 'manager' ||
+    !workspaceRole;
 
   // Check if any filters are active to highlight the filter toggle button
   const hasActiveFilters = 
@@ -252,6 +258,7 @@ export default function MainToolbar() {
                 <span className="w-2 h-2 bg-indigo-600 dark:bg-indigo-400 rounded-full animate-pulse"></span>
               )}
             </button>
+            {canCreateTasks && (
             <button
               onClick={handleOpenNewTaskForm}
               disabled={accountStatus === 'suspended' || selectedBoard.id === 'global'}
@@ -259,6 +266,7 @@ export default function MainToolbar() {
             >
               <IconPlus className="w-4 h-4" /> <span className="hidden sm:inline">{tMsg('New Request', 'Permintaan Baru')}</span>
             </button>
+            )}
           </div>
         </div>
       </div>

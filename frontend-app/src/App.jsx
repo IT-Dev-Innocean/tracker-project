@@ -51,10 +51,12 @@ import SettingsPage from './SettingsPage';
 import { PomodoroWidget, ProjectLifecycleBanner, LiveClock } from './Widgets';
 import Sidebar from './components/Sidebar';
 import MobileTopBar from './components/Layout/MobileTopBar';
+import TopHeaderBar from './components/Layout/TopHeaderBar';
 import MainToolbar from './components/Layout/MainToolbar';
 import HomeDashboard from './components/HomeDashboard';
 import TimesheetView from './TimesheetView';
 import TeamsDirectory from './TeamsDirectory';
+import ProjectManagementPage from './ProjectManagementPage';
 
 import './api/axiosSetup';
 
@@ -142,6 +144,7 @@ function App() {
     timelineDrag,
     accountStatus,
     isSuperAdmin,
+    workspaceRole,
     isFeedbackOpen,
     feedbackText,
     isNotifClosing,
@@ -151,6 +154,7 @@ function App() {
     showTeams,
     setShowTeams,
     showAdmin,
+    showProjectManage,
     setIsAuthenticated,
     setCurrentUser,
     setIsLoginMode,
@@ -307,6 +311,7 @@ function App() {
     openAdminModal,
     handleUpdateUserStatus,
     handleToggleSuperAdmin,
+    handleSetUserRole,
     handleManualVerify,
     handleAddLeave,
     handleDeleteLeave,
@@ -805,13 +810,14 @@ function App() {
       const draggedTask = tasks.find((t) => t.id.toString() === result.draggableId);
       if (draggedTask) {
         const isTaskAdmin =
-          isSuperAdmin ||
+          workspaceRole !== 'staff' &&
+          (isSuperAdmin ||
           draggedTask.owner_username === currentUser ||
           (selectedBoard && selectedBoard.owner_username === currentUser) ||
           (draggedTask.requester &&
             new RegExp(`@${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(
               draggedTask.requester
-            ));
+            )));
         if (isTaskAdmin) {
           setSelectedTask(draggedTask);
           setIsDeleteConfirmOpen(true);
@@ -1276,6 +1282,7 @@ function App() {
         <Sidebar showTimesheets={showTimesheets} setShowTimesheets={setShowTimesheets} />
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
           <MobileTopBar />
+          <TopHeaderBar />
           {!selectedBoard ? (
             showTimesheets ? (
               <TimesheetView currentUser={currentUser} tasks={tasks} boards={boards} />
@@ -1285,12 +1292,15 @@ function App() {
                 handleDeleteUser={handleDeleteUser}
                 handleUpdateUserStatus={handleUpdateUserStatus}
                 handleToggleSuperAdmin={handleToggleSuperAdmin}
+                handleSetUserRole={handleSetUserRole}
                 handleManualVerify={handleManualVerify}
                 currentUser={currentUser}
                 language={language}
                 showNotification={showNotification}
                 setAdminUsers={setAdminUsers}
               />
+            ) : showProjectManage ? (
+              <ProjectManagementPage />
             ) : showTeams ? (
               <TeamsDirectory />
             ) : (

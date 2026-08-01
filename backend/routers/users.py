@@ -30,6 +30,7 @@ def get_profile(
         "avatar": user.avatar,
         "account_status": user.account_status,
         "is_superadmin": user.is_superadmin,
+        "role": get_user_role(db, current_user),
         "timesheet_approver": user.timesheet_approver,
     }
 
@@ -132,11 +133,11 @@ def update_profile(
 def get_all_avatars(
     current_user: str = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    users = db.query(User.username, User.avatar, User.email).all()
-    is_admin = is_user_superadmin(db, current_user)
+    users = db.query(User).all()
+    can_manage = can_manage_workspace_users(db, current_user)
 
     known_usernames = set([current_user])
-    if not is_admin:
+    if not can_manage:
         owned_boards = db.query(Board.id).filter(Board.owner_username == current_user)
         member_boards = db.query(BoardMember.board_id).filter(
             BoardMember.member_username == current_user
@@ -160,10 +161,20 @@ def get_all_avatars(
             known_usernames.add(o[0])
         for m in known_members:
             known_usernames.add(m[0])
-            
-        dms_sent = db.query(DirectMessage.receiver_username).filter(DirectMessage.sender_username == current_user).distinct().all()
-        dms_recv = db.query(DirectMessage.sender_username).filter(DirectMessage.receiver_username == current_user).distinct().all()
-        
+
+        dms_sent = (
+            db.query(DirectMessage.receiver_username)
+            .filter(DirectMessage.sender_username == current_user)
+            .distinct()
+            .all()
+        )
+        dms_recv = (
+            db.query(DirectMessage.sender_username)
+            .filter(DirectMessage.receiver_username == current_user)
+            .distinct()
+            .all()
+        )
+
         for dm in dms_sent:
             known_usernames.add(dm[0])
         for dm in dms_recv:
@@ -171,14 +182,20 @@ def get_all_avatars(
 
     directory = []
     for u in users:
-        is_connected = is_admin or u.username in known_usernames or u.username == "admin"
-        show_email = is_admin or u.username in known_usernames
+        is_connected = can_manage or u.username in known_usernames or u.username == "admin"
+        show_email = can_manage or u.username in known_usernames
         email_display = u.email if show_email else "Email hidden for privacy"
         directory.append(
             {
                 "username": u.username,
+                "full_name": u.full_name,
                 "email": email_display,
+                "avatar": u.avatar,
                 "is_connected": is_connected,
+                "is_verified": u.is_verified,
+                "account_status": u.account_status,
+                "is_superadmin": u.is_superadmin,
+                "role": get_user_role(db, u.username),
             }
         )
 

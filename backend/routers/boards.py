@@ -65,6 +65,18 @@ def get_boards(
         db.query(Board).filter(Board.id == m.board_id).first() for m in member_links
     ]
 
+    # Admin & Project Owner also get every non-private workspace project in sidebar
+    extra_managed = []
+    if can_manage_projects(db, current_user):
+        known_ids = {b.id for b in owned} | {b.id for b in shared if b}
+        for b in db.query(Board).all():
+            if not b or b.id in known_ids:
+                continue
+            # Keep other users' private workspaces private (except root admin)
+            if getattr(b, "is_private", 0) == 1 and not is_user_superadmin(db, current_user):
+                continue
+            extra_managed.append(b)
+
     leave_dates = get_leave_dates(db)
     personal_leaves_db = (
         db.query(LeaveRecord.leave_date, LeaveRecord.username)
@@ -242,6 +254,39 @@ def get_boards(
                     "access_requests_count": requests_count,
                 }
             )
+
+    valid_extra = [b for b in extra_managed if b and not evaluate_board_lifecycle(db, b)]
+    for b in valid_extra:
+        total, done, my_pending, alert_msg, requests_count = get_metrics(b.id)
+        members_db = (
+            db.query(BoardMember.member_username)
+            .filter(BoardMember.board_id == b.id, BoardMember.status == "accepted")
+            .limit(19)
+            .all()
+        )
+        team = [b.owner_username] + [
+            m[0] for m in members_db if m[0] != b.owner_username
+        ]
+        team_preview = team[:20]
+        res.append(
+            {
+                "id": b.id,
+                "name": b.name,
+                "owner_username": b.owner_username,
+                "role": "owner" if b.owner_username == current_user else "manager",
+                "total_tasks": total,
+                "done_tasks": done,
+                "my_pending": my_pending,
+                "statuses": b.statuses,
+                "categories": b.categories,
+                "deletion_date": b.deletion_date,
+                "created_at": b.created_at,
+                "team_preview": team_preview,
+                "health_alert": alert_msg,
+                "is_private": getattr(b, "is_private", 0),
+                "access_requests_count": requests_count,
+            }
+        )
     return {"boards": res}
 
 
@@ -251,6 +296,11 @@ def create_board(
     current_user: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if not can_create_project(db, current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Only Admin and Project Owner can create projects.",
+        )
     if not payload.name or len(payload.name.strip()) == 0 or len(payload.name) > 100:
         raise HTTPException(
             status_code=400, detail="Project name must be between 1 and 100 characters."
@@ -337,9 +387,10 @@ def delete_board(
 
     is_admin = is_user_superadmin(db, current_user)
     is_owner = board.owner_username == current_user
+    can_manage = can_manage_projects(db, current_user)
 
-    # Super Admins can delete any project. Regular users can only delete their own.
-    if not is_admin and not is_owner:
+    # Super Admins / Project Owners can delete any project. Regular users can only delete their own.
+    if not is_admin and not can_manage and not is_owner:
         raise HTTPException(
             status_code=403, detail="Not authorized to delete this project."
         )
@@ -532,6 +583,12 @@ def create_task(
 
     if not check_board_access(db, board_id, current_user):
         raise HTTPException(status_code=403, detail="Access denied")
+
+    if not can_create_task(db, current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Staff role cannot create tasks. Contact a Manager or Project Owner.",
+        )
 
     now = datetime.now()
     timestamp = now.strftime("%Y-%m-%d %H:%M:%S")

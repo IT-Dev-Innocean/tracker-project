@@ -35,6 +35,7 @@ export default function TaskDetailModal({
   isSuperAdmin,
   currentUser,
   selectedBoard,
+  workspaceRole = 'project_owner',
   subtasks,
   handleToggleSubtask,
   handleUpdateSubtaskAssignee,
@@ -349,7 +350,9 @@ export default function TaskDetailModal({
     (selectedTask.category === 'Feedback' || selectedTask.category === 'Support');
 
   let isTaskAdmin = false;
-  if (!isPreviewMode && currentUser) {
+  const canModify = workspaceRole !== 'staff';
+  const canComment = workspaceRole !== 'staff';
+  if (!isPreviewMode && currentUser && canModify) {
     isTaskAdmin =
       isSuperAdmin ||
       selectedTask.owner_username === currentUser ||
@@ -368,6 +371,7 @@ export default function TaskDetailModal({
   const isSubtaskAssignee = subtasks && subtasks.some((st) => st.assignee && currentUser && st.assignee.toLowerCase() === currentUser.toLowerCase());
   const isInvolved =
     !isPreviewMode &&
+    canComment &&
     (isTaskAdmin ||
       isSubtaskAssignee ||
       (isSystemTicket &&

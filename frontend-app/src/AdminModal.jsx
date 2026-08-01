@@ -8,6 +8,7 @@ export default function AdminModal({
   handleDeleteUser,
   handleUpdateUserStatus,
   handleToggleSuperAdmin,
+  handleSetUserRole,
   handleManualVerify,
   currentUser,
   language,
@@ -302,16 +303,6 @@ export default function AdminModal({
               </button>
             )}
             <button
-              onClick={handleProjectsTabClick}
-              className={`shrink-0 pb-2 text-sm font-medium transition-colors ${
-                activeTab === 'projects'
-                  ? 'border-b-2 border-black dark:border-white text-black dark:text-white font-bold'
-                  : 'text-neutral-400 hover:text-black dark:hover:text-white'
-              }`}
-            >
-              {tMsg('Project Management', 'Manajemen Proyek')}
-            </button>
-            <button
               onClick={() => setActiveTab('approvers')}
               className={`shrink-0 pb-2 text-sm font-medium transition-colors ${
                 activeTab === 'approvers'
@@ -325,6 +316,87 @@ export default function AdminModal({
         </div>
 
         {activeTab === 'users' ? (
+          <>
+          <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-4 sm:p-5">
+            <div className="flex items-start gap-2 mb-3">
+              <Icon name="info" className="w-4 h-4 text-neutral-400 mt-0.5 shrink-0" />
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-wider text-black dark:text-white">
+                  {tMsg('Role Guide', 'Panduan Role')}
+                </h3>
+                <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+                  {tMsg(
+                    'Each role controls what a user can do across projects, teams, and system settings.',
+                    'Setiap role mengatur apa yang bisa dilakukan pengguna pada proyek, teams, dan pengaturan sistem.'
+                  )}
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+              {[
+                {
+                  key: 'admin',
+                  icon: 'crown',
+                  label: tMsg('Admin', 'Admin'),
+                  badge:
+                    'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800/50',
+                  desc: tMsg(
+                    'Manage all projects, users, and system settings through the Administrator menu.',
+                    'Bisa mengelola semua project, user, dan pengaturan lainnya lewat menu Administrator.'
+                  ),
+                },
+                {
+                  key: 'project_owner',
+                  icon: 'briefcase',
+                  label: tMsg('Project Owner', 'Project Owner'),
+                  badge:
+                    'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/50',
+                  desc: tMsg(
+                    'Manage projects and teams, but cannot access the Administrator menu.',
+                    'Bisa mengelola project dan teams, tetapi tidak bisa masuk menu Administrator.'
+                  ),
+                },
+                {
+                  key: 'manager',
+                  icon: 'users',
+                  label: tMsg('Manager', 'Manager'),
+                  badge:
+                    'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 border-sky-200 dark:border-sky-800/50',
+                  desc: tMsg(
+                    'Can create new tasks in each project, but cannot create new projects.',
+                    'Bisa membuat task baru di masing-masing project, tetapi tidak bisa membuat project baru.'
+                  ),
+                },
+                {
+                  key: 'staff',
+                  icon: 'user',
+                  label: tMsg('Staff', 'Staff'),
+                  badge:
+                    'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700',
+                  desc: tMsg(
+                    'View-only access to tasks and comments in their assigned projects.',
+                    'Hanya bisa melihat task dan comment pada masing-masing task di project yang diikutinya.'
+                  ),
+                },
+              ].map((role) => (
+                <div
+                  key={role.key}
+                  className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 p-3.5"
+                >
+                  <span
+                    className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border ${role.badge}`}
+                  >
+                    <Icon name={role.icon} className="w-3.5 h-3.5" />
+                    {role.label}
+                  </span>
+                  <p className="mt-2.5 text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">
+                    {role.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="flex-1 flex flex-col overflow-hidden border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-sm bg-neutral-50 dark:bg-neutral-900 relative">
             <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-950 shrink-0 flex-wrap gap-4">
               <div className="flex items-center gap-4">
@@ -434,15 +506,44 @@ export default function AdminModal({
                         <HighlightText text={u.email} query={userSearchQuery} />
                       </td>
                       <td className="px-6 py-4 text-center whitespace-nowrap">
-                        {u.is_superadmin === 1 ? (
-                          <span className="text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-3 py-1 rounded-full border border-amber-200 dark:border-amber-800/50 shadow-sm flex items-center justify-center gap-1.5 w-max mx-auto">
-<Icon name="crown" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Admin', 'Admin')}
-                          </span>
-                        ) : (
-                          <span className="text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-700 shadow-sm flex items-center justify-center gap-1.5 w-max mx-auto">
-<Icon name="user" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('User', 'User')}
-                          </span>
-                        )}
+                        {(() => {
+                          const role =
+                            u.role || (u.is_superadmin === 1 ? 'admin' : 'project_owner');
+                          const styles = {
+                            admin:
+                              'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800/50',
+                            project_owner:
+                              'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/50',
+                            manager:
+                              'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400 border-sky-200 dark:border-sky-800/50',
+                            staff:
+                              'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border-slate-200 dark:border-slate-700',
+                          };
+                          const labels = {
+                            admin: tMsg('Admin', 'Admin'),
+                            project_owner: tMsg('Project Owner', 'Project Owner'),
+                            manager: tMsg('Manager', 'Manager'),
+                            staff: tMsg('Staff', 'Staff'),
+                          };
+                          return (
+                            <span
+                              className={`text-xs font-bold px-3 py-1 rounded-full border shadow-sm flex items-center justify-center gap-1.5 w-max mx-auto ${
+                                styles[role] || styles.staff
+                              }`}
+                            >
+                              {role === 'admin' ? (
+                                <Icon name="crown" className="w-3.5 h-3.5" />
+                              ) : role === 'project_owner' ? (
+                                <Icon name="briefcase" className="w-3.5 h-3.5" />
+                              ) : role === 'manager' ? (
+                                <Icon name="users" className="w-3.5 h-3.5" />
+                              ) : (
+                                <Icon name="user" className="w-3.5 h-3.5" />
+                              )}
+                              {labels[role] || role}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-6 py-4 text-center">
                         {u.is_verified === 1 ? (
@@ -483,28 +584,25 @@ export default function AdminModal({
                           <div className="flex justify-end items-center gap-2 flex-wrap">
 
                             {u.is_verified === 1 && u.username !== currentUser && (
-                              <button
-                                onClick={() => {
-                                  setUserToProcess(u.username);
-                                  setProcessAction(u.is_superadmin === 1 ? 'demote' : 'promote');
-                                  setConfirmText('');
-                                  setOffboardDate('');
+                              <select
+                                value={u.role || (u.is_superadmin === 1 ? 'admin' : 'project_owner')}
+                                onChange={(e) => {
+                                  if (handleSetUserRole) {
+                                    handleSetUserRole(u.username, e.target.value);
+                                  } else if (handleToggleSuperAdmin) {
+                                    handleToggleSuperAdmin(u.username);
+                                  }
                                 }}
-                                className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg transition-all border shadow-sm hover:-translate-y-0.5 ${
-                                  u.is_superadmin === 1
-                                    ? 'text-amber-700 bg-amber-50 hover:bg-amber-500 hover:text-white dark:bg-amber-900/20 dark:text-amber-400 border-amber-200 dark:border-amber-800/50'
-                                    : 'text-slate-700 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700 dark:hover:bg-slate-700'
-                                }`}
-                                title={
-                                  u.is_superadmin === 1
-                                    ? tMsg('Demote to Regular User', 'Turunkan ke Pengguna Biasa')
-                                    : tMsg('Promote to Super Admin', 'Naikkan ke Super Admin')
-                                }
+                                className="text-xs font-bold px-2 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-black dark:text-white outline-none"
+                                title={tMsg('Change Role', 'Ubah Role')}
                               >
-                                {u.is_superadmin === 1
-                                  ? (<><Icon name="crown" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Demote', 'Turunkan')}</>)
-                                  : (<><Icon name="user" className="w-3.5 h-3.5 inline mr-1" /> {tMsg('Promote', 'Naikkan')}</>)}
-                              </button>
+                                <option value="admin">{tMsg('Admin', 'Admin')}</option>
+                                <option value="project_owner">
+                                  {tMsg('Project Owner', 'Project Owner')}
+                                </option>
+                                <option value="manager">{tMsg('Manager', 'Manager')}</option>
+                                <option value="staff">{tMsg('Staff', 'Staff')}</option>
+                              </select>
                             )}
                             {u.is_verified === 1 &&
                               (u.account_status === 'active' || u.account_status === 'offboarding') && (
@@ -626,6 +724,7 @@ export default function AdminModal({
               </table>
             </div>
           </div>
+          </>
         ) : activeTab === 'projects' ? (
           <div className="flex-1 flex flex-col overflow-hidden border border-neutral-200 dark:border-neutral-800 rounded-3xl shadow-sm bg-neutral-50 dark:bg-neutral-900 relative">
             <div className="px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-950 shrink-0">

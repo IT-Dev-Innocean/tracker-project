@@ -99,6 +99,19 @@ class AdminActionModel(BaseModel):
     offboard_date: Optional[str] = None
 
 
+class UserRoleUpdateModel(BaseModel):
+    username: str
+    role: str
+
+
+class WorkspaceInviteModel(BaseModel):
+    email: str
+    role: Optional[str] = "manager"
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+    temporary_password: Optional[str] = None
+
+
 class SubtaskReorderModel(BaseModel):
     ordered_ids: List[int]
 

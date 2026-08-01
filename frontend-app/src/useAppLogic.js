@@ -361,6 +361,7 @@ export default function useAppLogic() {
   });
   const [showTeams, setShowTeams] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showProjectManage, setShowProjectManage] = useState(false);
   const [sidebarNav, setSidebarNav] = useState('home'); // home | projects | teams | admin
 
   useEffect(() => {
@@ -559,6 +560,7 @@ export default function useAppLogic() {
   const [isGlobalSearchClosing, setIsGlobalSearchClosing] = useState(false);
   const [accountStatus, setAccountStatus] = useState('active');
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [workspaceRole, setWorkspaceRole] = useState('project_owner'); // admin | project_owner | manager | staff
   const [feedbackText, setFeedbackText] = useState('');
   const [supportText, setSupportText] = useState('');
   useEffect(() => {
@@ -1875,7 +1877,10 @@ export default function useAppLogic() {
       .get('/api/profile')
       .then((res) => {
         setAccountStatus(res.data.account_status || 'active');
-        setIsSuperAdmin(res.data.is_superadmin === 1);
+        setIsSuperAdmin(res.data.is_superadmin === 1 || res.data.role === 'admin');
+        setWorkspaceRole(
+          res.data.role || (res.data.is_superadmin === 1 ? 'admin' : 'project_owner')
+        );
         setProfileData({ ...res.data, current_password: '', new_password: '' });
       })
       .catch(console.error);
@@ -4083,6 +4088,7 @@ export default function useAppLogic() {
         setShowTeams(false);
         setShowTimesheets(false);
         setShowAdmin(true);
+        setShowProjectManage(false);
         setSidebarNav('admin');
       })
       .catch((err) => showNotification('Failed to load users or unauthorized', 'error'));
@@ -4091,6 +4097,16 @@ export default function useAppLogic() {
   const handleToggleSuperAdmin = (username) => {
     axios
       .put(`/api/admin/users/superadmin`, { username, status: '' })
+      .then((res) => {
+        showNotification(res.data.message, 'success');
+        refreshAdminUsers();
+      })
+      .catch((err) => showNotification(err.response?.data?.detail || 'Failed to update role', 'error'));
+  };
+
+  const handleSetUserRole = (username, role) => {
+    axios
+      .put(`/api/admin/users/role`, { username, role })
       .then((res) => {
         showNotification(res.data.message, 'success');
         refreshAdminUsers();
@@ -4569,6 +4585,8 @@ export default function useAppLogic() {
     setShowTeams,
     showAdmin,
     setShowAdmin,
+    showProjectManage,
+    setShowProjectManage,
     sidebarNav,
     setSidebarNav,
     isNotifClosing,
@@ -4594,6 +4612,8 @@ export default function useAppLogic() {
     timelineDrag,
     accountStatus,
     isSuperAdmin,
+    workspaceRole,
+    setWorkspaceRole,
     isFeedbackOpen,
     feedbackText,
     isSupportOpen,
@@ -4788,6 +4808,7 @@ export default function useAppLogic() {
     openAdminModal,
     handleUpdateUserStatus,
     handleToggleSuperAdmin,
+    handleSetUserRole,
     handleManualVerify,
     handleAddLeave,
     handleDeleteLeave,

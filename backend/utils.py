@@ -402,6 +402,11 @@ def check_board_access(db: Session, board_id: int, username: str):
         return False
     if board.owner_username == username:
         return True
+    # Admin / Project Owner can access all non-private workspace projects
+    if can_manage_projects(db, username):
+        if getattr(board, "is_private", 0) == 1:
+            return is_user_superadmin(db, username)
+        return True
     if getattr(board, "is_private", 0) == 1:
         return False
     member = (
@@ -438,10 +443,70 @@ def can_modify_system_ticket(db: Session, username: str) -> bool:
 
 def is_user_superadmin(db: Session, username: str):
     user = db.query(User).filter(User.username == username).first()
-    return user and user.is_superadmin == 1
+    if not user:
+        return False
+    if getattr(user, "role", None) == "admin":
+        return True
+    return user.is_superadmin == 1
+
+
+ROLE_ADMIN = "admin"
+ROLE_PROJECT_OWNER = "project_owner"
+ROLE_MANAGER = "manager"
+ROLE_STAFF = "staff"
+VALID_USER_ROLES = {ROLE_ADMIN, ROLE_PROJECT_OWNER, ROLE_MANAGER, ROLE_STAFF}
+
+
+def get_user_role(db: Session, username: str) -> str:
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        return ROLE_STAFF
+    role = getattr(user, "role", None)
+    if role in VALID_USER_ROLES:
+        return role
+    return ROLE_ADMIN if user.is_superadmin == 1 else ROLE_PROJECT_OWNER
+
+
+def sync_user_role_flags(user: User, role: str):
+    """Keep is_superadmin aligned with workspace role."""
+    user.role = role
+    user.is_superadmin = 1 if role == ROLE_ADMIN else 0
+
+
+def can_access_admin_menu(db: Session, username: str) -> bool:
+    return get_user_role(db, username) == ROLE_ADMIN
+
+
+def can_create_project(db: Session, username: str) -> bool:
+    return get_user_role(db, username) in (ROLE_ADMIN, ROLE_PROJECT_OWNER)
+
+
+def can_manage_projects(db: Session, username: str) -> bool:
+    return get_user_role(db, username) in (ROLE_ADMIN, ROLE_PROJECT_OWNER)
+
+
+def can_manage_workspace_users(db: Session, username: str) -> bool:
+    """Admin and Project Owner can manage people in Teams directory."""
+    return get_user_role(db, username) in (ROLE_ADMIN, ROLE_PROJECT_OWNER)
+
+
+def can_create_task(db: Session, username: str) -> bool:
+    return get_user_role(db, username) in (ROLE_ADMIN, ROLE_PROJECT_OWNER, ROLE_MANAGER)
+
+
+def can_modify_tasks(db: Session, username: str) -> bool:
+    """Staff is view-only for tasks."""
+    return get_user_role(db, username) != ROLE_STAFF
+
+
+def can_write_comments(db: Session, username: str) -> bool:
+    """Staff may view comments but not write them."""
+    return get_user_role(db, username) != ROLE_STAFF
 
 
 def is_task_admin(db: Session, task: Request, username: str):
+    if not can_modify_tasks(db, username):
+        return False
     if is_user_superadmin(db, username):
         return True
     if task.owner_username and task.owner_username.lower() == username.lower():

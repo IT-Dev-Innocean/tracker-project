@@ -92,6 +92,8 @@ class User(Base):
     )  # active, suspended, pending_deletion
     deletion_date = Column(DateTime, nullable=True)
     is_superadmin = Column(Integer, default=0)
+    # admin | project_owner | manager | staff
+    role = Column(String(50), default="project_owner")
     timesheet_approver = Column(String(50), nullable=True)
 
 
@@ -195,8 +197,33 @@ def set_security_log(db, key: str, value):
 
 def setup_db():
     Base.metadata.create_all(bind=engine)
+    # Ensure role column exists on older databases (create_all won't alter tables)
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'project_owner'"
+                )
+            )
+    except Exception:
+        try:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'project_owner'"))
+        except Exception:
+            pass
+
     db = SessionLocal()
     try:
+        # Backfill roles from is_superadmin for rows missing/invalid role
+        users = db.query(User).all()
+        for u in users:
+            current_role = getattr(u, "role", None)
+            if current_role not in ("admin", "project_owner", "manager", "staff"):
+                u.role = "admin" if u.is_superadmin == 1 else "project_owner"
+            # Keep is_superadmin in sync with role
+            u.is_superadmin = 1 if u.role == "admin" else 0
+        db.commit()
+
         admin = db.query(User).filter(User.username == "admin").first()
         if not admin:
             salt = bcrypt.gensalt()
@@ -207,19 +234,22 @@ def setup_db():
                 full_name="System Admin",
                 password=hashed_pw,
                 is_superadmin=1,
+                role="admin",
             )
             db.add(new_admin)
             db.commit()
-        elif admin.is_superadmin == 0:
-            admin.is_superadmin = 1
-            db.commit()
+        else:
+            if admin.is_superadmin == 0 or getattr(admin, "role", None) != "admin":
+                admin.is_superadmin = 1
+                admin.role = "admin"
+                db.commit()
 
-        elif not admin.password.startswith("$2b$"):
-            salt = bcrypt.gensalt()
-            admin.password = bcrypt.hashpw(
-                admin.password.encode("utf-8")[:71], salt
-            ).decode("utf-8")
-            db.commit()
+            if not admin.password.startswith("$2b$"):
+                salt = bcrypt.gensalt()
+                admin.password = bcrypt.hashpw(
+                    admin.password.encode("utf-8")[:71], salt
+                ).decode("utf-8")
+                db.commit()
     finally:
         db.close()
 
