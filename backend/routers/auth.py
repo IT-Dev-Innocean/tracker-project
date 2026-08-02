@@ -147,16 +147,47 @@ def login(credentials: LoginModel, db: Session = Depends(get_db)):
     raise HTTPException(status_code=401, detail="Invalid username or password")
 
 
-@router.post("/api/google-login")
-def google_login(payload: GoogleLoginModel, db: Session = Depends(get_db)):
-    # Verifikasi token langsung ke server Google
+def _resolve_google_user_info(token: str) -> dict:
+    """
+    Support both:
+    - OAuth access_token (Continue with Google popup / implicit flow)
+    - GIS One Tap / Sign-In ID token (JWT credential, no new tab)
+    """
+    token = (token or "").strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Invalid Google token")
+
+    # JWT ID tokens always have 3 segments separated by dots
+    if token.count(".") == 2:
+        resp = requests.get(
+            f"https://oauth2.googleapis.com/tokeninfo?id_token={token}",
+            timeout=15,
+        )
+        if resp.status_code != 200:
+            raise HTTPException(status_code=401, detail="Invalid Google token")
+
+        user_info = resp.json()
+        expected_aud = os.getenv("GOOGLE_CLIENT_ID", "").strip()
+        if expected_aud and user_info.get("aud") != expected_aud:
+            raise HTTPException(status_code=401, detail="Invalid Google token audience")
+
+        if str(user_info.get("email_verified", "")).lower() in ("false", "0"):
+            raise HTTPException(status_code=401, detail="Google email not verified")
+
+        return user_info
+
     resp = requests.get(
-        f"https://www.googleapis.com/oauth2/v3/userinfo?access_token={payload.token}"
+        f"https://www.googleapis.com/oauth2/v3/userinfo?access_token={token}",
+        timeout=15,
     )
     if resp.status_code != 200:
         raise HTTPException(status_code=401, detail="Invalid Google token")
+    return resp.json()
 
-    user_info = resp.json()
+
+@router.post("/api/google-login")
+def google_login(payload: GoogleLoginModel, db: Session = Depends(get_db)):
+    user_info = _resolve_google_user_info(payload.token)
     email = user_info.get("email", "").lower()
     name = user_info.get("name", "")
     picture = user_info.get("picture", "")

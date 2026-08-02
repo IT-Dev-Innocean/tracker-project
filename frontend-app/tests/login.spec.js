@@ -15,7 +15,7 @@ test.describe('Autentikasi (Login) Feature', () => {
     await page.locator('input[type="password"]').fill('Admin123'); // Ganti dengan password asli
 
     // 3. Robot mengeklik tombol Authenticate
-    await page.getByRole('button', { name: /^Login$/i, exact: true }).click();
+    await page.getByRole('button', { name: /^log\s*in$/i }).click();
 
     // 4. Robot memverifikasi apakah notifikasi sukses muncul dan masuk ke Dashboard
     await expect(page.getByText('Login successful!')).toBeVisible({ timeout: 10000 });
@@ -32,7 +32,7 @@ test.describe('Autentikasi (Login) Feature', () => {
     await page.locator('input[type="password"]').fill('salah_password_123');
 
     // 3. Klik tombol masuk
-    await page.getByRole('button', { name: /^Login$/i, exact: true }).click();
+    await page.getByRole('button', { name: /^log\s*in$/i }).click();
 
     // 4. Verifikasi dengan Regex (/.../i) agar lebih toleran terhadap perbedaan tanda baca
     await expect(page.getByText(/Invalid username or password/i)).toBeVisible({ timeout: 10000 });

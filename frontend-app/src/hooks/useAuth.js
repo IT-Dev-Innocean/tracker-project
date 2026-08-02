@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { useGoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin, useGoogleOneTapLogin, googleLogout } from '@react-oauth/google';
 
 export function useAuth({ showNotification, setIsLoading, language, onClearSession }) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -86,42 +86,84 @@ export function useAuth({ showNotification, setIsLoading, language, onClearSessi
     return () => window.removeEventListener('auth_error', handleAuthError);
   }, [onClearSession, setIsLoading, showNotification]);
 
-  const loginWithGoogle = useGoogleLogin({
+  const completeGoogleLogin = (googleToken) => {
+    if (!googleToken) {
+      showNotification('Google Login failed or cancelled', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+
+    const wakeTimer = setTimeout(() => {
+      showNotification(
+        language === 'id'
+          ? 'Server sedang dibangunkan (Cold Start). Harap tunggu hingga 50 detik...'
+          : 'Waking up server (Cold Start). Please wait up to 50 seconds...',
+        'info'
+      );
+    }, 5000);
+
+    axios
+      .post('/api/google-login', { token: googleToken }, { timeout: 75000 })
+      .then((res) => {
+        clearTimeout(wakeTimer);
+        localStorage.setItem('innocean_auth', 'true');
+        localStorage.setItem('innocean_token', res.data.token);
+        localStorage.setItem('innocean_username', res.data.username);
+        sessionStorage.setItem('innocean_just_logged_in', 'true');
+        window.location.href = '/';
+      })
+      .catch((err) => {
+        clearTimeout(wakeTimer);
+        setIsLoading(false);
+        showNotification(err.response?.data?.detail || 'Google Login failed', 'error');
+      });
+  };
+
+  useGoogleOneTapLogin({
+    onSuccess: (credentialResponse) => {
+      completeGoogleLogin(credentialResponse?.credential);
+    },
+    onError: () => {},
+    disabled: isAuthenticated,
+    cancel_on_tap_outside: false,
+    auto_select: false,
+    use_fedcm_for_prompt: true,
+  });
+
+  const loginWithGoogleOAuth = useGoogleLogin({
     onSuccess: (tokenResponse) => {
-      setIsLoading(true);
-
-      const wakeTimer = setTimeout(() => {
-        showNotification(
-          language === 'id'
-            ? 'Server sedang dibangunkan (Cold Start). Harap tunggu hingga 50 detik...'
-            : 'Waking up server (Cold Start). Please wait up to 50 seconds...',
-          'info'
-        );
-      }, 5000);
-
-      axios
-        .post('/api/google-login', { token: tokenResponse.access_token }, { timeout: 75000 })
-        .then((res) => {
-          clearTimeout(wakeTimer);
-          localStorage.setItem('innocean_auth', 'true');
-          localStorage.setItem('innocean_token', res.data.token);
-          localStorage.setItem('innocean_username', res.data.username);
-          sessionStorage.setItem('innocean_just_logged_in', 'true');
-          window.location.href = '/';
-        })
-        .catch((err) => {
-          clearTimeout(wakeTimer);
-          setIsLoading(false);
-          showNotification(err.response?.data?.detail || 'Google Login failed', 'error');
-        });
+      completeGoogleLogin(tokenResponse?.access_token);
     },
     onError: () => showNotification('Google Login failed or cancelled', 'error'),
   });
+
+  const loginWithGoogle = () => {
+    if (typeof window !== 'undefined' && window.google?.accounts?.id?.prompt) {
+      try {
+        window.google.accounts.id.prompt((notification) => {
+          if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
+            loginWithGoogleOAuth();
+          }
+        });
+        return;
+      } catch {
+        // fall through
+      }
+    }
+    loginWithGoogleOAuth();
+  };
 
   const handleLogout = (setIsLogoutConfirmOpen) => {
     if (setIsLogoutConfirmOpen) setIsLogoutConfirmOpen(false);
     setIsLoading(true);
     window.isLoggingOut = true;
+
+    try {
+      googleLogout();
+    } catch {
+      // ignore
+    }
 
     setShowAuthForm(false);
     setIsAuthenticated(false);

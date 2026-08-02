@@ -12,7 +12,7 @@ import {
 } from './featureFlags';
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import axios from 'axios'; 
-import { useGoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin, useGoogleOneTapLogin, googleLogout } from '@react-oauth/google';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 
@@ -1289,38 +1289,80 @@ export default function useAppLogic() {
     }
   }, []);
 
-  const loginWithGoogle = useGoogleLogin({
+  const completeGoogleLogin = (googleToken) => {
+    if (!googleToken) {
+      showNotification('Google Login failed or cancelled', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+
+    const wakeTimer = setTimeout(() => {
+      showNotification(
+        language === 'id'
+          ? 'Server sedang dibangunkan (Cold Start). Harap tunggu hingga 50 detik...'
+          : 'Waking up server (Cold Start). Please wait up to 50 seconds...',
+        'info'
+      );
+    }, 5000);
+
+    axios
+      .post('/api/google-login', { token: googleToken }, { timeout: 75000 })
+      .then((res) => {
+        clearTimeout(wakeTimer);
+        localStorage.setItem('innocean_auth', 'true');
+        localStorage.setItem('innocean_token', res.data.token);
+        localStorage.setItem('innocean_username', res.data.username);
+        sessionStorage.setItem('innocean_just_logged_in', 'true');
+        // Hard reload agar Dashboard termuat bersih tanpa blank screen
+        window.location.href = '/';
+      })
+      .catch((err) => {
+        clearTimeout(wakeTimer);
+        setIsLoading(false);
+        showNotification(err.response?.data?.detail || 'Google Login failed', 'error');
+      });
+  };
+
+  // Google One Tap — tampilkan daftar akun di pojok kanan atas (tanpa tab baru)
+  useGoogleOneTapLogin({
+    onSuccess: (credentialResponse) => {
+      completeGoogleLogin(credentialResponse?.credential);
+    },
+    onError: () => {
+      // Diam saja; user masih bisa pakai tombol Continue with Google
+    },
+    disabled: isAuthenticated || isLoading,
+    cancel_on_tap_outside: false,
+    auto_select: false,
+    use_fedcm_for_prompt: true,
+  });
+
+  const loginWithGoogleOAuth = useGoogleLogin({
     onSuccess: (tokenResponse) => {
-      setIsLoading(true);
-
-      const wakeTimer = setTimeout(() => {
-        showNotification(
-          language === 'id'
-            ? 'Server sedang dibangunkan (Cold Start). Harap tunggu hingga 50 detik...'
-            : 'Waking up server (Cold Start). Please wait up to 50 seconds...',
-          'info'
-        );
-      }, 5000);
-
-      axios
-        .post('/api/google-login', { token: tokenResponse.access_token }, { timeout: 75000 })
-        .then((res) => {
-          clearTimeout(wakeTimer);
-          localStorage.setItem('innocean_auth', 'true');
-          localStorage.setItem('innocean_token', res.data.token);
-          localStorage.setItem('innocean_username', res.data.username);
-          sessionStorage.setItem('innocean_just_logged_in', 'true');
-          // Gunakan Hard Reload agar memori React untuk Dashboard termuat dengan bersih tanpa blank screen
-          window.location.href = '/';
-        })
-        .catch((err) => {
-          clearTimeout(wakeTimer);
-          setIsLoading(false);
-          showNotification(err.response?.data?.detail || 'Google Login failed', 'error');
-        });
+      completeGoogleLogin(tokenResponse?.access_token);
     },
     onError: () => showNotification('Google Login failed or cancelled', 'error'),
   });
+
+  // Prefer One Tap account chooser; fallback ke OAuth popup jika One Tap tidak tersedia
+  const loginWithGoogle = () => {
+    if (typeof window !== 'undefined' && window.google?.accounts?.id?.prompt) {
+      try {
+        window.google.accounts.id.prompt((notification) => {
+          // Fallback OAuth hanya jika One Tap gagal tampil / di-skip Google,
+          // bukan saat user menutup prompt dengan sengaja.
+          if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
+            loginWithGoogleOAuth();
+          }
+        });
+        return;
+      } catch {
+        // fall through
+      }
+    }
+    loginWithGoogleOAuth();
+  };
 
   const [isPanning, setIsPanning] = useState(false);
   const [startX, setStartX] = useState(0);
@@ -1637,6 +1679,13 @@ export default function useAppLogic() {
     setIsLogoutConfirmOpen(false);
     setIsLoading(true);
     window.isLoggingOut = true;
+
+    // Matikan Google One Tap auto-select agar tidak langsung login lagi setelah logout
+    try {
+      googleLogout();
+    } catch {
+      // ignore
+    }
 
     // Set state ke homepage segera agar transisi visual langsung mengarah ke Landing Page (Homepage)
     // dan bukan ke form login/register
