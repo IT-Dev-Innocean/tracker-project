@@ -9,6 +9,7 @@ import LandingFeatures from './components/LandingPage/LandingFeatures';
 import LandingFAQ from './components/LandingPage/LandingFAQ';
 import LandingCTA from './components/LandingPage/LandingCTA';
 import { Icon } from './components/icons/Icon';
+import { INSTALL_APP_UI_ENABLED } from './featureFlags';
 
 export default function LandingPage({
   showAuthForm,
@@ -120,7 +121,7 @@ export default function LandingPage({
         <LandingHero
           setIsLoginMode={setIsLoginMode}
           setShowAuthForm={setShowAuthForm}
-          isInstallable={isInstallable}
+          isInstallable={INSTALL_APP_UI_ENABLED && isInstallable}
           handleInstallClick={handleInstallClick}
         />
         <LandingAISection showAuthForm={showAuthForm} />
@@ -138,7 +139,7 @@ export default function LandingPage({
         {/* Jump to Top Button */}
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className={`fixed bottom-6 right-6 md:bottom-10 md:right-10 z-[100] w-12 h-12 bg-white dark:bg-neutral-800 text-black dark:text-white border border-slate-200 dark:border-slate-700 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-all duration-300 ${
+          className={`fixed bottom-6 right-6 md:bottom-10 md:right-10 z-[100] w-12 h-12 cursor-pointer bg-white dark:bg-neutral-800 text-black dark:text-white border border-slate-200 dark:border-slate-700 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-all duration-300 ${
             showScrollTop ? 'translate-y-0 opacity-100' : 'translate-y-16 opacity-0 pointer-events-none'
           }`}
           title="Jump to Top"
@@ -164,7 +165,7 @@ export default function LandingPage({
               </p>
               <button
                 onClick={() => setIsSupportAlertOpen(false)}
-                className="w-full px-4 py-4 rounded-full font-bold text-white bg-black dark:bg-white dark:text-black hover:opacity-80 shadow-md transition-all uppercase tracking-widest text-xs hover:-translate-y-0.5"
+                className="w-full cursor-pointer px-4 py-4 rounded-full font-bold text-white bg-black dark:bg-white dark:text-black hover:opacity-80 shadow-md transition-all uppercase tracking-widest text-xs hover:-translate-y-0.5"
               >
                 Understood
               </button>
@@ -176,55 +177,77 @@ export default function LandingPage({
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950 flex items-center justify-center p-4 transition-colors duration-200 relative selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative overflow-x-hidden overflow-y-auto selection:bg-[#0C66E4] selection:text-white bg-[#F4F5F7]">
       <style>{`
         @keyframes form-fade {
-          0% { opacity: 0; filter: blur(4px); transform: scale(0.98); }
-          100% { opacity: 1; filter: blur(0); transform: scale(1); }
+          0% { opacity: 0; filter: blur(4px); transform: translateY(8px) scale(0.98); }
+          100% { opacity: 1; filter: blur(0); transform: translateY(0) scale(1); }
         }
         .form-animate {
-          animation: form-fade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          animation: form-fade 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .auth-soft-glow {
+          background:
+            radial-gradient(ellipse 80% 50% at 50% -10%, rgba(12, 102, 228, 0.14), transparent 55%),
+            radial-gradient(ellipse 40% 30% at 10% 90%, rgba(255, 171, 0, 0.08), transparent 50%),
+            radial-gradient(ellipse 40% 30% at 90% 85%, rgba(54, 179, 126, 0.08), transparent 50%);
         }
       `}</style>
+
+      {/* Soft atmospheric backdrop (ClickUp / Jira light) */}
+      <div className="pointer-events-none absolute inset-0 auth-soft-glow" aria-hidden="true" />
+      <div
+        className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-linear-to-b from-[#FFE8F0]/70 via-[#E8F0FF]/40 to-transparent"
+        aria-hidden="true"
+      />
+
       <button
-        onClick={() => setShowAuthForm(false)}
-        className="absolute top-8 left-8 text-neutral-400 hover:text-black dark:hover:text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-colors"
+        type="button"
+        onClick={() => {
+          setShowAuthForm(false);
+          setIsForgotMode(false);
+          setIsResetMode(false);
+          setIsLoginMode(true);
+        }}
+        className="absolute top-5 left-5 sm:top-8 sm:left-8 z-50 cursor-pointer text-[#626F86] hover:text-[#172B4D] font-semibold text-sm flex items-center gap-2 transition-colors"
       >
         <Icon name="arrow-left" className="w-4 h-4" /> Back
       </button>
 
-      <AuthForms
-        isLoginMode={isLoginMode}
-        setIsLoginMode={setIsLoginMode}
-        isResetMode={isResetMode}
-        setIsResetMode={setIsResetMode}
-        setResetToken={setResetToken}
-        isForgotMode={isForgotMode}
-        setIsForgotMode={setIsForgotMode}
-        loginUsername={loginUsername}
-        setLoginUsername={setLoginUsername}
-        loginPassword={loginPassword}
-        setLoginPassword={setLoginPassword}
-        regFullName={regFullName}
-        setRegFullName={setRegFullName}
-        regEmail={regEmail}
-        setRegEmail={setRegEmail}
-        regConfirmPassword={regConfirmPassword}
-        setRegConfirmPassword={setRegConfirmPassword}
-        forgotEmail={forgotEmail}
-        setForgotEmail={setForgotEmail}
-        showPassword={showPassword}
-        setShowPassword={setShowPassword}
-        showConfirmPassword={showConfirmPassword}
-        setShowConfirmPassword={setShowConfirmPassword}
-        handleLogin={handleLogin}
-        handleRegister={handleRegister}
-        handleForgotPassword={handleForgotPassword}
-        handleResetPassword={handleResetPassword}
-        loginWithGoogle={loginWithGoogle}
-        setIsPrivacyOpen={setIsPrivacyOpen}
-        setIsTermsOpen={setIsTermsOpen}
-      />
+      <div className="relative z-0 w-full flex justify-center py-12 sm:py-8">
+        <AuthForms
+          isLoginMode={isLoginMode}
+          setIsLoginMode={setIsLoginMode}
+          isResetMode={isResetMode}
+          setIsResetMode={setIsResetMode}
+          setResetToken={setResetToken}
+          isForgotMode={isForgotMode}
+          setIsForgotMode={setIsForgotMode}
+          loginUsername={loginUsername}
+          setLoginUsername={setLoginUsername}
+          loginPassword={loginPassword}
+          setLoginPassword={setLoginPassword}
+          regFullName={regFullName}
+          setRegFullName={setRegFullName}
+          regEmail={regEmail}
+          setRegEmail={setRegEmail}
+          regConfirmPassword={regConfirmPassword}
+          setRegConfirmPassword={setRegConfirmPassword}
+          forgotEmail={forgotEmail}
+          setForgotEmail={setForgotEmail}
+          showPassword={showPassword}
+          setShowPassword={setShowPassword}
+          showConfirmPassword={showConfirmPassword}
+          setShowConfirmPassword={setShowConfirmPassword}
+          handleLogin={handleLogin}
+          handleRegister={handleRegister}
+          handleForgotPassword={handleForgotPassword}
+          handleResetPassword={handleResetPassword}
+          loginWithGoogle={loginWithGoogle}
+          setIsPrivacyOpen={setIsPrivacyOpen}
+          setIsTermsOpen={setIsTermsOpen}
+        />
+      </div>
       {isPrivacyOpen && <PrivacyPolicyModal setIsPrivacyOpen={setIsPrivacyOpen} />}
       {isTermsOpen && <TermsOfServiceModal setIsTermsOpen={setIsTermsOpen} />}
     </div>

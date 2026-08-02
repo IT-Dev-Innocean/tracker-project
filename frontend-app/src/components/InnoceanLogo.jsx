@@ -5,6 +5,7 @@ export default function InnoceanLogo({
   collapsed = false,
   size = 'md',
   className = '',
+  forceBlack = false,
   onClick,
 }) {
   const sizeClasses = {
@@ -15,6 +16,9 @@ export default function InnoceanLogo({
   };
 
   const logoHeight = collapsed ? 'h-5' : sizeClasses[size] || sizeClasses.md;
+  const logoTone = forceBlack
+    ? 'brightness-0'
+    : 'brightness-0 dark:brightness-100';
 
   return (
     <div
@@ -35,7 +39,7 @@ export default function InnoceanLogo({
       <img
         src={INNOCEAN_LOGO_URL}
         alt='INNOCEAN'
-        className={`${logoHeight} w-auto object-contain brightness-0 dark:brightness-100`}
+        className={`${logoHeight} w-auto object-contain ${logoTone}`}
       />
       {showTracker && !collapsed && (
         <span
