@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { HighlightText, LoadingSpinner } from './Utils';
 import { Icon } from './components/icons/Icon';
+import { excludeTodoListBoards } from './utils/boards';
 
 export default function AdminModal({
   adminUsers,
@@ -177,7 +178,7 @@ export default function AdminModal({
     axios
       .get('/api/admin/boards')
       .then((res) => {
-        setAdminBoards(res.data.boards || []);
+        setAdminBoards(excludeTodoListBoards(res.data.boards || []));
         setIsBoardsLoading(false);
       })
       .catch((err) => {

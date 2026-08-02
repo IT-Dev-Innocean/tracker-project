@@ -57,6 +57,7 @@ import HomeDashboard from './components/HomeDashboard';
 import TimesheetView from './TimesheetView';
 import TeamsDirectory from './TeamsDirectory';
 import ProjectManagementPage from './ProjectManagementPage';
+import { excludeTodoListBoards } from './utils/boards';
 
 import './api/axiosSetup';
 
@@ -591,7 +592,7 @@ function App() {
   }, [projectChatMessages, isProjectChatOpen, drawerTab, currentUser, firstUnreadProjectChatId, selectedBoard]);
 
   const sortedBoards = useMemo(() => {
-    let sorted = [...boards];
+    let sorted = excludeTodoListBoards(boards);
     if (!selectedBoard && globalSearchQuery.trim()) {
       const q = globalSearchQuery.toLowerCase();
       sorted = sorted.filter((b) => b.name.toLowerCase().includes(q) || b.owner_username.toLowerCase().includes(q));
@@ -605,11 +606,6 @@ function App() {
       sorted.sort((a, b) => (b.total_tasks || 0) - (a.total_tasks || 0));
     }
     sorted.sort((a, b) => {
-      const isTodoA = a.name.toLowerCase() === 'to-do list' && a.is_private;
-      const isTodoB = b.name.toLowerCase() === 'to-do list' && b.is_private;
-      if (isTodoA && !isTodoB) return -1;
-      if (!isTodoA && isTodoB) return 1;
-
       const isFavA = favoriteBoards.includes(a.id);
       const isFavB = favoriteBoards.includes(b.id);
       if (isFavA && !isFavB) return -1;

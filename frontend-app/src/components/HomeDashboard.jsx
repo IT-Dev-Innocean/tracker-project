@@ -4,6 +4,8 @@ import { useAppContext } from '../contexts/AppContext';
 import { isUserAssigned, getTaskAssignee } from '../useAppLogic';
 import { Avatar } from '../SharedUI';
 import { Icon } from './icons/Icon';
+import { MY_CAPACITY_UI_ENABLED } from '../featureFlags';
+import { excludeTodoListBoards } from '../utils/boards';
 
 const cleanMarkdown = (text) => {
   if (!text) return '';
@@ -300,15 +302,8 @@ export default function HomeDashboard() {
     };
   };
 
-  const homeProjectList = (boards || [])
-    .filter(
-      (b) =>
-        !(
-          b.is_private === 1 &&
-          (b.name || '').toLowerCase() === 'to-do list'
-        )
-    )
-    .slice(0, 6);
+  const projectBoards = excludeTodoListBoards(boards || []);
+  const homeProjectList = projectBoards.slice(0, 6);
 
   const homeTeamList = (userDirectory || []).slice(0, 6);
 
@@ -331,7 +326,7 @@ export default function HomeDashboard() {
       isUserAssigned(t, currentUser)
     );
   });
-  const activeProjectsCount = boards.length;
+  const activeProjectsCount = projectBoards.length;
 
   // Overdue logic
   const overdueTasksCount = tasks.filter((t) => {
@@ -367,22 +362,23 @@ export default function HomeDashboard() {
       .map((t) => t.board_id)
   );
 
-  const totalProjectsCount = boards.length;
-  const completedProjectsCount = boards.filter((b) => {
+  const totalProjectsCount = projectBoards.length;
+  const completedProjectsCount = projectBoards.filter((b) => {
     const total = b.total_tasks || 0;
     const done = b.done_tasks || 0;
     return total > 0 && done >= total;
   }).length;
-  const overdueProjectsCount = boards.filter(
+  const overdueProjectsCount = projectBoards.filter(
     (b) =>
       overdueBoardIds.has(b.id) ||
       (b.health_alert || '').includes('Attention')
   ).length;
   const averageProgressPct =
-    boards.length === 0
+    projectBoards.length === 0
       ? 0
       : Math.round(
-          boards.reduce((sum, b) => sum + getBoardProgress(b), 0) / boards.length
+          projectBoards.reduce((sum, b) => sum + getBoardProgress(b), 0) /
+            projectBoards.length
         );
 
   const visibleChatsForKey = inboxChats.filter(
@@ -683,7 +679,7 @@ export default function HomeDashboard() {
         </div>
 
         {/* My Capacity Meter */}
-        {myActiveWorkloadEtc > 0 && (
+        {MY_CAPACITY_UI_ENABLED && myActiveWorkloadEtc > 0 && (
           <div className='tour-my-capacity bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-sm'>
             <div className='flex justify-between items-center mb-3'>
               <h3 className='text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2'>
@@ -765,9 +761,9 @@ export default function HomeDashboard() {
               value: overdueProjectsCount,
               valueSuffix: '',
               icon: 'alert-triangle',
-              iconWrap: 'bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400',
-              valueClass: 'text-teal-600 dark:text-teal-400',
-              spark: '#14b8a6',
+              iconWrap: 'bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400',
+              valueClass: 'text-red-600 dark:text-red-400',
+              spark: '#ef4444',
             },
             {
               key: 'progress',

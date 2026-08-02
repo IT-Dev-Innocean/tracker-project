@@ -72,6 +72,9 @@ def get_boards(
         for b in db.query(Board).all():
             if not b or b.id in known_ids:
                 continue
+            # Never surface personal To-do List boards in the shared project list
+            if is_todo_list_board(b):
+                continue
             # Keep other users' private workspaces private (except root admin)
             if getattr(b, "is_private", 0) == 1 and not is_user_superadmin(db, current_user):
                 continue

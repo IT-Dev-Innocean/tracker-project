@@ -450,6 +450,15 @@ def is_user_superadmin(db: Session, username: str):
     return user.is_superadmin == 1
 
 
+def is_todo_list_board(board) -> bool:
+    """Personal auto-provisioned To-do List boards — keep out of project lists."""
+    if not board:
+        return False
+    name = (getattr(board, "name", None) or "").strip().lower()
+    is_private = getattr(board, "is_private", 0) == 1
+    return is_private and name == "to-do list"
+
+
 ROLE_ADMIN = "admin"
 ROLE_PROJECT_OWNER = "project_owner"
 ROLE_MANAGER = "manager"

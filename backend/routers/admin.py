@@ -397,10 +397,13 @@ def get_all_boards_admin(
         raise HTTPException(status_code=403, detail="Project management access required")
 
     # Admin & Project Owner can see every project in the workspace
+    # (exclude personal To-do List boards — easier project maintenance)
     boards = db.query(Board).all()
 
     res = []
     for b in boards:
+        if is_todo_list_board(b):
+            continue
         owner = db.query(User).filter(User.username == b.owner_username).first()
         owner_status = owner.account_status if owner else "orphan"
         res.append(

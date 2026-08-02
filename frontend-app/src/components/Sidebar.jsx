@@ -9,6 +9,7 @@ import {
   TIMESHEETS_UI_ENABLED,
   TODO_LIST_UI_ENABLED,
 } from '../featureFlags';
+import { isTodoListBoard, excludeTodoListBoards } from '../utils/boards';
 
 export default function Sidebar() {
   const {
@@ -155,13 +156,11 @@ export default function Sidebar() {
   };
 
   const todoListBoard = useMemo(() => {
-    return boards.find(
-      (b) => b.name.toLowerCase() === 'to-do list' && b.is_private
-    );
+    return boards.find((b) => isTodoListBoard(b));
   }, [boards]);
 
   const sortedBoards = useMemo(() => {
-    let sorted = [...boards];
+    let sorted = excludeTodoListBoards(boards);
     if (sortMode === 'alphabet') {
       sorted.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortMode === 'active') {
@@ -177,9 +176,7 @@ export default function Sidebar() {
     return sorted;
   }, [boards, sortMode]);
 
-  const displayBoards = useMemo(() => {
-    return sortedBoards.filter((b) => b.id !== todoListBoard?.id);
-  }, [sortedBoards, todoListBoard]);
+  const displayBoards = sortedBoards;
 
   const favorites = useMemo(() => {
     return displayBoards.filter((b) => favoriteBoards.includes(b.id));
@@ -191,7 +188,7 @@ export default function Sidebar() {
       .toLowerCase()
       .split(/\s+/)
       .filter(Boolean);
-    return boards.filter((b) => {
+    return excludeTodoListBoards(boards).filter((b) => {
       const searchStr = `${b.name} ${b.owner_username}`.toLowerCase();
       return keywords.every((kw) => searchStr.includes(kw));
     });

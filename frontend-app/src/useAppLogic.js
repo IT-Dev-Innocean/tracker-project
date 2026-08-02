@@ -7,6 +7,7 @@ import { useBoard } from './hooks/useBoard';
 import { useUISettings } from './hooks/useUISettings';
 import {
   MASTER_VIEW_UI_ENABLED,
+  MY_CAPACITY_UI_ENABLED,
   TIMESHEETS_UI_ENABLED,
   TODO_LIST_UI_ENABLED,
 } from './featureFlags';
@@ -874,18 +875,22 @@ export default function useAppLogic() {
                   align: 'start',
                 },
               },
-              {
-                element: '.tour-my-capacity',
-                popover: {
-                  title: tMsg('Your Capacity Meter', 'Pengukur Kapasitas Anda'),
-                  description: tMsg(
-                    "This meter shows your remaining active workload in hours. It also warns you if you're approaching a weekly or monthly overload, helping you manage your bandwidth.",
-                    'Pengukur ini menunjukkan sisa beban kerja aktif Anda dalam jam. Ini juga akan memberi peringatan jika Anda mendekati kelebihan beban mingguan atau bulanan, membantu Anda mengelola kapasitas kerja.'
-                  ),
-                  side: 'bottom',
-                  align: 'start',
-                },
-              },
+              ...(MY_CAPACITY_UI_ENABLED
+                ? [
+                    {
+                      element: '.tour-my-capacity',
+                      popover: {
+                        title: tMsg('Your Capacity Meter', 'Pengukur Kapasitas Anda'),
+                        description: tMsg(
+                          "This meter shows your remaining active workload in hours. It also warns you if you're approaching a weekly or monthly overload, helping you manage your bandwidth.",
+                          'Pengukur ini menunjukkan sisa beban kerja aktif Anda dalam jam. Ini juga akan memberi peringatan jika Anda mendekati kelebihan beban mingguan atau bulanan, membantu Anda mengelola kapasitas kerja.'
+                        ),
+                        side: 'bottom',
+                        align: 'start',
+                      },
+                    },
+                  ]
+                : []),
               {
                 element: '.tour-quick-stats',
                 popover: {

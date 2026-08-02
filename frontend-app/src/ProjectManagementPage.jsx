@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useAppContext } from './hooks/useAppContext';
 import { HighlightText, LoadingSpinner } from './Utils';
 import { Icon } from './components/icons/Icon';
+import { excludeTodoListBoards } from './utils/boards';
 
 export default function ProjectManagementPage() {
   const {
@@ -74,7 +75,7 @@ export default function ProjectManagementPage() {
     axios
       .get('/api/admin/boards')
       .then((res) => {
-        setManageBoards(res.data.boards || []);
+        setManageBoards(excludeTodoListBoards(res.data.boards || []));
         setIsBoardsLoading(false);
       })
       .catch(() => {
