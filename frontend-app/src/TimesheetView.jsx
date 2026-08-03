@@ -335,16 +335,20 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       if (newValue !== '') {
         const b = boards.find(b => b.id === parseInt(row.board_id));
         const t = tasks.find(t => t.id === parseInt(row.request_id));
+        
+        const isCustomProject = row.board_id === 'custom' || (!row.board_id && row.custom_project_name);
+        const isCustomTask = row.request_id === 'custom' || (!row.request_id && row.custom_task_name);
+        
         updatedEntries.push({
           _frontendId: Date.now() + Math.random(), // flag as new
           date: dateStr,
           hours_logged: newValue,
-          board_id: row.board_id && row.board_id !== 'custom' ? parseInt(row.board_id) : null,
-          request_id: row.request_id && row.request_id !== 'custom' ? parseInt(row.request_id) : null,
-          project_name: row.board_id === 'custom' ? row.custom_project_name : (b ? b.name : null),
-          task_name: row.request_id === 'custom' ? row.custom_task_name : (t ? t.project_name : null),
-          custom_project_name: row.board_id === 'custom' ? row.custom_project_name : null,
-          custom_task_name: row.request_id === 'custom' ? row.custom_task_name : null,
+          board_id: isCustomProject ? null : (row.board_id ? parseInt(row.board_id) : null),
+          request_id: isCustomTask ? null : (row.request_id ? parseInt(row.request_id) : null),
+          project_name: isCustomProject ? row.custom_project_name : (b ? b.name : null),
+          task_name: isCustomTask ? row.custom_task_name : (t ? t.project_name : null),
+          custom_project_name: isCustomProject ? row.custom_project_name : null,
+          custom_task_name: isCustomTask ? row.custom_task_name : null,
           status: 'Draft',
           description: '' // Optional for weekly grid
         });
