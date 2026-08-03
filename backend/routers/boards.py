@@ -17,41 +17,6 @@ router = APIRouter()
 def get_boards(
     current_user: str = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    # Auto-create a private "To-do List" board if it doesn't exist
-    todo_exists = db.query(Board).filter(
-        Board.owner_username == current_user,
-        Board.name.ilike("To-do List"),
-        Board.is_private == 1
-    ).first()
-    
-    if not todo_exists:
-        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        default_statuses = json.dumps(["Pending", "In Progress", "Done", "Rejected"])
-        default_categories = json.dumps(
-            [
-                "Development",
-                "Design",
-                "Marketing",
-                "Research",
-                "Maintenance",
-                "Consulting",
-                "Other",
-            ]
-        )
-        new_todo = Board(
-            name="To-do List",
-            owner_username=current_user,
-            created_at=now_str,
-            statuses=default_statuses,
-            categories=default_categories,
-            is_private=1
-        )
-        db.add(new_todo)
-        try:
-            db.commit()
-        except Exception as e:
-            db.rollback()
-
     owned = db.query(Board).filter(Board.owner_username == current_user).all()
     member_links = (
         db.query(BoardMember)

@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useCloseAnimation, LoadingSpinner } from './Utils';
 import { Avatar } from './SharedUI';
 import { Icon } from './components/icons/Icon';
+import { TODO_LIST_UI_ENABLED } from './featureFlags';
+import { isTodoListBoard } from './utils/boards';
 
 export default function ProactiveAIModal({
   setIsProactiveAIOpen,
@@ -84,15 +86,21 @@ export default function ProactiveAIModal({
       if (initBoardRef.current) return;
       initBoardRef.current = true;
       try {
-        let board = boards.find((b) => b.name.toLowerCase() === 'to-do list');
+        // Prefer existing To-do List only when the feature is enabled — never auto-create.
+        let board = TODO_LIST_UI_ENABLED
+          ? boards.find((b) => isTodoListBoard(b))
+          : null;
         if (!board) {
           const resBoards = await axios.get('/api/boards');
           const currentBoards = resBoards.data.boards || [];
-          board = currentBoards.find((b) => b.name.toLowerCase() === 'to-do list');
+          if (TODO_LIST_UI_ENABLED) {
+            board = currentBoards.find((b) => isTodoListBoard(b));
+          }
           if (!board) {
-            const res = await axios.post('/api/boards', { name: 'To-do List', is_private: 1 });
-            board = { id: res.data.board_id, name: res.data.board_name, is_private: 1 };
-            if (fetchBoards) fetchBoards();
+            board =
+              currentBoards.find((b) => !isTodoListBoard(b)) ||
+              boards.find((b) => !isTodoListBoard(b)) ||
+              null;
           }
         }
         if (board) setTargetBoard(board);
