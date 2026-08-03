@@ -66,7 +66,7 @@ function getRowId(bId, rId, customProject, customTask) {
 }
 
 export default function TimesheetView({ currentUser, tasks = [], boards = [] }) {
-  const { formatDateMMM, profileData, language, setShowTimesheets } = useAppContext();
+  const { formatDateMMM, profileData, language, setShowTimesheets, leaves = [], fetchLeaves } = useAppContext();
   const tMsg = (en, id) => (language === 'id' ? id : en);
   const [entries, setEntries] = useState([]);
   const [approvals, setApprovals] = useState([]);
@@ -178,6 +178,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
   useEffect(() => {
     fetchData();
+    if (fetchLeaves) fetchLeaves();
   }, []);
 
   const fetchData = async () => {
@@ -320,34 +321,42 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     );
 
     if (existingIndex >= 0) {
-      if (newValue === '' || newValue === 0) {
+      if (newValue === '') {
+        // Empty string: mark as deleted (user cleared the field)
         updatedEntries[existingIndex].hours_logged = 0;
-        updatedEntries[existingIndex].is_deleted = true; // custom flag for frontend
+        updatedEntries[existingIndex].is_deleted = true;
       } else {
+        // Allow 0 — user may be on leave or cuti
         updatedEntries[existingIndex].hours_logged = newValue;
         updatedEntries[existingIndex].is_deleted = false;
       }
     } else {
-      if (newValue !== '' && newValue > 0) {
+      // Create new entry for any non-empty value (including 0 for cuti/leave days)
+      if (newValue !== '') {
         const b = boards.find(b => b.id === parseInt(row.board_id));
         const t = tasks.find(t => t.id === parseInt(row.request_id));
+        
+        const isCustomProject = row.board_id === 'custom' || (!row.board_id && row.custom_project_name);
+        const isCustomTask = row.request_id === 'custom' || (!row.request_id && row.custom_task_name);
+        
         updatedEntries.push({
           _frontendId: Date.now() + Math.random(), // flag as new
           date: dateStr,
           hours_logged: newValue,
-          board_id: row.board_id && row.board_id !== 'custom' ? parseInt(row.board_id) : null,
-          request_id: row.request_id && row.request_id !== 'custom' ? parseInt(row.request_id) : null,
-          project_name: row.board_id === 'custom' ? row.custom_project_name : (b ? b.name : null),
-          task_name: row.request_id === 'custom' ? row.custom_task_name : (t ? t.project_name : null),
-          custom_project_name: row.board_id === 'custom' ? row.custom_project_name : null,
-          custom_task_name: row.request_id === 'custom' ? row.custom_task_name : null,
+          board_id: isCustomProject ? null : (row.board_id ? parseInt(row.board_id) : null),
+          request_id: isCustomTask ? null : (row.request_id ? parseInt(row.request_id) : null),
+          project_name: isCustomProject ? row.custom_project_name : (b ? b.name : null),
+          task_name: isCustomTask ? row.custom_task_name : (t ? t.project_name : null),
+          custom_project_name: isCustomProject ? row.custom_project_name : null,
+          custom_task_name: isCustomTask ? row.custom_task_name : null,
           status: 'Draft',
           description: '' // Optional for weekly grid
         });
       }
     }
     
-    if (row.isManual && newValue !== '' && newValue > 0) {
+    // Promote manual row to a real row when any value (including 0) is entered
+    if (row.isManual && newValue !== '') {
       setManualRows(manualRows.filter(mr => mr.id !== row.id));
     }
     
@@ -412,7 +421,8 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
         if (entry.status && !['Draft', 'Rejected'].includes(entry.status)) continue;
 
         if (entry._frontendId) {
-          if (entry.hours_logged > 0) {
+          // Save if hours >= 0 (allow 0 for leave/cuti days)
+          if (entry.hours_logged >= 0) {
             requests.push(axios.post(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry`, {
               date: entry.date,
               hours_logged: entry.hours_logged,
@@ -463,13 +473,99 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     if (selectedRowIds.size === 0) return setErrorModalMsg('Select at least one row to submit.');
     
     // Auto-save first
-    const latestEntries = await handleSaveDraft();
+    let latestEntries = await handleSaveDraft();
+
+    // We check daily totals across ALL entries of the current week.
+    // Calculate total hours logged per day for this week (only including active/non-deleted entries)
+    const dailyHours = {};
+    weekDays.forEach(dateStr => {
+      dailyHours[dateStr] = 0;
+    });
+
+    latestEntries.forEach(entry => {
+      if (weekDays.includes(entry.date) && !entry.is_deleted) {
+        dailyHours[entry.date] += parseFloat(entry.hours_logged || 0);
+      }
+    });
+
+    // Check each day of the week
+    const insufficientDays = [];
+    const autoZeroEntries = [];
+
+    weekDays.forEach((dateStr, i) => {
+      const isPublicHoliday = leaves.some(
+        l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+      );
+      const isUserLeave = leaves.some(
+        l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username === currentUser
+      );
+      const isWeekend = i === 0 || i === 6;
+
+      const totalForDay = dailyHours[dateStr];
+
+      if (isPublicHoliday || isUserLeave) {
+        // If no hours are logged at all on a holiday/leave, we auto-save a 0-hour entry for the first selected row
+        if (totalForDay === 0 && gridRows.length > 0 && selectedRowIds.size > 0) {
+          const firstSelectedRowId = Array.from(selectedRowIds)[0];
+          const row = gridRows.find(r => r.id === firstSelectedRowId);
+          if (row) {
+            const b = boards.find(b => b.id === parseInt(row.board_id));
+            const t = tasks.find(t => t.id === parseInt(row.request_id));
+            autoZeroEntries.push({
+              date: dateStr,
+              hours_logged: 0,
+              board_id: row.board_id && row.board_id !== 'custom' ? parseInt(row.board_id) : null,
+              request_id: row.request_id && row.request_id !== 'custom' ? parseInt(row.request_id) : null,
+              project_name: row.board_id === 'custom' ? row.custom_project_name : (b ? b.name : null),
+              task_name: row.request_id === 'custom' ? row.custom_task_name : (t ? t.project_name : null),
+              custom_project_name: row.board_id === 'custom' ? row.custom_project_name : null,
+              custom_task_name: row.request_id === 'custom' ? row.custom_task_name : null,
+              status: 'Draft',
+              description: ''
+            });
+          }
+        }
+      } else if (!isWeekend) {
+        // Active workday validation: must be at least 8 hours total across all tasks (allowing overtime)
+        if (totalForDay < 8) {
+          const dayLabel = formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '');
+          insufficientDays.push(`${dayLabel} (logged: ${totalForDay}h/8h)`);
+        }
+      }
+    });
+
+    if (insufficientDays.length > 0) {
+      return setErrorModalMsg(
+        tMsg(
+          `Timesheet must have at least 8 hours for each active workday. Please adjust: ${insufficientDays.join(', ')}`,
+          `Timesheet harus terisi minimal 8 jam untuk setiap hari kerja aktif. Silakan sesuaikan: ${insufficientDays.join(', ')}`
+        )
+      );
+    }
+
+    // Save auto-zero entries first if any
+    if (autoZeroEntries.length > 0) {
+      setIsSaving(true);
+      try {
+        await Promise.all(autoZeroEntries.map(entry => 
+          axios.post(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry`, entry, { headers })
+        ));
+        // Refresh entries list
+        const entriesRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entries`, { headers });
+        latestEntries = entriesRes.data.entries || [];
+        setEntries(latestEntries);
+      } catch (err) {
+        console.error('Error auto-saving zeros', err);
+      } finally {
+        setIsSaving(false);
+      }
+    }
 
     // Collect all entry IDs that belong to the selected rows and are within this week
     const entryIdsToSubmit = [];
     latestEntries.forEach(entry => {
       if (weekDays.includes(entry.date) && ['Draft', 'Rejected'].includes(entry.status)) {
-        const rId = getRowId(entry.board_id, entry.request_id);
+        const rId = getRowId(entry.board_id, entry.request_id, entry.custom_project_name, entry.custom_task_name);
         if (selectedRowIds.has(rId) && entry.id) {
           entryIdsToSubmit.push(entry.id);
         }
@@ -637,7 +733,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       </div>
 
       {/* View Tabs */}
-      <div className="flex items-center gap-6 border-b border-neutral-200 dark:border-neutral-850 pb-px shrink-0">
+      <div className="flex items-center gap-6 border-b border-neutral-200 dark:border-neutral-855 pb-px shrink-0">
         <button
           onClick={() => setActiveSubTab('my-timesheet')}
           className={`pb-3 text-sm font-semibold transition-all relative ${
@@ -677,7 +773,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
       {/* Overtime Warning */}
       {(hasDailyOvertime || hasWeeklyOvertime) && (
-        <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex gap-3 text-amber-800 dark:text-amber-300 shadow-sm mac-animate">
+        <div className="bg-amber-50/50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex gap-3 text-amber-800 dark:text-amber-300 shadow-sm mac-animate">
           <Icon name="alert-triangle" className="w-5 h-5 shrink-0" />
           <div>
             <h4 className="font-bold text-sm">Overtime Warning</h4>
@@ -746,12 +842,38 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                 <th className="py-3 px-4 font-medium w-56">Project</th>
                 <th className="py-3 px-4 font-medium w-auto min-w-[16rem]">Task</th>
                 <th className="py-3 px-4 font-medium w-20 text-center">ETC</th>
-                {weekDays.map((dateStr, i) => (
-                  <th key={dateStr} className="py-3 px-2 font-medium text-center w-20">
-                    <div>{dayNames[i]}</div>
-                    <div className="text-[10px] opacity-70 mt-0.5">{formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '')}</div>
-                  </th>
-                ))}
+                {weekDays.map((dateStr, i) => {
+                  const isPublicHoliday = leaves.some(
+                    l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+                  );
+                  const isUserLeave = leaves.some(
+                    l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username === currentUser
+                  );
+                  const isWeekend = i === 0 || i === 6;
+                  
+                  let headerClass = '';
+                  if (isPublicHoliday) headerClass = 'bg-red-50 dark:bg-red-900/20';
+                  else if (isUserLeave || isWeekend) headerClass = 'bg-slate-200/50 dark:bg-neutral-850/60';
+
+                  return (
+                    <th key={dateStr} className={`py-3 px-2 font-medium text-center w-20 relative ${headerClass}`}>
+                      <div className={isPublicHoliday ? 'text-red-600 dark:text-red-400 font-bold' : (isUserLeave ? 'text-indigo-650 dark:text-indigo-400 font-bold' : (isWeekend ? 'text-slate-500 dark:text-slate-400' : ''))}>{dayNames[i]}</div>
+                      <div className={`text-[10px] mt-0.5 ${
+                        isPublicHoliday ? 'text-red-500 dark:text-red-400 font-semibold' : (isUserLeave ? 'text-indigo-500 dark:text-indigo-400 font-semibold' : 'opacity-70')
+                      }`}>{formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '')}</div>
+                      {isPublicHoliday && (
+                        <div className="text-[9px] text-red-500 dark:text-red-400 font-semibold mt-0.5 truncate max-w-[72px] mx-auto" title={leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description}>
+                          {leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description || 'Holiday'}
+                        </div>
+                      )}
+                      {isUserLeave && (
+                        <div className="text-[9px] text-indigo-500 dark:text-indigo-400 font-semibold mt-0.5 truncate max-w-[72px] mx-auto">
+                          Cuti
+                        </div>
+                      )}
+                    </th>
+                  );
+                })}
                 <th className="py-3 px-4 font-medium text-center w-20">Total</th>
                 <th className="w-12"></th>
               </tr>
@@ -763,7 +885,6 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                 </tr>
               ) : gridRows.map((row) => {
                 const isSelected = selectedRowIds.has(row.id);
-                // Check if row has pending/approved entries this week (disable editing)
                 const isReadOnly = Object.values(row.days).some(d => d && ['Pending', 'Approved'].includes(d.status));
                 
                 let etcValue = '-';
@@ -776,7 +897,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                     if (taskObj) etcValue = `${taskObj.etc}h`;
                   }
                 } else if (!row.isManual) {
-                  projectTasks = tasks.filter(t => t.id === row.request_id); // fallback if no board
+                  projectTasks = tasks.filter(t => t.id === row.request_id);
                 }
 
                 return (
@@ -802,7 +923,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                             {boards.filter(b => b.is_private !== 1).map(b => (
                               <option key={b.id} value={b.id}>[{b.id}] {b.name}</option>
                             ))}
-                            <option value="custom">Custom Project...</option>
+                            <option value="custom">✍️ Custom Project...</option>
                           </select>
                           {row.board_id === 'custom' && (
                             <input
@@ -836,7 +957,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                             {projectTasks.map(t => (
                               <option key={t.id} value={t.id}>[{t.id}] {t.project_name && t.project_name.length > 40 ? t.project_name.substring(0, 40) + '...' : t.project_name}</option>
                             ))}
-                            <option value="custom">Custom Task...</option>
+                            <option value="custom">✍️ Custom Task...</option>
                           </select>
                           {row.request_id === 'custom' && (
                             <input
@@ -857,16 +978,28 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                     <td className="py-3 px-4 text-center">
                       <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-neutral-800 px-2 py-1 rounded">{etcValue}</span>
                     </td>
-                    {weekDays.map(dateStr => {
+                    {weekDays.map((dateStr, i) => {
                       const dayData = row.days[dateStr];
-                      const val = dayData && !dayData.is_deleted ? dayData.hours_logged : '';
+                      const isPublicHoliday = leaves.some(
+                        l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+                      );
+                      const isUserLeave = leaves.some(
+                        l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username === currentUser
+                      );
+
+                      const val = dayData && !dayData.is_deleted ? dayData.hours_logged : ((isPublicHoliday || isUserLeave) ? 0 : '');
                       const isDayReadOnly = isReadOnly || (dayData && ['Pending', 'Approved'].includes(dayData.status));
+                      const isWeekend = i === 0 || i === 6;
                       
+                      let cellClass = '';
+                      if (isPublicHoliday) cellClass = 'bg-red-50/60 dark:bg-red-900/10';
+                      else if (isUserLeave || isWeekend) cellClass = 'bg-slate-200/40 dark:bg-neutral-850/40';
+
                       return (
-                        <td key={dateStr} className="py-2 px-1 text-center relative group">
+                        <td key={dateStr} className={`py-2 px-1 text-center relative group ${cellClass}`}>
                           {isDayReadOnly ? (
                             <div className="w-14 mx-auto py-1.5 text-center text-slate-500 font-medium">
-                              {val || '-'}
+                              {val !== '' ? val : '-'}
                             </div>
                           ) : (
                             <input
@@ -875,7 +1008,13 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                               step="0.5"
                               value={val}
                               onChange={(e) => handleDayHoursChange(row, dateStr, e.target.value)}
-                              className="w-14 text-center bg-white dark:bg-neutral-950 border border-slate-300 dark:border-neutral-700 focus:border-indigo-500 rounded py-1.5 outline-none transition-all text-slate-800 dark:text-slate-200"
+                              className={`w-14 text-center border rounded py-1.5 outline-none transition-all ${
+                                isPublicHoliday
+                                  ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 focus:border-red-400 text-slate-800 dark:text-slate-200'
+                                  : isUserLeave
+                                  ? 'bg-slate-100 dark:bg-neutral-800 border-indigo-200 dark:border-neutral-700 focus:border-indigo-400 text-slate-800 dark:text-slate-200'
+                                  : 'bg-white dark:bg-neutral-950 border-slate-300 dark:border-neutral-700 focus:border-indigo-500 text-slate-800 dark:text-slate-200'
+                              }`}
                               placeholder="-"
                             />
                           )}
@@ -918,14 +1057,28 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                   </button>
                 </td>
                 <td className="py-3 px-4 text-right">Daily Totals:</td>
-                {weekDays.map(dateStr => {
+                {weekDays.map((dateStr, i) => {
                   let dayTotal = 0;
                   gridRows.forEach(r => {
                     const d = r.days[dateStr];
-                    if (d && !d.is_deleted && d.hours_logged) dayTotal += parseFloat(d.hours_logged);
+                    if (d && !d.is_deleted && d.hours_logged != null) dayTotal += parseFloat(d.hours_logged);
                   });
+                  const isPublicHoliday = leaves.some(
+                    l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+                  );
+                  const isUserLeave = leaves.some(
+                    l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username === currentUser
+                  );
+                  const isWeekend = i === 0 || i === 6;
+
+                  let footerClass = '';
+                  if (isPublicHoliday) footerClass = 'bg-red-50/60 dark:bg-red-900/10';
+                  else if (isUserLeave || isWeekend) footerClass = 'bg-slate-200/40 dark:bg-neutral-850/40';
+
                   return (
-                    <td key={dateStr} className={`py-3 px-2 text-center font-bold ${dayTotal > 8 ? 'text-amber-500' : 'text-indigo-600 dark:text-indigo-400'}`} title={dayTotal > 8 ? 'Overtime warning: > 8 hours' : ''}>
+                    <td key={dateStr} className={`py-3 px-2 text-center font-bold ${footerClass} ${
+                      dayTotal > 8 ? 'text-amber-500' : (isUserLeave ? 'text-indigo-650 dark:text-indigo-400' : 'text-indigo-600 dark:text-indigo-400')
+                    }`} title={dayTotal > 8 ? 'Overtime warning: > 8 hours' : (isPublicHoliday ? 'Public Holiday' : (isUserLeave ? 'Cuti' : ''))}>
                       {dayTotal > 0 ? `${dayTotal}h` : '-'}
                     </td>
                   );
@@ -989,7 +1142,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                     </button>
                     
                     {isExpanded && (
-                      <div className="p-4 overflow-x-auto border-t border-slate-200 dark:border-neutral-850 bg-white dark:bg-neutral-950">
+                      <div className="p-4 overflow-x-auto border-t border-slate-200 dark:border-neutral-855 bg-white dark:bg-neutral-950">
                         <table className="w-full text-left whitespace-nowrap text-sm">
                           <thead className="bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 text-slate-500 dark:text-neutral-400">
                             <tr>
@@ -1078,7 +1231,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
           ) : (
             <div className="space-y-6">
               {groupedApprovals.map(userGroup => (
-                <div key={userGroup.username} className="flex flex-col gap-4 border border-amber-200/50 dark:border-amber-900/20 rounded-2xl p-4 bg-amber-50/10 dark:bg-amber-950/5">
+                <div key={userGroup.username} className="flex flex-col gap-4 border border-amber-200/50 dark:border-amber-900/20 rounded-2xl p-4 bg-amber-50/10 dark:bg-amber-955/5">
                   <div className="flex items-center gap-2 text-sm font-bold text-slate-850 dark:text-slate-200 border-b border-amber-100 dark:border-amber-900/20 pb-2">
                     <Icon name="user" className="w-4 h-4" />
                     <span>@{userGroup.username}</span>
@@ -1132,12 +1285,36 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                                   <tr>
                                     <th className="py-2.5 px-3 font-medium w-48">Project</th>
                                     <th className="py-2.5 px-3 font-medium w-auto">Task</th>
-                                    {weekGroup.weekDays.map((dateStr, i) => (
-                                      <th key={dateStr} className="py-2.5 px-2 font-medium text-center w-16">
-                                        <div>{dayNames[i]}</div>
-                                        <div className="text-[9px] opacity-70 mt-0.5">{formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '')}</div>
-                                      </th>
-                                    ))}
+                                    {weekGroup.weekDays.map((dateStr, i) => {
+                                      const isPublicHoliday = leaves.some(
+                                        l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+                                      );
+                                      const isUserLeave = leaves.some(
+                                        l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username && userGroup.username && (l.username.toLowerCase() === userGroup.username.toLowerCase())
+                                      );
+                                      const isWeekend = i === 0 || i === 6;
+
+                                      let headerClass = '';
+                                      if (isPublicHoliday) headerClass = 'bg-red-50 dark:bg-red-900/20';
+                                      else if (isUserLeave || isWeekend) headerClass = 'bg-slate-200/50 dark:bg-neutral-850/60';
+
+                                      return (
+                                        <th key={dateStr} className={`py-2.5 px-2 font-medium text-center w-16 relative ${headerClass}`}>
+                                          <div className={isPublicHoliday ? 'text-red-600 dark:text-red-400 font-bold' : (isUserLeave ? 'text-indigo-650 dark:text-indigo-400 font-bold' : '')}>{dayNames[i]}</div>
+                                          <div className={`text-[9px] opacity-70 mt-0.5 ${isPublicHoliday ? 'text-red-550' : (isUserLeave ? 'text-indigo-500' : '')}`}>{formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '')}</div>
+                                          {isPublicHoliday && (
+                                            <div className="text-[9px] text-red-500 dark:text-red-400 font-semibold mt-0.5 truncate max-w-[64px] mx-auto" title={leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description}>
+                                              {leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description || 'Holiday'}
+                                            </div>
+                                          )}
+                                          {isUserLeave && (
+                                            <div className="text-[9px] text-indigo-500 dark:text-indigo-400 font-semibold mt-0.5 truncate max-w-[64px] mx-auto">
+                                              Cuti
+                                            </div>
+                                          )}
+                                        </th>
+                                      );
+                                    })}
                                     <th className="py-2.5 px-3 font-medium text-center w-16">Total</th>
                                   </tr>
                                 </thead>
@@ -1152,22 +1329,75 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                                           {row.custom_task_name || 'No Task'}
                                         </span>
                                       </td>
-                                      {weekGroup.weekDays.map(dateStr => {
+                                      {weekGroup.weekDays.map((dateStr, i) => {
                                         const d = row.days[dateStr];
+                                        const isPublicHoliday = leaves.some(
+                                          l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+                                        );
+                                        const isUserLeave = leaves.some(
+                                          l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username && userGroup.username && l.username.toLowerCase() === userGroup.username.toLowerCase()
+                                        );
+                                        const isWeekend = i === 0 || i === 6;
+
+                                        let cellClass = '';
+                                        if (isPublicHoliday) cellClass = 'bg-red-50/60 dark:bg-red-900/10';
+                                        else if (isUserLeave || isWeekend) cellClass = 'bg-slate-200/40 dark:bg-neutral-850/40';
+
+                                        let val = '-';
+                                        if (d) {
+                                          val = d.hours_logged;
+                                        } else if (isPublicHoliday || isUserLeave) {
+                                          val = '0';
+                                        }
+
                                         return (
-                                          <td key={dateStr} className="py-2 px-2 text-center relative">
+                                          <td key={dateStr} className={`py-2 px-2 text-center relative ${cellClass}`}>
                                             <div className="w-12 mx-auto text-center font-medium">
-                                              {d ? d.hours_logged : '-'}
+                                              {val}
                                             </div>
                                           </td>
                                         );
                                       })}
-                                      <td className="py-2 px-3 text-center font-bold text-indigo-600 dark:text-indigo-400">
+                                      <td className="py-2 px-3 text-center font-bold text-indigo-650 dark:text-indigo-400">
                                         {row.totalHours > 0 ? `${row.totalHours}h` : '-'}
                                       </td>
                                     </tr>
                                   ))}
                                 </tbody>
+                                <tfoot className="bg-slate-50 dark:bg-neutral-900 border-t border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-slate-355 font-bold">
+                                  <tr>
+                                    <td colSpan="2" className="py-2 px-3 text-right">Daily Totals:</td>
+                                    {weekGroup.weekDays.map((dateStr, i) => {
+                                      let dayTotal = 0;
+                                      weekGroup.rows.forEach(r => {
+                                        const d = r.days[dateStr];
+                                        if (d && !d.is_deleted && d.hours_logged != null) dayTotal += parseFloat(d.hours_logged);
+                                      });
+                                      const isPublicHoliday = leaves.some(
+                                        l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+                                      );
+                                      const isUserLeave = leaves.some(
+                                        l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username.toLowerCase() === userGroup.username.toLowerCase()
+                                      );
+                                      const isWeekend = i === 0 || i === 6;
+
+                                      let footerClass = '';
+                                      if (isPublicHoliday) footerClass = 'bg-red-50/60 dark:bg-red-900/10';
+                                      else if (isUserLeave || isWeekend) footerClass = 'bg-slate-200/40 dark:bg-neutral-850/40';
+
+                                      return (
+                                        <td key={dateStr} className={`py-2 px-2 text-center font-bold ${footerClass} ${
+                                          dayTotal > 8 ? 'text-amber-500' : (isUserLeave ? 'text-indigo-650 dark:text-indigo-400' : 'text-indigo-600 dark:text-indigo-455')
+                                        }`} title={dayTotal > 8 ? 'Overtime warning: > 8 hours' : (isPublicHoliday ? 'Public Holiday' : (isUserLeave ? 'Cuti' : ''))}>
+                                          {dayTotal > 0 ? `${dayTotal}h` : '-'}
+                                        </td>
+                                      );
+                                    })}
+                                    <td className="py-2 px-3 text-center font-bold text-indigo-650 dark:text-indigo-400">
+                                      {weekGroup.totalHours}h
+                                    </td>
+                                  </tr>
+                                </tfoot>
                               </table>
                             </div>
                           )}
