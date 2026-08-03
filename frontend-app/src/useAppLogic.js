@@ -363,7 +363,8 @@ export default function useAppLogic() {
   const [showTeams, setShowTeams] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showProjectManage, setShowProjectManage] = useState(false);
-  const [sidebarNav, setSidebarNav] = useState('home'); // home | projects | teams | admin
+  const [showClientManage, setShowClientManage] = useState(false);
+  const [sidebarNav, setSidebarNav] = useState('home'); // home | projects | clients | teams | admin
 
   useEffect(() => {
     if (!TIMESHEETS_UI_ENABLED) {
@@ -4145,6 +4146,7 @@ export default function useAppLogic() {
         setShowTimesheets(false);
         setShowAdmin(true);
         setShowProjectManage(false);
+        setShowClientManage(false);
         setSidebarNav('admin');
       })
       .catch((err) => showNotification('Failed to load users or unauthorized', 'error'));
@@ -4643,6 +4645,8 @@ export default function useAppLogic() {
     setShowAdmin,
     showProjectManage,
     setShowProjectManage,
+    showClientManage,
+    setShowClientManage,
     sidebarNav,
     setSidebarNav,
     isNotifClosing,

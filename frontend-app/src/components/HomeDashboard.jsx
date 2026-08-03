@@ -86,6 +86,7 @@ export default function HomeDashboard() {
     profileData,
     setShowTeams,
     setShowProjectManage,
+    setShowClientManage,
     setShowAdmin,
     setShowTimesheets,
     setSidebarNav,
@@ -254,6 +255,7 @@ export default function HomeDashboard() {
     setShowTeams?.(false);
     setShowAdmin?.(false);
     setShowTimesheets?.(false);
+    setShowClientManage?.(false);
     setSelectedBoard?.(null);
     setShowProjectManage?.(true);
     setSidebarNav?.('projects');
@@ -263,6 +265,7 @@ export default function HomeDashboard() {
   const openTeamsPage = () => {
     setShowAdmin?.(false);
     setShowProjectManage?.(false);
+    setShowClientManage?.(false);
     setShowTimesheets?.(false);
     setSelectedBoard?.(null);
     setShowTeams?.(true);
@@ -274,6 +277,7 @@ export default function HomeDashboard() {
     setShowTeams?.(false);
     setShowAdmin?.(false);
     setShowProjectManage?.(false);
+    setShowClientManage?.(false);
     setShowTimesheets?.(false);
     setSelectedBoard?.(board);
     setSidebarNav?.('projects');
@@ -310,6 +314,7 @@ export default function HomeDashboard() {
   const openInvitePeople = () => {
     setShowAdmin?.(false);
     setShowProjectManage?.(false);
+    setShowClientManage?.(false);
     setShowTimesheets?.(false);
     setSelectedBoard?.(null);
     setShowTeams?.(true);

@@ -26,6 +26,7 @@ export default function GlobalSearchModal() {
     setShowTimesheets,
     setShowAdmin,
     setShowProjectManage,
+    setShowClientManage,
     setSidebarNav,
     setIsMobileMenuOpen,
     setIsProactiveAIOpen,
@@ -122,6 +123,7 @@ export default function GlobalSearchModal() {
       setShowTeams?.(false);
       setShowAdmin?.(false);
       setShowProjectManage?.(false);
+      setShowClientManage?.(false);
       setShowTimesheets?.(false);
       setSidebarNav?.('home');
       setIsMobileMenuOpen(false);
@@ -134,6 +136,7 @@ export default function GlobalSearchModal() {
       setShowTeams,
       setShowAdmin,
       setShowProjectManage,
+      setShowClientManage,
       setShowTimesheets,
       setSidebarNav,
       setIsMobileMenuOpen,
@@ -149,6 +152,7 @@ export default function GlobalSearchModal() {
       setShowTimesheets?.(false);
       setShowAdmin?.(false);
       setShowProjectManage?.(false);
+      setShowClientManage?.(false);
       setShowTeams?.(true);
       setSidebarNav?.('teams');
       setIsMobileMenuOpen(false);
@@ -162,6 +166,7 @@ export default function GlobalSearchModal() {
       setShowTimesheets,
       setShowAdmin,
       setShowProjectManage,
+      setShowClientManage,
       setShowTeams,
       setSidebarNav,
       setIsMobileMenuOpen,
@@ -177,6 +182,7 @@ export default function GlobalSearchModal() {
       setShowTeams?.(false);
       setShowAdmin?.(false);
       setShowProjectManage?.(false);
+      setShowClientManage?.(false);
       setShowTimesheets?.(true);
       setSidebarNav?.('home');
       setIsMobileMenuOpen(false);
@@ -190,6 +196,7 @@ export default function GlobalSearchModal() {
       setShowTeams,
       setShowAdmin,
       setShowProjectManage,
+      setShowClientManage,
       setShowTimesheets,
       setSidebarNav,
       setIsMobileMenuOpen,

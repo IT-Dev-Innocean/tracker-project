@@ -57,6 +57,7 @@ import HomeDashboard from './components/HomeDashboard';
 import TimesheetView from './TimesheetView';
 import TeamsDirectory from './TeamsDirectory';
 import ProjectManagementPage from './ProjectManagementPage';
+import ClientManagementPage from './ClientManagementPage';
 import { excludeTodoListBoards } from './utils/boards';
 
 import './api/axiosSetup';
@@ -156,6 +157,7 @@ function App() {
     setShowTeams,
     showAdmin,
     showProjectManage,
+    showClientManage,
     setIsAuthenticated,
     setCurrentUser,
     setIsLoginMode,
@@ -1282,6 +1284,8 @@ function App() {
               />
             ) : showProjectManage ? (
               <ProjectManagementPage />
+            ) : showClientManage ? (
+              <ClientManagementPage />
             ) : showTeams ? (
               <TeamsDirectory />
             ) : (

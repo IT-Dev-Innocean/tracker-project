@@ -84,6 +84,18 @@ class BoardModel(BaseModel):
     is_private: Optional[int] = 0
 
 
+class ClientCreateModel(BaseModel):
+    client_code: str
+    client_name: str
+    status: Optional[str] = "active"
+
+
+class ClientUpdateModel(BaseModel):
+    client_code: Optional[str] = None
+    client_name: Optional[str] = None
+    status: Optional[str] = None
+
+
 class BoardSettingsModel(BaseModel):
     statuses: str
     categories: str

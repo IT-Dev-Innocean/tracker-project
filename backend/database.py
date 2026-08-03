@@ -110,6 +110,16 @@ class Board(Base):
     is_private = Column(Integer, default=0)
 
 
+class Client(Base):
+    __tablename__ = "clients"
+    id = Column(Integer, primary_key=True, index=True)
+    client_code = Column(String(50), unique=True, index=True)
+    client_name = Column(String(200))
+    status = Column(String(50), default="active")  # active | inactive
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(String(50), nullable=True)
+
+
 class BoardMember(Base):
     __tablename__ = "board_members"
     id = Column(Integer, primary_key=True, index=True)

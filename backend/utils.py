@@ -494,6 +494,10 @@ def can_manage_projects(db: Session, username: str) -> bool:
     return get_user_role(db, username) in (ROLE_ADMIN, ROLE_PROJECT_OWNER)
 
 
+def can_manage_clients(db: Session, username: str) -> bool:
+    return get_user_role(db, username) in (ROLE_ADMIN, ROLE_PROJECT_OWNER)
+
+
 def can_manage_workspace_users(db: Session, username: str) -> bool:
     """Admin and Project Owner can manage people in Teams directory."""
     return get_user_role(db, username) in (ROLE_ADMIN, ROLE_PROJECT_OWNER)

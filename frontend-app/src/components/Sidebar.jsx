@@ -34,6 +34,8 @@ export default function Sidebar() {
     setShowAdmin,
     showProjectManage,
     setShowProjectManage,
+    showClientManage,
+    setShowClientManage,
     sidebarNav,
     setSidebarNav,
     userDirectory,
@@ -203,6 +205,7 @@ export default function Sidebar() {
           setShowTeams?.(false);
           setShowAdmin?.(false);
           setShowProjectManage?.(false);
+          setShowClientManage?.(false);
           setShowTimesheets?.(false);
           setIsMobileMenuOpen(false);
           setIsProactiveAIOpen(false);
@@ -215,6 +218,7 @@ export default function Sidebar() {
             setShowTeams?.(false);
             setShowAdmin?.(false);
             setShowProjectManage?.(false);
+            setShowClientManage?.(false);
             setShowTimesheets?.(false);
             setIsMobileMenuOpen(false);
             setIsProactiveAIOpen(false);
@@ -225,7 +229,8 @@ export default function Sidebar() {
           !showTimesheets &&
           !showTeams &&
           !showAdmin &&
-          !showProjectManage
+          !showProjectManage &&
+          !showClientManage
             ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white'
             : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400'
         }`}>
@@ -233,7 +238,8 @@ export default function Sidebar() {
           !showTimesheets &&
           !showTeams &&
           !showAdmin &&
-          !showProjectManage && (
+          !showProjectManage &&
+          !showClientManage && (
             <div className='absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-black dark:bg-white rounded-r-md'></div>
           )}
         <div className='flex items-center gap-3 min-w-0'>
@@ -377,6 +383,7 @@ export default function Sidebar() {
                 setShowTeams?.(false);
                 setShowAdmin?.(false);
                 setShowProjectManage?.(false);
+                setShowClientManage?.(false);
                 setShowTimesheets?.(false);
                 setSidebarNav?.('home');
                 setIsMobileMenuOpen(false);
@@ -388,6 +395,7 @@ export default function Sidebar() {
                 !showTeams &&
                 !showAdmin &&
                 !showProjectManage &&
+                !showClientManage &&
                 !showTimesheets
                   ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
                   : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
@@ -409,6 +417,7 @@ export default function Sidebar() {
                 setShowTeams?.(false);
                 setShowAdmin?.(false);
                 setShowTimesheets?.(false);
+                setShowClientManage?.(false);
                 setSelectedBoard(null);
                 setSidebarNav?.('projects');
                 // Project Owner / Admin: buka halaman manajemen proyek langsung
@@ -420,6 +429,7 @@ export default function Sidebar() {
                 (sidebarNav === 'projects' ||
                   (!!selectedBoard && selectedBoard.id !== 'global') ||
                   showProjectManage) &&
+                !showClientManage &&
                 !showTeams &&
                 !showAdmin &&
                 !showTimesheets
@@ -438,6 +448,36 @@ export default function Sidebar() {
             </button>
             )}
 
+            {canManageProjectDir && (
+            <button
+              onClick={() => {
+                setShowTeams?.(false);
+                setShowAdmin?.(false);
+                setShowTimesheets?.(false);
+                setShowProjectManage?.(false);
+                setSelectedBoard(null);
+                setSidebarNav?.('clients');
+                setShowClientManage?.(true);
+                setIsMobileMenuOpen(false);
+                setIsProactiveAIOpen(false);
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                showClientManage || sidebarNav === 'clients'
+                  ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
+                  : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+              } ${isCollapsed ? 'justify-center' : ''}`}
+              title={tMsg('Clients', 'Klien')}>
+              <div className='w-6 h-6 flex items-center justify-center'>
+                <Icon name='building' className='w-5 h-5' />
+              </div>
+              {!isCollapsed && (
+                <span className='text-sm truncate'>
+                  {tMsg('Clients', 'Klien')}
+                </span>
+              )}
+            </button>
+            )}
+
             {canOpenTeams && (
               <button
                 onClick={() => {
@@ -445,6 +485,7 @@ export default function Sidebar() {
                   setShowTimesheets?.(false);
                   setShowAdmin?.(false);
                   setShowProjectManage?.(false);
+                  setShowClientManage?.(false);
                   setShowTeams?.(true);
                   setSidebarNav?.('teams');
                   setIsMobileMenuOpen(false);
@@ -479,6 +520,7 @@ export default function Sidebar() {
                   setShowTeams?.(false);
                   setShowAdmin?.(false);
                   setShowProjectManage?.(false);
+                  setShowClientManage?.(false);
                   setShowTimesheets?.(true);
                   setSidebarNav?.('home');
                   setIsMobileMenuOpen(false);
@@ -506,6 +548,7 @@ export default function Sidebar() {
                 onClick={() => {
                   openAdminModal();
                   setShowProjectManage?.(false);
+                  setShowClientManage?.(false);
                   setIsMobileMenuOpen(false);
                   setIsProactiveAIOpen(false);
                 }}
@@ -541,6 +584,8 @@ export default function Sidebar() {
                   setShowTeams?.(false);
                   setShowAdmin?.(false);
                   setShowTimesheets?.(false);
+                  setShowProjectManage?.(false);
+                  setShowClientManage?.(false);
                   setSidebarNav?.('projects');
                   setIsMobileMenuOpen(false);
                   setIsProactiveAIOpen(false);
@@ -549,7 +594,9 @@ export default function Sidebar() {
                   selectedBoard?.id === 'global' &&
                   !showTimesheets &&
                   !showTeams &&
-                  !showAdmin
+                  !showAdmin &&
+                  !showProjectManage &&
+                  !showClientManage
                     ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
                     : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
                 } ${isCollapsed ? 'justify-center' : ''}`}
@@ -574,6 +621,8 @@ export default function Sidebar() {
                   setShowTeams?.(false);
                   setShowAdmin?.(false);
                   setShowTimesheets?.(false);
+                  setShowProjectManage?.(false);
+                  setShowClientManage?.(false);
                   setSidebarNav?.('projects');
                   setIsMobileMenuOpen(false);
                   setIsProactiveAIOpen(false);
@@ -582,7 +631,9 @@ export default function Sidebar() {
                   selectedBoard?.id === todoListBoard.id &&
                   !showTimesheets &&
                   !showTeams &&
-                  !showAdmin
+                  !showAdmin &&
+                  !showProjectManage &&
+                  !showClientManage
                     ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
                     : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
                 } ${isCollapsed ? 'justify-center' : ''}`}
