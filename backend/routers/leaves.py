@@ -5,6 +5,8 @@ import re
 import json
 from datetime import datetime, timedelta
 import os
+import urllib.request
+import urllib.parse
 
 from database import get_db, User, Request, Subtask, Board, BoardMember, LeaveDay, LeaveRecord, Comment, Notification, DirectMessage
 from schemas import *
@@ -13,10 +15,75 @@ from utils import *
 
 router = APIRouter()
 
+LAST_GCAL_SYNC = None
+
+def sync_public_holidays_from_gcal():
+    from database import SessionLocal
+    api_key = os.getenv("GOOGLE_CALENDAR_API_KEY")
+    if not api_key:
+        return
+    
+    db = SessionLocal()
+    try:
+        current_year = datetime.now().year
+        years_to_sync = [current_year - 1, current_year, current_year + 1]
+        
+        calendar_id = "id.indonesian#holiday@group.v.calendar.google.com"
+        encoded_id = urllib.parse.quote(calendar_id)
+        
+        for year in years_to_sync:
+            time_min = f"{year}-01-01T00:00:00Z"
+            time_max = f"{year}-12-31T23:59:59Z"
+            url = (
+                f"https://www.googleapis.com/calendar/v3/calendars/{encoded_id}/events"
+                f"?key={api_key}&timeMin={time_min}&timeMax={time_max}&maxResults=100"
+            )
+            try:
+                req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    data = json.loads(response.read().decode('utf-8'))
+                    for item in data.get('items', []):
+                        summary = item.get('summary')
+                        start = item.get('start', {})
+                        date_str = start.get('date') or (start.get('dateTime')[:10] if start.get('dateTime') else None)
+                        if not date_str or not summary:
+                            continue
+                        
+                        dt = datetime.strptime(date_str, "%Y-%m-%d")
+                        
+                        existing = db.query(LeaveRecord).filter(
+                            LeaveRecord.leave_date == dt,
+                            LeaveRecord.leave_type == "public_holiday"
+                        ).first()
+                        
+                        if not existing:
+                            new_holiday = LeaveRecord(
+                                leave_date=dt,
+                                description=summary,
+                                leave_type="public_holiday",
+                                username=None
+                            )
+                            db.add(new_holiday)
+                db.commit()
+            except Exception as e:
+                print(f"Error syncing gcal holidays for year {year}: {e}")
+    except Exception as e:
+        print(f"Error in gcal sync background task: {e}")
+    finally:
+        db.close()
+
 @router.get("/api/leaves")
 def get_leaves(
-    current_user: str = Depends(get_current_user), db: Session = Depends(get_db)
+    background_tasks: BackgroundTasks,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
+    global LAST_GCAL_SYNC
+    now = datetime.now()
+    if LAST_GCAL_SYNC is None or (now - LAST_GCAL_SYNC).total_seconds() > 86400:
+        LAST_GCAL_SYNC = now
+        background_tasks.add_task(sync_public_holidays_from_gcal)
+
     # Cari ID project (board) yang Anda miliki atau ikuti
     owned_boards = db.query(Board.id).filter(Board.owner_username == current_user)
     member_boards = db.query(BoardMember.board_id).filter(
