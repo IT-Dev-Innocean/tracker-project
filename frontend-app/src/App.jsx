@@ -593,10 +593,6 @@ function App() {
 
   const sortedBoards = useMemo(() => {
     let sorted = excludeTodoListBoards(boards);
-    if (!selectedBoard && globalSearchQuery.trim()) {
-      const q = globalSearchQuery.toLowerCase();
-      sorted = sorted.filter((b) => b.name.toLowerCase().includes(q) || b.owner_username.toLowerCase().includes(q));
-    }
 
     if (boardSortBy === 'recent') {
       sorted.sort((a, b) => b.id - a.id);
@@ -613,7 +609,7 @@ function App() {
       return 0;
     });
     return sorted;
-  }, [boards, boardSortBy, favoriteBoards, globalSearchQuery, selectedBoard]);
+  }, [boards, boardSortBy, favoriteBoards]);
 
   // Pagination State for Projects
   const [boardPage, setBoardPage] = useState(1);
@@ -651,17 +647,6 @@ function App() {
       .replace('submitted a new system feedback.', 'mengirimkan masukan sistem baru.')
       .replace('chat', 'obrolan');
   };
-
-  const matchedGlobalBoards = useMemo(() => {
-    if (globalSearchQuery.trim().length < 2) return [];
-    const keywords = globalSearchQuery.toLowerCase().split(/\s+/).filter(Boolean);
-    return boards
-      .filter((b) => {
-        const combinedText = [b.name, b.owner_username].join(' ').toLowerCase();
-        return keywords.every((kw) => combinedText.includes(kw));
-      })
-      .slice(0, 5);
-  }, [globalSearchQuery, boards]);
 
   const deepLinkProcessedRef = useRef(false);
 

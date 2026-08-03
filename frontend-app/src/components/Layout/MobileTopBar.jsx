@@ -55,6 +55,7 @@ export default function MobileTopBar() {
     isInstallable,
     handleInstallClick,
     setIsLogoutConfirmOpen,
+    openGlobalSearch,
   } = useAppContext();
 
   const tMsg = (en, id) => (language === 'id' ? id : en);
@@ -78,6 +79,13 @@ export default function MobileTopBar() {
       </div>
 
       <div className='flex items-center gap-4 relative'>
+        <button
+          type='button'
+          onClick={openGlobalSearch}
+          className='p-1 text-neutral-600 dark:text-neutral-300'
+          title={tMsg('Search', 'Cari')}>
+          <Icon name="search" className="w-5 h-5" />
+        </button>
         <div className='relative'>
           {unreadCount > 0 ? (
             <button

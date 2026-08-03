@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
-import { IconPlus } from '../SharedUI';
-import { HighlightText } from '../Utils';
 import InnoceanLogo from './InnoceanLogo';
 import { Icon } from './icons/Icon';
 import {
@@ -20,23 +18,11 @@ export default function Sidebar() {
     favoriteBoards,
     setFavoriteBoards,
     notifications,
-    setIsCreateBoardOpen,
     isMobileMenuOpen,
     setIsMobileMenuOpen,
     language,
     isProactiveAIOpen,
     setIsProactiveAIOpen,
-    globalSearchQuery,
-    setGlobalSearchQuery,
-    setIsGlobalSearchOpen,
-    globalSearchResults,
-    isGlobalSearchOpen,
-    isGlobalSearchClosing,
-    closeGlobalSearch,
-    handleGlobalSearchSelect,
-    accountStatus,
-    showNotification,
-    formatDateMMM,
     isSuperAdmin,
     openAdminModal,
     setBoardToDelete,
@@ -60,10 +46,6 @@ export default function Sidebar() {
   } = useAppContext();
 
   const tMsg = (en, id) => (language === 'id' ? id : en);
-  const canCreateProjects =
-    workspaceRole === 'admin' ||
-    workspaceRole === 'project_owner' ||
-    (!workspaceRole && isSuperAdmin);
   const canManageProjectDir =
     workspaceRole === 'admin' ||
     workspaceRole === 'project_owner' ||
@@ -181,18 +163,6 @@ export default function Sidebar() {
   const favorites = useMemo(() => {
     return displayBoards.filter((b) => favoriteBoards.includes(b.id));
   }, [displayBoards, favoriteBoards]);
-
-  const matchedGlobalBoards = useMemo(() => {
-    if (globalSearchQuery.trim().length < 2) return [];
-    const keywords = globalSearchQuery
-      .toLowerCase()
-      .split(/\s+/)
-      .filter(Boolean);
-    return excludeTodoListBoards(boards).filter((b) => {
-      const searchStr = `${b.name} ${b.owner_username}`.toLowerCase();
-      return keywords.every((kw) => searchStr.includes(kw));
-    });
-  }, [globalSearchQuery, boards]);
 
   const renderBoardItem = (board, isFavoriteSection = false) => {
     const isActive = selectedBoard?.id === board.id;
@@ -385,246 +355,12 @@ export default function Sidebar() {
           )}
         </div>
 
-        {!isCollapsed && (
-          <div className='px-4 pt-5 pb-2 shrink-0 relative'>
-            <div className='relative mb-3 group z-50'>
-              <span className='absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 group-hover:text-black dark:group-hover:text-white transition-colors'>
-                <Icon name='search' className='w-4 h-4' />
-              </span>
-              <input
-                type='text'
-                placeholder={tMsg(
-                  'Search everywhere...',
-                  'Cari dimana saja...'
-                )}
-                value={globalSearchQuery}
-                onChange={(e) => setGlobalSearchQuery(e.target.value)}
-                onFocus={() => {
-                  if (globalSearchQuery.length > 0) setIsGlobalSearchOpen(true);
-                }}
-                className='w-full bg-neutral-100/50 dark:bg-neutral-900/50 hover:bg-neutral-100 dark:hover:bg-neutral-900 border border-transparent focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black text-black dark:text-white text-sm rounded-lg pl-9 pr-8 py-2 outline-none transition-all placeholder-neutral-400 shadow-inner'
-              />
-              {globalSearchQuery && (
-                <button
-                  onClick={() => {
-                    setGlobalSearchQuery('');
-                    closeGlobalSearch();
-                  }}
-                  className='absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black dark:hover:text-white font-bold text-xs'>
-                  <Icon name='x' className='w-3 h-3' />
-                </button>
-              )}
-
-              {/* Global Search Results Overlay */}
-              {isGlobalSearchOpen && (
-                <>
-                  <div
-                    className='fixed inset-0 z-40'
-                    onClick={closeGlobalSearch}></div>
-                  <div
-                    className={`absolute top-full left-0 mt-3 w-full sm:w-87.5 bg-white/95 dark:bg-neutral-950/95 
-                  backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl overflow-hidden z-50 flex 
-                  flex-col max-h-100 origin-top ${isGlobalSearchClosing ? 'mac-exit' : 'mac-animate'}`}>
-                    <div className='px-4 py-2 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900'>
-                      <span className='text-[9px] font-bold text-neutral-400 uppercase tracking-widest'>
-                        Global Search Results
-                      </span>
-                    </div>
-                    {globalSearchResults.length > 0 ||
-                    matchedGlobalBoards.length > 0 ? (
-                      <div className='overflow-y-auto py-2'>
-                        {matchedGlobalBoards.length > 0 && (
-                          <div className='mb-2'>
-                            <div className='px-5 py-1.5 text-[9px] font-bold text-black dark:text-white uppercase tracking-widest bg-neutral-100 dark:bg-neutral-900'>
-                              <Icon name='folder' className='w-3 h-3 inline' />{' '}
-                              Projects
-                            </div>
-                            {matchedGlobalBoards.map((b) => (
-                              <div
-                                key={`gb-${b.id}`}
-                                onClick={() => {
-                                  setSelectedBoard(b);
-                                  setGlobalSearchQuery('');
-                                  closeGlobalSearch();
-                                }}
-                                className='px-5 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 cursor-pointer border-b border-neutral-100 dark:border-neutral-800/50 transition-colors flex items-center gap-3'>
-                                <Icon
-                                  name='folder-open'
-                                  className='w-5 h-5 shrink-0'
-                                />
-                                <div className='flex flex-col min-w-0'>
-                                  <span className='text-sm font-bold text-black dark:text-white truncate'>
-                                    <HighlightText
-                                      text={b.name}
-                                      query={globalSearchQuery}
-                                    />
-                                  </span>
-                                  <span className='text-[10px] text-neutral-500 font-medium truncate'>
-                                    Owned by @
-                                    <HighlightText
-                                      text={b.owner_username}
-                                      query={globalSearchQuery}
-                                    />
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {globalSearchResults.length > 0 && (
-                          <div className='mb-1'>
-                            <div className='px-5 py-1.5 text-[9px] font-bold text-black dark:text-white uppercase tracking-widest bg-neutral-100 dark:bg-neutral-900'>
-                              <Icon
-                                name='clipboard-list'
-                                className='w-3 h-3 inline'
-                              />{' '}
-                              Tasks
-                            </div>
-                            {globalSearchResults.map((t) => (
-                              <div
-                                key={t.id}
-                                onClick={() => handleGlobalSearchSelect(t)}
-                                className='px-5 py-3 hover:bg-neutral-50 dark:hover:bg-neutral-900 cursor-pointer border-b border-neutral-100 dark:border-neutral-800/50 last:border-0 transition-colors flex flex-col gap-1.5'>
-                                <div className='flex justify-between items-start'>
-                                  <span className='text-sm font-bold text-black dark:text-white truncate mr-2'>
-                                    <HighlightText
-                                      text={t.project_name}
-                                      query={globalSearchQuery}
-                                    />
-                                  </span>
-                                  <span
-                                    className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest shrink-0 ${
-                                      t.status === 'Done'
-                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                        : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                    }`}>
-                                    {t.status}
-                                  </span>
-                                </div>
-                                <div className='flex flex-wrap items-center gap-1.5 text-[10px] font-medium text-neutral-500'>
-                                  <span
-                                    className='truncate text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 hover:underline cursor-pointer transition-colors max-w-30'
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const board = boards.find(
-                                        (b) => b.id === t.board_id
-                                      );
-                                      if (board) {
-                                        setSelectedBoard(board);
-                                        setGlobalSearchQuery('');
-                                        closeGlobalSearch();
-                                      }
-                                    }}>
-                                    <Icon
-                                      name='folder-open'
-                                      className='w-3 h-3 inline'
-                                    />{' '}
-                                    <HighlightText
-                                      text={t.board_name}
-                                      query={globalSearchQuery}
-                                    />
-                                  </span>
-                                  {t.category && (
-                                    <>
-                                      <span className='text-neutral-300 dark:text-neutral-700'>
-                                        &bull;
-                                      </span>
-                                      <span className='bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase'>
-                                        {t.category}
-                                      </span>
-                                    </>
-                                  )}
-                                  {t.requester && (
-                                    <>
-                                      <span className='text-neutral-300 dark:text-neutral-700'>
-                                        &bull;
-                                      </span>
-                                      <span className='truncate flex items-center gap-1 text-[10px] font-bold text-indigo-600 dark:text-indigo-400'>
-                                        <Icon
-                                          name='user'
-                                          className='w-3 h-3 inline'
-                                        />{' '}
-                                        <HighlightText
-                                          text={t.requester}
-                                          query={globalSearchQuery}
-                                        />
-                                      </span>
-                                    </>
-                                  )}
-                                  {t.deadline && (
-                                    <>
-                                      <span className='text-neutral-300 dark:text-neutral-700'>
-                                        &bull;
-                                      </span>
-                                      <span className='text-neutral-500 dark:text-slate-400 text-[10px] font-medium'>
-                                        <Icon
-                                          name='calendar'
-                                          className='w-3 h-3 inline'
-                                        />{' '}
-                                        {formatDateMMM(t.deadline)}
-                                      </span>
-                                    </>
-                                  )}
-                                  {t.priority_str &&
-                                    t.status !== 'Done' &&
-                                    t.status !== 'Rejected' && (
-                                      <>
-                                        <span className='text-neutral-300 dark:text-neutral-700'>
-                                          &bull;
-                                        </span>
-                                        <span
-                                          className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
-                                            t.priority_lvl === 'critical'
-                                              ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400'
-                                              : t.priority_lvl === 'warning'
-                                                ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
-                                                : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
-                                          }`}>
-                                          {t.priority_str}
-                                        </span>
-                                      </>
-                                    )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className='p-4 text-center text-xs text-neutral-500'>
-                        {tMsg(
-                          'No projects or tasks found.',
-                          'Tidak ada proyek atau tugas ditemukan.'
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {canCreateProjects && (
-              <button
-                onClick={() => {
-                  setIsCreateBoardOpen(true);
-                  setIsMobileMenuOpen(false);
-                }}
-                disabled={accountStatus === 'suspended'}
-                className='w-full flex items-center gap-2 justify-center bg-black dark:bg-white text-white dark:text-black hover:opacity-80 font-bold py-2 px-4 rounded-lg transition-opacity disabled:opacity-50 text-sm shadow-sm'>
-                <IconPlus className='w-4 h-4' />{' '}
-                {tMsg('New Project', 'Proyek Baru')}
-              </button>
-            )}
-          </div>
-        )}
-
         <div
           className={`flex-1 overflow-y-auto px-3 pb-2 scrollbar-thin scrollbar-thumb-neutral-200 dark:scrollbar-thumb-neutral-800 scrollbar-track-transparent ${
             isCollapsed ? 'pt-0' : 'pt-2'
           }`}>
           {isCollapsed && (
-            <div className='sticky top-0 bg-white dark:bg-neutral-950 z-10 flex flex-col items-center py-2 mb-2 border-b border-neutral-100 dark:border-neutral-800 w-full'>
+            <div className='sticky top-0 bg-white dark:bg-neutral-950 z-10 flex flex-col items-center py-2 mb-2 border-b border-neutral-100 dark:border-neutral-800 w-full gap-1'>
               <button
                 onClick={toggleCollapse}
                 className='w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors'

@@ -30,6 +30,7 @@ import ProactiveAIModal from '../ProactiveAIModal';
 import ChatWorkspaceModal from '../ChatWorkspaceModal';
 import SystemSpecsModal from '../SystemSpecsModal';
 import MoMNotepadModal from './SmartAssistant/MoMNotepadModal';
+import GlobalSearchModal from './GlobalSearchModal';
 
 export default function AppModals() {
   const context = useAppContext();
@@ -776,6 +777,8 @@ export default function AppModals() {
       {isTermsOpen && <TermsOfServiceModal setIsTermsOpen={setIsTermsOpen} language={language} />}
       {isSpecsOpen && <SystemSpecsModal setIsSpecsOpen={setIsSpecsOpen} language={language} />}
       {isChangelogOpen && <ChangelogModal setIsChangelogOpen={setIsChangelogOpen} language={language} />}
+
+      <GlobalSearchModal />
 
       {showWelcomeTour && (
         <WelcomeTourModal

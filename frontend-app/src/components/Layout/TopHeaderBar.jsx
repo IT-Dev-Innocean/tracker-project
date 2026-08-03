@@ -55,9 +55,11 @@ export default function TopHeaderBar() {
     setIsLogoutConfirmOpen,
     inboxChats,
     dmConversations,
+    openGlobalSearch,
   } = useAppContext();
 
   const tMsg = (en, id) => (language === 'id' ? id : en);
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const unreadInboxChatsCount = useMemo(() => {
@@ -132,7 +134,25 @@ export default function TopHeaderBar() {
   };
 
   return (
-    <header className='hidden md:flex sticky top-0 shrink-0 z-40 w-full items-center justify-end bg-white/95 dark:bg-neutral-950/95 backdrop-blur border-b border-neutral-200/50 dark:border-neutral-800/50 px-4 md:px-6 py-2'>
+    <header className='hidden md:flex sticky top-0 shrink-0 z-40 w-full items-center justify-between bg-white/95 dark:bg-neutral-950/95 backdrop-blur border-b border-neutral-200/50 dark:border-neutral-800/50 px-4 md:px-6 py-2'>
+      <button
+        type='button'
+        onClick={openGlobalSearch}
+        className='flex items-center gap-2 max-w-xs w-full bg-neutral-100/60 dark:bg-neutral-900/60 hover:bg-neutral-100 dark:hover:bg-neutral-900 border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700 text-neutral-400 text-sm rounded-lg pl-3 pr-3 py-1.5 transition-all text-left'>
+        <Icon name='search' className='w-4 h-4 shrink-0' />
+        <span className='truncate flex-1 text-neutral-400'>
+          {tMsg('Search projects, teams...', 'Cari proyek, tim...')}
+        </span>
+        <span className='flex items-center gap-0.5 shrink-0 text-[10px] font-medium text-neutral-400'>
+          <kbd className='px-1 py-0.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded text-[9px]'>
+            {isMac ? '⌘' : 'Ctrl'}
+          </kbd>
+          <kbd className='px-1 py-0.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded text-[9px]'>
+            K
+          </kbd>
+        </span>
+      </button>
+
       {(isNotifOpen || isProfileMenuOpen) && (
         <div className='fixed inset-0 z-40' onClick={closeAllMenus} />
       )}

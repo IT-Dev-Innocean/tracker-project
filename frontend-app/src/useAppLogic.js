@@ -705,13 +705,34 @@ export default function useAppLogic() {
     }, 200);
   };
 
+  const openGlobalSearch = () => {
+    setIsGlobalSearchClosing(false);
+    setIsGlobalSearchOpen(true);
+  };
+
   const closeGlobalSearch = () => {
     setIsGlobalSearchClosing(true);
     setTimeout(() => {
       setIsGlobalSearchOpen(false);
       setIsGlobalSearchClosing(false);
+      setGlobalSearchQuery('');
     }, 200);
   };
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        if (isGlobalSearchOpen) {
+          closeGlobalSearch();
+        } else {
+          openGlobalSearch();
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isGlobalSearchOpen]);
 
   useEffect(() => {
     if (currentUser) {
@@ -3679,25 +3700,6 @@ export default function useAppLogic() {
     }
   };
 
-  // Logika Global Search (Menunggu 300ms setelah selesai ngetik sebelum memanggil API)
-  useEffect(() => {
-    if (globalSearchQuery.trim().length >= 2) {
-      const delayDebounceFn = setTimeout(() => {
-        axios
-          .get(`/api/tasks/search?q=${encodeURIComponent(globalSearchQuery)}`)
-          .then((res) => {
-            setGlobalSearchResults(res.data.results || []);
-            setIsGlobalSearchOpen(true);
-          })
-          .catch((err) => console.error('Search failed:', err));
-      }, 300);
-      return () => clearTimeout(delayDebounceFn);
-    } else {
-      setGlobalSearchResults([]);
-      setIsGlobalSearchOpen(false);
-    }
-  }, [globalSearchQuery]);
-
   const handleGlobalSearchSelect = (task) => {
     const board = boards.find((b) => b.id === task.board_id);
     if (board) setSelectedBoard(board);
@@ -4877,6 +4879,7 @@ export default function useAppLogic() {
     handleSupportSubmit,
     closeNotif,
     closeGlobalSearch,
+    openGlobalSearch,
     handleQuickLinkAdd,
     handleQuickLinkRemove,
     handleStartMeet,
