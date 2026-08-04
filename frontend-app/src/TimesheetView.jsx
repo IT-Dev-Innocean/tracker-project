@@ -80,6 +80,23 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   // Tabs State
   const [activeSubTab, setActiveSubTab] = useState('my-timesheet');
 
+  // Overtime dismiss
+  const [dismissedOvertime, setDismissedOvertime] = useState(false);
+
+  // History lazy load
+  const [historyDisplayCount, setHistoryDisplayCount] = useState(10);
+
+  // Approval History — filters & collapse
+  const [histFilterUser, setHistFilterUser] = useState('');
+  const [histFilterStatus, setHistFilterStatus] = useState(''); // '' | 'Approved' | 'Rejected' | 'Mixed'
+  const [histFilterDateFrom, setHistFilterDateFrom] = useState('');
+  const [histFilterDateTo, setHistFilterDateTo] = useState('');
+  const [expandedHistoryUsers, setExpandedHistoryUsers] = useState(new Set());
+  const [histDisplayCount, setHistDisplayCount] = useState(15); // entries per page across all users
+
+  // Determine if current user is an approver
+  const isApprover = !!(profileData?.is_approver || approvals.length > 0 || approvalHistory.length > 0);
+
   // Collapsible States
   const [expandedHistoryWeeks, setExpandedHistoryWeeks] = useState(new Set());
   const [expandedApprovalWeeks, setExpandedApprovalWeeks] = useState(new Set());
@@ -231,6 +248,34 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     result.sort((a, b) => a.username.localeCompare(b.username));
     return result;
   }, [approvalHistory]);
+
+  // Filtered & paginated approval history
+  const filteredGroupedApprovalHistory = useMemo(() => {
+    return groupedApprovalHistory
+      .filter(userGroup => !histFilterUser || userGroup.username === histFilterUser)
+      .map(userGroup => ({
+        ...userGroup,
+        weeks: userGroup.weeks.filter(weekGroup => {
+          if (histFilterStatus && weekGroup.weekStatus !== histFilterStatus) return false;
+          if (histFilterDateFrom && weekGroup.weekStartStr < histFilterDateFrom) return false;
+          if (histFilterDateTo && weekGroup.weekStartStr > histFilterDateTo) return false;
+          return true;
+        }),
+      }))
+      .filter(userGroup => userGroup.weeks.length > 0);
+  }, [groupedApprovalHistory, histFilterUser, histFilterStatus, histFilterDateFrom, histFilterDateTo]);
+
+  // All usernames that have history (for filter dropdown)
+  const historyUsernames = useMemo(() =>
+    [...new Set(approvalHistory.map(e => e.user_username))].sort(),
+  [approvalHistory]);
+
+  const toggleHistoryUser = (username) => {
+    const newSet = new Set(expandedHistoryUsers);
+    if (newSet.has(username)) newSet.delete(username);
+    else newSet.add(username);
+    setExpandedHistoryUsers(newSet);
+  };
 
   // Modals state
   const [deleteRowModal, setDeleteRowModal] = useState(null); // stores row object
@@ -701,6 +746,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     d.setDate(d.getDate() + 7);
     setCurrentWeekStart(d);
     setSelectedRowIds(new Set());
+    setDismissedOvertime(false);
   };
 
   const prevWeek = () => {
@@ -708,11 +754,13 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     d.setDate(d.getDate() - 7);
     setCurrentWeekStart(d);
     setSelectedRowIds(new Set());
+    setDismissedOvertime(false);
   };
 
   const currentWeek = () => {
     setCurrentWeekStart(getStartOfWeek(new Date()));
     setSelectedRowIds(new Set());
+    setDismissedOvertime(false);
   };
 
   // Submitted history
@@ -822,7 +870,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
         >
           {tMsg('History & Submitted', 'Riwayat & Terkirim')}
         </button>
-        {approvals.length > 0 && (
+        {isApprover && (
           <button
             onClick={() => setActiveSubTab('approvals')}
             className={`pb-3 text-sm font-semibold transition-all relative flex items-center gap-1.5 ${activeSubTab === 'approvals'
@@ -831,12 +879,14 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
               }`}
           >
             {tMsg('Team Approvals', 'Persetujuan Tim')}
-            <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-black rounded-full shadow-sm">
-              {approvals.length}
-            </span>
+            {approvals.length > 0 && (
+              <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-black rounded-full shadow-sm">
+                {approvals.length}
+              </span>
+            )}
           </button>
         )}
-        {(approvalHistory.length > 0 || approvals.length > 0) && (
+        {isApprover && (
           <button
             onClick={() => setActiveSubTab('approval-history')}
             className={`pb-3 text-sm font-semibold transition-all relative flex items-center gap-1.5 ${activeSubTab === 'approval-history'
@@ -855,12 +905,12 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       </div>
 
       {/* Overtime Warning */}
-      {(hasDailyOvertime || hasWeeklyOvertime) && (
-        <div className="bg-amber-50/50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex gap-3 text-amber-800 dark:text-amber-300 shadow-sm mac-animate">
-          <Icon name="alert-triangle" className="w-5 h-5 shrink-0" />
-          <div>
+      {(hasDailyOvertime || hasWeeklyOvertime) && !dismissedOvertime && (
+        <div className="bg-amber-50/50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex gap-3 items-start text-amber-800 dark:text-amber-300 shadow-sm mac-animate">
+          <Icon name="alert-triangle" className="w-5 h-5 shrink-0 mt-0.5" />
+          <div className="flex-1">
             <h4 className="font-bold text-sm">Overtime Warning</h4>
-            <p className="text-xs mt-0.5 opacity-90 font-medium animate-pulse">
+            <p className="text-xs mt-0.5 opacity-90 font-medium">
               {hasDailyOvertime && hasWeeklyOvertime
                 ? 'You have logged more than 8 hours in a single day and more than 40 hours for this week.'
                 : hasDailyOvertime
@@ -869,6 +919,13 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
               Please ensure this overtime is approved.
             </p>
           </div>
+          <button
+            onClick={() => setDismissedOvertime(true)}
+            className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors p-1 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30"
+            title="Dismiss"
+          >
+            <Icon name="x" className="w-4 h-4" />
+          </button>
         </div>
       )}
 
@@ -924,7 +981,6 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                   </th>
                   <th className="py-3 px-4 font-medium w-56">Project</th>
                   <th className="py-3 px-4 font-medium w-auto min-w-[16rem]">Task</th>
-                  <th className="py-3 px-4 font-medium w-20 text-center">ETC</th>
                   {weekDays.map((dateStr, i) => {
                     const isPublicHoliday = leaves.some(
                       l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
@@ -935,8 +991,8 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                     const isWeekend = i === 0 || i === 6;
 
                     let headerClass = '';
-                    if (isPublicHoliday) headerClass = 'bg-red-50 dark:bg-red-900/20';
-                    else if (isUserLeave || isWeekend) headerClass = 'bg-slate-200/50 dark:bg-neutral-850/60';
+                    if (isPublicHoliday) headerClass = 'bg-red-50 dark:bg-red-950/20';
+                    else if (isUserLeave || isWeekend) headerClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
 
                     return (
                       <th key={dateStr} className={`py-3 px-2 font-medium text-center w-20 relative ${headerClass}`}>
@@ -969,15 +1025,9 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                   const isSelected = selectedRowIds.has(row.id);
                   const isReadOnly = Object.values(row.days).some(d => d && ['Pending', 'Approved'].includes(d.status));
 
-                  let etcValue = '-';
                   let projectTasks = [];
-
                   if (row.board_id) {
                     projectTasks = tasks.filter(t => t.board_id === parseInt(row.board_id));
-                    if (row.request_id) {
-                      const taskObj = projectTasks.find(t => t.id === parseInt(row.request_id));
-                      if (taskObj) etcValue = `${taskObj.etc}h`;
-                    }
                   } else if (!row.isManual) {
                     projectTasks = tasks.filter(t => t.id === row.request_id);
                   }
@@ -1003,7 +1053,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                             >
                               <option value="">-- No Project --</option>
                               {boards.filter(b => b.is_private !== 1).map(b => (
-                                <option key={b.id} value={b.id}>[{b.id}] {b.name}</option>
+                                <option key={b.id} value={b.id}>{b.name}</option>
                               ))}
                               <option value="custom">✍️ Custom Project...</option>
                             </select>
@@ -1018,11 +1068,11 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                             )}
                           </div>
                         ) : (
-                          <span className="font-medium text-slate-700 dark:text-slate-300">
+                          <span className="font-medium text-slate-700 dark:text-slate-300 break-words whitespace-normal">
                             {(() => {
                               if (row.custom_project_name) return row.custom_project_name;
                               const b = boards.find(b => b.id === parseInt(row.board_id));
-                              return b ? `[${b.id}] ${b.name}` : 'General / No Project';
+                              return b ? b.name : <span className="text-slate-400 italic">General / No Project</span>;
                             })()}
                           </span>
                         )}
@@ -1037,7 +1087,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                             >
                               <option value="">-- Select Task --</option>
                               {projectTasks.map(t => (
-                                <option key={t.id} value={t.id}>[{t.id}] {t.project_name && t.project_name.length > 40 ? t.project_name.substring(0, 40) + '...' : t.project_name}</option>
+                                <option key={t.id} value={t.id}>{t.project_name && t.project_name.length > 60 ? t.project_name.substring(0, 60) + '...' : t.project_name}</option>
                               ))}
                               <option value="custom">✍️ Custom Task...</option>
                             </select>
@@ -1052,13 +1102,10 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                             )}
                           </div>
                         ) : (
-                          <span className="text-slate-600 dark:text-slate-400 max-w-[200px] truncate block" title={row.custom_task_name || Object.values(row.days)[0]?.task_name}>
-                            {row.custom_task_name || (Object.values(row.days)[0]?.task_name ? `${row.request_id ? `[${row.request_id}] ` : ''}${Object.values(row.days)[0]?.task_name}` : 'No Task')}
+                          <span className="text-slate-600 dark:text-slate-400 break-words whitespace-normal block" title={row.custom_task_name || Object.values(row.days)[0]?.task_name}>
+                            {row.custom_task_name || Object.values(row.days)[0]?.task_name || <span className="italic text-slate-400">No Task</span>}
                           </span>
                         )}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-neutral-800 px-2 py-1 rounded">{etcValue}</span>
                       </td>
                       {weekDays.map((dateStr, i) => {
                         const dayData = row.days[dateStr];
@@ -1075,7 +1122,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
                         let cellClass = '';
                         if (isPublicHoliday) cellClass = 'bg-red-50/60 dark:bg-red-950/20';
-                        else if (isUserLeave || isWeekend) cellClass = 'bg-slate-100/60 dark:bg-neutral-800/40';
+                        else if (isUserLeave || isWeekend) cellClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
 
                         return (
                           <td key={dateStr} className={`py-2 px-1 text-center relative group ${cellClass}`}>
@@ -1127,7 +1174,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
               </tbody>
               <tfoot className="sticky bottom-0 z-20 bg-slate-50 dark:bg-neutral-950 border-t border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-slate-300 font-bold shadow-[0_-1px_0_0_rgba(226,232,240,1)] dark:shadow-[0_-1px_0_0_rgba(38,38,38,1)]">
                 <tr>
-                  <td colSpan="3" className="py-2 px-4 text-left">
+                  <td colSpan="2" className="py-2 px-4 text-left">
                     <button
                       onClick={handleAddRow}
                       disabled={isWeekSubmitted}
@@ -1136,7 +1183,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                       <Icon name="plus" className="w-3.5 h-3.5 inline-block mr-1" /> Add Row
                     </button>
                   </td>
-                  <td className="py-3 px-4 text-center">Daily Totals:</td>
+                  <td className="py-3 px-4 text-right font-medium text-slate-500 dark:text-neutral-400 text-xs">Daily Totals:</td>
                   {weekDays.map((dateStr, i) => {
                     let dayTotal = 0;
                     gridRows.forEach(r => {
@@ -1153,7 +1200,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
                     let footerClass = '';
                     if (isPublicHoliday) footerClass = 'bg-red-50/60 dark:bg-red-950/20';
-                    else if (isUserLeave || isWeekend) footerClass = 'bg-slate-100/60 dark:bg-neutral-800/40';
+                    else if (isUserLeave || isWeekend) footerClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
 
                     return (
                       <td key={dateStr} className={`py-3 px-2 text-center font-bold ${footerClass} ${dayTotal > 8 ? 'text-amber-500' : (isUserLeave ? 'text-indigo-650 dark:text-indigo-400' : 'text-indigo-600 dark:text-indigo-400')
@@ -1195,7 +1242,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
             <div className="text-center text-slate-400 italic py-6">No submitted history found.</div>
           ) : (
             <div className="space-y-4">
-              {historyGridByWeek.map((weekGroup, idx) => {
+              {historyGridByWeek.slice(0, historyDisplayCount).map((weekGroup, idx) => {
                 const weekStartStr = weekGroup.weekDays[0];
                 const isExpanded = expandedHistoryWeeks.has(weekStartStr);
                 const totalHours = weekGroup.rows.reduce((sum, r) => sum + (r.totalHours || 0), 0);
@@ -1247,7 +1294,6 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                             <tr>
                               <th className="py-3 px-4 font-medium w-64 min-w-[10rem]">{tMsg('Project', 'Proyek')}</th>
                               <th className="py-3 px-4 font-medium w-auto min-w-[18rem]">{tMsg('Task', 'Tugas')}</th>
-                              <th className="py-3 px-4 font-medium w-16 text-center">ETC</th>
                               {weekGroup.weekDays.map((dateStr, i) => (
                                 <th key={dateStr} className="py-3 px-2 font-medium text-center w-20 whitespace-nowrap">
                                   <div>{dayNames[i]}</div>
@@ -1260,27 +1306,15 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                           </thead>
                           <tbody className="divide-y divide-slate-100 dark:divide-neutral-800 text-slate-700 dark:text-neutral-200">
                             {weekGroup.rows.map(row => {
-                              let etcValue = '-';
-                              if (row.board_id) {
-                                const projectTasks = tasks.filter(t => t.board_id === parseInt(row.board_id));
-                                if (row.request_id) {
-                                  const taskObj = projectTasks.find(t => t.id === parseInt(row.request_id));
-                                  if (taskObj) etcValue = `${taskObj.etc}h`;
-                                }
-                              }
-
                               return (
                                 <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-neutral-900/30 transition-colors">
                                   <td className="py-3 px-4 font-medium text-slate-800 dark:text-neutral-200 align-top">
-                                    <span className="break-words">{row.custom_project_name || (boards.find(b => b.id === parseInt(row.board_id))?.name ? `[${row.board_id}] ${boards.find(b => b.id === parseInt(row.board_id))?.name}` : <span className="text-slate-400 dark:text-neutral-500 italic">General / No Project</span>)}</span>
+                                    <span className="break-words">{row.custom_project_name || boards.find(b => b.id === parseInt(row.board_id))?.name || <span className="text-slate-400 dark:text-neutral-500 italic">General / No Project</span>}</span>
                                   </td>
                                   <td className="py-3 px-4 text-slate-600 dark:text-neutral-300 align-top">
                                     <span className="break-words block" title={row.custom_task_name || Object.values(row.days)[0]?.task_name}>
-                                      {row.custom_task_name || (Object.values(row.days)[0]?.task_name ? `${row.request_id ? `[${row.request_id}] ` : ''}${Object.values(row.days)[0]?.task_name}` : <span className="text-slate-400 dark:text-neutral-500 italic">No Task</span>)}
+                                      {row.custom_task_name || Object.values(row.days)[0]?.task_name || <span className="text-slate-400 dark:text-neutral-500 italic">No Task</span>}
                                     </span>
-                                  </td>
-                                  <td className="py-3 px-4 text-center align-top">
-                                    <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-neutral-800 px-2 py-1 rounded">{etcValue}</span>
                                   </td>
                                   {weekGroup.weekDays.map(dateStr => {
                                     const d = row.days[dateStr];
@@ -1322,6 +1356,16 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                   </div>
                 );
               })}
+            </div>
+          )}
+          {historyGridByWeek.length > historyDisplayCount && (
+            <div className="text-center pt-2">
+              <button
+                onClick={() => setHistoryDisplayCount(c => c + 10)}
+                className="px-5 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/30 rounded-xl transition-all"
+              >
+                Load More ({historyGridByWeek.length - historyDisplayCount} remaining)
+              </button>
             </div>
           )}
         </div>
@@ -1503,11 +1547,11 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
                                     return (
                                       <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-neutral-900/30">
-                                        <td className="py-2 px-3 font-medium text-slate-700 dark:text-neutral-200">
+                                        <td className="py-2 px-3 font-medium text-slate-700 dark:text-neutral-200 align-top">
                                           {row.custom_project_name || <span className="text-slate-400 dark:text-neutral-500 italic">—</span>}
                                         </td>
-                                        <td className="py-2 px-3 text-slate-600 dark:text-neutral-300">
-                                          <span className="max-w-[200px] truncate block" title={row.custom_task_name}>
+                                        <td className="py-2 px-3 text-slate-600 dark:text-neutral-300 align-top">
+                                          <span className="break-words whitespace-normal block" title={row.custom_task_name}>
                                             {row.custom_task_name || <span className="text-slate-400 dark:text-neutral-500 italic">{tMsg('No Task', 'Tidak Ada Tugas')}</span>}
                                           </span>
                                         </td>
@@ -1523,7 +1567,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
                                           let cellClass = '';
                                           if (isPublicHoliday) cellClass = 'bg-red-50/60 dark:bg-red-950/20';
-                                          else if (isUserLeave || isWeekend) cellClass = 'bg-slate-100/60 dark:bg-neutral-800/40';
+                                          else if (isUserLeave || isWeekend) cellClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
 
                                           // Show actual value if entry exists, '0' for holiday/leave with no entry, '-' if no data
                                           let val;
@@ -1624,173 +1668,280 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       {/* Approval History Section */}
       {activeSubTab === 'approval-history' && (
         <div className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+          {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 dark:border-neutral-700 pb-3">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <Icon name="clock" className="w-5 h-5 text-slate-500 dark:text-neutral-400" />
-              {tMsg('Approval History', 'Riwayat Persetujuan')}
-            </h2>
-            <p className="text-xs text-slate-400 dark:text-neutral-500">
-              {tMsg('Timesheets you have approved or rejected', 'Timesheet yang sudah Anda setujui atau tolak')}
-            </p>
+            <div>
+              <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                <Icon name="clock" className="w-5 h-5 text-slate-500 dark:text-neutral-400" />
+                {tMsg('Approval History', 'Riwayat Persetujuan')}
+              </h2>
+              <p className="text-xs text-slate-400 dark:text-neutral-500 mt-0.5">
+                {tMsg('Timesheets you have approved or rejected', 'Timesheet yang sudah Anda setujui atau tolak')}
+              </p>
+            </div>
           </div>
 
-          {groupedApprovalHistory.length === 0 ? (
+          {/* Filter Bar */}
+          <div className="flex flex-wrap items-center gap-3 bg-slate-50 dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded-xl px-4 py-3">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-neutral-400">
+              <Icon name="filter" className="w-3.5 h-3.5" />
+              {tMsg('Filter:', 'Filter:')}
+            </div>
+            {/* User filter */}
+            <select
+              value={histFilterUser}
+              onChange={e => { setHistFilterUser(e.target.value); setHistDisplayCount(15); }}
+              className="text-xs bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500 cursor-pointer"
+            >
+              <option value="">{tMsg('All Users', 'Semua User')}</option>
+              {historyUsernames.map(u => (
+                <option key={u} value={u}>@{u}</option>
+              ))}
+            </select>
+            {/* Status filter */}
+            <select
+              value={histFilterStatus}
+              onChange={e => { setHistFilterStatus(e.target.value); setHistDisplayCount(15); }}
+              className="text-xs bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500 cursor-pointer"
+            >
+              <option value="">{tMsg('All Status', 'Semua Status')}</option>
+              <option value="Approved">✓ Approved</option>
+              <option value="Rejected">✕ Rejected</option>
+              <option value="Mixed">~ Mixed</option>
+            </select>
+            {/* Date from */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-400 dark:text-neutral-500">{tMsg('From', 'Dari')}</span>
+              <input
+                type="date"
+                value={histFilterDateFrom}
+                onChange={e => { setHistFilterDateFrom(e.target.value); setHistDisplayCount(15); }}
+                className="text-xs bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-400 dark:text-neutral-500">{tMsg('To', 'Hingga')}</span>
+              <input
+                type="date"
+                value={histFilterDateTo}
+                onChange={e => { setHistFilterDateTo(e.target.value); setHistDisplayCount(15); }}
+                className="text-xs bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500"
+              />
+            </div>
+            {/* Clear */}
+            {(histFilterUser || histFilterStatus || histFilterDateFrom || histFilterDateTo) && (
+              <button
+                onClick={() => { setHistFilterUser(''); setHistFilterStatus(''); setHistFilterDateFrom(''); setHistFilterDateTo(''); setHistDisplayCount(15); }}
+                className="text-xs font-bold text-red-500 hover:text-red-600 dark:text-red-400 px-2 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+              >
+                ✕ {tMsg('Clear', 'Hapus')}
+              </button>
+            )}
+            <span className="ml-auto text-xs text-slate-400 dark:text-neutral-500">
+              {filteredGroupedApprovalHistory.reduce((sum, u) => sum + u.weeks.length, 0)} {tMsg('weeks', 'minggu')} · {filteredGroupedApprovalHistory.length} {tMsg('users', 'user')}
+            </span>
+          </div>
+
+          {filteredGroupedApprovalHistory.length === 0 ? (
             <div className="text-center text-slate-400 dark:text-neutral-500 italic py-10">
               {tMsg('No approval history found.', 'Belum ada riwayat persetujuan.')}
             </div>
           ) : (
-            <div className="space-y-6">
-              {groupedApprovalHistory.map(userGroup => (
-                <div key={userGroup.username} className="flex flex-col gap-3 border border-slate-200/60 dark:border-neutral-800/60 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-neutral-800 pb-2">
-                    <Icon name="user" className="w-4 h-4 text-slate-400 dark:text-neutral-500" />
-                    <span>@{userGroup.username}</span>
-                  </div>
+            <div className="space-y-3">
+              {(() => {
+                // Flatten weeks across users for lazy load tracking
+                let displayedCount = 0;
+                const maxDisplay = histDisplayCount;
 
-                  <div className="space-y-3">
-                    {userGroup.weeks.map(weekGroup => {
-                      const key = `hist_${userGroup.username}_${weekGroup.weekStartStr}`;
-                      const isExpanded = expandedApprovalWeeks.has(key);
-                      const isApproved = weekGroup.weekStatus === 'Approved';
-                      const isRejected = weekGroup.weekStatus === 'Rejected';
+                return filteredGroupedApprovalHistory.map(userGroup => {
+                  const isUserExpanded = expandedHistoryUsers.has(userGroup.username);
+                  const userWeekCount = userGroup.weeks.length;
 
-                      return (
-                        <div key={weekGroup.weekStartStr} className={`border rounded-xl overflow-hidden shadow-sm ${isApproved ? 'border-emerald-200 dark:border-emerald-900/40' :
-                          isRejected ? 'border-red-200 dark:border-red-900/40' :
-                            'border-slate-200 dark:border-neutral-800'
-                          }`}>
-                          <button
-                            onClick={() => {
-                              const newSet = new Set(expandedApprovalWeeks);
-                              if (newSet.has(key)) newSet.delete(key);
-                              else newSet.add(key);
-                              setExpandedApprovalWeeks(newSet);
-                            }}
-                            className={`w-full flex justify-between items-center px-4 py-3 text-left text-xs font-bold transition-colors ${isApproved ? 'bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300' :
-                              isRejected ? 'bg-red-50/60 dark:bg-red-950/20 text-red-800 dark:text-red-300' :
-                                'bg-slate-50 dark:bg-neutral-900 text-slate-700 dark:text-neutral-200'
-                              }`}
-                          >
-                            <div className="flex items-center gap-3">
-                              {/* Status badge */}
-                              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border ${isApproved
-                                ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50'
-                                : isRejected
-                                  ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/50'
-                                  : 'bg-slate-100 dark:bg-neutral-800 text-slate-600 dark:text-neutral-300 border-slate-200 dark:border-neutral-700'
-                                }`}>
-                                {isApproved ? '✓' : isRejected ? '✕' : '~'} {weekGroup.weekStatus}
-                              </span>
-                              <Icon name="calendar" className="w-3.5 h-3.5" />
-                              <span>
-                                Week of {formatDateMMM(weekGroup.weekDays[0]).replace(/,?\s*\d{4}/, '')} – {formatDateMMM(weekGroup.weekDays[6]).replace(/,?\s*\d{4}/, '')}
-                              </span>
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isApproved ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40' :
-                                isRejected ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/40' :
-                                  'bg-slate-100 dark:bg-neutral-800 text-slate-500 border-slate-200 dark:border-neutral-700'
-                                }`}>
-                                {weekGroup.totalHours}h
-                              </span>
+                  // Count approved/rejected weeks
+                  const approvedCount = userGroup.weeks.filter(w => w.weekStatus === 'Approved').length;
+                  const rejectedCount = userGroup.weeks.filter(w => w.weekStatus === 'Rejected').length;
+
+                  return (
+                    <div key={userGroup.username} className="border border-slate-200 dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm">
+                      {/* User header — collapsible */}
+                      <button
+                        onClick={() => toggleHistoryUser(userGroup.username)}
+                        className="w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 dark:bg-neutral-950 hover:bg-slate-100 dark:hover:bg-neutral-900 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                            {userGroup.username.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-slate-800 dark:text-neutral-100">@{userGroup.username}</div>
+                            <div className="text-[10px] text-slate-400 dark:text-neutral-500 mt-0.5">
+                              {userWeekCount} {tMsg('week(s)', 'minggu')}
+                              {approvedCount > 0 && <span className="ml-2 text-emerald-600 dark:text-emerald-400">· ✓ {approvedCount} {tMsg('approved', 'disetujui')}</span>}
+                              {rejectedCount > 0 && <span className="ml-2 text-red-500 dark:text-red-400">· ✕ {rejectedCount} {tMsg('rejected', 'ditolak')}</span>}
                             </div>
-                            <span className="text-slate-400 dark:text-neutral-500 text-[10px]">
-                              {isExpanded ? '▼' : '▶'}
-                            </span>
-                          </button>
-
-                          {isExpanded && (
-                            <div className="p-4 overflow-x-auto border-t border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-950">
-                              <table className="w-full text-left text-xs">
-                                <thead className="bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 text-slate-500 dark:text-neutral-300">
-                                  <tr>
-                                    <th className="py-2.5 px-3 font-medium w-56 min-w-[9rem]">{tMsg('Project', 'Proyek')}</th>
-                                    <th className="py-2.5 px-3 font-medium min-w-[14rem]">{tMsg('Task', 'Tugas')}</th>
-                                    {weekGroup.weekDays.map((dateStr, i) => {
-                                      const isWeekend = i === 0 || i === 6;
-                                      const dayNames2 = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                                      return (
-                                        <th key={dateStr} className={`py-2.5 px-2 font-medium text-center w-14 whitespace-nowrap ${isWeekend ? 'bg-slate-100 dark:bg-neutral-800/60' : ''}`}>
-                                          <div className={isWeekend ? 'text-slate-400 dark:text-neutral-500' : 'text-slate-600 dark:text-neutral-300'}>{dayNames2[i]}</div>
-                                          <div className="text-[9px] mt-0.5 text-slate-400 dark:text-neutral-500">{formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '')}</div>
-                                        </th>
-                                      );
-                                    })}
-                                    <th className="py-2.5 px-3 font-medium text-center text-slate-500 dark:text-neutral-300 whitespace-nowrap">{tMsg('Total', 'Total')}</th>
-                                    <th className="py-2.5 px-3 font-medium text-center text-slate-500 dark:text-neutral-300">{tMsg('Status', 'Status')}</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-neutral-800 text-slate-700 dark:text-neutral-200">
-                                  {weekGroup.rows.map(row => (
-                                    <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-neutral-900/20">
-                                      <td className="py-2 px-3 font-medium text-slate-800 dark:text-neutral-200 align-top">
-                                        <span className="break-words">{row.custom_project_name || <span className="text-slate-400 dark:text-neutral-500 italic">—</span>}</span>
-                                      </td>
-                                      <td className="py-2 px-3 text-slate-600 dark:text-neutral-300 align-top">
-                                        <span className="break-words block" title={row.custom_task_name}>
-                                          {row.custom_task_name || <span className="text-slate-400 dark:text-neutral-500 italic">{tMsg('No Task', 'Tidak Ada Tugas')}</span>}
-                                        </span>
-                                      </td>
-                                      {weekGroup.weekDays.map((dateStr, i) => {
-                                        const d = row.days[dateStr];
-                                        const isWeekend = i === 0 || i === 6;
-                                        return (
-                                          <td key={dateStr} className={`py-2 px-2 text-center align-top ${isWeekend ? 'bg-slate-100/60 dark:bg-neutral-800/40' : ''}`}>
-                                            {d ? (
-                                              <span className={`font-semibold pr-1 ${parseFloat(d.hours_logged) > 8 ? 'text-amber-500' : 'text-slate-800 dark:text-white'}`}>
-                                                {d.hours_logged}
-                                              </span>
-                                            ) : (
-                                              <span className="text-slate-300 dark:text-neutral-600 pr-1">-</span>
-                                            )}
-                                          </td>
-                                        );
-                                      })}
-                                      <td className="py-2 px-3 text-center font-bold text-indigo-600 dark:text-indigo-400 align-top">
-                                        {row.totalHours > 0 ? `${row.totalHours}h` : <span className="text-slate-300 dark:text-neutral-600">-</span>}
-                                      </td>
-                                      <td className="py-2 px-3 text-center align-top">
-                                        {/* Row-level status from the first entry of that row */}
-                                        {(() => {
-                                          const anyEntry = Object.values(row.days)[0];
-                                          const st = anyEntry?.status;
-                                          if (st === 'Approved') return <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-full text-[10px] font-bold border border-emerald-200 dark:border-emerald-800/40">✓ Approved</span>;
-                                          if (st === 'Rejected') return <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-full text-[10px] font-bold border border-red-200 dark:border-red-800/40">✕ Rejected</span>;
-                                          return null;
-                                        })()}
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                                <tfoot className="bg-slate-50 dark:bg-neutral-900 border-t border-slate-200 dark:border-neutral-700 text-slate-600 dark:text-neutral-300 font-bold">
-                                  <tr>
-                                    <td colSpan="2" className="py-2 px-3 text-center text-[10px] uppercase tracking-wider text-slate-400 dark:text-neutral-500">
-                                      {tMsg('Daily Totals:', 'Total Harian:')}
-                                    </td>
-                                    {weekGroup.weekDays.map((dateStr, i) => {
-                                      let dayTotal = 0;
-                                      weekGroup.rows.forEach(r => {
-                                        const d = r.days[dateStr];
-                                        if (d && d.hours_logged != null) dayTotal += parseFloat(d.hours_logged);
-                                      });
-                                      const isWeekend = i === 0 || i === 6;
-                                      return (
-                                        <td key={dateStr} className={`py-2 px-2 text-center ${isWeekend ? 'bg-slate-100/60 dark:bg-neutral-800/40' : ''} ${dayTotal > 8 ? 'text-amber-500' : 'text-indigo-600 dark:text-indigo-400'}`}>
-                                          {dayTotal > 0 ? `${dayTotal}h` : <span className="text-slate-300 dark:text-neutral-600">-</span>}
-                                        </td>
-                                      );
-                                    })}
-                                    <td className="py-2 px-3 text-center text-indigo-600 dark:text-indigo-400">{weekGroup.totalHours}h</td>
-                                    <td />
-                                  </tr>
-                                </tfoot>
-                              </table>
-                            </div>
-                          )}
+                          </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                        <span className="text-slate-400 dark:text-neutral-500 text-xs font-semibold">
+                          {isUserExpanded ? '▼' : '▶'}
+                        </span>
+                      </button>
+
+                      {/* Week list for this user */}
+                      {isUserExpanded && (
+                        <div className="divide-y divide-slate-100 dark:divide-neutral-800">
+                          {userGroup.weeks.map(weekGroup => {
+                            if (displayedCount >= maxDisplay) return null;
+                            displayedCount++;
+
+                            const key = `hist_${userGroup.username}_${weekGroup.weekStartStr}`;
+                            const isWeekExpanded = expandedApprovalWeeks.has(key);
+                            const isApproved = weekGroup.weekStatus === 'Approved';
+                            const isRejected = weekGroup.weekStatus === 'Rejected';
+
+                            return (
+                              <div key={weekGroup.weekStartStr} className={`${isApproved ? 'bg-emerald-50/30 dark:bg-emerald-950/10' : isRejected ? 'bg-red-50/30 dark:bg-red-950/10' : ''}`}>
+                                <button
+                                  onClick={() => {
+                                    const newSet = new Set(expandedApprovalWeeks);
+                                    if (newSet.has(key)) newSet.delete(key);
+                                    else newSet.add(key);
+                                    setExpandedApprovalWeeks(newSet);
+                                  }}
+                                  className="w-full flex items-center justify-between px-5 py-3 text-left text-xs hover:bg-slate-50 dark:hover:bg-neutral-900/30 transition-colors"
+                                >
+                                  <div className="flex items-center gap-2.5">
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border ${isApproved
+                                      ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50'
+                                      : isRejected
+                                        ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/50'
+                                        : 'bg-slate-100 dark:bg-neutral-800 text-slate-600 dark:text-neutral-300 border-slate-200 dark:border-neutral-700'
+                                      }`}>
+                                      {isApproved ? '✓' : isRejected ? '✕' : '~'} {weekGroup.weekStatus}
+                                    </span>
+                                    <Icon name="calendar" className="w-3.5 h-3.5 text-slate-400 dark:text-neutral-500" />
+                                    <span className="font-semibold text-slate-700 dark:text-neutral-200">
+                                      Week of {formatDateMMM(weekGroup.weekDays[0]).replace(/,?\s*\d{4}/, '')} – {formatDateMMM(weekGroup.weekDays[6]).replace(/,?\s*\d{4}/, '')}
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isApproved ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40' :
+                                      isRejected ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/40' :
+                                        'bg-slate-100 dark:bg-neutral-800 text-slate-500 border-slate-200 dark:border-neutral-700'
+                                      }`}>
+                                      {weekGroup.totalHours}h
+                                    </span>
+                                  </div>
+                                  <span className="text-slate-400 dark:text-neutral-500 text-[10px]">
+                                    {isWeekExpanded ? '▼' : '▶'}
+                                  </span>
+                                </button>
+
+                                {isWeekExpanded && (
+                                  <div className="px-4 pb-4 overflow-x-auto">
+                                    <table className="w-full text-left text-xs">
+                                      <thead className="bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 text-slate-500 dark:text-neutral-300">
+                                        <tr>
+                                          <th className="py-2.5 px-3 font-medium w-56 min-w-[9rem]">{tMsg('Project', 'Proyek')}</th>
+                                          <th className="py-2.5 px-3 font-medium min-w-[14rem]">{tMsg('Task', 'Tugas')}</th>
+                                          {weekGroup.weekDays.map((dateStr, i) => {
+                                            const isWeekend = i === 0 || i === 6;
+                                            const dayNames2 = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                                            return (
+                                              <th key={dateStr} className={`py-2.5 px-2 font-medium text-center w-14 whitespace-nowrap ${isWeekend ? 'bg-slate-100/40 dark:bg-neutral-800/50' : ''}`}>
+                                                <div className={isWeekend ? 'text-slate-400 dark:text-neutral-500' : 'text-slate-600 dark:text-neutral-300'}>{dayNames2[i]}</div>
+                                                <div className="text-[9px] mt-0.5 text-slate-400 dark:text-neutral-500">{formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '')}</div>
+                                              </th>
+                                            );
+                                          })}
+                                          <th className="py-2.5 px-3 font-medium text-center text-slate-500 dark:text-neutral-300 whitespace-nowrap">{tMsg('Total', 'Total')}</th>
+                                          <th className="py-2.5 px-3 font-medium text-center text-slate-500 dark:text-neutral-300">{tMsg('Status', 'Status')}</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-100 dark:divide-neutral-800 text-slate-700 dark:text-neutral-200">
+                                        {weekGroup.rows.map(row => (
+                                          <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-neutral-900/20">
+                                            <td className="py-2 px-3 font-medium text-slate-800 dark:text-neutral-200 align-top">
+                                              <span className="break-words whitespace-normal">{row.custom_project_name || boards.find(b => b.id === parseInt(row.board_id))?.name || <span className="text-slate-400 dark:text-neutral-500 italic">—</span>}</span>
+                                            </td>
+                                            <td className="py-2 px-3 text-slate-600 dark:text-neutral-300 align-top">
+                                              <span className="break-words whitespace-normal block" title={row.custom_task_name}>
+                                                {row.custom_task_name || <span className="text-slate-400 dark:text-neutral-500 italic">{tMsg('No Task', 'Tidak Ada Tugas')}</span>}
+                                              </span>
+                                            </td>
+                                            {weekGroup.weekDays.map((dateStr, i) => {
+                                              const d = row.days[dateStr];
+                                              const isWeekend = i === 0 || i === 6;
+                                              return (
+                                                <td key={dateStr} className={`py-2 px-2 text-center align-top ${isWeekend ? 'bg-slate-100/40 dark:bg-neutral-800/50' : ''}`}>
+                                                  {d ? (
+                                                    <span className={`font-semibold ${parseFloat(d.hours_logged) > 8 ? 'text-amber-500' : 'text-slate-800 dark:text-white'}`}>
+                                                      {d.hours_logged}
+                                                    </span>
+                                                  ) : (
+                                                    <span className="text-slate-300 dark:text-neutral-600">-</span>
+                                                  )}
+                                                </td>
+                                              );
+                                            })}
+                                            <td className="py-2 px-3 text-center font-bold text-indigo-600 dark:text-indigo-400 align-top">
+                                              {row.totalHours > 0 ? `${row.totalHours}h` : <span className="text-slate-300 dark:text-neutral-600">-</span>}
+                                            </td>
+                                            <td className="py-2 px-3 text-center align-top">
+                                              {(() => {
+                                                const anyEntry = Object.values(row.days)[0];
+                                                const st = anyEntry?.status;
+                                                if (st === 'Approved') return <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-full text-[10px] font-bold border border-emerald-200 dark:border-emerald-800/40">✓ Approved</span>;
+                                                if (st === 'Rejected') return <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-full text-[10px] font-bold border border-red-200 dark:border-red-800/40">✕ Rejected</span>;
+                                                return null;
+                                              })()}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                      <tfoot className="bg-slate-50 dark:bg-neutral-900 border-t border-slate-200 dark:border-neutral-700 text-slate-600 dark:text-neutral-300 font-bold">
+                                        <tr>
+                                          <td colSpan="2" className="py-2 px-3 text-center text-[10px] uppercase tracking-wider text-slate-400 dark:text-neutral-500">
+                                            {tMsg('Daily Totals:', 'Total Harian:')}
+                                          </td>
+                                          {weekGroup.weekDays.map((dateStr, i) => {
+                                            let dayTotal = 0;
+                                            weekGroup.rows.forEach(r => {
+                                              const d = r.days[dateStr];
+                                              if (d && d.hours_logged != null) dayTotal += parseFloat(d.hours_logged);
+                                            });
+                                            const isWeekend = i === 0 || i === 6;
+                                            return (
+                                              <td key={dateStr} className={`py-2 px-2 text-center ${isWeekend ? 'bg-slate-100/40 dark:bg-neutral-800/50' : ''} ${dayTotal > 8 ? 'text-amber-500' : 'text-indigo-600 dark:text-indigo-400'}`}>
+                                                {dayTotal > 0 ? `${dayTotal}h` : <span className="text-slate-300 dark:text-neutral-600">-</span>}
+                                              </td>
+                                            );
+                                          })}
+                                          <td className="py-2 px-3 text-center text-indigo-600 dark:text-indigo-400">{weekGroup.totalHours}h</td>
+                                          <td />
+                                        </tr>
+                                      </tfoot>
+                                    </table>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          )}
+
+          {/* Lazy load — load more weeks */}
+          {filteredGroupedApprovalHistory.reduce((sum, u) => sum + u.weeks.length, 0) > histDisplayCount && (
+            <div className="text-center pt-2">
+              <button
+                onClick={() => setHistDisplayCount(c => c + 15)}
+                className="px-5 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/30 rounded-xl transition-all"
+              >
+                Load More
+              </button>
             </div>
           )}
         </div>
