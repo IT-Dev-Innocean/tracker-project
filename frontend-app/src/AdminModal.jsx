@@ -1161,29 +1161,42 @@ export default function AdminModal({
                             )}
                           </td>
                           <td className="px-6 py-3 text-right">
-                            {u.timesheet_approver && (
+                            <div className="flex gap-2 justify-end">
                               <button
-                                onClick={async () => {
-                                  setIsSettingApprover(true);
-                                  try {
-                                    const token = localStorage.getItem('innocean_token');
-                                    const res = await axios.put(`${import.meta.env.VITE_API_BASE_URL || ''}/api/admin/users/approver`, { username: u.username, status: '' }, {
-                                      headers: { Authorization: `Bearer ${token}` }
-                                    });
-                                    showNotification(res.data.message, 'success');
-                                    const usersRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/api/admin/users`, { headers: { Authorization: `Bearer ${token}` } });
-                                    setAdminUsers(usersRes.data.users);
-                                    setIsSettingApprover(false);
-                                  } catch (err) {
-                                    showNotification(err.response?.data?.detail || 'Failed to remove approver', 'error');
-                                    setIsSettingApprover(false);
-                                  }
+                                onClick={() => {
+                                  setApproverTargetUser(u.username);
+                                  setApproverInput(u.timesheet_approver || '');
+                                  setApproverModalOpen(true);
                                 }}
-                                className="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-650 hover:text-white dark:bg-red-950/20 dark:text-red-400 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/30 transition-all"
+                                className="text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white dark:bg-indigo-950/20 dark:text-indigo-400 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-900/30 transition-all"
                               >
-                                {tMsg('Remove', 'Hapus')}
+                                {u.timesheet_approver ? tMsg('Edit', 'Ubah') : tMsg('Assign', 'Tugaskan')}
                               </button>
-                            )}
+                              {u.timesheet_approver && (
+                                <button
+                                  onClick={async () => {
+                                    setIsSettingApprover(true);
+                                    try {
+                                      const token = localStorage.getItem('innocean_token');
+                                      const res = await axios.put(`${import.meta.env.VITE_API_BASE_URL || ''}/api/admin/users/approver`, { username: u.username, status: '' }, {
+                                        headers: { Authorization: `Bearer ${token}` }
+                                      });
+                                      showNotification(res.data.message, 'success');
+                                      const usersRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/api/admin/users`, { headers: { Authorization: `Bearer ${token}` } });
+                                      setAdminUsers(usersRes.data.users);
+                                      setIsSettingApprover(false);
+                                    } catch (err) {
+                                      showNotification(err.response?.data?.detail || 'Failed to remove approver', 'error');
+                                      setIsSettingApprover(false);
+                                    }
+                                  }}
+                                  disabled={isSettingApprover}
+                                  className="text-xs font-bold text-red-600 bg-red-50 hover:bg-red-650 hover:text-white dark:bg-red-950/20 dark:text-red-400 px-3 py-1.5 rounded-lg border border-red-200 dark:border-red-900/30 transition-all disabled:opacity-50"
+                                >
+                                  {tMsg('Remove', 'Hapus')}
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
