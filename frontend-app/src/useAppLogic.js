@@ -424,6 +424,7 @@ export default function useAppLogic() {
   }, [selectedBoard]);
 
   const [newBoardName, setNewBoardName] = useState('');
+  const [newBoardNumber, setNewBoardNumber] = useState('');
   const [isPrivateBoard, setIsPrivateBoard] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState(null);
 
@@ -4367,11 +4368,42 @@ export default function useAppLogic() {
     e.preventDefault();
     if (!newBoardName.trim()) return;
     setIsSubmitting(true);
+    const payload = {
+      name: newBoardName.trim(),
+      is_private: 0,
+      project_number: newBoardNumber.trim() || null,
+    };
     axios
-      .post('/api/boards', { name: newBoardName.trim(), is_private: isPrivateBoard ? 1 : 0 })
-      .then(() => {
+      .post('/api/boards', payload)
+      .then((res) => {
+        const created = res.data || {};
+        // Optimistic sidebar update so the new project appears immediately
+        if (created.board_id) {
+          setBoards((prev) => {
+            const exists = (prev || []).some((b) => b.id === created.board_id);
+            if (exists) return prev;
+            return [
+              {
+                id: created.board_id,
+                name: created.board_name || payload.name,
+                project_number: created.project_number ?? payload.project_number,
+                owner_username: currentUser,
+                role: 'owner',
+                total_tasks: 0,
+                done_tasks: 0,
+                my_pending: 0,
+                is_private: 0,
+                team_preview: currentUser ? [currentUser] : [],
+                health_alert: null,
+                access_requests_count: 0,
+              },
+              ...(prev || []),
+            ];
+          });
+        }
         setIsCreateBoardOpen(false);
         setNewBoardName('');
+        setNewBoardNumber('');
         setIsPrivateBoard(false);
         fetchBoards();
         showNotification('Project created successfully!', 'success');
@@ -4660,6 +4692,7 @@ export default function useAppLogic() {
     selectedBoard,
     isCreateBoardOpen,
     newBoardName,
+    newBoardNumber,
     boardToDelete,
     deleteBoardConfirmText,
     isExportModalOpen,
@@ -4767,6 +4800,8 @@ export default function useAppLogic() {
     setSelectedBoard,
     setIsCreateBoardOpen,
     setNewBoardName,
+    newBoardNumber,
+    setNewBoardNumber,
     isPrivateBoard,
     setIsPrivateBoard,
     setBoardToDelete,

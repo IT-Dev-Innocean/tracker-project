@@ -108,6 +108,7 @@ class Board(Base):
     last_activity_date = Column(DateTime, nullable=True)
     deletion_date = Column(DateTime, nullable=True)
     is_private = Column(Integer, default=0)
+    project_number = Column(String(100), nullable=True)
 
 
 class Client(Base):

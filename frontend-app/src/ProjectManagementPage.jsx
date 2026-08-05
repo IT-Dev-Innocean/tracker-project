@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useAppContext } from './hooks/useAppContext';
 import { HighlightText, LoadingSpinner } from './Utils';
@@ -12,6 +12,7 @@ export default function ProjectManagementPage() {
     showNotification,
     userDirectory = [],
     currentUser,
+    boards = [],
     fetchBoards,
     setIsCreateBoardOpen,
     accountStatus,
@@ -20,7 +21,7 @@ export default function ProjectManagementPage() {
   } = useAppContext();
   const tMsg = (en, id) => (language === 'id' ? id : en);
 
-  const canCreateProjects =
+  const canManageProjects =
     workspaceRole === 'admin' ||
     workspaceRole === 'project_owner' ||
     (!workspaceRole && isSuperAdmin);
@@ -36,6 +37,19 @@ export default function ProjectManagementPage() {
   const [boardToTransfer, setBoardToTransfer] = useState(null);
   const [newOwnerInput, setNewOwnerInput] = useState('');
   const [isTransferring, setIsTransferring] = useState(false);
+  const [boardToEdit, setBoardToEdit] = useState(null);
+  const [editForm, setEditForm] = useState({ project_number: '', name: '' });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [projectsPerPage, setProjectsPerPage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = Number(
+        localStorage.getItem('innocean_project_manage_per_page')
+      );
+      if ([5, 10, 20, 50].includes(saved)) return saved;
+    }
+    return 5;
+  });
   const [viewMode, setViewMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('innocean_project_manage_view') || 'table';
@@ -47,6 +61,15 @@ export default function ProjectManagementPage() {
     setViewMode(mode);
     if (typeof window !== 'undefined') {
       localStorage.setItem('innocean_project_manage_view', mode);
+    }
+  };
+
+  const setProjectsPerPagePersist = (value) => {
+    const next = Number(value);
+    setProjectsPerPage(next);
+    setCurrentPage(1);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('innocean_project_manage_per_page', String(next));
     }
   };
 
@@ -79,9 +102,18 @@ export default function ProjectManagementPage() {
     );
   };
 
-  const loadBoards = () => {
-    setIsBoardsLoading(true);
-    setSelectedBoards([]);
+  const showNotificationRef = useRef(showNotification);
+  const languageRef = useRef(language);
+  useEffect(() => {
+    showNotificationRef.current = showNotification;
+    languageRef.current = language;
+  }, [showNotification, language]);
+
+  const loadBoards = useCallback((silent = false) => {
+    if (!silent) {
+      setIsBoardsLoading(true);
+      setSelectedBoards([]);
+    }
     axios
       .get('/api/admin/boards')
       .then((res) => {
@@ -89,30 +121,79 @@ export default function ProjectManagementPage() {
         setIsBoardsLoading(false);
       })
       .catch(() => {
-        showNotification?.(
-          tMsg('Failed to load projects', 'Gagal memuat proyek'),
-          'error'
-        );
+        if (!silent) {
+          const isId = languageRef.current === 'id';
+          showNotificationRef.current?.(
+            isId ? 'Gagal memuat proyek' : 'Failed to load projects',
+            'error'
+          );
+        }
         setIsBoardsLoading(false);
       });
-  };
-
-  useEffect(() => {
-    loadBoards();
   }, []);
+
+  // Full-page loading spinner only on first enter
+  useEffect(() => {
+    loadBoards(false);
+  }, [loadBoards]);
+
+  // Silent refresh only when project IDs change (create/delete), not on background polls
+  const boardIdsKey = useMemo(
+    () =>
+      (boards || [])
+        .map((b) => b.id)
+        .sort((a, b) => a - b)
+        .join(','),
+    [boards]
+  );
+  const prevBoardIdsKey = useRef(null);
+  useEffect(() => {
+    if (prevBoardIdsKey.current === null) {
+      prevBoardIdsKey.current = boardIdsKey;
+      return;
+    }
+    if (prevBoardIdsKey.current === boardIdsKey) return;
+    prevBoardIdsKey.current = boardIdsKey;
+    loadBoards(true);
+  }, [boardIdsKey, loadBoards]);
 
   const filteredBoards = useMemo(() => {
     return manageBoards.filter((b) => {
       const matchFilter =
         projectFilter === 'all' || b.owner_status === projectFilter;
+      const q = projectSearchQuery.toLowerCase();
       const matchSearch =
-        b.name.toLowerCase().includes(projectSearchQuery.toLowerCase()) ||
-        b.owner_username
-          .toLowerCase()
-          .includes(projectSearchQuery.toLowerCase());
+        b.name.toLowerCase().includes(q) ||
+        b.owner_username.toLowerCase().includes(q) ||
+        (b.project_number || '').toLowerCase().includes(q);
       return matchFilter && matchSearch;
     });
   }, [manageBoards, projectFilter, projectSearchQuery]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredBoards.length / projectsPerPage) || 1
+  );
+
+  const paginatedBoards = useMemo(() => {
+    const start = (currentPage - 1) * projectsPerPage;
+    return filteredBoards.slice(start, start + projectsPerPage);
+  }, [filteredBoards, currentPage, projectsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [projectSearchQuery, projectFilter, projectsPerPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const rangeStart =
+    filteredBoards.length === 0 ? 0 : (currentPage - 1) * projectsPerPage + 1;
+  const rangeEnd = Math.min(
+    currentPage * projectsPerPage,
+    filteredBoards.length
+  );
 
   const transferCandidates = useMemo(() => {
     const names = new Set();
@@ -137,7 +218,7 @@ export default function ProjectManagementPage() {
 
   const handleSelectAllBoards = (e) => {
     if (e.target.checked) {
-      setSelectedBoards(filteredBoards.map((b) => b.id));
+      setSelectedBoards(paginatedBoards.map((b) => b.id));
     } else {
       setSelectedBoards([]);
     }
@@ -146,6 +227,47 @@ export default function ProjectManagementPage() {
   const triggerDelete = (boardsArray) => {
     setBoardsToDelete(boardsArray);
     setDeleteConfirmOpen(true);
+  };
+
+  const openEditBoard = (board) => {
+    setBoardToEdit(board);
+    setEditForm({
+      project_number: board.project_number || '',
+      name: board.name || '',
+    });
+  };
+
+  const closeEditBoard = () => {
+    setBoardToEdit(null);
+    setEditForm({ project_number: '', name: '' });
+  };
+
+  const executeEditBoard = () => {
+    if (!boardToEdit || !editForm.name.trim()) return;
+    setIsSavingEdit(true);
+    axios
+      .put(`/api/boards/${boardToEdit.id}`, {
+        name: editForm.name.trim(),
+        project_number: editForm.project_number.trim() || null,
+      })
+      .then((res) => {
+        showNotification?.(
+          res.data.message ||
+            tMsg('Project updated successfully', 'Proyek berhasil diperbarui'),
+          'success'
+        );
+        closeEditBoard();
+        loadBoards();
+        fetchBoards?.();
+      })
+      .catch((err) => {
+        showNotification?.(
+          err.response?.data?.detail ||
+            tMsg('Failed to update project', 'Gagal memperbarui proyek'),
+          'error'
+        );
+      })
+      .finally(() => setIsSavingEdit(false));
   };
 
   const executeDelete = () => {
@@ -196,7 +318,7 @@ export default function ProjectManagementPage() {
               )}
             </p>
           </div>
-          {canCreateProjects && (
+          {canManageProjects && (
             <button
               type='button'
               onClick={() => setIsCreateBoardOpen(true)}
@@ -302,7 +424,7 @@ export default function ProjectManagementPage() {
               </div>
             ) : viewMode === 'card' ? (
               <div className='p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4'>
-                {filteredBoards.map((b) => (
+                {paginatedBoards.map((b) => (
                   <div
                     key={b.id}
                     className='rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-4 flex flex-col gap-3 hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors'>
@@ -314,6 +436,14 @@ export default function ProjectManagementPage() {
                         onChange={() => handleToggleSelectBoard(b.id)}
                       />
                       <div className='min-w-0 flex-1'>
+                        {b.project_number && (
+                          <p className='text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-0.5'>
+                            <HighlightText
+                              text={b.project_number}
+                              query={projectSearchQuery}
+                            />
+                          </p>
+                        )}
                         <h4 className='font-bold text-black dark:text-white truncate'>
                           <HighlightText
                             text={b.name}
@@ -332,12 +462,22 @@ export default function ProjectManagementPage() {
                     <div className='flex items-center justify-between gap-2 pt-1'>
                       {ownerStatusBadge(b.owner_status)}
                       <div className='flex gap-2'>
+                        {canManageProjects && (
+                          <button
+                            onClick={() => openEditBoard(b)}
+                            disabled={accountStatus === 'suspended'}
+                            className='p-2 rounded-lg text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-900/40! hover:text-white! hover:border-slate-700! dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-600! dark:hover:text-white! dark:hover:border-slate-600! transition-colors disabled:opacity-40'
+                            title={tMsg('Edit', 'Ubah')}
+                            aria-label={tMsg('Edit', 'Ubah')}>
+                            <Icon name='pencil' className='w-3.5 h-3.5' />
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             setBoardToTransfer(b);
                             setNewOwnerInput('');
                           }}
-                          className='p-2 rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-500 hover:text-white dark:bg-indigo-900/20 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 transition-all'
+                          className='p-2 rounded-lg text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-600! hover:text-white! hover:border-indigo-600! dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50 dark:hover:bg-indigo-500! dark:hover:text-white! dark:hover:border-indigo-500! transition-colors'
                           title={tMsg('Transfer', 'Pindah')}
                           aria-label={tMsg('Transfer', 'Pindah')}>
                           <Icon name='repeat' className='w-3.5 h-3.5' />
@@ -369,11 +509,16 @@ export default function ProjectManagementPage() {
                         type='checkbox'
                         className='cursor-pointer rounded border-neutral-300 dark:border-neutral-600'
                         checked={
-                          filteredBoards.length > 0 &&
-                          selectedBoards.length === filteredBoards.length
+                          paginatedBoards.length > 0 &&
+                          paginatedBoards.every((b) =>
+                            selectedBoards.includes(b.id)
+                          )
                         }
                         onChange={handleSelectAllBoards}
                       />
+                    </th>
+                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 whitespace-nowrap'>
+                      {tMsg('Project Number', 'Nomor Proyek')}
                     </th>
                     <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
                       {tMsg('Project Name', 'Nama Proyek')}
@@ -390,7 +535,7 @@ export default function ProjectManagementPage() {
                   </tr>
                 </thead>
                 <tbody className='divide-y divide-neutral-200 dark:divide-neutral-800'>
-                  {filteredBoards.map((b) => (
+                  {paginatedBoards.map((b) => (
                     <tr
                       key={b.id}
                       className='hover:bg-white dark:hover:bg-neutral-950 transition-colors'>
@@ -401,6 +546,18 @@ export default function ProjectManagementPage() {
                           checked={selectedBoards.includes(b.id)}
                           onChange={() => handleToggleSelectBoard(b.id)}
                         />
+                      </td>
+                      <td className='px-6 py-4 text-sm font-medium text-neutral-600 dark:text-neutral-300 whitespace-nowrap'>
+                        {b.project_number ? (
+                          <HighlightText
+                            text={b.project_number}
+                            query={projectSearchQuery}
+                          />
+                        ) : (
+                          <span className='text-neutral-300 dark:text-neutral-600'>
+                            —
+                          </span>
+                        )}
                       </td>
                       <td className='px-6 py-4 font-bold text-black dark:text-white text-sm whitespace-nowrap'>
                         <HighlightText
@@ -420,12 +577,21 @@ export default function ProjectManagementPage() {
                       </td>
                       <td className='px-6 py-4 text-right whitespace-nowrap'>
                         <div className='flex justify-end gap-2'>
+                          {canManageProjects && (
+                            <button
+                              onClick={() => openEditBoard(b)}
+                              disabled={accountStatus === 'suspended'}
+                              className='flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-900/40! hover:text-white! hover:border-slate-700! dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-600! dark:hover:text-white! dark:hover:border-slate-600! px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40'>
+                              <Icon name='pencil' className='w-3.5 h-3.5' />
+                              {tMsg('Edit', 'Ubah')}
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               setBoardToTransfer(b);
                               setNewOwnerInput('');
                             }}
-                            className='flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-500 hover:text-white dark:bg-indigo-900/20 dark:text-indigo-400 px-3 py-1.5 rounded-lg transition-all border border-indigo-200 dark:border-indigo-800/50'>
+                            className='flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-600! hover:text-white! hover:border-indigo-600! dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50 dark:hover:bg-indigo-500! dark:hover:text-white! dark:hover:border-indigo-500! px-3 py-1.5 rounded-lg transition-colors'>
                             {tMsg('Transfer', 'Pindah')}
                           </button>
                           <button
@@ -448,6 +614,55 @@ export default function ProjectManagementPage() {
               </table>
             )}
           </div>
+
+          {filteredBoards.length > 0 && (
+            <div className='px-4 sm:px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+              <div className='flex items-center gap-2 flex-wrap'>
+                <span className='text-[10px] font-bold text-neutral-500 uppercase tracking-widest'>
+                  {tMsg('Show', 'Tampilkan')}
+                </span>
+                <select
+                  value={projectsPerPage}
+                  onChange={(e) => setProjectsPerPagePersist(e.target.value)}
+                  className='py-1.5 px-2 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-lg outline-none text-xs font-bold'>
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+                <span className='text-[10px] font-bold text-neutral-400 uppercase tracking-widest'>
+                  {tMsg(
+                    `${rangeStart}–${rangeEnd} of ${filteredBoards.length}`,
+                    `${rangeStart}–${rangeEnd} dari ${filteredBoards.length}`
+                  )}
+                </span>
+              </div>
+
+              <div className='flex items-center gap-2'>
+                <button
+                  type='button'
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(prev - 1, 1))
+                  }
+                  disabled={currentPage === 1}
+                  className='px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-neutral-100 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'>
+                  {tMsg('Prev', 'Sebelumnya')}
+                </button>
+                <span className='text-xs font-bold text-neutral-700 dark:text-neutral-300 min-w-16 text-center'>
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  type='button'
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                  className='px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-neutral-100 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'>
+                  {tMsg('Next', 'Berikutnya')}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -480,6 +695,73 @@ export default function ProjectManagementPage() {
                 {isDeletingBulk
                   ? tMsg('Deleting...', 'Menghapus...')
                   : tMsg('Confirm Delete', 'Konfirmasi Hapus')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {boardToEdit && (
+        <div className='fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4'>
+          <div className='bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-md border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl'>
+            <h3 className='text-2xl font-black text-black dark:text-white mb-2 uppercase text-center'>
+              {tMsg('Edit Project', 'Ubah Proyek')}
+            </h3>
+            <p className='text-neutral-600 dark:text-neutral-400 text-sm mb-6 text-center'>
+              {tMsg(
+                'Update project number and project name.',
+                'Perbarui nomor proyek dan nama proyek.'
+              )}
+            </p>
+            <div className='mb-4 text-left'>
+              <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
+                {tMsg('Project Number', 'Nomor Proyek')}
+              </label>
+              <input
+                type='text'
+                value={editForm.project_number}
+                onChange={(e) =>
+                  setEditForm((prev) => ({
+                    ...prev,
+                    project_number: e.target.value,
+                  }))
+                }
+                placeholder={tMsg('E.g. PRJ-001', 'Contoh: PRJ-001')}
+                className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all'
+              />
+            </div>
+            <div className='mb-6 text-left'>
+              <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
+                {tMsg('Project Name', 'Nama Proyek')}
+              </label>
+              <input
+                type='text'
+                value={editForm.name}
+                onChange={(e) =>
+                  setEditForm((prev) => ({ ...prev, name: e.target.value }))
+                }
+                placeholder='E.g. Website Redesign'
+                className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all'
+                required
+                autoFocus
+              />
+            </div>
+            <div className='flex gap-4'>
+              <button
+                type='button'
+                onClick={closeEditBoard}
+                disabled={isSavingEdit}
+                className='flex-1 px-4 py-3 rounded-full font-bold text-xs uppercase bg-neutral-100 dark:bg-neutral-900 disabled:opacity-50'>
+                {tMsg('Cancel', 'Batal')}
+              </button>
+              <button
+                type='button'
+                onClick={executeEditBoard}
+                disabled={isSavingEdit || !editForm.name.trim()}
+                className='flex-1 px-4 py-3 rounded-full font-bold text-xs uppercase text-white bg-black hover:opacity-80 dark:bg-white dark:text-black disabled:opacity-50'>
+                {isSavingEdit
+                  ? tMsg('Saving...', 'Menyimpan...')
+                  : tMsg('Save Changes', 'Simpan Perubahan')}
               </button>
             </div>
           </div>

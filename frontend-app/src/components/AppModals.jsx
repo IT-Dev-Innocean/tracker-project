@@ -149,6 +149,8 @@ export default function AppModals() {
     handleCreateBoard,
     newBoardName,
     setNewBoardName,
+    newBoardNumber,
+    setNewBoardNumber,
     isPrivateBoard,
     setIsPrivateBoard,
     isTeamModalOpen,
@@ -553,8 +555,8 @@ export default function AppModals() {
           handleCreateBoard={handleCreateBoard}
           newBoardName={newBoardName}
           setNewBoardName={setNewBoardName}
-          isPrivateBoard={isPrivateBoard}
-          setIsPrivateBoard={setIsPrivateBoard}
+          newBoardNumber={newBoardNumber}
+          setNewBoardNumber={setNewBoardNumber}
           language={language}
           isSubmitting={isSubmitting}
         />

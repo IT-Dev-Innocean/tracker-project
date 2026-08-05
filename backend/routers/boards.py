@@ -183,6 +183,7 @@ def get_boards(
                 "team_preview": team_preview,
                 "health_alert": alert_msg,
                 "is_private": getattr(b, "is_private", 0),
+                "project_number": getattr(b, "project_number", None),
                 "access_requests_count": requests_count,
             }
         )
@@ -219,6 +220,7 @@ def get_boards(
                     "team_preview": team_preview,
                     "health_alert": alert_msg,
                     "is_private": getattr(b, "is_private", 0),
+                    "project_number": getattr(b, "project_number", None),
                     "access_requests_count": requests_count,
                 }
             )
@@ -252,6 +254,7 @@ def get_boards(
                 "team_preview": team_preview,
                 "health_alert": alert_msg,
                 "is_private": getattr(b, "is_private", 0),
+                "project_number": getattr(b, "project_number", None),
                 "access_requests_count": requests_count,
             }
         )
@@ -301,7 +304,8 @@ def create_board(
         ]
     )
     
-    is_private = 1 if payload.name.lower() == "to-do list" else payload.is_private
+    is_private = 1 if payload.name.lower() == "to-do list" else 0
+    project_number = (payload.project_number or "").strip() or None
     new_board = Board(
         name=payload.name,
         owner_username=current_user,
@@ -309,6 +313,7 @@ def create_board(
         statuses=default_statuses,
         categories=default_categories,
         is_private=is_private,
+        project_number=project_number,
     )
     db.add(new_board)
     db.commit()
@@ -317,6 +322,63 @@ def create_board(
         "message": "Project created successfully!",
         "board_id": new_board.id,
         "board_name": new_board.name,
+        "project_number": new_board.project_number,
+        "owner_username": new_board.owner_username,
+    }
+
+
+@router.put("/api/boards/{board_id}")
+def update_board(
+    board_id: int,
+    payload: BoardUpdateModel,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not can_manage_projects(db, current_user):
+        raise HTTPException(
+            status_code=403,
+            detail="Only Admin and Project Owner can update projects.",
+        )
+
+    board = db.query(Board).filter(Board.id == board_id).first()
+    if not board:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if is_todo_list_board(board):
+        raise HTTPException(status_code=400, detail="Cannot update personal To-do List.")
+
+    name = (payload.name or "").strip()
+    if not name or len(name) > 100:
+        raise HTTPException(
+            status_code=400, detail="Project name must be between 1 and 100 characters."
+        )
+
+    existing_board = (
+        db.query(Board)
+        .filter(
+            Board.name == name,
+            Board.owner_username == board.owner_username,
+            Board.id != board_id,
+        )
+        .first()
+    )
+    if existing_board:
+        raise HTTPException(
+            status_code=400,
+            detail="Owner already has another project with this exact name.",
+        )
+
+    board.name = name
+    board.project_number = (payload.project_number or "").strip() or None
+    db.commit()
+    db.refresh(board)
+    update_board_activity(db, board_id)
+
+    return {
+        "message": "Project updated successfully!",
+        "board_id": board.id,
+        "board_name": board.name,
+        "project_number": board.project_number,
     }
 
 

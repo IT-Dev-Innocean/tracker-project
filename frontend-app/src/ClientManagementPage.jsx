@@ -250,7 +250,9 @@ export default function ClientManagementPage() {
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className='py-2 px-3 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-xl outline-none text-xs font-bold'>
-                <option value='all'>{tMsg('All Status', 'Semua Status')}</option>
+                <option value='all'>
+                  {tMsg('All Status', 'Semua Status')}
+                </option>
                 <option value='active'>{tMsg('Active', 'Aktif')}</option>
                 <option value='inactive'>{tMsg('Inactive', 'Nonaktif')}</option>
               </select>
@@ -309,7 +311,7 @@ export default function ClientManagementPage() {
                           <button
                             type='button'
                             onClick={() => openEditForm(c)}
-                            className='flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-500 hover:text-white dark:bg-indigo-900/20 dark:text-indigo-400 px-3 py-1.5 rounded-lg transition-all border border-indigo-200 dark:border-indigo-800/50'>
+                            className='flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50! hover:text-indigo-700! hover:border-indigo-300! dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50 dark:hover:bg-indigo-900/40! dark:hover:text-indigo-300! dark:hover:border-indigo-700! px-3 py-1.5 rounded-lg transition-colors'>
                             {tMsg('Edit', 'Ubah')}
                           </button>
                           <button
@@ -433,7 +435,10 @@ export default function ClientManagementPage() {
               {tMsg('Delete Client?', 'Hapus Klien?')}
             </h3>
             <p className='text-neutral-600 dark:text-neutral-400 text-sm mb-6'>
-              {tMsg('This permanently deletes ', 'Ini akan menghapus permanen ')}
+              {tMsg(
+                'This permanently deletes ',
+                'Ini akan menghapus permanen '
+              )}
               <strong>{clientToDelete.client_name}</strong> (
               {clientToDelete.client_code}).
             </p>
