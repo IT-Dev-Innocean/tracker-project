@@ -1,5 +1,6 @@
 import React from 'react';
-export { IconPerson, IconPlus } from './components/icons';
+import { IconPerson, IconPlus } from './components/icons';
+export { IconPerson, IconPlus };
 
 // Komponen Auto-Avatar (Warna & Inisial Acak Berdasarkan Nama)
 export const Avatar = ({ name, url, size = 'w-5 h-5', textClass = 'text-[10px]' }) => {

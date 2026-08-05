@@ -95,6 +95,7 @@ class User(Base):
     # admin | project_owner | manager | staff
     role = Column(String(50), default="project_owner")
     timesheet_approver = Column(String(50), nullable=True)
+    timesheet_required = Column(Boolean, default=True)
 
 
 class Board(Base):
@@ -208,7 +209,7 @@ def set_security_log(db, key: str, value):
 
 def setup_db():
     Base.metadata.create_all(bind=engine)
-    # Ensure role column exists on older databases (create_all won't alter tables)
+    # Ensure role and timesheet_required columns exist on older databases
     try:
         with engine.begin() as conn:
             conn.execute(
@@ -216,10 +217,21 @@ def setup_db():
                     "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'project_owner'"
                 )
             )
+            conn.execute(
+                text(
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS timesheet_required BOOLEAN DEFAULT TRUE"
+                )
+            )
+            conn.execute(
+                text(
+                    "UPDATE users SET timesheet_required = TRUE WHERE timesheet_required IS NULL"
+                )
+            )
     except Exception:
         try:
             with engine.begin() as conn:
                 conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'project_owner'"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN timesheet_required BOOLEAN DEFAULT TRUE"))
         except Exception:
             pass
 

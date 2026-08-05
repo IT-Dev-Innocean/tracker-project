@@ -56,10 +56,19 @@ export default function TopHeaderBar() {
     inboxChats,
     dmConversations,
     openGlobalSearch,
+    setSelectedBoard,
+    setShowTeams,
+    setShowAdmin,
+    setShowProjectManage,
+    setShowTimesheets,
+    setSidebarNav,
+    unsubmittedTimesheetsCount,
   } = useAppContext();
 
   const tMsg = (en, id) => (language === 'id' ? id : en);
-  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+  const isMac =
+    typeof navigator !== 'undefined' &&
+    /Mac|iPhone|iPad/.test(navigator.platform);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const unreadInboxChatsCount = useMemo(() => {
@@ -198,9 +207,9 @@ export default function TopHeaderBar() {
             <span className='text-[10px] font-semibold'>
               {tMsg('Notifications', 'Notifikasi')}
             </span>
-            {unreadCount > 0 && (
+            {(unreadCount > 0 || unsubmittedTimesheetsCount > 0) && (
               <span className='absolute top-0.5 right-1 bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border border-white dark:border-black scale-90 min-w-4 text-center leading-none'>
-                {unreadCount}
+                {unreadCount + (unsubmittedTimesheetsCount > 0 ? 1 : 0)}
               </span>
             )}
           </button>
@@ -221,7 +230,40 @@ export default function TopHeaderBar() {
                 )}
               </div>
               <div className='overflow-y-auto flex-1'>
-                {notifications.length === 0 ? (
+                {unsubmittedTimesheetsCount > 0 && (
+                  <div
+                    onClick={() => {
+                      setSelectedBoard?.(null);
+                      setShowTeams?.(false);
+                      setShowAdmin?.(false);
+                      setShowProjectManage?.(false);
+                      setShowTimesheets?.(true);
+                      setSidebarNav?.('home');
+                      setIsNotifOpen(false);
+                    }}
+                    className='p-3 bg-red-50 dark:bg-red-950/40 border-b border-red-200 dark:border-red-800/50 hover:bg-red-100 dark:hover:bg-red-900/40 cursor-pointer transition-colors flex items-start gap-3'>
+                    <div className='p-2 bg-red-100 dark:bg-red-900/60 text-red-600 dark:text-red-300 rounded-lg shrink-0'>
+                      <Icon name='alert-triangle' className='w-4 h-4' />
+                    </div>
+                    <div className='flex-1 min-w-0'>
+                      <h5 className='text-xs font-bold text-red-900 dark:text-red-200'>
+                        {tMsg(
+                          'Action Required: Unsubmitted Timesheets',
+                          'Tindakan Diperlukan: Timesheet Belum Disubmit'
+                        )}
+                      </h5>
+                      <p className='text-[11px] text-red-700 dark:text-red-300 mt-0.5 font-medium leading-snug'>
+                        {tMsg(
+                          `You have ${unsubmittedTimesheetsCount} unsubmitted week(s) since joining. Click to complete.`,
+                          `Anda memiliki ${unsubmittedTimesheetsCount} minggu timesheet yang belum disubmit sejak terdaftar. Klik untuk mengisi.`
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {notifications.length === 0 &&
+                unsubmittedTimesheetsCount === 0 ? (
                   <div className='p-8 text-center text-neutral-400 text-sm'>
                     <Icon
                       name='mail'

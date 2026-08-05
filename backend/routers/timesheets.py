@@ -185,8 +185,65 @@ def approve_timesheets(data: TimesheetApproveModel, db: Session = Depends(get_db
         Timesheet.status == "Pending"
     ).all()
     
+    if not entries:
+        return {"message": "No pending entries found to update."}
+        
+    user_notifications = {}
     for entry in entries:
         entry.status = data.status
+        if entry.user_username not in user_notifications:
+            user_notifications[entry.user_username] = []
+        user_notifications[entry.user_username].append(entry.date)
+        
+    from utils import create_notification
+    for user_username, dates in user_notifications.items():
+        min_date = min(dates).strftime("%Y-%m-%d")
+        max_date = max(dates).strftime("%Y-%m-%d")
+        status_text = "approved" if data.status == "Approved" else "rejected"
+        msg = f"Your timesheet for period {min_date} to {max_date} has been {status_text} by @{current_user}."
+        create_notification(db, user_username, msg, "info")
         
     db.commit()
     return {"message": f"Successfully marked {len(entries)} entries as {data.status}"}
+@router.get("/approvals/history")
+def get_approvals_history(db: Session = Depends(get_db), current_user: str = Depends(get_current_user)):
+    """Fetch Approved/Rejected timesheet entries that were processed by the current approver"""
+    entries = db.query(Timesheet).filter(
+        Timesheet.approver_username == current_user,
+        Timesheet.status.in_(["Approved", "Rejected"])
+    ).order_by(Timesheet.date.desc()).all()
+    
+    results = []
+    for entry in entries:
+        project_name = None
+        task_name = None
+        
+        if entry.board_id:
+            board = db.query(Board).filter(Board.id == entry.board_id).first()
+            if board:
+                project_name = board.name
+        else:
+            project_name = entry.custom_project_name
+                
+        if entry.request_id:
+            req = db.query(Request).filter(Request.id == entry.request_id).first()
+            if req:
+                task_name = req.project_name[:50] + "..." if req.project_name and len(req.project_name) > 50 else req.project_name
+        else:
+            task_name = entry.custom_task_name
+
+        results.append({
+            "id": entry.id,
+            "user_username": entry.user_username,
+            "date": entry.date.strftime("%Y-%m-%d"),
+            "hours_logged": entry.hours_logged,
+            "description": entry.description,
+            "status": entry.status,
+            "board_id": entry.board_id,
+            "project_name": project_name,
+            "request_id": entry.request_id,
+            "task_name": task_name,
+            "custom_project_name": entry.custom_project_name,
+            "custom_task_name": entry.custom_task_name,
+        })
+    return {"entries": results}

@@ -13,3 +13,8 @@ export const MY_TICKETS_UI_ENABLED = false;
 export const SUBMIT_IDEA_UI_ENABLED = false;
 export const CONTACT_SUPPORT_UI_ENABLED = false;
 export const REPLAY_TOUR_UI_ENABLED = false;
+
+/** Board toolbar utility icons — set true to show again */
+export const TEAM_CHAT_UI_ENABLED = false;
+export const EXPORT_CSV_UI_ENABLED = false;
+export const GET_ALL_DATA_UI_ENABLED = false;
