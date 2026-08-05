@@ -34,6 +34,7 @@ def get_profile(
         "role": get_user_role(db, current_user),
         "timesheet_approver": user.timesheet_approver,
         "is_approver": is_approver,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
     }
 
 

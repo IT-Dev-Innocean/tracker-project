@@ -39,8 +39,18 @@ function parseWeekString(weekStr) {
   return sunday;
 }
 
+function parseLocalDate(dateStr) {
+  if (!dateStr) return new Date();
+  if (dateStr instanceof Date) return new Date(dateStr.getTime());
+  if (typeof dateStr === 'string' && dateStr.length === 10 && dateStr.includes('-')) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(dateStr);
+}
+
 function getStartOfWeek(date) {
-  const d = new Date(date);
+  const d = parseLocalDate(date);
   const day = d.getDay();
   const diff = d.getDate() - day; // Adjust to Sunday
   d.setDate(diff);
@@ -66,7 +76,7 @@ function getRowId(bId, rId, customProject, customTask) {
 }
 
 export default function TimesheetView({ currentUser, tasks = [], boards = [] }) {
-  const { formatDateMMM, profileData, language, setShowTimesheets, leaves = [], fetchLeaves } = useAppContext();
+  const { formatDateMMM, profileData, language, setShowTimesheets, leaves = [], fetchLeaves, fetchTimesheetUnsubmittedCount } = useAppContext();
   const tMsg = (en, id) => (language === 'id' ? id : en);
   const [entries, setEntries] = useState([]);
   const [approvals, setApprovals] = useState([]);
@@ -328,6 +338,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       setEntries(entriesRes.data.entries || []);
       setApprovals(approvalsRes.data.entries || []);
       setApprovalHistory(historyRes.data.entries || []);
+      if (fetchTimesheetUnsubmittedCount) fetchTimesheetUnsubmittedCount();
     } catch (err) {
       console.error(err);
     } finally {
@@ -420,9 +431,81 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     return `${year}-${month}-${day}`;
   }, []);
 
+  const currentWeekStartStr = useMemo(() => getStartOfWeekStr(todayStr), [todayStr]);
+
   const isFutureWeek = useMemo(() => {
-    return weekDays[0] > todayStr;
-  }, [weekDays, todayStr]);
+    return weekDays[0] > currentWeekStartStr;
+  }, [weekDays, currentWeekStartStr]);
+
+  const joinWeekStartStr = useMemo(() => {
+    const joinDate = profileData?.created_at ? parseLocalDate(profileData.created_at) : new Date('2026-01-01');
+    const start = getStartOfWeek(isNaN(joinDate.getTime()) ? new Date('2026-01-01') : joinDate);
+    return getStartOfWeekStr(start);
+  }, [profileData?.created_at]);
+
+  const isPrevDisabled = weekDays[0] <= joinWeekStartStr;
+  const isNextDisabled = weekDays[0] >= currentWeekStartStr;
+
+  // List of all relevant weeks starting from user registration date (profileData.created_at) up to current week
+  const allWeeksOptions = useMemo(() => {
+    const list = [];
+    const joinDate = profileData?.created_at ? parseLocalDate(profileData.created_at) : new Date('2026-01-01');
+    const start = getStartOfWeek(isNaN(joinDate.getTime()) ? new Date('2026-01-01') : joinDate);
+
+    // Calculate 8 weeks ago cutoff for approved weeks to keep dropdown concise
+    const eightWeeksAgo = new Date();
+    eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 56);
+    const eightWeeksAgoStr = getStartOfWeekStr(eightWeeksAgo);
+
+    const maxEnd = new Date(currentWeekStart);
+    maxEnd.setDate(maxEnd.getDate() + 14);
+
+    let curr = new Date(start);
+    while (curr <= maxEnd) {
+      const days = getWeekDays(curr);
+      const wStartStr = days[0];
+      const wEndStr = days[6];
+
+      const isSubmitted = entries.some(e => days.includes(e.date) && ['Pending', 'Approved'].includes(e.status));
+      const isFuture = wStartStr > currentWeekStartStr;
+      const isCurrent = wStartStr === currentWeekStartStr;
+      const isUnsubmittedPast = wStartStr < currentWeekStartStr && wStartStr >= joinWeekStartStr && !isSubmitted;
+
+      let statusLabel = 'Draft';
+      if (isSubmitted) {
+        const weekEntries = entries.filter(e => days.includes(e.date));
+        if (weekEntries.every(e => e.status === 'Approved')) statusLabel = 'Approved';
+        else if (weekEntries.some(e => e.status === 'Pending')) statusLabel = 'Pending';
+        else if (weekEntries.every(e => e.status === 'Rejected')) statusLabel = 'Rejected';
+      }
+
+      // Keep dropdown concise: Always include unsubmitted past, current, future, OR approved within 8 weeks
+      const shouldInclude = isUnsubmittedPast || isCurrent || isFuture || wStartStr >= eightWeeksAgoStr;
+
+      if (shouldInclude) {
+        list.push({
+          weekStart: new Date(curr),
+          weekStartStr: wStartStr,
+          weekEndStr: wEndStr,
+          label: `${formatDateMMM(wStartStr)} - ${formatDateMMM(wEndStr)}`,
+          isSubmitted,
+          isFuture,
+          isCurrent,
+          isUnsubmittedPast,
+          statusLabel
+        });
+      }
+
+      curr.setDate(curr.getDate() + 7);
+    }
+
+    return list.reverse(); // Latest week first
+  }, [entries, currentWeekStartStr, joinWeekStartStr, currentWeekStart, formatDateMMM, profileData?.created_at]);
+
+  const unsubmittedWeeksCount = useMemo(() => {
+    return allWeeksOptions.filter(w => w.isUnsubmittedPast).length;
+  }, [allWeeksOptions]);
+
 
 
   const toggleRowSelection = (rowId) => {
@@ -524,41 +607,47 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
     if (row.isManual) {
       setManualRows(manualRows.filter(mr => mr.id !== row.id));
-    } else {
-      const entryIdsToDelete = [];
-      const localIdsToFilter = [];
+      setDeleteRowModal(null);
+      return;
+    }
 
-      weekDays.forEach(dateStr => {
-        const d = row.days[dateStr];
-        if (d) {
-          if (d.id) {
-            entryIdsToDelete.push(d.id);
-          } else if (d._frontendId) {
-            localIdsToFilter.push(d._frontendId);
-          }
-        }
-      });
+    const entryIdsToDelete = [];
+    const localIdsToFilter = [];
 
-      if (entryIdsToDelete.length > 0) {
-        setIsSaving(true);
-        try {
-          await Promise.all(
-            entryIdsToDelete.map(id =>
-              axios.delete(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry/${id}`, { headers })
-            )
-          );
-          setEntries(prev => prev.filter(e => !entryIdsToDelete.includes(e.id)));
-          await fetchData();
-        } catch (err) {
-          setErrorModalMsg(err.response?.data?.detail || 'Error deleting row entries');
-        } finally {
-          setIsSaving(false);
+    weekDays.forEach(dateStr => {
+      const d = row.days[dateStr];
+      if (d) {
+        if (d.id) {
+          entryIdsToDelete.push(d.id);
+        } else if (d._frontendId) {
+          localIdsToFilter.push(d._frontendId);
         }
-      } else {
-        setEntries(prev => prev.filter(e => !localIdsToFilter.includes(e._frontendId)));
+      }
+    });
+
+    const previousEntries = [...entries];
+    // Optimistic UI: remove deleted row entries locally immediately
+    setEntries(prev => prev.filter(e =>
+      !entryIdsToDelete.includes(e.id) && !localIdsToFilter.includes(e._frontendId)
+    ));
+    setDeleteRowModal(null);
+
+    if (entryIdsToDelete.length > 0) {
+      setIsSaving(true);
+      try {
+        await Promise.all(
+          entryIdsToDelete.map(id =>
+            axios.delete(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry/${id}`, { headers })
+          )
+        );
+        fetchData();
+      } catch (err) {
+        setEntries(previousEntries); // Revert on failure
+        setErrorModalMsg(err.response?.data?.detail || 'Error deleting row entries');
+      } finally {
+        setIsSaving(false);
       }
     }
-    setDeleteRowModal(null);
   };
 
   const handleSaveDraft = async () => {
@@ -612,6 +701,13 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       setIsSaving(false);
     }
     return newEntries;
+  };
+
+  const handleSaveDraftManual = async () => {
+    const res = await handleSaveDraft();
+    if (res) {
+      setSuccessModalMsg(tMsg('Draft saved successfully!', 'Draft berhasil disimpan!'));
+    }
   };
 
   const handleSubmitSelected = async () => {
@@ -751,14 +847,24 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     }
 
     setIsSaving(true);
+    // Optimistic UI update: mark selected submitted entries as 'Pending' in UI
+    const previousEntries = [...entries];
+    setEntries(prev => prev.map(e => {
+      if (entryIdsToSubmit.includes(e.id)) {
+        return { ...e, status: 'Pending' };
+      }
+      return e;
+    }));
+
     try {
       const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/submit`, {
         entry_ids: entryIdsToSubmit
       }, { headers });
       setSelectedRowIds(new Set());
-      await fetchData();
-      setSuccessModalMsg(res.data.message);
+      setSuccessModalMsg(res.data.message || tMsg('Timesheet submitted successfully!', 'Timesheet berhasil dikirimkan!'));
+      fetchData();
     } catch (err) {
+      setEntries(previousEntries); // Revert on failure
       setErrorModalMsg(err.response?.data?.detail || 'Error submitting timesheets');
     } finally {
       setIsSaving(false);
@@ -766,6 +872,18 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   };
 
   const handleApprove = async (entry_ids, status) => {
+    const previousApprovals = [...approvals];
+    const previousHistory = [...approvalHistory];
+
+    // Optimistically update approval queues & history
+    const affected = approvals.filter(e => entry_ids.includes(e.id));
+    const updatedAffected = affected.map(e => ({ ...e, status }));
+
+    setApprovals(prev => prev.filter(e => !entry_ids.includes(e.id)));
+    if (updatedAffected.length > 0) {
+      setApprovalHistory(prev => [...updatedAffected, ...prev]);
+    }
+
     try {
       const res = await axios.patch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/approve`, {
         entry_ids,
@@ -774,6 +892,8 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       setSuccessModalMsg(res.data.message);
       fetchData();
     } catch (err) {
+      setApprovals(previousApprovals);
+      setApprovalHistory(previousHistory);
       setErrorModalMsg(err.response?.data?.detail || 'Error processing approval');
     }
   };
@@ -997,55 +1117,113 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
         )}
       </div>
 
-      {/* Overtime Warning */}
-      {(hasDailyOvertime || hasWeeklyOvertime) && !dismissedOvertime && (
-        <div className="bg-amber-50/50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-4 flex gap-3 items-start text-amber-800 dark:text-amber-300 shadow-sm mac-animate">
-          <Icon name="alert-triangle" className="w-5 h-5 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <h4 className="font-bold text-sm">Overtime Warning</h4>
-            <p className="text-xs mt-0.5 opacity-90 font-medium">
-              {hasDailyOvertime && hasWeeklyOvertime
-                ? 'You have logged more than 8 hours in a single day and more than 40 hours for this week.'
-                : hasDailyOvertime
-                  ? 'You have logged more than 8 hours in a single day.'
-                  : 'You have logged more than 40 hours for this week.'}{' '}
-              Please ensure this overtime is approved.
-            </p>
-          </div>
-          <button
-            onClick={() => setDismissedOvertime(true)}
-            className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors p-1 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30"
-            title="Dismiss"
-          >
-            <Icon name="x" className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
       {/* Weekly Grid */}
       {activeSubTab === 'my-timesheet' && (
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm">
+        <div className="flex flex-col gap-6">
+          {/* Unsubmitted Weeks Notice Banner */}
+          {unsubmittedWeeksCount > 0 && (
+            <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between text-red-900 dark:text-red-200 shadow-sm mac-animate">
+              <div className="flex items-center gap-3">
+                <Icon name="alert-triangle" className="w-5 h-5 shrink-0 text-red-600 dark:text-red-400" />
+                <div>
+                  <h4 className="font-bold text-sm text-red-900 dark:text-red-200">{tMsg('Unsubmitted Timesheets Warning', 'Peringatan Timesheet Belum Disubmit')}</h4>
+                  <p className="text-xs mt-0.5 opacity-90 font-medium text-red-800 dark:text-red-300">
+                    {tMsg(
+                      `You have ${unsubmittedWeeksCount} unsubmitted week(s) since joining. Please select the week from the dropdown to submit.`,
+                      `Anda memiliki ${unsubmittedWeeksCount} minggu yang belum disubmit sejak terdaftar. Silakan pilih minggu dari dropdown untuk mengisi dan mengirimkan.`
+                    )}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const firstOverdue = allWeeksOptions.find(w => w.isUnsubmittedPast);
+                  if (firstOverdue) setCurrentWeekStart(firstOverdue.weekStart);
+                }}
+                className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs shadow-sm transition-all whitespace-nowrap self-end sm:self-auto shrink-0"
+              >
+                {tMsg('Jump to Unsubmitted Week →', 'Buka Minggu Belum Disubmit →')}
+              </button>
+            </div>
+          )}
+
+          {/* Overtime Warning (My Timesheets only) */}
+          {(hasDailyOvertime || hasWeeklyOvertime) && !dismissedOvertime && (
+            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-4 flex gap-3 items-start text-amber-900 dark:text-amber-200 shadow-sm mac-animate">
+              <Icon name="alert-triangle" className="w-5 h-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+              <div className="flex-1">
+                <h4 className="font-bold text-sm text-amber-900 dark:text-amber-200">Overtime Warning</h4>
+                <p className="text-xs mt-0.5 opacity-90 font-medium text-amber-800 dark:text-amber-300">
+                  {hasDailyOvertime && hasWeeklyOvertime
+                    ? 'You have logged more than 8 hours in a single day and more than 40 hours for this week.'
+                    : hasDailyOvertime
+                      ? 'You have logged more than 8 hours in a single day.'
+                      : 'You have logged more than 40 hours for this week.'}{' '}
+                  Please ensure this overtime is approved.
+                </p>
+              </div>
+              <button
+                onClick={() => setDismissedOvertime(true)}
+                className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors p-1 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                title="Dismiss"
+              >
+                <Icon name="x" className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm">
 
           {/* Toolbar */}
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-neutral-50 dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 p-4">
-            <div className="flex items-center gap-2 bg-white dark:bg-neutral-950 p-1 border border-slate-200 dark:border-neutral-800 rounded-lg shadow-sm">
-              <button onClick={prevWeek} className="px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors">Prev</button>
+            <div className="flex items-center gap-2 bg-white dark:bg-neutral-950 p-1 border border-slate-200 dark:border-neutral-800 rounded-lg shadow-sm flex-wrap sm:flex-nowrap">
+              <button
+                onClick={prevWeek}
+                disabled={isPrevDisabled}
+                title={isPrevDisabled ? tMsg('Cannot navigate prior to registration date', 'Tidak dapat berpindah ke sebelum tanggal terdaftar') : ''}
+                className="px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Prev
+              </button>
               <button onClick={currentWeek} className="px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors">Today</button>
-              <button onClick={nextWeek} className="px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors">Next</button>
-              <input
-                type="date"
-                value={weekDays[0]}
-                onChange={(e) => e.target.value && setCurrentWeekStart(getStartOfWeek(e.target.value))}
-                className="ml-2 bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded p-1 text-xs text-slate-700 dark:text-slate-300 outline-none focus:border-indigo-500"
-                title="Jump to week containing this date"
-              />
-              <span className="ml-4 font-bold text-slate-800 dark:text-slate-200">
-                {formatDateMMM(weekDays[0])} - {formatDateMMM(weekDays[6])}
-              </span>
+              <button
+                onClick={nextWeek}
+                disabled={isNextDisabled}
+                title={isNextDisabled ? tMsg('Cannot navigate to future weeks', 'Tidak dapat berpindah ke minggu di masa mendatang') : ''}
+                className="px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+
+              {/* Weekly Dropdown Selector */}
+              <div className="relative flex items-center gap-2 ml-1">
+                <select
+                  value={weekDays[0]}
+                  onChange={(e) => {
+                    const found = allWeeksOptions.find(w => w.weekStartStr === e.target.value);
+                    if (found) setCurrentWeekStart(found.weekStart);
+                  }}
+                  className="bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg py-1.5 px-3 text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500 cursor-pointer max-w-[280px] sm:max-w-xs transition-colors"
+                >
+                  {allWeeksOptions.map(w => (
+                    <option key={w.weekStartStr} value={w.weekStartStr}>
+                      {w.isCurrent ? '📌 ' : ''}{w.isUnsubmittedPast ? '⚠️ ' : w.isSubmitted ? '✓ ' : ''}{w.label} {w.isUnsubmittedPast ? '(Belum Disubmit)' : w.isCurrent ? '(Minggu Ini)' : `(${w.statusLabel})`}
+                    </option>
+                  ))}
+                </select>
+                {unsubmittedWeeksCount > 0 && (
+                  <span
+                    className="px-2 py-0.5 bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/60 rounded-full text-[10px] font-black shrink-0 animate-pulse"
+                    title={`${unsubmittedWeeksCount} minggu belum disubmit sejak Jan 2026`}
+                  >
+                    ⚠️ {unsubmittedWeeksCount} belum disubmit
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex gap-3">
               <button
-                onClick={handleSaveDraft}
+                onClick={handleSaveDraftManual}
                 disabled={isSaving || isWeekSubmitted}
                 className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-200 rounded-lg font-medium transition-colors border border-slate-200 dark:border-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -1315,7 +1493,8 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
             </table>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
       {activeSubTab === 'history' && (
         /* History Section */

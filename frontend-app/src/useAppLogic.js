@@ -1925,6 +1925,60 @@ export default function useAppLogic() {
       });
   };
 
+  const [unsubmittedTimesheetsCount, setUnsubmittedTimesheetsCount] = useState(0);
+
+  const fetchTimesheetUnsubmittedCount = async () => {
+    if (!isAuthenticated) return;
+    try {
+      const [profileRes, entriesRes] = await Promise.all([
+        axios.get('/api/profile'),
+        axios.get('/api/timesheets/entries')
+      ]);
+
+      const prof = profileRes.data;
+      const entries = entriesRes.data.entries || [];
+
+      const joinDateStr = prof?.created_at || '2026-01-01';
+      const [y, m, d] = joinDateStr.substring(0, 10).split('-').map(Number);
+      const joinDate = isNaN(y) ? new Date('2026-01-01') : new Date(y, m - 1, d);
+
+      const dNow = new Date();
+      const getStart = (dateObj) => {
+        const temp = new Date(dateObj);
+        const day = temp.getDay();
+        temp.setDate(temp.getDate() - day);
+        temp.setHours(0, 0, 0, 0);
+        return temp;
+      };
+
+      let count = 0;
+      let curr = getStart(joinDate);
+      const limit = getStart(dNow);
+
+      while (curr < limit) {
+        const days = [];
+        for (let i = 0; i < 7; i++) {
+          const dayDate = new Date(curr);
+          dayDate.setDate(dayDate.getDate() + i);
+          const dy = dayDate.getFullYear();
+          const dm = String(dayDate.getMonth() + 1).padStart(2, '0');
+          const dd = String(dayDate.getDate()).padStart(2, '0');
+          days.push(`${dy}-${dm}-${dd}`);
+        }
+
+        const isSubmitted = entries.some(e => days.includes(e.date) && ['Pending', 'Approved'].includes(e.status));
+        if (!isSubmitted) {
+          count++;
+        }
+        curr.setDate(curr.getDate() + 7);
+      }
+
+      setUnsubmittedTimesheetsCount(count);
+    } catch (err) {
+      console.error('Error fetching unsubmitted timesheets count:', err);
+    }
+  };
+
   const fetchProfileStatus = () => {
     if (!isAuthenticated) return;
     axios
@@ -1936,6 +1990,7 @@ export default function useAppLogic() {
           res.data.role || (res.data.is_superadmin === 1 ? 'admin' : 'project_owner')
         );
         setProfileData({ ...res.data, current_password: '', new_password: '' });
+        fetchTimesheetUnsubmittedCount();
       })
       .catch(console.error);
   };
@@ -5001,8 +5056,8 @@ export default function useAppLogic() {
     handleAcceptTos,
     previewTask,
     setPreviewTask,
-    clonedTaskIds,
-    setClonedTaskIds,
     teamWorkloadStats,
+    unsubmittedTimesheetsCount,
+    fetchTimesheetUnsubmittedCount,
   };
 }

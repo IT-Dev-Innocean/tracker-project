@@ -57,6 +57,7 @@ export default function Sidebar() {
     setIsExportModalOpen,
     inboxChats,
     dmConversations,
+    unsubmittedTimesheetsCount,
   } = useAppContext();
 
   const tMsg = (en, id) => (language === 'id' ? id : en);
@@ -754,12 +755,23 @@ export default function Sidebar() {
                     : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
                 } ${isCollapsed ? 'justify-center' : ''}`}
                 title={tMsg('Timesheets', 'Lembar Waktu')}>
-                <div className='w-6 h-6 flex items-center justify-center'>
+                <div className='w-6 h-6 flex items-center justify-center relative'>
                   <Icon name='clock' className='w-5 h-5' />
+                  {isCollapsed && unsubmittedTimesheetsCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-600 rounded-full border-2 border-white dark:border-neutral-950 animate-pulse" />
+                  )}
                 </div>
                 {!isCollapsed && (
-                  <span className='text-sm truncate'>
+                  <span className='text-sm truncate flex-1 text-left'>
                     {tMsg('Timesheets', 'Lembar Waktu')}
+                  </span>
+                )}
+                {!isCollapsed && unsubmittedTimesheetsCount > 0 && (
+                  <span
+                    className="px-2 py-0.5 bg-red-600 text-white text-[10px] font-black rounded-full shadow-sm shrink-0 animate-pulse"
+                    title={`${unsubmittedTimesheetsCount} minggu belum disubmit`}
+                  >
+                    ⚠️ {unsubmittedTimesheetsCount}
                   </span>
                 )}
               </button>
