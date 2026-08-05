@@ -2,18 +2,19 @@ import React from 'react';
 import { useAppContext } from '../../contexts/AppContext';
 import { IconPlus } from '../../SharedUI';
 import BoardFilterSort from '../BoardFilterSort';
+import QuickFiltersPopover from '../QuickFiltersPopover';
 import { LiveClock } from '../../Widgets';
 import { Icon } from '../icons/Icon';
+import {
+  TEAM_CHAT_UI_ENABLED,
+  EXPORT_CSV_UI_ENABLED,
+  GET_ALL_DATA_UI_ENABLED,
+} from '../../featureFlags';
 
 export default function MainToolbar() {
   const {
     language,
     selectedBoard,
-    setSelectedBoard,
-    setIsProactiveAIOpen,
-    setShowTeams,
-    setShowTimesheets,
-    setSidebarNav,
     viewMode,
     showLiveClock,
     showLiveClockDate,
@@ -53,8 +54,6 @@ export default function MainToolbar() {
     columns,
     categories,
     assigneeOptions,
-    teamMembers,
-    setColModal,
     workspaceRole,
   } = useAppContext();
 
@@ -65,253 +64,299 @@ export default function MainToolbar() {
     workspaceRole === 'project_owner' ||
     workspaceRole === 'manager' ||
     !workspaceRole;
+  const canInviteAndShare = workspaceRole !== 'staff';
 
   // Check if any filters are active to highlight the filter toggle button
-  const hasActiveFilters = 
-    showMyTasks || 
-    showOverdueOnly || 
-    showUnreadOnly || 
-    showHasSubtasks || 
-    hideCompleted || 
-    filterStatus || 
-    filterCategory || 
+  const hasActiveFilters =
+    showMyTasks ||
+    showOverdueOnly ||
+    showUnreadOnly ||
+    showHasSubtasks ||
+    hideCompleted ||
+    filterStatus ||
+    filterCategory ||
     filterAssignee;
 
-  return (
-    <header className="px-4 py-3 md:px-6 md:py-6 flex flex-col gap-3 md:gap-4 shrink-0 border-b border-neutral-100 dark:border-neutral-800/50 md:border-b-0">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 md:gap-4">
-        <div>
-          <div className="text-[10px] uppercase font-bold tracking-widest text-indigo-500 mb-0.5 md:mb-1 flex items-center gap-1.5 tour-breadcrumb">
-            <span 
-              onClick={() => {
-                setSelectedBoard(null);
-                setShowTeams?.(false);
-                setShowTimesheets?.(false);
-                setSidebarNav?.('home');
-                setIsProactiveAIOpen(false);
-              }}
-              className="cursor-pointer hover:text-indigo-600 hover:underline transition-colors flex items-center gap-1 shrink-0"
-              title={tMsg('Go to Home', 'Kembali ke Beranda')}
-            >
-              <Icon name="home" className="w-4 h-4" /> <span className="hidden sm:inline">{tMsg('Home', 'Beranda')}</span>
-            </span>
-            <span className="text-neutral-300 dark:text-neutral-600">/</span>
-            <span className="truncate max-w-37.5 sm:max-w-50">
-              {selectedBoard.id === 'global' ? tMsg('Master View', 'Tampilan Utama') : selectedBoard.name}
-            </span>
-          </div>
-          <h2 className="text-lg md:text-2xl font-extrabold text-slate-800 dark:text-white capitalize">
-            {viewMode === 'kanban' ? 'Kanban Board' : viewMode === 'list' ? 'Table List' : viewMode}
-          </h2>
-          <p className="text-slate-500 dark:text-slate-400 text-[11px] sm:text-sm font-medium mt-0.5 md:mt-1">
-            {viewMode === 'kanban'
-              ? tMsg(
-                  'Manage and track your operational tasks efficiently.',
-                  'Kelola dan lacak tugas operasional Anda dengan efisien.'
-                )
-              : viewMode === 'list'
-              ? tMsg(
-                  'View your tasks in a compact spreadsheet format.',
-                  'Lihat tugas Anda dalam format lembar kerja yang ringkas.'
-                )
-              : viewMode === 'analytics'
-              ? tMsg(
-                  "Monitor your team's performance and project health.",
-                  'Pantau kinerja tim dan kesehatan proyek Anda.'
-                )
-              : viewMode === 'timeline'
-              ? tMsg(
-                  'Visualize project schedules and manage resource allocation.',
-                  'Visualisasikan jadwal proyek dan kelola alokasi sumber daya.'
-                )
-              : viewMode === 'calendar'
-              ? tMsg(
-                  'Track deadlines and milestones in a monthly view.',
-                  'Lacak tenggat waktu dan pencapaian dalam tampilan bulanan.'
-                )
-              : tMsg(
-                  'Manage and track your operational tasks efficiently.',
-                  'Kelola dan lacak tugas operasional Anda dengan efisien.'
-                )}
-          </p>
-        </div>
-        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 md:gap-3 w-full md:w-auto">
-          <div className="hidden md:block">
-            {showLiveClock && (
-              <LiveClock showLiveClockDate={showLiveClockDate} language={language} />
-            )}
-          </div>
-          <div className="flex items-center gap-1.5 w-full md:w-auto justify-between md:justify-end pb-2 md:pb-0 border-b border-neutral-100 dark:border-neutral-800 md:border-0 shrink-0">
-            {invitations && invitations.length > 0 && (
+  const viewTabIcons = {
+    kanban: <Icon name='columns-2' className='w-3.5 h-3.5' />,
+    list: <Icon name='list' className='w-3.5 h-3.5' />,
+    timeline: <Icon name='chart-gantt' className='w-3.5 h-3.5' />,
+    calendar: <Icon name='calendar' className='w-3.5 h-3.5' />,
+    analytics: <Icon name='chart-no-axes-column' className='w-3.5 h-3.5' />,
+  };
+  const viewTabLabels = {
+    kanban: 'Board',
+    list: 'List',
+    timeline: 'Timeline',
+    calendar: 'Calendar',
+    analytics: 'Analytics',
+  };
+
+  const renderUtilityActions = () => {
+    const showBoardUtilities =
+      !selectedBoard.is_private &&
+      selectedBoard.id !== 'global' &&
+      (canInviteAndShare ||
+        TEAM_CHAT_UI_ENABLED ||
+        EXPORT_CSV_UI_ENABLED ||
+        GET_ALL_DATA_UI_ENABLED);
+
+    const toolBtnClass =
+      'inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors relative whitespace-nowrap shrink-0';
+
+    return (
+      <>
+        {invitations && invitations.length > 0 && (
+          <button
+            onClick={() => setIsInvitesModalOpen(true)}
+            className='inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg transition-colors relative whitespace-nowrap shrink-0'
+            title={tMsg('Team Invitations', 'Undangan Tim')}>
+            <Icon name='mail' className='w-4 h-4' />
+            <span>{tMsg('Invites', 'Undangan')}</span>
+            <span className='absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse'></span>
+          </button>
+        )}
+        {showBoardUtilities && (
+          <div className='flex items-center gap-1 tour-team-menu flex-wrap'>
+            {canInviteAndShare && (
               <button
-                onClick={() => setIsInvitesModalOpen(true)}
-                className="p-2 text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 rounded-lg transition-colors relative"
-                title={tMsg('Team Invitations', 'Undangan Tim')}
-              >
-                <Icon name="mail" className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                onClick={() => openTeamModal(selectedBoard.id)}
+                disabled={accountStatus === 'suspended'}
+                className={toolBtnClass}
+                title={tMsg('Manage Team', 'Kelola Tim')}>
+                <Icon name='users' className='w-4 h-4' />
+                <span>{tMsg('Invite Team', 'Undang Tim')}</span>
+                {selectedBoard.access_requests_count > 0 &&
+                  selectedBoard.role === 'owner' && (
+                    <span className='absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse'></span>
+                  )}
               </button>
             )}
-            {!selectedBoard.is_private && selectedBoard.id !== 'global' && (
-              <div className="flex items-center gap-1.5 tour-team-menu w-full md:w-auto justify-end">
-                <button
-                  onClick={() => openTeamModal(selectedBoard.id)}
-                  disabled={accountStatus === 'suspended'}
-                  className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors relative"
-                  title={tMsg('Manage Team', 'Kelola Tim')}
-                >
-                  <Icon name="users" className="w-5 h-5" />
-                  {selectedBoard.access_requests_count > 0 && selectedBoard.role === 'owner' && (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                  )}
-                </button>
-                <button
-                  onClick={() => {
-                    setIsProjectChatOpen(true);
-                    setDrawerTab('team');
-                  }}
-                  className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors relative"
-                  title={tMsg('Team Chat', 'Obrolan Tim')}
-                >
-                  <Icon name="message-circle" className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => {
-                    const slug = selectedBoard.name
-                      .toLowerCase()
-                      .replace(/[^a-z0-9]+/g, '-')
-                      .replace(/(^-|-$)+/g, '');
-                    const url = `${window.location.origin}/project/${selectedBoard.id}-${slug}`;
-                    navigator.clipboard.writeText(url).catch(() => {
-                      const temp = document.createElement('textarea');
-                      temp.value = url;
-                      document.body.appendChild(temp);
-                      temp.select();
-                      document.execCommand('copy');
-                      document.body.removeChild(temp);
-                    });
-                    showNotification(tMsg('Project link copied!', 'Tautan proyek disalin!'), 'success');
-                  }}
-                  className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
-                  title={tMsg('Share Project', 'Bagikan Proyek')}
-                >
-                  <Icon name="link" className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => {
-                    setExportMode('board');
-                    setIsExportModalOpen(true);
-                  }}
-                  className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
-                  title={tMsg('Export CSV', 'Ekspor CSV')}
-                >
-                  <Icon name="save" className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => {
-                    setExportMode('global');
-                    setIsExportModalOpen(true);
-                  }}
-                  className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
-                  title={tMsg('Get All My Data', 'Dapatkan Semua Data')}
-                >
-                  <Icon name="globe" className="w-5 h-5" />
-                </button>
-              </div>
+            {TEAM_CHAT_UI_ENABLED && (
+              <button
+                onClick={() => {
+                  setIsProjectChatOpen(true);
+                  setDrawerTab('team');
+                }}
+                className={toolBtnClass}
+                title={tMsg('Team Chat', 'Obrolan Tim')}>
+                <Icon name='message-circle' className='w-4 h-4' />
+                <span>{tMsg('Team Chat', 'Obrolan Tim')}</span>
+              </button>
+            )}
+            {canInviteAndShare && (
+              <button
+                onClick={() => {
+                  const slug = selectedBoard.name
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/(^-|-$)+/g, '');
+                  const url = `${window.location.origin}/project/${selectedBoard.id}-${slug}`;
+                  navigator.clipboard.writeText(url).catch(() => {
+                    const temp = document.createElement('textarea');
+                    temp.value = url;
+                    document.body.appendChild(temp);
+                    temp.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(temp);
+                  });
+                  showNotification(
+                    tMsg('Project link copied!', 'Tautan proyek disalin!'),
+                    'success'
+                  );
+                }}
+                className={toolBtnClass}
+                title={tMsg('Share Project', 'Bagikan Proyek')}>
+                <Icon name='link' className='w-4 h-4' />
+                <span>{tMsg('Share Project', 'Bagikan Proyek')}</span>
+              </button>
+            )}
+            {EXPORT_CSV_UI_ENABLED && (
+              <button
+                onClick={() => {
+                  setExportMode('board');
+                  setIsExportModalOpen(true);
+                }}
+                className={toolBtnClass}
+                title={tMsg('Export CSV', 'Ekspor CSV')}>
+                <Icon name='save' className='w-4 h-4' />
+                <span>{tMsg('Export CSV', 'Ekspor CSV')}</span>
+              </button>
+            )}
+            {GET_ALL_DATA_UI_ENABLED && (
+              <button
+                onClick={() => {
+                  setExportMode('global');
+                  setIsExportModalOpen(true);
+                }}
+                className={toolBtnClass}
+                title={tMsg('Get All My Data', 'Dapatkan Semua Data')}>
+                <Icon name='globe' className='w-4 h-4' />
+                <span>{tMsg('Get All My Data', 'Dapatkan Semua Data')}</span>
+              </button>
             )}
           </div>
+        )}
+      </>
+    );
+  };
 
-          <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
-            <div className="relative flex-1 md:flex-initial">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10 pointer-events-none">
-              <Icon name="search" className="w-4 h-4" />
-              </span>
-              <input
-                type="text"
-                placeholder={tMsg('Search tasks...', 'Cari tugas...')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:outline-none w-full md:w-48 transition-all text-sm"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 z-10"
-                  title="Clear Search"
-                >
-                  <Icon name="x" className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            <button
-              onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
-              className={`md:hidden p-2 rounded-lg border transition-all flex items-center justify-center gap-1.5 text-xs font-bold shrink-0 ${
-                isMobileFiltersOpen || hasActiveFilters
-                  ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400'
-                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
-              }`}
-              title={tMsg('Toggle Views & Filters', 'Tampilkan Tampilan & Filter')}
-            >
-              <Icon name="sliders" className="w-4 h-4" />
-              <span>{tMsg('Filters', 'Filter')}</span>
-              {hasActiveFilters && (
-                <span className="w-2 h-2 bg-indigo-600 dark:bg-indigo-400 rounded-full animate-pulse"></span>
-              )}
-            </button>
-            {canCreateTasks && (
-            <button
-              onClick={handleOpenNewTaskForm}
-              disabled={accountStatus === 'suspended' || selectedBoard.id === 'global'}
-              className="bg-black dark:bg-white dark:text-slate-900 text-white font-bold py-2 px-3 sm:px-4 rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 text-sm shrink-0 tour-new-task disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105"
-            >
-              <IconPlus className="w-4 h-4" /> <span className="hidden sm:inline">{tMsg('New Request', 'Permintaan Baru')}</span>
-            </button>
-            )}
-          </div>
+  const renderSearchField = () => (
+    <div className='relative flex-1 md:flex-initial'>
+      <span className='absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10 pointer-events-none'>
+        <Icon name='search' className='w-4 h-4' />
+      </span>
+      <input
+        type='text'
+        placeholder={tMsg('Search tasks...', 'Cari tugas...')}
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className='pl-9 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder-slate-400 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 focus:outline-none w-full md:w-48 transition-all text-sm'
+      />
+      {searchQuery && (
+        <button
+          onClick={() => setSearchQuery('')}
+          className='absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 z-10'
+          title='Clear Search'>
+          <Icon name='x' className='w-4 h-4' />
+        </button>
+      )}
+    </div>
+  );
+
+  const renderNewTaskButton = ({ fullWidth = false } = {}) =>
+    canCreateTasks ? (
+      <button
+        onClick={handleOpenNewTaskForm}
+        disabled={
+          accountStatus === 'suspended' || selectedBoard.id === 'global'
+        }
+        className={`bg-black dark:bg-white dark:text-slate-900 text-white font-bold py-2 px-3 sm:px-4 rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 text-sm tour-new-task disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 ${
+          fullWidth ? 'w-full' : 'shrink-0'
+        }`}>
+        <IconPlus className='w-4 h-4' />
+        <span className={fullWidth ? 'inline' : 'hidden sm:inline'}>
+          {tMsg('Create Task', 'Buat Tugas')}
+        </span>
+      </button>
+    ) : null;
+
+  return (
+    <header className='px-4 py-3 md:px-6 md:py-6 flex flex-col gap-3 md:gap-4 shrink-0 border-b border-neutral-100 dark:border-neutral-800/50 md:border-b-0'>
+      {/* Title + tools + desktop actions */}
+      <div className='flex flex-col md:flex-row md:justify-between md:items-center gap-3 md:gap-4'>
+        <div className='flex flex-wrap items-center gap-2 sm:gap-3 min-w-0'>
+          <h2 className='text-2xl sm:text-xl lg:text-3xl font-extrabold text-slate-800 dark:text-white capitalize shrink-0'>
+            {selectedBoard.id === 'global'
+              ? tMsg('Master View', 'Tampilan Utama')
+              : selectedBoard.name}
+          </h2>
+          {renderUtilityActions()}
+        </div>
+
+        {/* Desktop: clock + new */}
+        <div className='hidden md:flex items-center gap-3 w-auto shrink-0'>
+          {showLiveClock && (
+            <LiveClock
+              showLiveClockDate={showLiveClockDate}
+              language={language}
+            />
+          )}
+          {renderNewTaskButton()}
         </div>
       </div>
 
-      <div className={`${isMobileFiltersOpen ? 'flex' : 'hidden md:flex'} flex-col gap-3 w-full border-t border-neutral-100 dark:border-neutral-800/50 pt-3 md:border-0 md:pt-0 md:flex-row md:items-center md:justify-between`}>
-        <div className="flex flex-nowrap lg:flex-wrap items-center gap-2 sm:gap-3 w-full pb-2 lg:pb-0 overflow-x-auto custom-scrollbar">
-          <div className="flex flex-nowrap lg:flex-wrap bg-slate-200 dark:bg-slate-800 p-1 rounded-lg shrink-0 tour-views gap-1 sm:gap-0">
-            {['kanban', 'list', 'analytics', 'timeline', 'calendar'].map((v) => {
-              const icons = {
-                kanban: <Icon name="columns-2" className="w-3.5 h-3.5" />,
-                list: <Icon name="list" className="w-3.5 h-3.5" />,
-                analytics: <Icon name="chart-no-axes-column" className="w-3.5 h-3.5" />,
-                timeline: <Icon name="chart-gantt" className="w-3.5 h-3.5" />,
-                calendar: <Icon name="calendar" className="w-3.5 h-3.5" />,
-              };
-              const labels = {
-                kanban: 'Board',
-                list: 'List',
-                analytics: 'Analytics',
-                timeline: 'Timeline',
-                calendar: 'Calendar',
-              };
-              return (
-                <button
-                  key={v}
-                  onClick={() => {
-                    if (v === 'timeline' && groupBy === 'Status') setGroupBy('Project');
-                    else if (v === 'kanban' && groupBy === 'Project') setGroupBy('Status');
-                    setViewMode(v);
-                  }}
-                  className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-md text-[11px] sm:text-xs font-semibold transition-all capitalize whitespace-nowrap shrink-0 ${
-                    viewMode === v
-                      ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm'
-                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-                  }`}
-                >
-                  {icons[v]}
-                  {labels[v]}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      {/* View tabs — always visible, above search/filters on mobile */}
+      <div className='flex items-center w-full overflow-x-auto custom-scrollbar border-t md:border-t-0 border-b border-neutral-200 dark:border-neutral-800 tour-views'>
+        {['kanban', 'list', 'timeline', 'calendar', 'analytics'].map((v) => {
+          const isActive = viewMode === v;
+          return (
+            <button
+              key={v}
+              onClick={() => {
+                if (v === 'timeline' && groupBy === 'Status')
+                  setGroupBy('Project');
+                else if (v === 'kanban' && groupBy === 'Project')
+                  setGroupBy('Status');
+                setViewMode(v);
+              }}
+              className={`relative flex items-center gap-1.5 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all capitalize whitespace-nowrap shrink-0 border-b-2 -mb-px ${
+                isActive
+                  ? 'border-indigo-500 text-slate-900 dark:text-white'
+                  : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}>
+              <span className={isActive ? 'text-indigo-500' : ''}>
+                {viewTabIcons[v]}
+              </span>
+              {viewTabLabels[v]}
+            </button>
+          );
+        })}
+      </div>
 
-        <div className="flex flex-nowrap lg:flex-wrap items-center gap-1.5 shrink-0 tour-filters overflow-x-auto custom-scrollbar pb-2 md:pb-0">
+      {/* Mobile: create task (full width) then search + filters */}
+      <div className='flex md:hidden flex-col gap-2 w-full shrink-0'>
+        {renderNewTaskButton({ fullWidth: true })}
+        <div className='flex items-center gap-2 w-full'>
+          {renderSearchField()}
+          <button
+            onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+            className={`p-2 rounded-lg border transition-all flex items-center justify-center gap-1.5 text-xs font-bold shrink-0 ${
+              isMobileFiltersOpen || hasActiveFilters
+                ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400'
+                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'
+            }`}
+            title={tMsg('Toggle Filters', 'Tampilkan Filter')}>
+            <Icon name='sliders' className='w-4 h-4' />
+            <span>{tMsg('Filters', 'Filter')}</span>
+            {hasActiveFilters && (
+              <span className='w-2 h-2 bg-indigo-600 dark:bg-indigo-400 rounded-full animate-pulse'></span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop: search (left) + Filter + Display (right) */}
+      <div className='hidden md:flex items-center justify-between gap-3 w-full tour-filters'>
+        <div className='shrink-0'>{renderSearchField()}</div>
+        <div className='flex items-center gap-2 shrink-0'>
+          <QuickFiltersPopover
+            language={language}
+            accountStatus={accountStatus}
+            viewMode={viewMode}
+            showMyTasks={showMyTasks}
+            setShowMyTasks={setShowMyTasks}
+            showOverdueOnly={showOverdueOnly}
+            setShowOverdueOnly={setShowOverdueOnly}
+            showUnreadOnly={showUnreadOnly}
+            setShowUnreadOnly={setShowUnreadOnly}
+            showHasSubtasks={showHasSubtasks}
+            setShowHasSubtasks={setShowHasSubtasks}
+            hideCompleted={hideCompleted}
+            setHideCompleted={setHideCompleted}
+          />
+          <BoardFilterSort
+            columns={columns}
+            categories={categories}
+            assigneeOptions={assigneeOptions}
+            filterStatus={filterStatus}
+            setFilterStatus={setFilterStatus}
+            filterCategory={filterCategory}
+            setFilterCategory={setFilterCategory}
+            filterAssignee={filterAssignee}
+            setFilterAssignee={setFilterAssignee}
+            groupBy={groupBy}
+            setGroupBy={setGroupBy}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+          />
+        </div>
+      </div>
+
+      {/* Mobile: filter chips when Filters opened */}
+      <div
+        className={`${isMobileFiltersOpen ? 'flex' : 'hidden'} md:hidden flex-nowrap items-center justify-between gap-2 overflow-x-auto custom-scrollbar`}>
+        <div className='flex flex-nowrap items-center gap-1.5 shrink-0'>
           <button
             onClick={() => {
               setShowMyTasks(!showMyTasks);
@@ -322,9 +367,8 @@ export default function MainToolbar() {
               showMyTasks
                 ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-500/20 dark:border-indigo-500/30 dark:text-indigo-300'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700'
-            }`}
-          >
-            <Icon name="user" className="w-3.5 h-3.5" />
+            }`}>
+            <Icon name='user' className='w-3.5 h-3.5' />
             My Tasks
           </button>
           <button
@@ -336,9 +380,8 @@ export default function MainToolbar() {
               showOverdueOnly
                 ? 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-500/20 dark:border-amber-500/30 dark:text-amber-300'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700'
-            }`}
-          >
-            <Icon name="alert-triangle" className="w-3.5 h-3.5" />
+            }`}>
+            <Icon name='alert-triangle' className='w-3.5 h-3.5' />
             {tMsg('Overdue', 'Terlambat')}
           </button>
           <button
@@ -347,9 +390,8 @@ export default function MainToolbar() {
               showUnreadOnly
                 ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-500/20 dark:border-red-500/30 dark:text-red-300'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700'
-            }`}
-          >
-            <Icon name="message-square" className="w-3.5 h-3.5" />
+            }`}>
+            <Icon name='message-square' className='w-3.5 h-3.5' />
             {tMsg('Unread', 'Belum Dibaca')}
           </button>
           <button
@@ -358,9 +400,8 @@ export default function MainToolbar() {
               showHasSubtasks
                 ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/20 dark:border-blue-500/30 dark:text-blue-300'
                 : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700'
-            }`}
-          >
-            <Icon name="square-check" className="w-3.5 h-3.5" />
+            }`}>
+            <Icon name='square-check' className='w-3.5 h-3.5' />
             {tMsg('Has Subtasks', 'Ada Sub-tugas')}
           </button>
 
@@ -375,24 +416,26 @@ export default function MainToolbar() {
                   ? 'bg-slate-100 border-slate-300 text-slate-500 dark:bg-slate-700/50 dark:border-slate-600 dark:text-slate-400'
                   : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-700'
               }`}
-              title={tMsg('Hide Done & Rejected tasks to declutter the view', 'Sembunyikan tugas Selesai & Ditolak agar tampilan lebih bersih')}
-            >
+              title={tMsg(
+                'Hide Done & Rejected tasks to declutter the view',
+                'Sembunyikan tugas Selesai & Ditolak agar tampilan lebih bersih'
+              )}>
               {hideCompleted ? (
                 <>
-                  <Icon name="eye-off" className="w-3.5 h-3.5" />
+                  <Icon name='eye-off' className='w-3.5 h-3.5' />
                   {tMsg('Completed Hidden', 'Selesai Disembunyikan')}
                 </>
               ) : (
                 <>
-                  <Icon name="eye" className="w-3.5 h-3.5" />
+                  <Icon name='eye' className='w-3.5 h-3.5' />
                   {tMsg('Show Completed', 'Tampilkan Selesai')}
                 </>
               )}
             </button>
           )}
+        </div>
 
-          <div className="h-6 w-px bg-slate-300 dark:bg-slate-600 shrink-0 block mx-1"></div>
-
+        <div className='flex items-center gap-2 shrink-0 ml-auto'>
           <BoardFilterSort
             columns={columns}
             categories={categories}
