@@ -338,7 +338,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       setEntries(entriesRes.data.entries || []);
       setApprovals(approvalsRes.data.entries || []);
       setApprovalHistory(historyRes.data.entries || []);
-      if (fetchTimesheetUnsubmittedCount) fetchTimesheetUnsubmittedCount();
+      if (fetchTimesheetUnsubmittedCount) fetchTimesheetUnsubmittedCount(profileData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -446,6 +446,16 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   const isPrevDisabled = weekDays[0] <= joinWeekStartStr;
   const isNextDisabled = weekDays[0] >= currentWeekStartStr;
 
+  const isTimesheetExempt = useMemo(() => {
+    return Boolean(
+      profileData?.is_superadmin === 1 ||
+      profileData?.role === 'admin' ||
+      profileData?.timesheet_required === false ||
+      profileData?.timesheet_required === 'false' ||
+      profileData?.timesheet_required === 0
+    );
+  }, [profileData]);
+
   // List of all relevant weeks starting from user registration date (profileData.created_at) up to current week
   const allWeeksOptions = useMemo(() => {
     const list = [];
@@ -469,7 +479,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       const isSubmitted = entries.some(e => days.includes(e.date) && ['Pending', 'Approved'].includes(e.status));
       const isFuture = wStartStr > currentWeekStartStr;
       const isCurrent = wStartStr === currentWeekStartStr;
-      const isUnsubmittedPast = wStartStr < currentWeekStartStr && wStartStr >= joinWeekStartStr && !isSubmitted;
+      const isUnsubmittedPast = !isTimesheetExempt && wStartStr < currentWeekStartStr && wStartStr >= joinWeekStartStr && !isSubmitted;
 
       let statusLabel = 'Draft';
       if (isSubmitted) {
@@ -500,11 +510,12 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     }
 
     return list.reverse(); // Latest week first
-  }, [entries, currentWeekStartStr, joinWeekStartStr, currentWeekStart, formatDateMMM, profileData?.created_at]);
+  }, [entries, currentWeekStartStr, joinWeekStartStr, currentWeekStart, formatDateMMM, profileData?.created_at, isTimesheetExempt]);
 
   const unsubmittedWeeksCount = useMemo(() => {
+    if (isTimesheetExempt) return 0;
     return allWeeksOptions.filter(w => w.isUnsubmittedPast).length;
-  }, [allWeeksOptions]);
+  }, [allWeeksOptions, isTimesheetExempt]);
 
 
 
@@ -1203,10 +1214,14 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                     const found = allWeeksOptions.find(w => w.weekStartStr === e.target.value);
                     if (found) setCurrentWeekStart(found.weekStart);
                   }}
-                  className="bg-slate-50 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-lg py-1.5 px-3 text-xs font-bold text-slate-800 dark:text-slate-200 outline-none focus:border-indigo-500 cursor-pointer max-w-[280px] sm:max-w-xs transition-colors"
+                  className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg py-1.5 px-3 text-xs font-bold text-slate-800 dark:text-neutral-100 outline-none focus:border-indigo-500 cursor-pointer max-w-[280px] sm:max-w-xs transition-colors shadow-sm"
                 >
                   {allWeeksOptions.map(w => (
-                    <option key={w.weekStartStr} value={w.weekStartStr}>
+                    <option
+                      key={w.weekStartStr}
+                      value={w.weekStartStr}
+                      className="bg-white dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 py-1 font-medium"
+                    >
                       {w.isCurrent ? '📌 ' : ''}{w.isUnsubmittedPast ? '⚠️ ' : w.isSubmitted ? '✓ ' : ''}{w.label} {w.isUnsubmittedPast ? '(Belum Disubmit)' : w.isCurrent ? '(Minggu Ini)' : `(${w.statusLabel})`}
                     </option>
                   ))}

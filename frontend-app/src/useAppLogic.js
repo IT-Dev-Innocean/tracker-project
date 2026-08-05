@@ -1927,15 +1927,26 @@ export default function useAppLogic() {
 
   const [unsubmittedTimesheetsCount, setUnsubmittedTimesheetsCount] = useState(0);
 
-  const fetchTimesheetUnsubmittedCount = async () => {
+  const fetchTimesheetUnsubmittedCount = async (profArg) => {
     if (!isAuthenticated) return;
     try {
-      const [profileRes, entriesRes] = await Promise.all([
-        axios.get('/api/profile'),
-        axios.get('/api/timesheets/entries')
-      ]);
+      const prof = (profArg && profArg.username) ? profArg : (profileData && profileData.username ? profileData : null);
+      if (!prof) return;
 
-      const prof = profileRes.data;
+      // Role exemption: Admin & Superadmin do not have compulsory timesheet submission
+      const isTimesheetExempt = Boolean(
+        prof?.is_superadmin === 1 ||
+        prof?.role === 'admin' ||
+        prof?.timesheet_required === false ||
+        prof?.timesheet_required === 'false' ||
+        prof?.timesheet_required === 0
+      );
+      if (isTimesheetExempt) {
+        setUnsubmittedTimesheetsCount(0);
+        return;
+      }
+
+      const entriesRes = await axios.get('/api/timesheets/entries');
       const entries = entriesRes.data.entries || [];
 
       const joinDateStr = prof?.created_at || '2026-01-01';
@@ -1990,7 +2001,7 @@ export default function useAppLogic() {
           res.data.role || (res.data.is_superadmin === 1 ? 'admin' : 'project_owner')
         );
         setProfileData({ ...res.data, current_password: '', new_password: '' });
-        fetchTimesheetUnsubmittedCount();
+        fetchTimesheetUnsubmittedCount(res.data);
       })
       .catch(console.error);
   };

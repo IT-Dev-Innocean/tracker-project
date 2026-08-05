@@ -584,6 +584,34 @@ export default function AdminModal({
                         {u.username !== 'admin' && (
                           <div className="flex justify-end items-center gap-2 flex-wrap">
 
+                             {u.is_verified === 1 && (
+                              <select
+                                value={u.timesheet_required !== false ? 'required' : 'exempt'}
+                                onChange={async (e) => {
+                                  const isReq = e.target.value === 'required';
+                                  try {
+                                    await axios.put(`${import.meta.env.VITE_API_BASE_URL || ''}/api/admin/users/timesheet-requirement`, {
+                                      username: u.username,
+                                      timesheet_required: isReq,
+                                    }, { headers: { Authorization: `Bearer ${localStorage.getItem('innocean_token')}` } });
+                                    if (setAdminUsers) {
+                                      setAdminUsers(prev => prev.map(usr => usr.username === u.username ? { ...usr, timesheet_required: isReq } : usr));
+                                    }
+                                  } catch (err) {
+                                    console.error(err);
+                                  }
+                                }}
+                                className={`text-xs font-bold px-2 py-1.5 rounded-lg border outline-none cursor-pointer transition-colors ${
+                                  u.timesheet_required !== false
+                                    ? 'border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300'
+                                    : 'border-slate-200 dark:border-neutral-700 bg-slate-100 dark:bg-neutral-800 text-slate-500 dark:text-neutral-400'
+                                }`}
+                                title={tMsg('Timesheet Requirement', 'Kewajiban Timesheet')}
+                              >
+                                <option value="required" className="bg-white dark:bg-neutral-900 text-slate-800 dark:text-neutral-100">⏱️ {tMsg('Timesheet Required', 'Wajib Timesheet')}</option>
+                                <option value="exempt" className="bg-white dark:bg-neutral-900 text-slate-800 dark:text-neutral-100">🟢 {tMsg('Exempt', 'Bebas Timesheet')}</option>
+                              </select>
+                            )}
                             {u.is_verified === 1 && u.username !== currentUser && (
                               <select
                                 value={u.role || (u.is_superadmin === 1 ? 'admin' : 'project_owner')}
@@ -597,12 +625,12 @@ export default function AdminModal({
                                 className="text-xs font-bold px-2 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-black dark:text-white outline-none"
                                 title={tMsg('Change Role', 'Ubah Role')}
                               >
-                                <option value="admin">{tMsg('Admin', 'Admin')}</option>
-                                <option value="project_owner">
+                                <option value="admin" className="bg-white dark:bg-neutral-900 text-slate-800 dark:text-neutral-100">{tMsg('Admin', 'Admin')}</option>
+                                <option value="project_owner" className="bg-white dark:bg-neutral-900 text-slate-800 dark:text-neutral-100">
                                   {tMsg('Project Owner', 'Project Owner')}
                                 </option>
-                                <option value="manager">{tMsg('Manager', 'Manager')}</option>
-                                <option value="staff">{tMsg('Staff', 'Staff')}</option>
+                                <option value="manager" className="bg-white dark:bg-neutral-900 text-slate-800 dark:text-neutral-100">{tMsg('Manager', 'Manager')}</option>
+                                <option value="staff" className="bg-white dark:bg-neutral-900 text-slate-800 dark:text-neutral-100">{tMsg('Staff', 'Staff')}</option>
                               </select>
                             )}
                             {u.is_verified === 1 &&

@@ -105,10 +105,28 @@ def get_all_users(
                 "is_superadmin": u.is_superadmin,
                 "role": get_user_role(db, u.username),
                 "timesheet_approver": u.timesheet_approver,
+                "timesheet_required": u.timesheet_required if getattr(u, 'timesheet_required', None) is not None else True,
             }
             for u in users
         ]
     }
+
+
+@router.put("/api/admin/users/timesheet-requirement")
+def set_user_timesheet_requirement(
+    payload: UserTimesheetRequirementModel,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not can_manage_workspace_users(db, current_user):
+        raise HTTPException(status_code=403, detail="Admin or Project Owner access required")
+    user = db.query(User).filter(User.username == payload.username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.timesheet_required = payload.timesheet_required
+    db.commit()
+    return {"message": f"Timesheet requirement for @{payload.username} updated."}
 
 
 @router.put("/api/admin/users/status")

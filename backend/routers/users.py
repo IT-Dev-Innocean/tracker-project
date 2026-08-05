@@ -35,6 +35,7 @@ def get_profile(
         "timesheet_approver": user.timesheet_approver,
         "is_approver": is_approver,
         "created_at": user.created_at.isoformat() if user.created_at else None,
+        "timesheet_required": user.timesheet_required if getattr(user, 'timesheet_required', None) is not None else True,
     }
 
 

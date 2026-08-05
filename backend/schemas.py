@@ -187,6 +187,16 @@ class TimesheetSubmitModel(BaseModel):
     entry_ids: List[int]
 
 
+class TimesheetApprovalActionModel(BaseModel):
+    entry_ids: List[int]
+    rejection_reason: Optional[str] = None
+
+
+class UserTimesheetRequirementModel(BaseModel):
+    username: str
+    timesheet_required: bool
+
+
 class TimesheetApproveModel(BaseModel):
     entry_ids: List[int]
     status: str # "Approved" or "Rejected"
@@ -194,4 +204,3 @@ class TimesheetApproveModel(BaseModel):
 
 class TimesheetApproverUpdateModel(BaseModel):
     approver_username: Optional[str] = None
-
