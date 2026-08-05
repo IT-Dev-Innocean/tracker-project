@@ -94,6 +94,11 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   const [expandedHistoryUsers, setExpandedHistoryUsers] = useState(new Set());
   const [histDisplayCount, setHistDisplayCount] = useState(15); // entries per page across all users
 
+  // Team Approvals — filters
+  const [apprFilterUser, setApprFilterUser] = useState('');
+  const [apprFilterDateFrom, setApprFilterDateFrom] = useState('');
+  const [apprFilterDateTo, setApprFilterDateTo] = useState('');
+
   // Determine if current user is an approver
   const isApprover = !!(profileData?.is_approver || approvals.length > 0 || approvalHistory.length > 0);
 
@@ -187,6 +192,27 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     result.sort((a, b) => a.username.localeCompare(b.username));
     return result;
   }, [approvals]);
+
+  // Filtered pending approvals
+  const filteredGroupedApprovals = useMemo(() => {
+    return groupedApprovals
+      .filter(userGroup => !apprFilterUser || userGroup.username === apprFilterUser)
+      .map(userGroup => ({
+        ...userGroup,
+        weeks: userGroup.weeks.filter(weekGroup => {
+          if (apprFilterDateFrom && weekGroup.weekStartStr < apprFilterDateFrom) return false;
+          if (apprFilterDateTo && weekGroup.weekStartStr > apprFilterDateTo) return false;
+          return true;
+        }),
+      }))
+      .filter(userGroup => userGroup.weeks.length > 0);
+  }, [groupedApprovals, apprFilterUser, apprFilterDateFrom, apprFilterDateTo]);
+
+  // All pending approval usernames for filter dropdown
+  const pendingUsernames = useMemo(() =>
+    [...new Set(approvals.map(e => e.user_username))].sort(),
+  [approvals]);
+
 
   // Group Approval History by User & Week (same shape as groupedApprovals)
   const groupedApprovalHistory = useMemo(() => {
@@ -386,6 +412,19 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     return entries.some(e => weekDays.includes(e.date) && ['Pending', 'Approved'].includes(e.status));
   }, [entries, weekDays]);
 
+  const todayStr = useMemo(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+
+  const isFutureWeek = useMemo(() => {
+    return weekDays[0] > todayStr;
+  }, [weekDays, todayStr]);
+
+
   const toggleRowSelection = (rowId) => {
     const newSet = new Set(selectedRowIds);
     if (newSet.has(rowId)) newSet.delete(rowId);
@@ -584,6 +623,25 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     }
     if (selectedRowIds.size === 0) return setErrorModalMsg('Select at least one row to submit.');
 
+    if (isFutureWeek) {
+      return setErrorModalMsg(tMsg(
+        'Cannot submit timesheets for future weeks.',
+        'Tidak dapat mengirimkan timesheet untuk minggu yang belum terjadi.'
+      ));
+    }
+
+    // Check if user has logged hours on dates beyond today
+    const hasFutureHours = gridRows.some(row =>
+      Object.entries(row.days).some(([d, dayData]) => d > todayStr && dayData && !dayData.is_deleted && parseFloat(dayData.hours_logged || 0) > 0)
+    );
+
+    if (hasFutureHours) {
+      return setErrorModalMsg(tMsg(
+        'Cannot submit hours logged for future dates.',
+        'Tidak dapat mengirimkan jam kerja yang dicatat pada tanggal di masa mendatang.'
+      ));
+    }
+
     // Auto-save first
     let latestEntries = await handleSaveDraft();
 
@@ -641,8 +699,8 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
             });
           }
         }
-      } else if (!isWeekend) {
-        // Active workday validation: must be at least 8 hours total across all tasks (allowing overtime)
+      } else if (!isWeekend && dateStr <= todayStr) {
+        // Active workday validation (only for dates up to today): must be at least 8 hours total
         if (totalForDay < 8) {
           const dayLabel = formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '');
           insufficientDays.push(`${dayLabel} (logged: ${totalForDay}h/8h)`);
@@ -740,6 +798,41 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     link.click();
     document.body.removeChild(link);
   };
+
+  const handleExportApprovalHistoryCSV = () => {
+    const rows = [['User', 'Week Start', 'Date', 'Project', 'Task', 'Hours Logged', 'Status']];
+    filteredGroupedApprovalHistory.forEach(userGroup => {
+      userGroup.weeks.forEach(weekGroup => {
+        weekGroup.rows.forEach(row => {
+          weekGroup.weekDays.forEach(dateStr => {
+            const d = row.days[dateStr];
+            if (d && parseFloat(d.hours_logged) > 0) {
+              const projName = row.custom_project_name || (boards.find(b => b.id === parseInt(row.board_id))?.name || 'General / No Project');
+              const taskName = row.custom_task_name || d.task_name || 'No Task';
+              rows.push([
+                userGroup.username,
+                weekGroup.weekStartStr,
+                dateStr,
+                `"${projName.replace(/"/g, '""')}"`,
+                `"${taskName.replace(/"/g, '""')}"`,
+                d.hours_logged,
+                d.status || weekGroup.weekStatus
+              ]);
+            }
+          });
+        });
+      });
+    });
+    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `approval_history_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
 
   const nextWeek = () => {
     const d = new Date(currentWeekStart);
@@ -960,7 +1053,8 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
               </button>
               <button
                 onClick={handleSubmitSelected}
-                disabled={isSaving || selectedRowIds.size === 0 || isWeekSubmitted}
+                disabled={isSaving || selectedRowIds.size === 0 || isWeekSubmitted || isFutureWeek}
+                title={isFutureWeek ? tMsg('Cannot submit timesheets for future weeks', 'Tidak dapat mengirimkan timesheet untuk minggu di masa mendatang') : ''}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium shadow-sm transition-colors"
               >
                 Submit Selected
@@ -1385,7 +1479,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                 <button
                   onClick={() => {
                     const allIds = [];
-                    groupedApprovals.forEach(ug => ug.weeks.forEach(wg => {
+                    filteredGroupedApprovals.forEach(ug => ug.weeks.forEach(wg => {
                       const key = `${ug.username}_${wg.weekStartStr}`;
                       if (selectedApprovalWeeks.has(key)) allIds.push(...wg.entryIds);
                     }));
@@ -1399,7 +1493,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                 <button
                   onClick={() => {
                     const allIds = [];
-                    groupedApprovals.forEach(ug => ug.weeks.forEach(wg => {
+                    filteredGroupedApprovals.forEach(ug => ug.weeks.forEach(wg => {
                       const key = `${ug.username}_${wg.weekStartStr}`;
                       if (selectedApprovalWeeks.has(key)) allIds.push(...wg.entryIds);
                     }));
@@ -1420,11 +1514,61 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
             )}
           </div>
 
-          {groupedApprovals.length === 0 ? (
+          {/* Filter Bar */}
+          <div className="flex flex-wrap items-center gap-3 bg-amber-50/40 dark:bg-neutral-950 border border-amber-200/60 dark:border-amber-900/30 rounded-xl px-4 py-3">
+            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
+              <Icon name="filter" className="w-3.5 h-3.5" />
+              {tMsg('Filter:', 'Filter:')}
+            </div>
+            {/* User filter */}
+            <select
+              value={apprFilterUser}
+              onChange={e => setApprFilterUser(e.target.value)}
+              className="text-xs bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-900/50 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500 cursor-pointer"
+            >
+              <option value="">{tMsg('All Users', 'Semua User')}</option>
+              {pendingUsernames.map(u => (
+                <option key={u} value={u}>@{u}</option>
+              ))}
+            </select>
+            {/* Date from */}
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-500 dark:text-neutral-400">{tMsg('From', 'Dari')}</span>
+              <input
+                type="date"
+                value={apprFilterDateFrom}
+                onChange={e => setApprFilterDateFrom(e.target.value)}
+                className="text-xs bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-900/50 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500"
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-slate-500 dark:text-neutral-400">{tMsg('To', 'Hingga')}</span>
+              <input
+                type="date"
+                value={apprFilterDateTo}
+                onChange={e => setApprFilterDateTo(e.target.value)}
+                className="text-xs bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-900/50 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500"
+              />
+            </div>
+            {/* Clear */}
+            {(apprFilterUser || apprFilterDateFrom || apprFilterDateTo) && (
+              <button
+                onClick={() => { setApprFilterUser(''); setApprFilterDateFrom(''); setApprFilterDateTo(''); }}
+                className="text-xs font-bold text-red-500 hover:text-red-600 dark:text-red-400 px-2 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
+              >
+                ✕ {tMsg('Clear', 'Hapus')}
+              </button>
+            )}
+            <span className="ml-auto text-xs text-slate-400 dark:text-neutral-500">
+              {filteredGroupedApprovals.reduce((sum, u) => sum + u.weeks.length, 0)} {tMsg('pending weeks', 'minggu tertunda')} · {filteredGroupedApprovals.length} {tMsg('users', 'user')}
+            </span>
+          </div>
+
+          {filteredGroupedApprovals.length === 0 ? (
             <div className="text-center text-slate-400 dark:text-neutral-500 italic py-6">{tMsg('No pending team approvals found.', 'Tidak ada persetujuan tim yang tertunda.')}</div>
           ) : (
             <div className="space-y-6">
-              {groupedApprovals.map(userGroup => (
+              {filteredGroupedApprovals.map(userGroup => (
                 <div key={userGroup.username} className="flex flex-col gap-4 border border-amber-200/50 dark:border-amber-900/20 rounded-2xl p-4">
                   <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-white border-b border-amber-100 dark:border-amber-900/20 pb-2">
                     <Icon name="user" className="w-4 h-4" />
@@ -1679,6 +1823,14 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                 {tMsg('Timesheets you have approved or rejected', 'Timesheet yang sudah Anda setujui atau tolak')}
               </p>
             </div>
+            {filteredGroupedApprovalHistory.length > 0 && (
+              <button
+                onClick={handleExportApprovalHistoryCSV}
+                className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border border-indigo-100 dark:border-indigo-800/30 shadow-sm"
+              >
+                📥 {tMsg('Export CSV', 'Ekspor CSV')}
+              </button>
+            )}
           </div>
 
           {/* Filter Bar */}
