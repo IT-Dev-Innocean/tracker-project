@@ -229,7 +229,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   // All pending approval usernames for filter dropdown
   const pendingUsernames = useMemo(() =>
     [...new Set(approvals.map(e => e.user_username))].sort(),
-  [approvals]);
+    [approvals]);
 
 
   // Group Approval History by User & Week (same shape as groupedApprovals)
@@ -312,7 +312,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   // All usernames that have history (for filter dropdown)
   const historyUsernames = useMemo(() =>
     [...new Set(approvalHistory.map(e => e.user_username))].sort(),
-  [approvalHistory]);
+    [approvalHistory]);
 
   const toggleHistoryUser = (username) => {
     const newSet = new Set(expandedHistoryUsers);
@@ -475,8 +475,9 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     eightWeeksAgo.setDate(eightWeeksAgo.getDate() - 56);
     const eightWeeksAgoStr = getStartOfWeekStr(eightWeeksAgo);
 
-    const maxEnd = new Date(currentWeekStart);
-    maxEnd.setDate(maxEnd.getDate() + 14);
+    // Cap dropdown upper bound to actual current week (never allow future weeks in dropdown)
+    const actualCurrentWeekStart = getStartOfWeek(new Date());
+    const maxEnd = new Date(actualCurrentWeekStart);
 
     let curr = new Date(start);
     while (curr <= maxEnd) {
@@ -485,7 +486,6 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       const wEndStr = days[6];
 
       const isSubmitted = entries.some(e => days.includes(e.date) && ['Pending', 'Approved'].includes(e.status));
-      const isFuture = wStartStr > currentWeekStartStr;
       const isCurrent = wStartStr === currentWeekStartStr;
       const isUnsubmittedPast = !isTimesheetExempt && wStartStr < currentWeekStartStr && wStartStr >= joinWeekStartStr && !isSubmitted;
 
@@ -497,8 +497,8 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
         else if (weekEntries.every(e => e.status === 'Rejected')) statusLabel = 'Rejected';
       }
 
-      // Keep dropdown concise: Always include unsubmitted past, current, future, OR approved within 8 weeks
-      const shouldInclude = isUnsubmittedPast || isCurrent || isFuture || wStartStr >= eightWeeksAgoStr;
+      // Keep dropdown concise: Include unsubmitted past, current, OR approved within 8 weeks
+      const shouldInclude = isUnsubmittedPast || isCurrent || wStartStr >= eightWeeksAgoStr;
 
       if (shouldInclude) {
         list.push({
@@ -507,7 +507,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
           weekEndStr: wEndStr,
           label: `${formatDateMMM(wStartStr)} - ${formatDateMMM(wEndStr)}`,
           isSubmitted,
-          isFuture,
+          isFuture: false,
           isCurrent,
           isUnsubmittedPast,
           statusLabel
@@ -1148,8 +1148,8 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                   <h4 className="font-bold text-sm text-red-900 dark:text-red-200">{tMsg('Unsubmitted Timesheets Warning', 'Peringatan Timesheet Belum Disubmit')}</h4>
                   <p className="text-xs mt-0.5 opacity-90 font-medium text-red-800 dark:text-red-300">
                     {tMsg(
-                      `You have ${unsubmittedWeeksCount} unsubmitted week(s) since joining. Please select the week from the dropdown to submit.`,
-                      `Anda memiliki ${unsubmittedWeeksCount} minggu yang belum disubmit sejak terdaftar. Silakan pilih minggu dari dropdown untuk mengisi dan mengirimkan.`
+                      `You have ${unsubmittedWeeksCount} unsubmitted week(s). Please select the week from the dropdown to submit.`,
+                      `Anda memiliki ${unsubmittedWeeksCount} minggu yang belum disubmit. Silakan pilih minggu dari dropdown untuk mengisi dan mengirimkan.`
                     )}
                   </p>
                 </div>
@@ -1193,331 +1193,331 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm">
 
-          {/* Toolbar */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-neutral-50 dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 p-4">
-            <div className="flex items-center gap-2 bg-white dark:bg-neutral-950 p-1 border border-slate-200 dark:border-neutral-800 rounded-lg shadow-sm flex-wrap sm:flex-nowrap">
-              <button
-                onClick={prevWeek}
-                disabled={isPrevDisabled}
-                title={isPrevDisabled ? tMsg('Cannot navigate prior to registration date', 'Tidak dapat berpindah ke sebelum tanggal terdaftar') : ''}
-                className="px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Prev
-              </button>
-              <button onClick={currentWeek} className="px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors">Today</button>
-              <button
-                onClick={nextWeek}
-                disabled={isNextDisabled}
-                title={isNextDisabled ? tMsg('Cannot navigate to future weeks', 'Tidak dapat berpindah ke minggu di masa mendatang') : ''}
-                className="px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-
-              {/* Weekly Dropdown Selector */}
-              <div className="relative flex items-center gap-2 ml-1">
-                <select
-                  value={weekDays[0]}
-                  onChange={(e) => {
-                    const found = allWeeksOptions.find(w => w.weekStartStr === e.target.value);
-                    if (found) setCurrentWeekStart(found.weekStart);
-                  }}
-                  className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg py-1.5 px-3 text-xs font-bold text-slate-800 dark:text-neutral-100 outline-none focus:border-indigo-500 cursor-pointer max-w-[280px] sm:max-w-xs transition-colors shadow-sm"
+            {/* Toolbar */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-neutral-50 dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 p-4">
+              <div className="flex items-center gap-2 bg-white dark:bg-neutral-950 p-1 border border-slate-200 dark:border-neutral-800 rounded-lg shadow-sm flex-wrap sm:flex-nowrap">
+                <button
+                  onClick={prevWeek}
+                  disabled={isPrevDisabled}
+                  title={isPrevDisabled ? tMsg('Cannot navigate prior to registration date', 'Tidak dapat berpindah ke sebelum tanggal terdaftar') : ''}
+                  className="px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  {allWeeksOptions.map(w => (
-                    <option
-                      key={w.weekStartStr}
-                      value={w.weekStartStr}
-                      className="bg-white dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 py-1 font-medium"
-                    >
-                      {w.isCurrent ? '📌 ' : ''}{w.isUnsubmittedPast ? '⚠️ ' : w.isSubmitted ? '✓ ' : ''}{w.label} {w.isUnsubmittedPast ? '(Belum Disubmit)' : w.isCurrent ? '(Minggu Ini)' : `(${w.statusLabel})`}
-                    </option>
-                  ))}
-                </select>
-                {unsubmittedWeeksCount > 0 && (
-                  <span
-                    className="px-2 py-0.5 bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/60 rounded-full text-[10px] font-black shrink-0 animate-pulse"
-                    title={`${unsubmittedWeeksCount} minggu belum disubmit sejak Jan 2026`}
+                  Prev
+                </button>
+                <button onClick={currentWeek} className="px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors">Today</button>
+                <button
+                  onClick={nextWeek}
+                  disabled={isNextDisabled}
+                  title={isNextDisabled ? tMsg('Cannot navigate to future weeks', 'Tidak dapat berpindah ke minggu di masa mendatang') : ''}
+                  className="px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+
+                {/* Weekly Dropdown Selector */}
+                <div className="relative flex items-center gap-2 ml-1">
+                  <select
+                    value={weekDays[0]}
+                    onChange={(e) => {
+                      const found = allWeeksOptions.find(w => w.weekStartStr === e.target.value);
+                      if (found) setCurrentWeekStart(found.weekStart);
+                    }}
+                    className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg py-1.5 px-3 text-xs font-bold text-slate-800 dark:text-neutral-100 outline-none focus:border-indigo-500 cursor-pointer max-w-[280px] sm:max-w-xs transition-colors shadow-sm"
                   >
-                    ⚠️ {unsubmittedWeeksCount} belum disubmit
-                  </span>
-                )}
+                    {allWeeksOptions.map(w => (
+                      <option
+                        key={w.weekStartStr}
+                        value={w.weekStartStr}
+                        className="bg-white dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 py-1 font-medium"
+                      >
+                        {w.isCurrent ? '📌 ' : ''}{w.isUnsubmittedPast ? '⚠️ ' : w.isSubmitted ? '✓ ' : ''}{w.label} {w.isUnsubmittedPast ? '(Belum Disubmit)' : w.isCurrent ? '(Minggu Ini)' : `(${w.statusLabel})`}
+                      </option>
+                    ))}
+                  </select>
+                  {unsubmittedWeeksCount > 0 && (
+                    <span
+                      className="px-2 py-0.5 bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/60 rounded-full text-[10px] font-black shrink-0 animate-pulse"
+                      title={`${unsubmittedWeeksCount} minggu belum disubmit`}
+                    >
+                      ⚠️ {unsubmittedWeeksCount} belum disubmit
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSaveDraftManual}
+                  disabled={isSaving || isWeekSubmitted}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-200 rounded-lg font-medium transition-colors border border-slate-200 dark:border-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSaving ? 'Saving...' : 'Save Draft'}
+                </button>
+                <button
+                  onClick={handleSubmitSelected}
+                  disabled={isSaving || selectedRowIds.size === 0 || isWeekSubmitted || isFutureWeek}
+                  title={isFutureWeek ? tMsg('Cannot submit timesheets for future weeks', 'Tidak dapat mengirimkan timesheet untuk minggu di masa mendatang') : ''}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium shadow-sm transition-colors"
+                >
+                  Submit Selected
+                </button>
               </div>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={handleSaveDraftManual}
-                disabled={isSaving || isWeekSubmitted}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-200 rounded-lg font-medium transition-colors border border-slate-200 dark:border-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSaving ? 'Saving...' : 'Save Draft'}
-              </button>
-              <button
-                onClick={handleSubmitSelected}
-                disabled={isSaving || selectedRowIds.size === 0 || isWeekSubmitted || isFutureWeek}
-                title={isFutureWeek ? tMsg('Cannot submit timesheets for future weeks', 'Tidak dapat mengirimkan timesheet untuk minggu di masa mendatang') : ''}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium shadow-sm transition-colors"
-              >
-                Submit Selected
-              </button>
+
+            {/* Table */}
+            <div className="overflow-auto max-h-[500px] relative custom-scrollbar">
+              <table className="w-full text-left whitespace-nowrap">
+                <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-neutral-950 text-slate-500 dark:text-neutral-400 border-b border-slate-200 dark:border-neutral-800 text-xs shadow-sm">
+                  <tr>
+                    <th className="py-3 px-4 font-medium text-center w-12">
+                      <input type="checkbox" disabled={isWeekSubmitted} onChange={e => {
+                        if (e.target.checked) setSelectedRowIds(new Set(gridRows.map(r => r.id)));
+                        else setSelectedRowIds(new Set());
+                      }} checked={selectedRowIds.size > 0 && selectedRowIds.size === gridRows.length} className="rounded border-slate-300 dark:border-neutral-700 cursor-pointer disabled:opacity-50" />
+                    </th>
+                    <th className="py-3 px-4 font-medium w-56">Project</th>
+                    <th className="py-3 px-4 font-medium w-auto min-w-[16rem]">Task</th>
+                    {weekDays.map((dateStr, i) => {
+                      const isPublicHoliday = leaves.some(
+                        l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+                      );
+                      const isUserLeave = leaves.some(
+                        l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username === currentUser
+                      );
+                      const isWeekend = i === 0 || i === 6;
+
+                      let headerClass = '';
+                      if (isPublicHoliday) headerClass = 'bg-red-50 dark:bg-red-950/20';
+                      else if (isUserLeave || isWeekend) headerClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
+
+                      return (
+                        <th key={dateStr} className={`py-3 px-2 font-medium text-center w-20 relative ${headerClass}`}>
+                          <div className={isPublicHoliday ? 'text-red-600 dark:text-red-400 font-bold' : (isUserLeave ? 'text-indigo-650 dark:text-indigo-400 font-bold' : (isWeekend ? 'text-slate-500 dark:text-slate-400' : ''))}>{dayNames[i]}</div>
+                          <div className={`text-[10px] mt-0.5 ${isPublicHoliday ? 'text-red-500 dark:text-red-400 font-semibold' : (isUserLeave ? 'text-indigo-500 dark:text-indigo-400 font-semibold' : 'opacity-70')
+                            }`}>{formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '')}</div>
+                          {isPublicHoliday && (
+                            <div className="text-[9px] text-red-500 dark:text-red-400 font-semibold mt-0.5 truncate max-w-[72px] mx-auto" title={leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description}>
+                              {leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description || 'Holiday'}
+                            </div>
+                          )}
+                          {isUserLeave && (
+                            <div className="text-[9px] text-indigo-500 dark:text-indigo-400 font-semibold mt-0.5 truncate max-w-[72px] mx-auto">
+                              Cuti
+                            </div>
+                          )}
+                        </th>
+                      );
+                    })}
+                    <th className="py-3 px-4 font-medium text-center w-20">Total</th>
+                    <th className="w-12"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-neutral-800/50 text-slate-700 dark:text-neutral-200">
+                  {gridRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={12} className="py-8 text-center text-slate-400">No timesheet entries for this week. Add a row to begin logging time.</td>
+                    </tr>
+                  ) : gridRows.map((row) => {
+                    const isSelected = selectedRowIds.has(row.id);
+                    const isReadOnly = Object.values(row.days).some(d => d && ['Pending', 'Approved'].includes(d.status));
+
+                    let projectTasks = [];
+                    if (row.board_id) {
+                      projectTasks = tasks.filter(t => t.board_id === parseInt(row.board_id));
+                    } else if (!row.isManual) {
+                      projectTasks = tasks.filter(t => t.id === row.request_id);
+                    }
+
+                    return (
+                      <tr key={row.id} className={`${isSelected ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : 'hover:bg-slate-50/50 dark:hover:bg-neutral-900/50'} transition-colors`}>
+                        <td className="py-3 px-4 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            disabled={isWeekSubmitted}
+                            onChange={() => toggleRowSelection(row.id)}
+                            className="rounded border-slate-300 dark:border-neutral-700 cursor-pointer disabled:opacity-50"
+                          />
+                        </td>
+                        <td className="py-3 px-4">
+                          {row.isManual ? (
+                            <div className="flex flex-col gap-1.5 w-full">
+                              <select
+                                value={row.board_id || ''}
+                                onChange={(e) => handleRowChange(row.id, 'board_id', e.target.value)}
+                                className="w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 outline-none focus:border-indigo-500 text-xs text-slate-700 dark:text-slate-200"
+                              >
+                                <option value="">-- No Project --</option>
+                                {boards.filter(b => b.is_private !== 1).map(b => (
+                                  <option key={b.id} value={b.id}>{b.name}</option>
+                                ))}
+                                <option value="custom">✍️ Custom Project...</option>
+                              </select>
+                              {row.board_id === 'custom' && (
+                                <input
+                                  type="text"
+                                  placeholder="Type project name..."
+                                  value={row.custom_project_name || ''}
+                                  onChange={(e) => handleRowChange(row.id, 'custom_project_name', e.target.value)}
+                                  className="w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500"
+                                />
+                              )}
+                            </div>
+                          ) : (
+                            <span className="font-medium text-slate-700 dark:text-slate-300 break-words whitespace-normal">
+                              {(() => {
+                                if (row.custom_project_name) return row.custom_project_name;
+                                const b = boards.find(b => b.id === parseInt(row.board_id));
+                                return b ? b.name : <span className="text-slate-400 italic">General / No Project</span>;
+                              })()}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {row.isManual && row.board_id ? (
+                            <div className="flex flex-col gap-1.5 w-full">
+                              <select
+                                value={row.request_id || ''}
+                                onChange={(e) => handleRowChange(row.id, 'request_id', e.target.value)}
+                                className="w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 outline-none focus:border-indigo-500 text-xs text-slate-700 dark:text-slate-200"
+                              >
+                                <option value="">-- Select Task --</option>
+                                {projectTasks.map(t => (
+                                  <option key={t.id} value={t.id}>{t.project_name && t.project_name.length > 60 ? t.project_name.substring(0, 60) + '...' : t.project_name}</option>
+                                ))}
+                                <option value="custom">✍️ Custom Task...</option>
+                              </select>
+                              {row.request_id === 'custom' && (
+                                <input
+                                  type="text"
+                                  placeholder="Type task name..."
+                                  value={row.custom_task_name || ''}
+                                  onChange={(e) => handleRowChange(row.id, 'custom_task_name', e.target.value)}
+                                  className="w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500"
+                                />
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-600 dark:text-slate-400 break-words whitespace-normal block" title={row.custom_task_name || Object.values(row.days)[0]?.task_name}>
+                              {row.custom_task_name || Object.values(row.days)[0]?.task_name || <span className="italic text-slate-400">No Task</span>}
+                            </span>
+                          )}
+                        </td>
+                        {weekDays.map((dateStr, i) => {
+                          const dayData = row.days[dateStr];
+                          const isPublicHoliday = leaves.some(
+                            l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+                          );
+                          const isUserLeave = leaves.some(
+                            l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username === currentUser
+                          );
+
+                          const val = dayData && !dayData.is_deleted ? dayData.hours_logged : ((isPublicHoliday || isUserLeave) ? 0 : '');
+                          const isDayReadOnly = isReadOnly || (dayData && ['Pending', 'Approved'].includes(dayData.status));
+                          const isWeekend = i === 0 || i === 6;
+
+                          let cellClass = '';
+                          if (isPublicHoliday) cellClass = 'bg-red-50/60 dark:bg-red-950/20';
+                          else if (isUserLeave || isWeekend) cellClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
+
+                          return (
+                            <td key={dateStr} className={`py-2 px-1 text-center relative group ${cellClass}`}>
+                              {isDayReadOnly ? (
+                                <div className="w-14 mx-auto py-1.5 text-center text-slate-500 font-medium">
+                                  {val !== '' ? val : '-'}
+                                </div>
+                              ) : (
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.5"
+                                  value={val}
+                                  onChange={(e) => handleDayHoursChange(row, dateStr, e.target.value)}
+                                  className={`w-14 text-center border rounded py-1.5 outline-none transition-all ${isPublicHoliday
+                                    ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 focus:border-red-400 text-slate-800 dark:text-slate-200'
+                                    : isUserLeave
+                                      ? 'bg-slate-100 dark:bg-neutral-800 border-indigo-200 dark:border-neutral-700 focus:border-indigo-400 text-slate-800 dark:text-slate-200'
+                                      : 'bg-white dark:bg-neutral-950 border-slate-300 dark:border-neutral-700 focus:border-indigo-500 text-slate-800 dark:text-slate-200'
+                                    }`}
+                                  placeholder="-"
+                                />
+                              )}
+                              {dayData && dayData.status && (
+                                <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${dayData.status === 'Approved' ? 'bg-emerald-500' :
+                                  dayData.status === 'Pending' ? 'bg-amber-500' :
+                                    dayData.status === 'Rejected' ? 'bg-red-500' : 'bg-slate-300'
+                                  }`} title={dayData.status}></div>
+                              )}
+                            </td>
+                          );
+                        })}
+                        <td className="py-3 px-4 text-center font-bold text-indigo-600 dark:text-indigo-400">
+                          {row.totalHours > 0 ? `${row.totalHours}h` : '-'}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            onClick={() => handleDeleteRow(row)}
+                            disabled={isWeekSubmitted}
+                            className="text-slate-400 hover:text-red-500 transition-colors p-1 disabled:opacity-30 disabled:cursor-not-allowed"
+                            title="Remove Row"
+                          >
+                            <Icon name="trash" className="w-5 h-5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="sticky bottom-0 z-20 bg-slate-50 dark:bg-neutral-950 border-t border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-slate-300 font-bold shadow-[0_-1px_0_0_rgba(226,232,240,1)] dark:shadow-[0_-1px_0_0_rgba(38,38,38,1)]">
+                  <tr>
+                    <td colSpan="2" className="py-2 px-4 text-left">
+                      <button
+                        onClick={handleAddRow}
+                        disabled={isWeekSubmitted}
+                        className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-800/30 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Icon name="plus" className="w-3.5 h-3.5 inline-block mr-1" /> Add Row
+                      </button>
+                    </td>
+                    <td className="py-3 px-4 text-right font-medium text-slate-500 dark:text-neutral-400 text-xs">Daily Totals:</td>
+                    {weekDays.map((dateStr, i) => {
+                      let dayTotal = 0;
+                      gridRows.forEach(r => {
+                        const d = r.days[dateStr];
+                        if (d && !d.is_deleted && d.hours_logged != null) dayTotal += parseFloat(d.hours_logged);
+                      });
+                      const isPublicHoliday = leaves.some(
+                        l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+                      );
+                      const isUserLeave = leaves.some(
+                        l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username === currentUser
+                      );
+                      const isWeekend = i === 0 || i === 6;
+
+                      let footerClass = '';
+                      if (isPublicHoliday) footerClass = 'bg-red-50/60 dark:bg-red-950/20';
+                      else if (isUserLeave || isWeekend) footerClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
+
+                      return (
+                        <td key={dateStr} className={`py-3 px-2 text-center font-bold ${footerClass} ${dayTotal > 8 ? 'text-amber-500' : (isUserLeave ? 'text-indigo-650 dark:text-indigo-400' : 'text-indigo-600 dark:text-indigo-400')
+                          }`} title={dayTotal > 8 ? 'Overtime warning: > 8 hours' : (isPublicHoliday ? 'Public Holiday' : (isUserLeave ? 'Cuti' : ''))}>
+                          {dayTotal > 0 ? `${dayTotal}h` : '-'}
+                        </td>
+                      );
+                    })}
+                    <td className={`py-3 px-4 text-center font-bold ${(() => {
+                      const weekTotal = gridRows.reduce((acc, r) => acc + (r.totalHours || 0), 0);
+                      return weekTotal > 40 ? 'text-amber-500' : 'text-indigo-600 dark:text-indigo-400';
+                    })()}`} title={gridRows.reduce((acc, r) => acc + (r.totalHours || 0), 0) > 40 ? 'Overtime warning: > 40 hours' : ''}>
+                      {gridRows.reduce((acc, r) => acc + (r.totalHours || 0), 0) > 0 ? `${gridRows.reduce((acc, r) => acc + (r.totalHours || 0), 0)}h` : '-'}
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           </div>
-
-          {/* Table */}
-          <div className="overflow-auto max-h-[500px] relative custom-scrollbar">
-            <table className="w-full text-left whitespace-nowrap">
-              <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-neutral-950 text-slate-500 dark:text-neutral-400 border-b border-slate-200 dark:border-neutral-800 text-xs shadow-sm">
-                <tr>
-                  <th className="py-3 px-4 font-medium text-center w-12">
-                    <input type="checkbox" disabled={isWeekSubmitted} onChange={e => {
-                      if (e.target.checked) setSelectedRowIds(new Set(gridRows.map(r => r.id)));
-                      else setSelectedRowIds(new Set());
-                    }} checked={selectedRowIds.size > 0 && selectedRowIds.size === gridRows.length} className="rounded border-slate-300 dark:border-neutral-700 cursor-pointer disabled:opacity-50" />
-                  </th>
-                  <th className="py-3 px-4 font-medium w-56">Project</th>
-                  <th className="py-3 px-4 font-medium w-auto min-w-[16rem]">Task</th>
-                  {weekDays.map((dateStr, i) => {
-                    const isPublicHoliday = leaves.some(
-                      l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
-                    );
-                    const isUserLeave = leaves.some(
-                      l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username === currentUser
-                    );
-                    const isWeekend = i === 0 || i === 6;
-
-                    let headerClass = '';
-                    if (isPublicHoliday) headerClass = 'bg-red-50 dark:bg-red-950/20';
-                    else if (isUserLeave || isWeekend) headerClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
-
-                    return (
-                      <th key={dateStr} className={`py-3 px-2 font-medium text-center w-20 relative ${headerClass}`}>
-                        <div className={isPublicHoliday ? 'text-red-600 dark:text-red-400 font-bold' : (isUserLeave ? 'text-indigo-650 dark:text-indigo-400 font-bold' : (isWeekend ? 'text-slate-500 dark:text-slate-400' : ''))}>{dayNames[i]}</div>
-                        <div className={`text-[10px] mt-0.5 ${isPublicHoliday ? 'text-red-500 dark:text-red-400 font-semibold' : (isUserLeave ? 'text-indigo-500 dark:text-indigo-400 font-semibold' : 'opacity-70')
-                          }`}>{formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '')}</div>
-                        {isPublicHoliday && (
-                          <div className="text-[9px] text-red-500 dark:text-red-400 font-semibold mt-0.5 truncate max-w-[72px] mx-auto" title={leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description}>
-                            {leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description || 'Holiday'}
-                          </div>
-                        )}
-                        {isUserLeave && (
-                          <div className="text-[9px] text-indigo-500 dark:text-indigo-400 font-semibold mt-0.5 truncate max-w-[72px] mx-auto">
-                            Cuti
-                          </div>
-                        )}
-                      </th>
-                    );
-                  })}
-                  <th className="py-3 px-4 font-medium text-center w-20">Total</th>
-                  <th className="w-12"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-neutral-800/50 text-slate-700 dark:text-neutral-200">
-                {gridRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={12} className="py-8 text-center text-slate-400">No timesheet entries for this week. Add a row to begin logging time.</td>
-                  </tr>
-                ) : gridRows.map((row) => {
-                  const isSelected = selectedRowIds.has(row.id);
-                  const isReadOnly = Object.values(row.days).some(d => d && ['Pending', 'Approved'].includes(d.status));
-
-                  let projectTasks = [];
-                  if (row.board_id) {
-                    projectTasks = tasks.filter(t => t.board_id === parseInt(row.board_id));
-                  } else if (!row.isManual) {
-                    projectTasks = tasks.filter(t => t.id === row.request_id);
-                  }
-
-                  return (
-                    <tr key={row.id} className={`${isSelected ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : 'hover:bg-slate-50/50 dark:hover:bg-neutral-900/50'} transition-colors`}>
-                      <td className="py-3 px-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          disabled={isWeekSubmitted}
-                          onChange={() => toggleRowSelection(row.id)}
-                          className="rounded border-slate-300 dark:border-neutral-700 cursor-pointer disabled:opacity-50"
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        {row.isManual ? (
-                          <div className="flex flex-col gap-1.5 w-full">
-                            <select
-                              value={row.board_id || ''}
-                              onChange={(e) => handleRowChange(row.id, 'board_id', e.target.value)}
-                              className="w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 outline-none focus:border-indigo-500 text-xs text-slate-700 dark:text-slate-200"
-                            >
-                              <option value="">-- No Project --</option>
-                              {boards.filter(b => b.is_private !== 1).map(b => (
-                                <option key={b.id} value={b.id}>{b.name}</option>
-                              ))}
-                              <option value="custom">✍️ Custom Project...</option>
-                            </select>
-                            {row.board_id === 'custom' && (
-                              <input
-                                type="text"
-                                placeholder="Type project name..."
-                                value={row.custom_project_name || ''}
-                                onChange={(e) => handleRowChange(row.id, 'custom_project_name', e.target.value)}
-                                className="w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500"
-                              />
-                            )}
-                          </div>
-                        ) : (
-                          <span className="font-medium text-slate-700 dark:text-slate-300 break-words whitespace-normal">
-                            {(() => {
-                              if (row.custom_project_name) return row.custom_project_name;
-                              const b = boards.find(b => b.id === parseInt(row.board_id));
-                              return b ? b.name : <span className="text-slate-400 italic">General / No Project</span>;
-                            })()}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        {row.isManual && row.board_id ? (
-                          <div className="flex flex-col gap-1.5 w-full">
-                            <select
-                              value={row.request_id || ''}
-                              onChange={(e) => handleRowChange(row.id, 'request_id', e.target.value)}
-                              className="w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 outline-none focus:border-indigo-500 text-xs text-slate-700 dark:text-slate-200"
-                            >
-                              <option value="">-- Select Task --</option>
-                              {projectTasks.map(t => (
-                                <option key={t.id} value={t.id}>{t.project_name && t.project_name.length > 60 ? t.project_name.substring(0, 60) + '...' : t.project_name}</option>
-                              ))}
-                              <option value="custom">✍️ Custom Task...</option>
-                            </select>
-                            {row.request_id === 'custom' && (
-                              <input
-                                type="text"
-                                placeholder="Type task name..."
-                                value={row.custom_task_name || ''}
-                                onChange={(e) => handleRowChange(row.id, 'custom_task_name', e.target.value)}
-                                className="w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500"
-                              />
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-slate-600 dark:text-slate-400 break-words whitespace-normal block" title={row.custom_task_name || Object.values(row.days)[0]?.task_name}>
-                            {row.custom_task_name || Object.values(row.days)[0]?.task_name || <span className="italic text-slate-400">No Task</span>}
-                          </span>
-                        )}
-                      </td>
-                      {weekDays.map((dateStr, i) => {
-                        const dayData = row.days[dateStr];
-                        const isPublicHoliday = leaves.some(
-                          l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
-                        );
-                        const isUserLeave = leaves.some(
-                          l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username === currentUser
-                        );
-
-                        const val = dayData && !dayData.is_deleted ? dayData.hours_logged : ((isPublicHoliday || isUserLeave) ? 0 : '');
-                        const isDayReadOnly = isReadOnly || (dayData && ['Pending', 'Approved'].includes(dayData.status));
-                        const isWeekend = i === 0 || i === 6;
-
-                        let cellClass = '';
-                        if (isPublicHoliday) cellClass = 'bg-red-50/60 dark:bg-red-950/20';
-                        else if (isUserLeave || isWeekend) cellClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
-
-                        return (
-                          <td key={dateStr} className={`py-2 px-1 text-center relative group ${cellClass}`}>
-                            {isDayReadOnly ? (
-                              <div className="w-14 mx-auto py-1.5 text-center text-slate-500 font-medium">
-                                {val !== '' ? val : '-'}
-                              </div>
-                            ) : (
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                value={val}
-                                onChange={(e) => handleDayHoursChange(row, dateStr, e.target.value)}
-                                className={`w-14 text-center border rounded py-1.5 outline-none transition-all ${isPublicHoliday
-                                  ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 focus:border-red-400 text-slate-800 dark:text-slate-200'
-                                  : isUserLeave
-                                    ? 'bg-slate-100 dark:bg-neutral-800 border-indigo-200 dark:border-neutral-700 focus:border-indigo-400 text-slate-800 dark:text-slate-200'
-                                    : 'bg-white dark:bg-neutral-950 border-slate-300 dark:border-neutral-700 focus:border-indigo-500 text-slate-800 dark:text-slate-200'
-                                  }`}
-                                placeholder="-"
-                              />
-                            )}
-                            {dayData && dayData.status && (
-                              <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${dayData.status === 'Approved' ? 'bg-emerald-500' :
-                                dayData.status === 'Pending' ? 'bg-amber-500' :
-                                  dayData.status === 'Rejected' ? 'bg-red-500' : 'bg-slate-300'
-                                }`} title={dayData.status}></div>
-                            )}
-                          </td>
-                        );
-                      })}
-                      <td className="py-3 px-4 text-center font-bold text-indigo-600 dark:text-indigo-400">
-                        {row.totalHours > 0 ? `${row.totalHours}h` : '-'}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <button
-                          onClick={() => handleDeleteRow(row)}
-                          disabled={isWeekSubmitted}
-                          className="text-slate-400 hover:text-red-500 transition-colors p-1 disabled:opacity-30 disabled:cursor-not-allowed"
-                          title="Remove Row"
-                        >
-                          <Icon name="trash" className="w-5 h-5" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot className="sticky bottom-0 z-20 bg-slate-50 dark:bg-neutral-950 border-t border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-slate-300 font-bold shadow-[0_-1px_0_0_rgba(226,232,240,1)] dark:shadow-[0_-1px_0_0_rgba(38,38,38,1)]">
-                <tr>
-                  <td colSpan="2" className="py-2 px-4 text-left">
-                    <button
-                      onClick={handleAddRow}
-                      disabled={isWeekSubmitted}
-                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-800/30 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Icon name="plus" className="w-3.5 h-3.5 inline-block mr-1" /> Add Row
-                    </button>
-                  </td>
-                  <td className="py-3 px-4 text-right font-medium text-slate-500 dark:text-neutral-400 text-xs">Daily Totals:</td>
-                  {weekDays.map((dateStr, i) => {
-                    let dayTotal = 0;
-                    gridRows.forEach(r => {
-                      const d = r.days[dateStr];
-                      if (d && !d.is_deleted && d.hours_logged != null) dayTotal += parseFloat(d.hours_logged);
-                    });
-                    const isPublicHoliday = leaves.some(
-                      l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
-                    );
-                    const isUserLeave = leaves.some(
-                      l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username === currentUser
-                    );
-                    const isWeekend = i === 0 || i === 6;
-
-                    let footerClass = '';
-                    if (isPublicHoliday) footerClass = 'bg-red-50/60 dark:bg-red-950/20';
-                    else if (isUserLeave || isWeekend) footerClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
-
-                    return (
-                      <td key={dateStr} className={`py-3 px-2 text-center font-bold ${footerClass} ${dayTotal > 8 ? 'text-amber-500' : (isUserLeave ? 'text-indigo-650 dark:text-indigo-400' : 'text-indigo-600 dark:text-indigo-400')
-                        }`} title={dayTotal > 8 ? 'Overtime warning: > 8 hours' : (isPublicHoliday ? 'Public Holiday' : (isUserLeave ? 'Cuti' : ''))}>
-                        {dayTotal > 0 ? `${dayTotal}h` : '-'}
-                      </td>
-                    );
-                  })}
-                  <td className={`py-3 px-4 text-center font-bold ${(() => {
-                    const weekTotal = gridRows.reduce((acc, r) => acc + (r.totalHours || 0), 0);
-                    return weekTotal > 40 ? 'text-amber-500' : 'text-indigo-600 dark:text-indigo-400';
-                  })()}`} title={gridRows.reduce((acc, r) => acc + (r.totalHours || 0), 0) > 40 ? 'Overtime warning: > 40 hours' : ''}>
-                    {gridRows.reduce((acc, r) => acc + (r.totalHours || 0), 0) > 0 ? `${gridRows.reduce((acc, r) => acc + (r.totalHours || 0), 0)}h` : '-'}
-                  </td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
         </div>
-      </div>
-    )}
+      )}
 
       {activeSubTab === 'history' && (
         /* History Section */

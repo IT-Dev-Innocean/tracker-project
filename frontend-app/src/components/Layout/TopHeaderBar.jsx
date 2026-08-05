@@ -230,8 +230,8 @@ export default function TopHeaderBar() {
                       </h5>
                       <p className="text-[11px] text-red-700 dark:text-red-300 mt-0.5 font-medium leading-snug">
                         {tMsg(
-                          `You have ${unsubmittedTimesheetsCount} unsubmitted week(s) since joining. Click to complete.`,
-                          `Anda memiliki ${unsubmittedTimesheetsCount} minggu timesheet yang belum disubmit sejak terdaftar. Klik untuk mengisi.`
+                          `You have ${unsubmittedTimesheetsCount} unsubmitted week(s). Click to complete.`,
+                          `Anda memiliki ${unsubmittedTimesheetsCount} minggu timesheet yang belum disubmit. Klik untuk mengisi.`
                         )}
                       </p>
                     </div>
