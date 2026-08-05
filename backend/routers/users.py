@@ -23,6 +23,7 @@ def get_profile(
     user = db.query(User).filter(User.username == current_user).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    is_approver = db.query(User).filter(User.timesheet_approver == current_user).count() > 0
     return {
         "username": user.username,
         "email": user.email,
@@ -32,6 +33,9 @@ def get_profile(
         "is_superadmin": user.is_superadmin,
         "role": get_user_role(db, current_user),
         "timesheet_approver": user.timesheet_approver,
+        "is_approver": is_approver,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "timesheet_required": user.timesheet_required if getattr(user, 'timesheet_required', None) is not None else True,
     }
 
 

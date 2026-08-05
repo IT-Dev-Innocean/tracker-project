@@ -110,6 +110,11 @@ def get_leaves(
     team_usernames = set([m[0] for m in team_members] + [o[0] for o in owners])
     team_usernames.add(current_user)
 
+    # Kumpulkan juga username dari user yang approver-nya adalah Anda
+    managed_users = db.query(User.username).filter(User.timesheet_approver == current_user).all()
+    managed_usernames = [mu[0] for mu in managed_users]
+    team_usernames.update(managed_usernames)
+
     # Ambil Hari Libur Nasional, Cuti Bersama, dan Cuti Personal milik Anda & tim Anda
     leaves = (
         db.query(LeaveRecord)
