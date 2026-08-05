@@ -116,6 +116,14 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   const [expandedHistoryWeeks, setExpandedHistoryWeeks] = useState(new Set());
   const [expandedApprovalWeeks, setExpandedApprovalWeeks] = useState(new Set());
   const [selectedApprovalWeeks, setSelectedApprovalWeeks] = useState(new Set()); // bulk selection
+  const [userWeeksDisplayLimits, setUserWeeksDisplayLimits] = useState({});
+  const getUserWeekLimit = (username) => userWeeksDisplayLimits[username] || 5;
+  const handleLoadMoreUserWeeks = (username) => {
+    setUserWeeksDisplayLimits(prev => ({
+      ...prev,
+      [username]: (prev[username] || 5) + 5
+    }));
+  };
 
   const toggleExpandHistoryWeek = (weekStartStr) => {
     const newSet = new Set(expandedHistoryWeeks);
@@ -1714,6 +1722,35 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
               <Icon name="filter" className="w-3.5 h-3.5" />
               {tMsg('Filter:', 'Filter:')}
             </div>
+
+            {/* Global Select All Pending Weeks */}
+            {filteredGroupedApprovals.length > 0 && (
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50 rounded-lg px-2.5 py-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all shadow-sm">
+                <input
+                  type="checkbox"
+                  checked={
+                    filteredGroupedApprovals.length > 0 &&
+                    filteredGroupedApprovals.every(ug =>
+                      ug.weeks.every(wg => selectedApprovalWeeks.has(`${ug.username}_${wg.weekStartStr}`))
+                    )
+                  }
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      const allKeys = new Set();
+                      filteredGroupedApprovals.forEach(ug => {
+                        ug.weeks.forEach(wg => allKeys.add(`${ug.username}_${wg.weekStartStr}`));
+                      });
+                      setSelectedApprovalWeeks(allKeys);
+                    } else {
+                      setSelectedApprovalWeeks(new Set());
+                    }
+                  }}
+                  className="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer"
+                />
+                <span>{tMsg('Select All Pending Weeks', 'Pilih Semua Minggu Pending')}</span>
+              </label>
+            )}
+
             {/* User filter */}
             <select
               value={apprFilterUser}
@@ -1762,242 +1799,281 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
             <div className="text-center text-slate-400 dark:text-neutral-500 italic py-6">{tMsg('No pending team approvals found.', 'Tidak ada persetujuan tim yang tertunda.')}</div>
           ) : (
             <div className="space-y-6">
-              {filteredGroupedApprovals.map(userGroup => (
-                <div key={userGroup.username} className="flex flex-col gap-4 border border-amber-200/50 dark:border-amber-900/20 rounded-2xl p-4">
-                  <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-white border-b border-amber-100 dark:border-amber-900/20 pb-2">
-                    <Icon name="user" className="w-4 h-4" />
-                    <span>@{userGroup.username}</span>
-                  </div>
+              {filteredGroupedApprovals.map(userGroup => {
+                const userWeekLimit = getUserWeekLimit(userGroup.username);
+                const visibleWeeks = userGroup.weeks.slice(0, userWeekLimit);
+                const isAllUserWeeksSelected = userGroup.weeks.every(wg => selectedApprovalWeeks.has(`${userGroup.username}_${wg.weekStartStr}`));
 
-                  <div className="space-y-4">
-                    {userGroup.weeks.map(weekGroup => {
-                      const weekStartStr = weekGroup.weekStartStr;
-                      const key = `${userGroup.username}_${weekStartStr}`;
-                      const isExpanded = expandedApprovalWeeks.has(key);
-                      const isSelected = selectedApprovalWeeks.has(key);
+                return (
+                  <div key={userGroup.username} className="flex flex-col gap-4 border border-amber-200/50 dark:border-amber-900/20 rounded-2xl p-4 bg-slate-50/50 dark:bg-neutral-900/40">
+                    {/* User Card Header */}
+                    <div className="flex justify-between items-center text-sm font-bold text-slate-800 dark:text-white border-b border-amber-100 dark:border-amber-900/20 pb-2 flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <Icon name="user" className="w-4 h-4 text-indigo-500" />
+                        <span>@{userGroup.username}</span>
+                        <span className="text-xs text-slate-400 dark:text-neutral-500 font-normal">
+                          ({userGroup.weeks.length} {tMsg('pending weeks', 'minggu pending')})
+                        </span>
+                      </div>
+                      <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-white dark:bg-neutral-900 border border-indigo-100 dark:border-indigo-900/50 px-2.5 py-1 rounded-lg transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={isAllUserWeeksSelected}
+                          onChange={(e) => {
+                            const newSet = new Set(selectedApprovalWeeks);
+                            userGroup.weeks.forEach(wg => {
+                              const key = `${userGroup.username}_${wg.weekStartStr}`;
+                              if (e.target.checked) newSet.add(key);
+                              else newSet.delete(key);
+                            });
+                            setSelectedApprovalWeeks(newSet);
+                          }}
+                          className="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer"
+                        />
+                        <span>{tMsg('Select all for', 'Pilih semua')} @{userGroup.username}</span>
+                      </label>
+                    </div>
 
-                      return (
-                        <div key={weekStartStr} className={`border rounded-xl bg-white dark:bg-neutral-950 overflow-hidden shadow-sm transition-all ${isSelected ? 'border-indigo-400 dark:border-indigo-600 ring-1 ring-indigo-400/30' : 'border-slate-200 dark:border-neutral-800'
-                          }`}>
-                          <div className="flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-neutral-900 w-full text-left font-bold text-slate-700 dark:text-slate-200 text-xs flex-wrap sm:flex-nowrap gap-2">
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={(e) => {
-                                  const newSet = new Set(selectedApprovalWeeks);
-                                  if (e.target.checked) newSet.add(key);
-                                  else newSet.delete(key);
-                                  setSelectedApprovalWeeks(newSet);
-                                }}
-                                className="w-3.5 h-3.5 rounded accent-indigo-600 cursor-pointer"
-                                onClick={e => e.stopPropagation()}
-                              />
-                              <button
-                                onClick={() => toggleExpandApprovalWeek(userGroup.username, weekStartStr)}
-                                className="flex items-center gap-2 hover:opacity-80"
-                              >
-                                <Icon name="calendar" className="w-3.5 h-3.5" />
-                                <span>
-                                  Week of {formatDateMMM(weekGroup.weekDays[0]).replace(/,?\s*\d{4}/, '')} - {formatDateMMM(weekGroup.weekDays[6]).replace(/,?\s*\d{4}/, '')}
-                                </span>
-                                <span className="ml-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-400 rounded-full text-[10px] font-black border border-amber-200 dark:border-amber-800/50">
-                                  {weekGroup.totalHours}h
-                                </span>
-                                <span className="text-slate-400 text-[10px] ml-1">
-                                  {isExpanded ? '▼' : '▶'}
-                                </span>
-                              </button>
+                    {/* Weeks List */}
+                    <div className="space-y-4">
+                      {visibleWeeks.map(weekGroup => {
+                        const weekStartStr = weekGroup.weekStartStr;
+                        const key = `${userGroup.username}_${weekStartStr}`;
+                        const isExpanded = expandedApprovalWeeks.has(key);
+                        const isSelected = selectedApprovalWeeks.has(key);
+
+                        return (
+                          <div key={weekStartStr} className={`border rounded-xl bg-white dark:bg-neutral-950 overflow-hidden shadow-sm transition-all ${isSelected ? 'border-indigo-400 dark:border-indigo-600 ring-1 ring-indigo-400/30' : 'border-slate-200 dark:border-neutral-800'
+                            }`}>
+                            <div className="flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-neutral-900 w-full text-left font-bold text-slate-700 dark:text-slate-200 text-xs flex-wrap sm:flex-nowrap gap-2">
+                              <div className="flex items-center gap-3">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    const newSet = new Set(selectedApprovalWeeks);
+                                    if (e.target.checked) newSet.add(key);
+                                    else newSet.delete(key);
+                                    setSelectedApprovalWeeks(newSet);
+                                  }}
+                                  className="w-3.5 h-3.5 rounded accent-indigo-600 cursor-pointer"
+                                  onClick={e => e.stopPropagation()}
+                                />
+                                <button
+                                  onClick={() => toggleExpandApprovalWeek(userGroup.username, weekStartStr)}
+                                  className="flex items-center gap-2 hover:opacity-80"
+                                >
+                                  <Icon name="calendar" className="w-3.5 h-3.5" />
+                                  <span>
+                                    Week of {formatDateMMM(weekGroup.weekDays[0]).replace(/,?\s*\d{4}/, '')} - {formatDateMMM(weekGroup.weekDays[6]).replace(/,?\s*\d{4}/, '')}
+                                  </span>
+                                  <span className="ml-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-400 rounded-full text-[10px] font-black border border-amber-200 dark:border-amber-800/50">
+                                    {weekGroup.totalHours}h
+                                  </span>
+                                  <span className="text-slate-400 text-[10px] ml-1">
+                                    {isExpanded ? '▼' : '▶'}
+                                  </span>
+                                </button>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleApprove(weekGroup.entryIds, 'Approved')}
+                                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[10px] transition-all shadow-sm flex items-center gap-1"
+                                >
+                                  ✓ {tMsg('Approve', 'Setujui')}
+                                </button>
+                                <button
+                                  onClick={() => setRejectConfirmation(weekGroup.entryIds)}
+                                  className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-[10px] transition-all shadow-sm flex items-center gap-1"
+                                >
+                                  ✕ {tMsg('Reject', 'Tolak')}
+                                </button>
+                              </div>
                             </div>
 
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleApprove(weekGroup.entryIds, 'Approved')}
-                                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-[10px] transition-all"
-                              >
-                                {tMsg('Approve Week', 'Setujui Minggu')}
-                              </button>
-                              <button
-                                onClick={() => setRejectConfirmation(weekGroup.entryIds)}
-                                className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded font-bold text-[10px] transition-all"
-                              >
-                                {tMsg('Reject Week', 'Tolak Minggu')}
-                              </button>
-                            </div>
-                          </div>
+                            {isExpanded && (
+                              <div className="p-4 overflow-x-auto border-t border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-950">
+                                <table className="w-full text-left text-xs">
+                                  <thead className="bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800">
+                                    <tr>
+                                      <th className="py-2.5 px-3 font-medium w-48 text-slate-500 dark:text-neutral-300">{tMsg('Project', 'Proyek')}</th>
+                                      <th className="py-2.5 px-3 font-medium w-64 text-slate-500 dark:text-neutral-300">{tMsg('Task', 'Tugas')}</th>
+                                      {weekGroup.weekDays.map((dateStr, i) => {
+                                        const isPublicHoliday = leaves.some(
+                                          l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+                                        );
+                                        const isUserLeave = leaves.some(
+                                          l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username && userGroup.username && (l.username.toLowerCase() === userGroup.username.toLowerCase())
+                                        );
+                                        const isWeekend = i === 0 || i === 6;
 
-                          {isExpanded && (
-                            <div className="p-4 overflow-x-auto border-t border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-950">
-                              <table className="w-full text-left whitespace-nowrap text-xs">
-                                <thead className="bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 text-slate-500 dark:text-neutral-300">
-                                  <tr>
-                                    <th className="py-2.5 px-3 font-medium w-48">{tMsg('Project', 'Proyek')}</th>
-                                    <th className="py-2.5 px-3 font-medium w-auto">{tMsg('Task', 'Tugas')}</th>
-                                    {weekGroup.weekDays.map((dateStr, i) => {
-                                      const isPublicHoliday = leaves.some(
-                                        l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
-                                      );
-                                      const isUserLeave = leaves.some(
-                                        l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username && userGroup.username && (l.username.toLowerCase() === userGroup.username.toLowerCase())
-                                      );
-                                      const isWeekend = i === 0 || i === 6;
+                                        let headerClass = '';
+                                        if (isPublicHoliday) headerClass = 'bg-red-50 dark:bg-red-950/30';
+                                        else if (isUserLeave || isWeekend) headerClass = 'bg-slate-100 dark:bg-neutral-800/60';
 
-                                      let headerClass = '';
-                                      if (isPublicHoliday) headerClass = 'bg-red-50 dark:bg-red-950/30';
-                                      else if (isUserLeave || isWeekend) headerClass = 'bg-slate-100 dark:bg-neutral-800/60';
-
-                                      return (
-                                        <th key={dateStr} className={`py-2.5 px-2 font-medium text-center w-16 relative ${headerClass}`}>
-                                          <div className={isPublicHoliday ? 'text-red-600 dark:text-red-400 font-bold' : (isWeekend ? 'text-slate-400 dark:text-neutral-500' : (isUserLeave ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-neutral-300'))}>{dayNames[i]}</div>
-                                          <div className={`text-[9px] mt-0.5 ${isPublicHoliday ? 'text-red-500 dark:text-red-400' : (isUserLeave ? 'text-indigo-500 dark:text-indigo-400' : 'text-slate-400 dark:text-neutral-500')}`}>{formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '')}</div>
-                                          {isPublicHoliday && (
-                                            <div className="text-[9px] text-red-500 dark:text-red-400 font-semibold mt-0.5 truncate max-w-[64px] mx-auto" title={leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description}>
-                                              {leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description || 'Holiday'}
-                                            </div>
-                                          )}
-                                          {isUserLeave && (
-                                            <div className="text-[9px] text-indigo-500 dark:text-indigo-400 font-semibold mt-0.5">
-                                              {tMsg('Leave', 'Cuti')}
-                                            </div>
-                                          )}
-                                        </th>
-                                      );
-                                    })}
-                                    <th className="py-2.5 px-3 font-medium text-center w-16 text-slate-500 dark:text-neutral-300">{tMsg('Total', 'Total')}</th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-neutral-800 text-slate-700 dark:text-neutral-200">
-                                  {weekGroup.rows.map(row => {
-                                    // row total: count actual entries (d != null), plus 0 for holidays/leaves with no entry
-                                    let rowHoursTotal = 0;
-                                    let rowHasAnyData = false;
-                                    weekGroup.weekDays.forEach((dateStr, i) => {
-                                      const d = row.days[dateStr];
-                                      const isPH = leaves.some(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'));
-                                      const isUL = leaves.some(l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username && userGroup.username && l.username.toLowerCase() === userGroup.username.toLowerCase());
-                                      if (d && !d.is_deleted) {
-                                        rowHoursTotal += parseFloat(d.hours_logged || 0);
-                                        rowHasAnyData = true;
-                                      } else if (isPH || isUL) {
-                                        rowHasAnyData = true; // 0 for leave/holiday counts as touched
-                                      }
-                                    });
-
-                                    return (
-                                      <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-neutral-900/30">
-                                        <td className="py-2 px-3 font-medium text-slate-700 dark:text-neutral-200 align-top">
-                                          {row.custom_project_name || <span className="text-slate-400 dark:text-neutral-500 italic">—</span>}
-                                        </td>
-                                        <td className="py-2 px-3 text-slate-600 dark:text-neutral-300 align-top">
-                                          <span className="break-words whitespace-normal block" title={row.custom_task_name}>
-                                            {row.custom_task_name || <span className="text-slate-400 dark:text-neutral-500 italic">{tMsg('No Task', 'Tidak Ada Tugas')}</span>}
-                                          </span>
-                                        </td>
-                                        {weekGroup.weekDays.map((dateStr, i) => {
-                                          const d = row.days[dateStr];
-                                          const isPublicHoliday = leaves.some(
-                                            l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
-                                          );
-                                          const isUserLeave = leaves.some(
-                                            l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username && userGroup.username && l.username.toLowerCase() === userGroup.username.toLowerCase()
-                                          );
-                                          const isWeekend = i === 0 || i === 6;
-
-                                          let cellClass = '';
-                                          if (isPublicHoliday) cellClass = 'bg-red-50/60 dark:bg-red-950/20';
-                                          else if (isUserLeave || isWeekend) cellClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
-
-                                          // Show actual value if entry exists, '0' for holiday/leave with no entry, '-' if no data
-                                          let val;
-                                          let valClass = 'text-slate-700 dark:text-neutral-200';
-                                          if (d && !d.is_deleted) {
-                                            val = d.hours_logged;
-                                            if (parseFloat(d.hours_logged) === 0) valClass = 'text-slate-400 dark:text-neutral-500';
-                                            else if (parseFloat(d.hours_logged) > 8) valClass = 'text-amber-500 font-bold';
-                                            else valClass = 'text-slate-800 dark:text-white font-semibold';
-                                          } else if (isPublicHoliday || isUserLeave) {
-                                            val = '0';
-                                            valClass = 'text-slate-400 dark:text-neutral-500';
-                                          } else {
-                                            val = '-';
-                                            valClass = 'text-slate-300 dark:text-neutral-600';
-                                          }
-
-                                          return (
-                                            <td key={dateStr} className={`py-2 px-2 text-center relative ${cellClass}`}>
-                                              <div className={`w-12 mx-auto text-center font-medium ${valClass}`}>
-                                                {val}
+                                        return (
+                                          <th key={dateStr} className={`py-2.5 px-2 font-medium text-center w-16 relative ${headerClass}`}>
+                                            <div className={isPublicHoliday ? 'text-red-600 dark:text-red-400 font-bold' : (isWeekend ? 'text-slate-400 dark:text-neutral-500' : (isUserLeave ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-neutral-300'))}>{dayNames[i]}</div>
+                                            <div className={`text-[9px] mt-0.5 ${isPublicHoliday ? 'text-red-500 dark:text-red-400' : (isUserLeave ? 'text-indigo-500 dark:text-indigo-400' : 'text-slate-400 dark:text-neutral-500')}`}>{formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '')}</div>
+                                            {isPublicHoliday && (
+                                              <div className="text-[9px] text-red-500 dark:text-red-400 font-semibold mt-0.5 truncate max-w-[64px] mx-auto" title={leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description}>
+                                                {leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description || 'Holiday'}
                                               </div>
-                                            </td>
-                                          );
-                                        })}
-                                        <td className="py-2 px-3 text-center font-bold">
-                                          {rowHasAnyData
-                                            ? <span className="text-indigo-600 dark:text-indigo-400">{rowHoursTotal}h</span>
-                                            : <span className="text-slate-300 dark:text-neutral-600">-</span>
-                                          }
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                                <tfoot className="bg-slate-50 dark:bg-neutral-900 border-t border-slate-200 dark:border-neutral-700 text-slate-700 dark:text-neutral-200 font-bold">
-                                  <tr>
-                                    <td colSpan="2" className="py-2 px-3 text-center text-slate-500 dark:text-neutral-400 text-[10px] uppercase tracking-wider">{tMsg('Daily Totals:', 'Total Harian:')}</td>
-                                    {weekGroup.weekDays.map((dateStr, i) => {
-                                      let dayTotal = 0;
-                                      let dayHasData = false;
-                                      weekGroup.rows.forEach(r => {
-                                        const d = r.days[dateStr];
-                                        if (d && !d.is_deleted && d.hours_logged != null) {
-                                          dayTotal += parseFloat(d.hours_logged);
-                                          dayHasData = true;
+                                            )}
+                                            {isUserLeave && (
+                                              <div className="text-[9px] text-indigo-600 dark:text-indigo-400 font-semibold mt-0.5">
+                                                {tMsg('Leave', 'Cuti')}
+                                              </div>
+                                            )}
+                                          </th>
+                                        );
+                                      })}
+                                      <th className="py-2.5 px-3 font-medium text-center w-16 text-slate-500 dark:text-neutral-300">{tMsg('Total', 'Total')}</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100 dark:divide-neutral-800 text-slate-700 dark:text-neutral-200">
+                                    {weekGroup.rows.map(row => {
+                                      let rowHoursTotal = 0;
+                                      let rowHasAnyData = false;
+                                      weekGroup.weekDays.forEach((dateStr, i) => {
+                                        const d = row.days[dateStr];
+                                        const isPH = leaves.some(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'));
+                                        const isUL = leaves.some(l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username && userGroup.username && l.username.toLowerCase() === userGroup.username.toLowerCase());
+                                        if (d && !d.is_deleted) {
+                                          rowHoursTotal += parseFloat(d.hours_logged || 0);
+                                          rowHasAnyData = true;
+                                        } else if (isPH || isUL) {
+                                          rowHasAnyData = true;
                                         }
                                       });
-                                      const isPublicHoliday = leaves.some(
-                                        l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
-                                      );
-                                      const isUserLeave = leaves.some(
-                                        l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username && userGroup.username && l.username.toLowerCase() === userGroup.username.toLowerCase()
-                                      );
-                                      const isWeekend = i === 0 || i === 6;
-
-                                      let footerClass = '';
-                                      if (isPublicHoliday) footerClass = 'bg-red-50/60 dark:bg-red-950/20';
-                                      else if (isUserLeave || isWeekend) footerClass = 'bg-slate-100/60 dark:bg-neutral-800/40';
-
-                                      let textClass;
-                                      if (!dayHasData && (isPublicHoliday || isUserLeave)) {
-                                        textClass = 'text-slate-400 dark:text-neutral-500';
-                                      } else if (dayTotal > 8) {
-                                        textClass = 'text-amber-500';
-                                      } else if (isUserLeave) {
-                                        textClass = 'text-indigo-600 dark:text-indigo-400';
-                                      } else {
-                                        textClass = 'text-indigo-600 dark:text-indigo-400';
-                                      }
 
                                       return (
-                                        <td key={dateStr} className={`py-2 px-2 text-center font-bold ${footerClass} ${textClass}`}
-                                          title={dayTotal > 8 ? 'Overtime: >8h' : (isPublicHoliday ? 'Public Holiday' : (isUserLeave ? 'Leave' : ''))}>
-                                          {dayHasData ? `${dayTotal}h` : (isPublicHoliday || isUserLeave ? '0h' : '-')}
-                                        </td>
+                                        <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-neutral-900/30">
+                                          <td className="py-2 px-3 font-medium text-slate-700 dark:text-neutral-200 align-top">
+                                            {row.custom_project_name || <span className="text-slate-400 dark:text-neutral-500 italic">—</span>}
+                                          </td>
+                                          <td className="py-2 px-3 text-slate-600 dark:text-neutral-300 align-top">
+                                            <span className="break-words whitespace-normal block" title={row.custom_task_name}>
+                                              {row.custom_task_name || <span className="text-slate-400 dark:text-neutral-500 italic">{tMsg('No Task', 'Tidak Ada Tugas')}</span>}
+                                            </span>
+                                          </td>
+                                          {weekGroup.weekDays.map((dateStr, i) => {
+                                            const d = row.days[dateStr];
+                                            const isPublicHoliday = leaves.some(
+                                              l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+                                            );
+                                            const isUserLeave = leaves.some(
+                                              l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username && userGroup.username && l.username.toLowerCase() === userGroup.username.toLowerCase()
+                                            );
+                                            const isWeekend = i === 0 || i === 6;
+
+                                            let cellClass = '';
+                                            if (isPublicHoliday) cellClass = 'bg-red-50/60 dark:bg-red-950/20';
+                                            else if (isUserLeave || isWeekend) cellClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
+
+                                            let val;
+                                            let valClass = 'text-slate-700 dark:text-neutral-200';
+                                            if (d && !d.is_deleted) {
+                                              val = d.hours_logged;
+                                              if (parseFloat(d.hours_logged) === 0) valClass = 'text-slate-400 dark:text-neutral-500';
+                                              else if (parseFloat(d.hours_logged) > 8) valClass = 'text-amber-500 font-bold';
+                                              else valClass = 'text-slate-800 dark:text-white font-semibold';
+                                            } else if (isPublicHoliday || isUserLeave) {
+                                              val = '0';
+                                              valClass = 'text-slate-400 dark:text-neutral-500';
+                                            } else {
+                                              val = '-';
+                                              valClass = 'text-slate-300 dark:text-neutral-600';
+                                            }
+
+                                            return (
+                                              <td key={dateStr} className={`py-2 px-2 text-center relative ${cellClass}`}>
+                                                <div className={`w-12 mx-auto text-center font-medium ${valClass}`}>
+                                                  {val}
+                                                </div>
+                                              </td>
+                                            );
+                                          })}
+                                          <td className="py-2 px-3 text-center font-bold">
+                                            {rowHasAnyData
+                                              ? <span className="text-indigo-600 dark:text-indigo-400">{rowHoursTotal}h</span>
+                                              : <span className="text-slate-300 dark:text-neutral-600">-</span>
+                                            }
+                                          </td>
+                                        </tr>
                                       );
                                     })}
-                                    <td className="py-2 px-3 text-center font-bold text-indigo-600 dark:text-indigo-400">
-                                      {weekGroup.totalHours}h
-                                    </td>
-                                  </tr>
-                                </tfoot>
-                              </table>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                                  </tbody>
+                                  <tfoot className="bg-slate-50 dark:bg-neutral-900 border-t border-slate-200 dark:border-neutral-700 text-slate-700 dark:text-neutral-200 font-bold">
+                                    <tr>
+                                      <td colSpan="2" className="py-2 px-3 text-center text-slate-500 dark:text-neutral-400 text-[10px] uppercase tracking-wider">{tMsg('Daily Totals:', 'Total Harian:')}</td>
+                                      {weekGroup.weekDays.map((dateStr, i) => {
+                                        let dayTotal = 0;
+                                        let dayHasData = false;
+                                        weekGroup.rows.forEach(r => {
+                                          const d = r.days[dateStr];
+                                          if (d && !d.is_deleted && d.hours_logged != null) {
+                                            dayTotal += parseFloat(d.hours_logged);
+                                            dayHasData = true;
+                                          }
+                                        });
+                                        const isPublicHoliday = leaves.some(
+                                          l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+                                        );
+                                        const isUserLeave = leaves.some(
+                                          l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username && userGroup.username && l.username.toLowerCase() === userGroup.username.toLowerCase()
+                                        );
+                                        const isWeekend = i === 0 || i === 6;
+
+                                        let footerClass = '';
+                                        if (isPublicHoliday) footerClass = 'bg-red-50/60 dark:bg-red-950/20';
+                                        else if (isUserLeave || isWeekend) footerClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
+
+                                        let textClass = 'text-indigo-600 dark:text-indigo-400';
+                                        if (isPublicHoliday) {
+                                          textClass = 'text-red-600 dark:text-red-400';
+                                        } else if (dayTotal > 8) {
+                                          textClass = 'text-amber-500';
+                                        } else if (isUserLeave) {
+                                          textClass = 'text-indigo-600 dark:text-indigo-400';
+                                        } else {
+                                          textClass = 'text-indigo-600 dark:text-indigo-400';
+                                        }
+
+                                        return (
+                                          <td key={dateStr} className={`py-2 px-2 text-center font-bold ${footerClass} ${textClass}`}
+                                            title={dayTotal > 8 ? 'Overtime: >8h' : (isPublicHoliday ? 'Public Holiday' : (isUserLeave ? 'Leave' : ''))}>
+                                            {dayHasData ? `${dayTotal}h` : (isPublicHoliday || isUserLeave ? '0h' : '-')}
+                                          </td>
+                                        );
+                                      })}
+                                      <td className="py-2 px-3 text-center font-bold text-indigo-600 dark:text-indigo-400">
+                                        {weekGroup.totalHours}h
+                                      </td>
+                                    </tr>
+                                  </tfoot>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Per-User Lazy Load Button */}
+                    {userGroup.weeks.length > userWeekLimit && (
+                      <button
+                        onClick={() => handleLoadMoreUserWeeks(userGroup.username)}
+                        className="w-full py-2.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-bold transition-all border border-amber-200/60 dark:border-amber-900/40 shadow-sm flex items-center justify-center gap-2 mt-1"
+                      >
+                        <Icon name="plus" className="w-3.5 h-3.5" />
+                        <span>{tMsg('Load More Weeks for', 'Tampilkan Minggu Lainnya untuk')} @{userGroup.username} (+{userGroup.weeks.length - userWeekLimit} {tMsg('remaining', 'tersisa')})</span>
+                      </button>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
