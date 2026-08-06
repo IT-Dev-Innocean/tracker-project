@@ -460,7 +460,7 @@ export default function ChatWorkspaceModal({
 
       const interval = setInterval(() => {
         if (document.visibilityState === 'visible') fetchMessages();
-      }, 10000); // 10s safe polling for Free Tier
+      }, 30000); // 30s polling to reduce Neon network transfer
 
       return () => clearInterval(interval);
     }

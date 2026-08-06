@@ -1829,21 +1829,10 @@ export default function useAppLogic() {
 
     if (!selectedBoard || selectedBoard.id === 'global') {
       const now = Date.now();
-      if (cachedGlobalTasks && now - cachedGlobalTasksTime < 30000) {
+      // Serve cache for 60s without background refetch — silent refresh was doubling Neon transfer
+      if (!force && cachedGlobalTasks && now - cachedGlobalTasksTime < 60000) {
         handleNewTasks(cachedGlobalTasks);
         setIsTasksLoading(false);
-        // Refresh in the background silently
-        axios
-          .get('/api/tasks/all')
-          .then((res) => {
-            const fetched = res.data.tasks || [];
-            handleNewTasks(fetched);
-            cachedGlobalTasks = fetched;
-            cachedGlobalTasksTime = Date.now();
-          })
-          .catch((err) => {
-            if (err.response?.status !== 401) console.error(err);
-          });
         return;
       }
 
@@ -2041,7 +2030,7 @@ export default function useAppLogic() {
           fetchDmConversations();
           fetchInboxChats();
         }
-      }, 60000);
+      }, 120000);
 
       const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible') {
@@ -2633,8 +2622,12 @@ export default function useAppLogic() {
       fetchSubtasks(selectedTask.id);
       fetchComments(selectedTask.id);
 
-      // Fetch full task details if the current selectedTask is a partial search result (lacks queue/recurring fields)
-      if (selectedTask.queue_global_number === undefined || selectedTask.recurring === undefined) {
+      // Always hydrate full task when opening modal (list payloads may truncate description)
+      if (
+        selectedTask.description_truncated ||
+        selectedTask.queue_global_number === undefined ||
+        selectedTask.recurring === undefined
+      ) {
         axios
           .get(`/api/tasks/${selectedTask.id}`)
           .then((res) => {
@@ -2669,7 +2662,7 @@ export default function useAppLogic() {
     if (selectedTask?.id) {
       interval = setInterval(() => {
         if (document.visibilityState === 'visible') fetchComments(selectedTask.id);
-      }, 10000);
+      }, 30000);
     }
     return () => clearInterval(interval);
   }, [selectedTask?.id]);
@@ -2755,8 +2748,9 @@ export default function useAppLogic() {
   };
 
   const fetchComments = (taskId, loadMore = false) => {
+    // Poll always uses latest 50; never grow limit with history (was exploding Neon transfer)
     let offset = loadMore ? commentsLengthRef.current : 0;
-    let limit = loadMore ? 50 : Math.max(commentsLengthRef.current || 50, 50);
+    let limit = 50;
     axios
       .get(`/api/tasks/${taskId}/comments?offset=${offset}&limit=${limit}`)
       .then((res) => {
@@ -2781,7 +2775,13 @@ export default function useAppLogic() {
           setComments((prev) => [...msgs, ...prev]);
         } else {
           setHasMoreComments(msgs.length === limit);
-          setComments(msgs);
+          // Merge poll results so older "load more" history is kept
+          setComments((prev) => {
+            if (!prev.length || prev.length <= msgs.length) return msgs;
+            const byId = new Map(prev.map((c) => [c.id, c]));
+            msgs.forEach((c) => byId.set(c.id, c));
+            return Array.from(byId.values()).sort((a, b) => a.id - b.id);
+          });
         }
       })
       .catch((err) => console.error('Failed to load comments:', err));
@@ -2915,7 +2915,7 @@ export default function useAppLogic() {
     if (!selectedBoard || selectedBoard.id === 'global') return;
 
     let offset = loadMore ? projectChatLengthRef.current : 0;
-    let limit = loadMore ? 50 : Math.max(projectChatLengthRef.current || 50, 50);
+    let limit = 50;
     axios
       .get(`/api/boards/${selectedBoard.id}/chat?offset=${offset}&limit=${limit}`)
       .then((res) => {
@@ -2940,11 +2940,19 @@ export default function useAppLogic() {
           setProjectChatMessages((prev) => [...msgs, ...prev]);
         } else {
           setHasMoreProjectChat(msgs.length === limit);
-          setProjectChatMessages(msgs);
-          if (prevChatLenRef.current !== 0 && msgs.length > prevChatLenRef.current) {
-            if (!isProjectChatOpen || drawerTab !== 'team') setHasNewProjectChat(true);
-          }
-          prevChatLenRef.current = msgs.length;
+          setProjectChatMessages((prev) => {
+            let next = msgs;
+            if (prev.length > msgs.length) {
+              const byId = new Map(prev.map((c) => [c.id, c]));
+              msgs.forEach((c) => byId.set(c.id, c));
+              next = Array.from(byId.values()).sort((a, b) => a.id - b.id);
+            }
+            if (prevChatLenRef.current !== 0 && next.length > prevChatLenRef.current) {
+              if (!isProjectChatOpen || drawerTab !== 'team') setHasNewProjectChat(true);
+            }
+            prevChatLenRef.current = next.length;
+            return next;
+          });
         }
       })
       .catch(console.error);
@@ -3042,8 +3050,8 @@ export default function useAppLogic() {
         () => {
           if (document.visibilityState === 'visible') fetchProjectChat();
         },
-        isProjectChatOpen ? 10000 : 60000
-      ); // Live poll 10s (open) or 60s (closed)
+        isProjectChatOpen ? 30000 : 120000
+      ); // Live poll 30s (open) or 120s (closed) — cut Neon chat transfer
     }
     return () => clearInterval(interval);
   }, [isProjectChatOpen, selectedBoard]);

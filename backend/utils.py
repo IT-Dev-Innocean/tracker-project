@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, date
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 from sqlalchemy import or_, and_, func, text
 from database import get_db, User, Request, Subtask, Board, BoardMember, LeaveDay, LeaveRecord, Comment, Notification, DirectMessage, get_leave_dates
 import os
@@ -269,15 +269,42 @@ def evaluate_user_lifecycle(db: Session, user: User):
 
 
 def get_all_queues(db: Session, leave_dates):
-    all_active = db.query(Request).filter(Request.status.notin_(["Done", "Rejected"])).all()
-    
+    # Only columns needed for queue ranking — avoid pulling description/supporting_access from Neon
+    all_active = (
+        db.query(Request)
+        .options(
+            load_only(
+                Request.id,
+                Request.board_id,
+                Request.requester,
+                Request.owner_username,
+                Request.status,
+                Request.deadline,
+                Request.timestamp,
+                Request.impact,
+            )
+        )
+        .filter(Request.status.notin_(["Done", "Rejected"]))
+        .all()
+    )
+
     # Pre-fetch boards and board members to prevent N+1 query overhead
-    boards = {b.id: b for b in db.query(Board).all()}
-    members = db.query(BoardMember).filter(BoardMember.status == "accepted").all()
+    boards = {
+        b.id: b
+        for b in db.query(Board)
+        .options(load_only(Board.id, Board.owner_username, Board.name, Board.is_private))
+        .all()
+    }
+    members = (
+        db.query(BoardMember)
+        .options(load_only(BoardMember.board_id, BoardMember.member_username, BoardMember.status))
+        .filter(BoardMember.status == "accepted")
+        .all()
+    )
     board_members = defaultdict(set)
     for m in members:
         board_members[m.board_id].add(m.member_username.lower())
-        
+
     def check_user_access(board_id, username):
         if not board_id:
             return False
@@ -308,12 +335,13 @@ def get_all_queues(db: Session, leave_dates):
                 b = boards.get(t.board_id)
                 if b and b.name == "System Feedback" and t.requester and t.requester.lower() == a_name:
                     has_access = True
-            
+
             if has_access:
                 user_global[a_name].append(t)
                 user_project[(a_name, t.board_id)].append(t)
-            
+
     task_queue_info = {}
+
     def sort_key(t):
         p_weight = {"critical": 1, "warning": 2, "normal": 3}
         _, p_lvl = calculate_priority(t.deadline or "", set(leave_dates))
@@ -321,7 +349,7 @@ def get_all_queues(db: Session, leave_dates):
         i_weight = {"High": 1, "Medium": 2, "Low": 3}
         w2 = i_weight.get(getattr(t, "impact", "Medium"), 2)
         dt = parse_raw_date(t.deadline) if t.deadline else parse_raw_date(t.timestamp)
-        ts = dt.timestamp() if dt else float('inf')
+        ts = dt.timestamp() if dt else float("inf")
         return (w1, w2, ts, t.id)
 
     for a_name, user_tasks in user_global.items():
@@ -331,7 +359,7 @@ def get_all_queues(db: Session, leave_dates):
             task_queue_info[t.id] = {
                 "global_q": idx + 1,
                 "global_t": total,
-                "main_assignee": a_name
+                "main_assignee": a_name,
             }
 
     for (a_name, b_id), user_tasks in user_project.items():
@@ -341,8 +369,24 @@ def get_all_queues(db: Session, leave_dates):
             if t.id in task_queue_info:
                 task_queue_info[t.id]["project_q"] = idx + 1
                 task_queue_info[t.id]["project_t"] = total
-            
+
     return task_queue_info
+
+
+def batch_subtasks_by_request(db: Session, request_ids):
+    """Load all subtasks for many requests in one query (avoids N+1 Neon round-trips)."""
+    if not request_ids:
+        return {}
+    rows = (
+        db.query(Subtask)
+        .filter(Subtask.request_id.in_(list(request_ids)))
+        .order_by(Subtask.position.asc(), Subtask.id.asc())
+        .all()
+    )
+    by_req = defaultdict(list)
+    for s in rows:
+        by_req[s.request_id].append(s)
+    return by_req
 
 
 def parse_comment_text(raw_text):
