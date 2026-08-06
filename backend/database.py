@@ -109,6 +109,17 @@ class Board(Base):
     last_activity_date = Column(DateTime, nullable=True)
     deletion_date = Column(DateTime, nullable=True)
     is_private = Column(Integer, default=0)
+    project_number = Column(String(100), nullable=True)
+
+
+class Client(Base):
+    __tablename__ = "clients"
+    id = Column(Integer, primary_key=True, index=True)
+    client_code = Column(String(50), unique=True, index=True)
+    client_name = Column(String(200))
+    status = Column(String(50), default="active")  # active | inactive
+    created_at = Column(DateTime, default=datetime.utcnow)
+    created_by = Column(String(50), nullable=True)
 
 
 class BoardMember(Base):

@@ -55,6 +55,7 @@ export default function TopHeaderBar() {
     setIsLogoutConfirmOpen,
     inboxChats,
     dmConversations,
+    openGlobalSearch,
     setSelectedBoard,
     setShowTeams,
     setShowAdmin,
@@ -65,6 +66,9 @@ export default function TopHeaderBar() {
   } = useAppContext();
 
   const tMsg = (en, id) => (language === 'id' ? id : en);
+  const isMac =
+    typeof navigator !== 'undefined' &&
+    /Mac|iPhone|iPad/.test(navigator.platform);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const unreadInboxChatsCount = useMemo(() => {
@@ -139,7 +143,25 @@ export default function TopHeaderBar() {
   };
 
   return (
-    <header className='hidden md:flex sticky top-0 shrink-0 z-40 w-full items-center justify-end bg-white/95 dark:bg-neutral-950/95 backdrop-blur border-b border-neutral-200/50 dark:border-neutral-800/50 px-4 md:px-6 py-2'>
+    <header className='hidden md:flex sticky top-0 shrink-0 z-40 w-full items-center justify-between bg-white/95 dark:bg-neutral-950/95 backdrop-blur border-b border-neutral-200/50 dark:border-neutral-800/50 px-4 md:px-6 py-2'>
+      <button
+        type='button'
+        onClick={openGlobalSearch}
+        className='flex items-center gap-2 max-w-xs w-full bg-neutral-100/60 dark:bg-neutral-900/60 hover:bg-neutral-100 dark:hover:bg-neutral-900 border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700 text-neutral-400 text-sm rounded-lg pl-3 pr-3 py-1.5 transition-all text-left'>
+        <Icon name='search' className='w-4 h-4 shrink-0' />
+        <span className='truncate flex-1 text-neutral-400'>
+          {tMsg('Search projects, teams...', 'Cari proyek, tim...')}
+        </span>
+        <span className='flex items-center gap-0.5 shrink-0 text-[10px] font-medium text-neutral-400'>
+          <kbd className='px-1 py-0.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded text-[9px]'>
+            {isMac ? '⌘' : 'Ctrl'}
+          </kbd>
+          <kbd className='px-1 py-0.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded text-[9px]'>
+            K
+          </kbd>
+        </span>
+      </button>
+
       {(isNotifOpen || isProfileMenuOpen) && (
         <div className='fixed inset-0 z-40' onClick={closeAllMenus} />
       )}
@@ -219,16 +241,18 @@ export default function TopHeaderBar() {
                       setSidebarNav?.('home');
                       setIsNotifOpen(false);
                     }}
-                    className="p-3 bg-red-50 dark:bg-red-950/40 border-b border-red-200 dark:border-red-800/50 hover:bg-red-100 dark:hover:bg-red-900/40 cursor-pointer transition-colors flex items-start gap-3"
-                  >
-                    <div className="p-2 bg-red-100 dark:bg-red-900/60 text-red-600 dark:text-red-300 rounded-lg shrink-0">
-                      <Icon name="alert-triangle" className="w-4 h-4" />
+                    className='p-3 bg-red-50 dark:bg-red-950/40 border-b border-red-200 dark:border-red-800/50 hover:bg-red-100 dark:hover:bg-red-900/40 cursor-pointer transition-colors flex items-start gap-3'>
+                    <div className='p-2 bg-red-100 dark:bg-red-900/60 text-red-600 dark:text-red-300 rounded-lg shrink-0'>
+                      <Icon name='alert-triangle' className='w-4 h-4' />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h5 className="text-xs font-bold text-red-900 dark:text-red-200">
-                        {tMsg('Action Required: Unsubmitted Timesheets', 'Tindakan Diperlukan: Timesheet Belum Disubmit')}
+                    <div className='flex-1 min-w-0'>
+                      <h5 className='text-xs font-bold text-red-900 dark:text-red-200'>
+                        {tMsg(
+                          'Action Required: Unsubmitted Timesheets',
+                          'Tindakan Diperlukan: Timesheet Belum Disubmit'
+                        )}
                       </h5>
-                      <p className="text-[11px] text-red-700 dark:text-red-300 mt-0.5 font-medium leading-snug">
+                      <p className='text-[11px] text-red-700 dark:text-red-300 mt-0.5 font-medium leading-snug'>
                         {tMsg(
                           `You have ${unsubmittedTimesheetsCount} unsubmitted week(s). Click to complete.`,
                           `Anda memiliki ${unsubmittedTimesheetsCount} minggu timesheet yang belum disubmit. Klik untuk mengisi.`
@@ -238,7 +262,8 @@ export default function TopHeaderBar() {
                   </div>
                 )}
 
-                {notifications.length === 0 && unsubmittedTimesheetsCount === 0 ? (
+                {notifications.length === 0 &&
+                unsubmittedTimesheetsCount === 0 ? (
                   <div className='p-8 text-center text-neutral-400 text-sm'>
                     <Icon
                       name='mail'

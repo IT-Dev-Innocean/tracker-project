@@ -428,6 +428,7 @@ def get_all_boards_admin(
             {
                 "id": b.id,
                 "name": b.name,
+                "project_number": getattr(b, "project_number", None),
                 "owner_username": b.owner_username,
                 "owner_status": owner_status,
                 "created_at": b.created_at,

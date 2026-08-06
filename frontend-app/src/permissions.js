@@ -29,6 +29,10 @@ export function canManageProjects(role) {
   return role === ROLE_ADMIN || role === ROLE_PROJECT_OWNER;
 }
 
+export function canManageClients(role) {
+  return role === ROLE_ADMIN || role === ROLE_PROJECT_OWNER;
+}
+
 export function canCreateTask(role) {
   return role === ROLE_ADMIN || role === ROLE_PROJECT_OWNER || role === ROLE_MANAGER;
 }

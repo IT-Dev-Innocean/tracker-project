@@ -264,6 +264,33 @@ export default function AppThemes({ appTheme }) {
             background: linear-gradient(to bottom, #f5d78e, #eeb056) !important;
           }
           html:not(.dark) body .bg-indigo-50, html:not(.dark) body .bg-blue-50 { background-color: #f0f8fa !important; border-color: #d5d9d9 !important; }
+          html:not(.dark) body .hover\\:bg-indigo-600:hover,
+          html:not(.dark) body .hover\\:bg-indigo-600\\!:hover {
+            background-color: #4f46e5 !important;
+            color: #ffffff !important;
+            border-color: #4f46e5 !important;
+          }
+          html:not(.dark) body .hover\\:bg-indigo-500:hover,
+          html:not(.dark) body .hover\\:bg-indigo-500\\!:hover {
+            background-color: #6366f1 !important;
+            color: #ffffff !important;
+            border-color: #6366f1 !important;
+          }
+          html:not(.dark) body .hover\\:bg-slate-700:hover,
+          html:not(.dark) body .hover\\:bg-slate-700\\!:hover {
+            background-color: #334155 !important;
+            color: #ffffff !important;
+            border-color: #334155 !important;
+          }
+          html:not(.dark) body .hover\\:bg-slate-900\\/40:hover,
+          html:not(.dark) body .hover\\:bg-slate-900\\/40\\!:hover {
+            background-color: rgb(15 23 42 / 0.4) !important;
+            color: #ffffff !important;
+          }
+          html:not(.dark) body .hover\\:bg-indigo-50:hover,
+          html:not(.dark) body .hover\\:bg-indigo-50\\!:hover {
+            background-color: #eef2ff !important;
+          }
           
           /* Header & Footer Branding */
           html:not(.dark) body nav.bg-white, html:not(.dark) body header.bg-white, html:not(.dark) body header.bg-neutral-50 { background-color: #141921 !important; border-color: #141921 !important; }

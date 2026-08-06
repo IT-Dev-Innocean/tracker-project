@@ -612,6 +612,8 @@ from routers.ai import router as ai_router
 app.include_router(ai_router)
 from routers.timesheets import router as timesheets_router
 app.include_router(timesheets_router, prefix="/api/timesheets")
+from routers.clients import router as clients_router
+app.include_router(clients_router)
 
 def run_startup_auto_nudge():
     # Gunakan waktu WIB (Asia/Jakarta = UTC+7)

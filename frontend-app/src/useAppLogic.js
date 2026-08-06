@@ -363,7 +363,8 @@ export default function useAppLogic() {
   const [showTeams, setShowTeams] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showProjectManage, setShowProjectManage] = useState(false);
-  const [sidebarNav, setSidebarNav] = useState('home'); // home | projects | teams | admin
+  const [showClientManage, setShowClientManage] = useState(false);
+  const [sidebarNav, setSidebarNav] = useState('home'); // home | projects | clients | teams | admin
 
   useEffect(() => {
     if (!TIMESHEETS_UI_ENABLED) {
@@ -423,6 +424,7 @@ export default function useAppLogic() {
   }, [selectedBoard]);
 
   const [newBoardName, setNewBoardName] = useState('');
+  const [newBoardNumber, setNewBoardNumber] = useState('');
   const [isPrivateBoard, setIsPrivateBoard] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState(null);
 
@@ -705,13 +707,34 @@ export default function useAppLogic() {
     }, 200);
   };
 
+  const openGlobalSearch = () => {
+    setIsGlobalSearchClosing(false);
+    setIsGlobalSearchOpen(true);
+  };
+
   const closeGlobalSearch = () => {
     setIsGlobalSearchClosing(true);
     setTimeout(() => {
       setIsGlobalSearchOpen(false);
       setIsGlobalSearchClosing(false);
+      setGlobalSearchQuery('');
     }, 200);
   };
+
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        if (isGlobalSearchOpen) {
+          closeGlobalSearch();
+        } else {
+          openGlobalSearch();
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isGlobalSearchOpen]);
 
   useEffect(() => {
     if (currentUser) {
@@ -3745,25 +3768,6 @@ export default function useAppLogic() {
     }
   };
 
-  // Logika Global Search (Menunggu 300ms setelah selesai ngetik sebelum memanggil API)
-  useEffect(() => {
-    if (globalSearchQuery.trim().length >= 2) {
-      const delayDebounceFn = setTimeout(() => {
-        axios
-          .get(`/api/tasks/search?q=${encodeURIComponent(globalSearchQuery)}`)
-          .then((res) => {
-            setGlobalSearchResults(res.data.results || []);
-            setIsGlobalSearchOpen(true);
-          })
-          .catch((err) => console.error('Search failed:', err));
-      }, 300);
-      return () => clearTimeout(delayDebounceFn);
-    } else {
-      setGlobalSearchResults([]);
-      setIsGlobalSearchOpen(false);
-    }
-  }, [globalSearchQuery]);
-
   const handleGlobalSearchSelect = (task) => {
     const board = boards.find((b) => b.id === task.board_id);
     if (board) setSelectedBoard(board);
@@ -4209,6 +4213,7 @@ export default function useAppLogic() {
         setShowTimesheets(false);
         setShowAdmin(true);
         setShowProjectManage(false);
+        setShowClientManage(false);
         setSidebarNav('admin');
       })
       .catch((err) => showNotification('Failed to load users or unauthorized', 'error'));
@@ -4429,11 +4434,42 @@ export default function useAppLogic() {
     e.preventDefault();
     if (!newBoardName.trim()) return;
     setIsSubmitting(true);
+    const payload = {
+      name: newBoardName.trim(),
+      is_private: 0,
+      project_number: newBoardNumber.trim() || null,
+    };
     axios
-      .post('/api/boards', { name: newBoardName.trim(), is_private: isPrivateBoard ? 1 : 0 })
-      .then(() => {
+      .post('/api/boards', payload)
+      .then((res) => {
+        const created = res.data || {};
+        // Optimistic sidebar update so the new project appears immediately
+        if (created.board_id) {
+          setBoards((prev) => {
+            const exists = (prev || []).some((b) => b.id === created.board_id);
+            if (exists) return prev;
+            return [
+              {
+                id: created.board_id,
+                name: created.board_name || payload.name,
+                project_number: created.project_number ?? payload.project_number,
+                owner_username: currentUser,
+                role: 'owner',
+                total_tasks: 0,
+                done_tasks: 0,
+                my_pending: 0,
+                is_private: 0,
+                team_preview: currentUser ? [currentUser] : [],
+                health_alert: null,
+                access_requests_count: 0,
+              },
+              ...(prev || []),
+            ];
+          });
+        }
         setIsCreateBoardOpen(false);
         setNewBoardName('');
+        setNewBoardNumber('');
         setIsPrivateBoard(false);
         fetchBoards();
         showNotification('Project created successfully!', 'success');
@@ -4707,6 +4743,8 @@ export default function useAppLogic() {
     setShowAdmin,
     showProjectManage,
     setShowProjectManage,
+    showClientManage,
+    setShowClientManage,
     sidebarNav,
     setSidebarNav,
     isNotifClosing,
@@ -4720,6 +4758,7 @@ export default function useAppLogic() {
     selectedBoard,
     isCreateBoardOpen,
     newBoardName,
+    newBoardNumber,
     boardToDelete,
     deleteBoardConfirmText,
     isExportModalOpen,
@@ -4827,6 +4866,8 @@ export default function useAppLogic() {
     setSelectedBoard,
     setIsCreateBoardOpen,
     setNewBoardName,
+    newBoardNumber,
+    setNewBoardNumber,
     isPrivateBoard,
     setIsPrivateBoard,
     setBoardToDelete,
@@ -4943,6 +4984,7 @@ export default function useAppLogic() {
     handleSupportSubmit,
     closeNotif,
     closeGlobalSearch,
+    openGlobalSearch,
     handleQuickLinkAdd,
     handleQuickLinkRemove,
     handleStartMeet,
