@@ -107,8 +107,7 @@ export default function QuickFiltersPopover({
           isOpen || activeCount > 0
             ? 'bg-indigo-50 dark:bg-indigo-500/20 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300'
             : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-        }`}
-      >
+        }`}>
         <Icon name='filter' className='w-4 h-4' />
         <span>{tMsg('Filter', 'Filter')}</span>
         {activeCount > 0 && (
@@ -122,14 +121,13 @@ export default function QuickFiltersPopover({
         createPortal(
           <div
             ref={popoverRef}
-            className='fixed bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-[9999] flex flex-col'
+            className='fixed bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 flex flex-col'
             style={{
               top: coords.top,
               right: coords.right,
               width: '320px',
               maxHeight: coords.maxHeight || '70vh',
-            }}
-          >
+            }}>
             <div className='flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0'>
               <span className='text-sm font-bold text-slate-800 dark:text-white'>
                 {tMsg('Filters', 'Filter')}
@@ -138,8 +136,7 @@ export default function QuickFiltersPopover({
                 <button
                   type='button'
                   onClick={clearAll}
-                  className='text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline'
-                >
+                  className='text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline'>
                   {tMsg('Clear', 'Hapus')}
                 </button>
               )}
@@ -160,8 +157,7 @@ export default function QuickFiltersPopover({
                   className={chipClass(
                     showMyTasks,
                     'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-500/20 dark:border-indigo-500/30 dark:text-indigo-300'
-                  )}
-                >
+                  )}>
                   <Icon name='user' className='w-3.5 h-3.5' />
                   {tMsg('My Tasks', 'Tugas Saya')}
                 </button>
@@ -175,8 +171,7 @@ export default function QuickFiltersPopover({
                   className={chipClass(
                     showOverdueOnly,
                     'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-500/20 dark:border-amber-500/30 dark:text-amber-300'
-                  )}
-                >
+                  )}>
                   <Icon name='alert-triangle' className='w-3.5 h-3.5' />
                   {tMsg('Overdue', 'Terlambat')}
                 </button>
@@ -187,8 +182,7 @@ export default function QuickFiltersPopover({
                   className={chipClass(
                     showUnreadOnly,
                     'bg-red-50 border-red-200 text-red-700 dark:bg-red-500/20 dark:border-red-500/30 dark:text-red-300'
-                  )}
-                >
+                  )}>
                   <Icon name='message-square' className='w-3.5 h-3.5' />
                   {tMsg('Unread', 'Belum Dibaca')}
                 </button>
@@ -199,8 +193,7 @@ export default function QuickFiltersPopover({
                   className={chipClass(
                     showHasSubtasks,
                     'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-500/20 dark:border-blue-500/30 dark:text-blue-300'
-                  )}
-                >
+                  )}>
                   <Icon name='square-check' className='w-3.5 h-3.5' />
                   {tMsg('Has Subtasks', 'Ada Sub-tugas')}
                 </button>
@@ -219,8 +212,7 @@ export default function QuickFiltersPopover({
                     title={tMsg(
                       'Hide Done & Rejected tasks to declutter the view',
                       'Sembunyikan tugas Selesai & Ditolak agar tampilan lebih bersih'
-                    )}
-                  >
+                    )}>
                     {hideCompleted ? (
                       <>
                         <Icon name='eye-off' className='w-3.5 h-3.5' />

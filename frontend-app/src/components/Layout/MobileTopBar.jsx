@@ -76,7 +76,7 @@ export default function MobileTopBar() {
             : role || tMsg('Member', 'Anggota');
 
   return (
-    <div className='md:hidden flex items-center justify-between bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md px-4 py-3 border-b border-neutral-200/50 dark:border-neutral-800/50 shrink-0 z-[45]'>
+    <div className='md:hidden flex items-center justify-between bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md px-4 py-3 border-b border-neutral-200/50 dark:border-neutral-800/50 shrink-0 z-50'>
       <div className='flex items-center gap-2'>
         <button
           onClick={() => setIsMobileMenuOpen(true)}
@@ -121,7 +121,7 @@ export default function MobileTopBar() {
               <div
                 className='fixed inset-0 z-40'
                 onClick={() => setIsNotifOpen(false)}></div>
-              <div className='absolute top-full right-0 mt-2 w-[85vw] sm:w-80 max-w-[320px] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl z-50 flex flex-col max-h-[60vh] sm:max-h-[450px] overflow-hidden'>
+              <div className='absolute top-full right-0 mt-2 w-[85vw] sm:w-80 max-w-[320px] bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-2xl z-50 flex flex-col max-h-[60vh] sm:max-h-96 overflow-hidden'>
                 <div className='p-3 border-b border-neutral-100 dark:border-neutral-800 flex justify-between items-center sticky top-0 bg-white dark:bg-neutral-900'>
                   <h3 className='font-bold text-sm text-black dark:text-white'>
                     {tMsg('Notifications', 'Notifikasi')}

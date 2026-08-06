@@ -1617,14 +1617,11 @@ function App() {
                     ? 'scale-125 -rotate-12 opacity-100 drop-shadow-[0_0_40px_rgba(220,38,38,0.8)]'
                     : 'scale-100 grayscale opacity-40 drop-shadow-xl hover:grayscale-0 hover:opacity-100'
                 }`}>
-                <Icon
-                  name='trash'
-                  className='w-[70px] h-[70px] sm:w-[90px] sm:h-[90px]'
-                />
+                <Icon name='trash' className='w-16 h-16 sm:w-24 sm:h-24' />
                 {/* Kertas diremas yang melompat ke dalam tong sampah */}
                 {isTrashHovered && (
                   <div className='absolute top-0 left-1/4 animate-crumple pointer-events-none drop-shadow-md z-50'>
-                    <Icon name='file-text' className='w-[50px] h-[50px]' />
+                    <Icon name='file-text' className='w-12 h-12' />
                   </div>
                 )}
               </div>

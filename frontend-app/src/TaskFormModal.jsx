@@ -352,11 +352,11 @@ Format:
               <div className='space-y-6'>
                 <div className='grid grid-cols-1 sm:grid-cols-5 gap-4 sm:gap-6 mb-6 relative z-50'>
                   <div className='sm:col-span-2 group tour-form-requester relative z-50'>
-                    <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2'>
+                    <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2'>
                       <Icon name='user' className='w-4 h-4' />{' '}
                       {tMsg('Assignee / Requester', 'Pekerja / Peminta')}
                     </label>
-                    <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center relative h-[46px] sm:h-[50px]'>
+                    <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center relative h-12 sm:h-14'>
                       <input
                         type='text'
                         value={formData.requester}
@@ -452,12 +452,12 @@ Format:
                   </div>
 
                   <div className='sm:col-span-2 group'>
-                    <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2'>
+                    <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2'>
                       <Icon name='folder-open' className='w-4 h-4' />{' '}
                       {tMsg('Category', 'Kategori')}
                     </label>
                     <div className='flex gap-1.5 sm:gap-2'>
-                      <div className='flex-1 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center min-w-0 h-[46px] sm:h-[50px]'>
+                      <div className='flex-1 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center min-w-0 h-12 sm:h-14'>
                         <select
                           value={formData.category || categories[0] || ''}
                           onChange={(e) =>
@@ -487,7 +487,7 @@ Format:
                       <button
                         type='button'
                         onClick={() => handleOpenAddBoard('Category')}
-                        className='bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 px-3 sm:px-4 rounded-2xl transition-colors text-sm font-bold flex items-center justify-center shrink-0 shadow-sm h-[46px] sm:h-[50px]'
+                        className='bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 px-3 sm:px-4 rounded-2xl transition-colors text-sm font-bold flex items-center justify-center shrink-0 shadow-sm h-12 sm:h-14'
                         title={tMsg(
                           'Add New Category',
                           'Tambah Kategori Baru'
@@ -498,11 +498,11 @@ Format:
                   </div>
 
                   <div className='sm:col-span-1 group'>
-                    <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-[16px]'>
+                    <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-4'>
                       <Icon name='zap' className='w-4 h-4' />{' '}
                       {tMsg('Impact', 'Dampak')}
                     </label>
-                    <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-[46px] sm:h-[50px]'>
+                    <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-12 sm:h-14'>
                       <select
                         value={formData.impact || 'Medium'}
                         onChange={(e) =>
@@ -519,11 +519,11 @@ Format:
 
                 <div className='grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6'>
                   <div className='group'>
-                    <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-[16px]'>
+                    <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-4'>
                       <Icon name='calendar-days' className='w-4 h-4' />{' '}
                       {tMsg('Start Date', 'Tanggal Mulai')}
                     </label>
-                    <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-[46px] sm:h-[50px]'>
+                    <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-12 sm:h-14'>
                       <input
                         type='date'
                         value={formData.start_date}
@@ -539,11 +539,11 @@ Format:
                     </div>
                   </div>
                   <div className='group tour-form-deadline'>
-                    <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-[16px]'>
+                    <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-4'>
                       <Icon name='calendar' className='w-4 h-4' />{' '}
                       {tMsg('Deadline', 'Tenggat Waktu')}
                     </label>
-                    <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-[46px] sm:h-[50px]'>
+                    <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-12 sm:h-14'>
                       <input
                         type='date'
                         value={formData.deadline}
@@ -556,11 +556,11 @@ Format:
                     </div>
                   </div>
                   <div className='group'>
-                    <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-[16px]'>
+                    <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-4'>
                       <Icon name='repeat' className='w-4 h-4' />{' '}
                       {tMsg('Recurring', 'Berulang')}
                     </label>
-                    <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-[46px] sm:h-[50px]'>
+                    <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-12 sm:h-14'>
                       <select
                         value={formData.recurring || 'none'}
                         onChange={(e) =>
@@ -582,11 +582,11 @@ Format:
                     </div>
                   </div>
                   <div className='group'>
-                    <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-[16px]'>
+                    <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-4'>
                       <Icon name='clock' className='w-4 h-4' />{' '}
                       {tMsg('ETC (Hrs)', 'ETC (Jam)')}
                     </label>
-                    <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center p-1.5 h-[46px] sm:h-[50px]'>
+                    <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center p-1.5 h-12 sm:h-14'>
                       <button
                         type='button'
                         onClick={() =>
@@ -643,11 +643,11 @@ Format:
                 </div>
 
                 <div className='group pt-2'>
-                  <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2'>
+                  <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2'>
                     <Icon name='file-text' className='w-4 h-4' />{' '}
                     {tMsg('Description', 'Deskripsi')}
                   </label>
-                  <div className='bg-neutral-100 dark:bg-neutral-900 rounded-3xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all p-2'>
+                  <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all p-2'>
                     <div className='flex gap-2 mb-2 px-2 pb-2 border-b border-neutral-200 dark:border-neutral-800'>
                       <button
                         type='button'
@@ -722,7 +722,7 @@ Format:
                           description: e.target.value,
                         })
                       }
-                      className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-sm font-medium text-black dark:text-white min-h-[100px] resize-y outline-none placeholder-neutral-400 leading-relaxed'
+                      className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-sm font-medium text-black dark:text-white min-h-24 resize-y outline-none placeholder-neutral-400 leading-relaxed'
                       placeholder={tMsg(
                         'Add details or notes...',
                         'Tambahkan detail atau catatan...'
@@ -737,7 +737,7 @@ Format:
                 </div>
 
                 <div className='group pt-2'>
-                  <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2'>
+                  <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2'>
                     <Icon name='link' className='w-4 h-4' />{' '}
                     {tMsg(
                       'External Links / Supporting Access',
@@ -808,7 +808,7 @@ Format:
               </div>
 
               <div className='group pt-8 mt-8 border-t border-neutral-200 dark:border-neutral-800 tour-form-checklist'>
-                <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-4 flex items-center gap-2'>
+                <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-4 flex items-center gap-2'>
                   <Icon name='clipboard-list' className='w-4 h-4' />{' '}
                   {tMsg('Sub-task Checklist', 'Daftar Periksa Sub-tugas')}
                 </label>
@@ -856,7 +856,7 @@ Format:
                       <div
                         key={i}
                         className='flex items-center justify-between bg-neutral-50 dark:bg-neutral-900 px-5 py-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 group/item transition-colors'>
-                        <div className='flex items-center gap-4 flex-1 break-words'>
+                        <div className='flex items-center gap-4 flex-1 break-normal'>
                           <span className='w-4 h-4 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-black shrink-0'></span>
                           <span className='text-sm font-medium text-black dark:text-white'>
                             {st.task_name}

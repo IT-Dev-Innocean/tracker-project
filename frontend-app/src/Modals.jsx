@@ -18,7 +18,7 @@ function ThemeThumbnail({ variant }) {
         ...(clipPath ? { clipPath } : null),
       }}>
       <div
-        className='h-full w-[28%] flex-shrink-0'
+        className='h-full w-[28%] shrink-0'
         style={{ background: dark ? '#1e2128' : '#ffffff' }}
       />
       <div className='flex-1 p-[10%] flex flex-col gap-[8%]'>
@@ -27,7 +27,10 @@ function ThemeThumbnail({ variant }) {
           style={{ background: dark ? '#3d424c' : '#c5c9d0' }}
         />
         <div className='flex gap-[8%] mt-auto'>
-          <div className='h-[22%] w-[22%] rounded-sm' style={{ background: '#5b8def' }} />
+          <div
+            className='h-[22%] w-[22%] rounded-sm'
+            style={{ background: '#5b8def' }}
+          />
           <div
             className='h-[22%] w-[22%] rounded-sm'
             style={{ background: dark ? '#3d424c' : '#c5c9d0' }}
@@ -38,7 +41,7 @@ function ThemeThumbnail({ variant }) {
   );
 
   return (
-    <div className='relative w-full aspect-[4/3] rounded-xl overflow-hidden'>
+    <div className='relative w-full aspect-video rounded-xl overflow-hidden'>
       {isAuto ? (
         <>
           <Panel dark={false} clipPath='inset(0 50% 0 0)' />
@@ -1146,7 +1149,8 @@ export function ColumnModal({
                   <div className='grid grid-cols-8 gap-2'>
                     {STATUS_COLOR_PALETTE.map((swatch) => {
                       const isActive =
-                        selectedColor.toLowerCase() === swatch.hex.toLowerCase();
+                        selectedColor.toLowerCase() ===
+                        swatch.hex.toLowerCase();
                       return (
                         <button
                           key={swatch.id}
@@ -1693,7 +1697,7 @@ export function NotificationModal({
           <p
             className={`text-neutral-600 dark:text-neutral-400 ${
               isToast ? 'text-xs' : 'mb-8 text-sm'
-            } font-medium leading-relaxed break-words`}>
+            } font-medium leading-relaxed break-normal`}>
             {displayMessage}
           </p>
           {!isToast && (
