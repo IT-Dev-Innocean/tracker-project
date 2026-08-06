@@ -4,6 +4,52 @@ import { Avatar, SegmentedControl } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import { useCloseAnimation, LoadingSpinner } from './Utils';
 import { STATUS_COLOR_PALETTE } from './utils/statusColors';
+import { WELCOME_TOUR_BUTTONS_ENABLED } from './featureFlags';
+
+function ThemeThumbnail({ variant }) {
+  const isDark = variant === 'dark';
+  const isAuto = variant === 'auto';
+
+  const Panel = ({ dark, clipPath }) => (
+    <div
+      className='absolute inset-0 flex overflow-hidden'
+      style={{
+        background: dark ? '#2a2d34' : '#e8eaed',
+        ...(clipPath ? { clipPath } : null),
+      }}>
+      <div
+        className='h-full w-[28%] flex-shrink-0'
+        style={{ background: dark ? '#1e2128' : '#ffffff' }}
+      />
+      <div className='flex-1 p-[10%] flex flex-col gap-[8%]'>
+        <div
+          className='h-[18%] w-[55%] rounded-sm'
+          style={{ background: dark ? '#3d424c' : '#c5c9d0' }}
+        />
+        <div className='flex gap-[8%] mt-auto'>
+          <div className='h-[22%] w-[22%] rounded-sm' style={{ background: '#5b8def' }} />
+          <div
+            className='h-[22%] w-[22%] rounded-sm'
+            style={{ background: dark ? '#3d424c' : '#c5c9d0' }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className='relative w-full aspect-[4/3] rounded-xl overflow-hidden'>
+      {isAuto ? (
+        <>
+          <Panel dark={false} clipPath='inset(0 50% 0 0)' />
+          <Panel dark={true} clipPath='inset(0 0 0 50%)' />
+        </>
+      ) : (
+        <Panel dark={isDark} />
+      )}
+    </div>
+  );
+}
 
 export function BaseConfirmModal({
   onClose,
@@ -113,8 +159,15 @@ export function WelcomeTourModal({
   setLanguage,
   isDarkMode,
   setIsDarkMode,
+  themeMode,
+  setThemeMode,
   currentUser,
 }) {
+  const [pendingLang, setPendingLang] = useState(language);
+  const [pendingTheme, setPendingTheme] = useState(
+    themeMode || (isDarkMode ? 'dark' : 'light')
+  );
+
   const [isClosing, close] = useCloseAnimation((action) => {
     setShowWelcomeTour(false);
     if (action === 'start') {
@@ -123,7 +176,38 @@ export function WelcomeTourModal({
       localStorage.setItem(`innocean_tour_done_v2_${currentUser}`, 'true');
     }
   });
-  const tMsg = (en, id) => (language === 'id' ? id : en);
+  const tMsg = (en, id) => (pendingLang === 'id' ? id : en);
+
+  const themeOptions = [
+    { value: 'light', label: tMsg('Light', 'Terang') },
+    { value: 'dark', label: tMsg('Dark', 'Gelap') },
+    { value: 'auto', label: tMsg('Auto', 'Otomatis') },
+  ];
+
+  const applyPreferences = () => {
+    setLanguage(pendingLang);
+    localStorage.setItem('innocean_lang', pendingLang);
+    if (typeof setThemeMode === 'function') {
+      setThemeMode(pendingTheme);
+    } else {
+      setIsDarkMode(
+        pendingTheme === 'dark' ||
+          (pendingTheme === 'auto' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches)
+      );
+    }
+    localStorage.setItem('theme', pendingTheme);
+  };
+
+  const handleSave = () => {
+    applyPreferences();
+    close('skip');
+  };
+
+  const handleTourAction = (action) => {
+    applyPreferences();
+    close(action);
+  };
 
   return (
     <div
@@ -141,10 +225,15 @@ export function WelcomeTourModal({
           {tMsg('Welcome to Tracker', 'Selamat Datang di Tracker')}
         </h2>
         <p className='text-neutral-500 dark:text-neutral-400 text-sm font-medium mb-8 leading-relaxed'>
-          {tMsg(
-            "Before we start the tour, let's set up your basic preferences.",
-            'Sebelum kita mulai tur, mari atur preferensi dasar Anda.'
-          )}
+          {WELCOME_TOUR_BUTTONS_ENABLED
+            ? tMsg(
+                "Before we start the tour, let's set up your basic preferences.",
+                'Sebelum kita mulai tur, mari atur preferensi dasar Anda.'
+              )
+            : tMsg(
+                "Let's set up your basic preferences.",
+                'Mari atur preferensi dasar Anda.'
+              )}
         </p>
 
         <div className='space-y-6 text-left mb-8'>
@@ -157,11 +246,8 @@ export function WelcomeTourModal({
                 { label: '🇺🇸 English', value: 'en' },
                 { label: '🇮🇩 Indonesia', value: 'id' },
               ]}
-              value={language}
-              onChange={(val) => {
-                setLanguage(val);
-                localStorage.setItem('innocean_lang', val);
-              }}
+              value={pendingLang}
+              onChange={setPendingLang}
               fullWidth={true}
             />
           </div>
@@ -170,30 +256,59 @@ export function WelcomeTourModal({
             <label className='block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-2'>
               {tMsg('Theme', 'Tema')}
             </label>
-            <SegmentedControl
-              options={[
-                { label: 'Light', value: 'light' },
-                { label: 'Dark', value: 'dark' },
-              ]}
-              value={isDarkMode ? 'dark' : 'light'}
-              onChange={(val) => setIsDarkMode(val === 'dark')}
-              fullWidth={true}
-            />
+            <div className='grid grid-cols-3 gap-3'>
+              {themeOptions.map((opt) => {
+                const selected = pendingTheme === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type='button'
+                    onClick={() => setPendingTheme(opt.value)}
+                    className='flex flex-col items-center gap-2 group focus:outline-none'>
+                    <div
+                      className={`w-full rounded-xl p-0.5 transition-all ${
+                        selected
+                          ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-neutral-950'
+                          : 'ring-1 ring-transparent hover:ring-neutral-300 dark:hover:ring-neutral-600'
+                      }`}>
+                      <ThemeThumbnail variant={opt.value} />
+                    </div>
+                    <span
+                      className={`text-xs font-bold ${
+                        selected
+                          ? 'text-black dark:text-white'
+                          : 'text-neutral-500 dark:text-neutral-400'
+                      }`}>
+                      {opt.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        <div className='flex gap-4 w-full'>
+        {WELCOME_TOUR_BUTTONS_ENABLED ? (
+          <div className='flex gap-4 w-full'>
+            <button
+              onClick={() => handleTourAction('skip')}
+              className='flex-1 px-4 py-4 rounded-full font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors uppercase tracking-widest text-xs'>
+              {tMsg('Skip Tour', 'Lewati')}
+            </button>
+            <button
+              onClick={() => handleTourAction('start')}
+              className='flex-1 px-4 py-4 rounded-full font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg transition-all uppercase tracking-widest text-xs hover:-translate-y-0.5'>
+              {tMsg('Start Tour', 'Mulai Tur')}
+            </button>
+          </div>
+        ) : (
           <button
-            onClick={() => close('skip')}
-            className='flex-1 px-4 py-4 rounded-full font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors uppercase tracking-widest text-xs'>
-            {tMsg('Skip Tour', 'Lewati')}
+            type='button'
+            onClick={handleSave}
+            className='w-full px-4 py-4 rounded-full font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg transition-all uppercase tracking-widest text-xs hover:-translate-y-0.5'>
+            {tMsg('Save', 'Simpan')}
           </button>
-          <button
-            onClick={() => close('start')}
-            className='flex-1 px-4 py-4 rounded-full font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg transition-all uppercase tracking-widest text-xs hover:-translate-y-0.5'>
-            {tMsg('Start Tour', 'Mulai Tur')}
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );

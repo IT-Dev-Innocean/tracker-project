@@ -157,6 +157,8 @@ export default function useAppLogic() {
   const {
     isDarkMode,
     setIsDarkMode,
+    themeMode,
+    setThemeMode,
     appTheme,
     setAppTheme,
     appBgImage,
@@ -2617,13 +2619,12 @@ export default function useAppLogic() {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
       document.documentElement.style.colorScheme = 'dark';
-      if (isAuthenticated) localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
       document.documentElement.style.colorScheme = 'light';
-      if (isAuthenticated) localStorage.setItem('theme', 'light');
     }
-  }, [isDarkMode, isAuthenticated]);
+    if (isAuthenticated) localStorage.setItem('theme', themeMode);
+  }, [isDarkMode, isAuthenticated, themeMode]);
 
   useEffect(() => {
     if (selectedTask?.id) {
@@ -4769,6 +4770,7 @@ export default function useAppLogic() {
     groupBy,
     sortBy,
     isDarkMode,
+    themeMode,
     calDate,
     subtasks,
     isSubtasksLoading,
@@ -4886,6 +4888,7 @@ export default function useAppLogic() {
     setGroupBy,
     setSortBy,
     setIsDarkMode,
+    setThemeMode,
     setCalDate,
     setSubtasks,
     setNewSubtaskName,
