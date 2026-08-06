@@ -20,6 +20,12 @@ export const WELCOME_TOUR_BUTTONS_ENABLED = false;
 /** Auto Highlights Tour when opening a project board — set true to show again */
 export const BOARD_HIGHLIGHTS_TOUR_ENABLED = false;
 
+/** AI step when creating a task (Draft with AI) — set true to show again; AI stays on floating chat */
+export const TASK_FORM_AI_ASSISTANT_ENABLED = false;
+
+/** @AI (Team/Private) mentions in task detail chat — set true to show again */
+export const TASK_COMMENT_AI_MENTION_ENABLED = false;
+
 /** Board toolbar utility icons — set true to show again */
 export const TEAM_CHAT_UI_ENABLED = false;
 export const EXPORT_CSV_UI_ENABLED = false;

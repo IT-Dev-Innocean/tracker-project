@@ -1,5 +1,18 @@
 import React from 'react';
 import { Icon } from '../icons/Icon';
+import { TASK_COMMENT_AI_MENTION_ENABLED } from '../../featureFlags';
+
+function getCommentMentionOptions(selectedBoard, globalMentionOptions) {
+  const members = globalMentionOptions || [];
+  if (selectedBoard?.is_private) {
+    return TASK_COMMENT_AI_MENTION_ENABLED
+      ? ['AI (Private)', 'AI (Team)', ...members]
+      : [...members];
+  }
+  return TASK_COMMENT_AI_MENTION_ENABLED
+    ? ['all', 'AI (Team)', 'AI (Private)', ...members]
+    : ['all', ...members];
+}
 
 export default function TaskDetailCommentForm({
   isInvolved,
@@ -120,7 +133,11 @@ export default function TaskDetailCommentForm({
               value={newComment}
               onChange={(e) => handleCommentChange(e.target.value)}
               disabled={accountStatus === 'suspended'}
-              placeholder={tMsg('Write a comment... (@AI to ask)', 'Tulis komentar... (@AI untuk tanya)')}
+              placeholder={
+                TASK_COMMENT_AI_MENTION_ENABLED
+                  ? tMsg('Write a comment... (@AI to ask)', 'Tulis komentar... (@AI untuk tanya)')
+                  : tMsg('Write a comment...', 'Tulis komentar...')
+              }
               className="flex-1 py-3 px-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-xl focus:bg-white dark:focus:bg-black focus:border-indigo-500 dark:focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-sm font-medium placeholder-neutral-400 transition-colors disabled:opacity-50 resize-none max-h-[120px]"
               style={{ minHeight: '44px' }}
               rows="1"
@@ -130,9 +147,7 @@ export default function TaskDetailCommentForm({
               }}
               onKeyDown={(e) => {
                 if (isCommentMentioning) {
-                  const allOps = selectedBoard?.is_private
-                    ? ['AI (Private)', 'AI (Team)']
-                    : ['all', 'AI (Team)', 'AI (Private)', ...globalMentionOptions];
+                  const allOps = getCommentMentionOptions(selectedBoard, globalMentionOptions);
                   const filtered = allOps.filter((m) => m.toLowerCase().includes(commentMentionQuery));
                   if (e.key === 'ArrowDown') {
                     e.preventDefault();
@@ -168,9 +183,7 @@ export default function TaskDetailCommentForm({
             {isCommentMentioning && accountStatus !== 'suspended' && (
               <div className="absolute left-0 bottom-full mb-2 w-full bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl z-50 max-h-40 overflow-y-auto py-2">
                 {(() => {
-                  const allOptions = selectedBoard?.is_private
-                    ? ['AI (Private)', 'AI (Team)']
-                    : ['all', 'AI (Team)', 'AI (Private)', ...globalMentionOptions];
+                  const allOptions = getCommentMentionOptions(selectedBoard, globalMentionOptions);
                   const filteredOptions = allOptions.filter((m) =>
                     m.toLowerCase().includes(commentMentionQuery)
                   );
