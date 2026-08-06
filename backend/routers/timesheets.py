@@ -228,7 +228,7 @@ def get_approvals_history(db: Session = Depends(get_db), current_user: str = Dep
         if entry.request_id:
             req = db.query(Request).filter(Request.id == entry.request_id).first()
             if req:
-                task_name = req.project_name[:50] + "..." if req.project_name and len(req.project_name) > 50 else req.project_name
+                task_name = req.task_name[:50] + "..." if req.task_name and len(req.task_name) > 50 else req.task_name
         else:
             task_name = entry.custom_task_name
 
