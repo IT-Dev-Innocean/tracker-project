@@ -6,18 +6,26 @@ import { useTask } from './hooks/useTask';
 import { useBoard } from './hooks/useBoard';
 import { useUISettings } from './hooks/useUISettings';
 import {
+  BOARD_HIGHLIGHTS_TOUR_ENABLED,
   MASTER_VIEW_UI_ENABLED,
   MY_CAPACITY_UI_ENABLED,
   TIMESHEETS_UI_ENABLED,
   TODO_LIST_UI_ENABLED,
 } from './featureFlags';
+import {
+  bindStatusColorAlias,
+  DEFAULT_STATUS_COLUMNS,
+  getStatusLabelColor,
+  setStatusLabelColor,
+  STATUS_COLOR_PALETTE,
+} from './utils/statusColors';
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import axios from 'axios'; 
 import { useGoogleLogin, useGoogleOneTapLogin, googleLogout } from '@react-oauth/google';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 
-const DEFAULT_COLUMNS = ['Pending', 'In Progress', 'Done', 'Rejected'];
+const DEFAULT_COLUMNS = DEFAULT_STATUS_COLUMNS;
 const DEFAULT_CATEGORIES = ['Development', 'Design', 'Marketing', 'Research', 'Maintenance', 'Consulting', 'Other'];
 const DAY_WIDTH = 45;
 let cachedGlobalTasks = null;
@@ -150,6 +158,8 @@ export default function useAppLogic() {
   const {
     isDarkMode,
     setIsDarkMode,
+    themeMode,
+    setThemeMode,
     appTheme,
     setAppTheme,
     appBgImage,
@@ -280,7 +290,14 @@ export default function useAppLogic() {
   const [tasks, setTasks] = useState([]);
   const [columns, setColumns] = useState(DEFAULT_COLUMNS);
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
-  const [colModal, setColModal] = useState({ isOpen: false, target: 'Status', mode: 'add', oldName: '', newName: '' });
+  const [colModal, setColModal] = useState({
+    isOpen: false,
+    target: 'Status',
+    mode: 'add',
+    oldName: '',
+    newName: '',
+    color: STATUS_COLOR_PALETTE[7].hex,
+  });
   const [viewMode, setViewMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('innocean_view_mode') || 'kanban';
@@ -309,8 +326,10 @@ export default function useAppLogic() {
   const [newSubtaskName, setNewSubtaskName] = useState('');
   const [newSubtaskAssignee, setNewSubtaskAssignee] = useState('');
   const [formData, setFormData] = useState({
-    project_name: '',
+    task_name: '',
     requester: '',
+    head_of_project: [],
+    rc_team: [],
     category: 'Development',
     description: '',
     supporting_access: '',
@@ -1251,6 +1270,7 @@ export default function useAppLogic() {
   };
 
   useEffect(() => {
+    if (!BOARD_HIGHLIGHTS_TOUR_ENABLED) return;
     if (selectedBoard && selectedBoard.id !== 'global' && !isProactiveAIOpen && !isProjectChatOpen) {
       const hasSeenBoardTour = localStorage.getItem(`innocean_board_tour_done_v2_${currentUser}`);
       const isAIOffering = localStorage.getItem('innocean_ai_offer_docs') === 'true';
@@ -1479,7 +1499,7 @@ export default function useAppLogic() {
       let requiresUpdate = false;
       const t = currentDrag.task;
       const payload = {
-        project_name: t.project_name,
+        task_name: t.task_name,
         requester: t.requester,
         category: t.category,
         description: t.description || '',
@@ -1677,7 +1697,7 @@ export default function useAppLogic() {
     setTasks((prev) => prev.map((t) => (t.id === task.id ? updatedTask : t)));
 
     const payload = {
-      project_name: task.project_name,
+      task_name: task.task_name,
       requester: task.requester,
       category: task.category,
       description: task.description || '',
@@ -1811,21 +1831,10 @@ export default function useAppLogic() {
 
     if (!selectedBoard || selectedBoard.id === 'global') {
       const now = Date.now();
-      if (cachedGlobalTasks && now - cachedGlobalTasksTime < 30000) {
+      // Serve cache for 60s without background refetch — silent refresh was doubling Neon transfer
+      if (!force && cachedGlobalTasks && now - cachedGlobalTasksTime < 60000) {
         handleNewTasks(cachedGlobalTasks);
         setIsTasksLoading(false);
-        // Refresh in the background silently
-        axios
-          .get('/api/tasks/all')
-          .then((res) => {
-            const fetched = res.data.tasks || [];
-            handleNewTasks(fetched);
-            cachedGlobalTasks = fetched;
-            cachedGlobalTasksTime = Date.now();
-          })
-          .catch((err) => {
-            if (err.response?.status !== 401) console.error(err);
-          });
         return;
       }
 
@@ -1848,7 +1857,19 @@ export default function useAppLogic() {
     axios
       .get(`/api/boards/${selectedBoard.id}/tasks`)
       .then((res) => {
-        handleNewTasks(res.data.tasks || []);
+        const incoming = res.data.tasks || [];
+        const pendingTasks = incoming.filter((t) => t.status === 'Pending');
+        if (pendingTasks.length > 0) {
+          const migrated = incoming.map((t) =>
+            t.status === 'Pending' ? { ...t, status: 'To Do' } : t
+          );
+          handleNewTasks(migrated);
+          pendingTasks.forEach((t) =>
+            axios.put(`/api/tasks/${t.id}`, { status: 'To Do' }).catch(console.error)
+          );
+        } else {
+          handleNewTasks(incoming);
+        }
       })
       .catch((err) => {
         if (err.response?.status === 403 || err.response?.status === 404) setSelectedBoard(null);
@@ -2077,7 +2098,7 @@ export default function useAppLogic() {
           fetchDmConversations();
           fetchInboxChats();
         }
-      }, 60000);
+      }, 120000);
 
       const handleVisibilityChange = () => {
         if (document.visibilityState === 'visible') {
@@ -2148,8 +2169,28 @@ export default function useAppLogic() {
 
           const savedCols = localStorage.getItem(`innocean_columns_${selectedBoard.id}`);
           const savedCats = localStorage.getItem(`innocean_categories_${selectedBoard.id}`);
-          let localCols = savedCols && savedCols !== 'null' && savedCols !== 'undefined' ? JSON.parse(savedCols) : [];
-          let localCats = savedCats && savedCats !== 'null' && savedCats !== 'undefined' ? JSON.parse(savedCats) : [];
+          let localCols =
+            savedCols && savedCols !== 'null' && savedCols !== 'undefined'
+              ? JSON.parse(savedCols)
+              : [];
+          let localCats =
+            savedCats && savedCats !== 'null' && savedCats !== 'undefined'
+              ? JSON.parse(savedCats)
+              : [];
+
+          const legacyDefaults = ['Pending', 'In Progress', 'Done', 'Rejected'];
+          const normalizeStatusColumns = (cols) => {
+            if (!cols?.length) return [...DEFAULT_COLUMNS];
+            const isLegacyExact =
+              cols.length === legacyDefaults.length &&
+              cols.every((c, i) => c === legacyDefaults[i]);
+            if (isLegacyExact) return [...DEFAULT_COLUMNS];
+            return cols.map((c) => (c === 'Pending' ? 'To Do' : c));
+          };
+
+          const rawDbCols = [...dbCols];
+          dbCols = normalizeStatusColumns(dbCols);
+          localCols = normalizeStatusColumns(localCols);
 
           const mergedCols = [
             ...localCols.filter((c) => dbCols.includes(c)),
@@ -2160,8 +2201,24 @@ export default function useAppLogic() {
             ...dbCats.filter((c) => !localCats.includes(c)),
           ];
 
-          setColumns(mergedCols.length > 0 ? mergedCols : DEFAULT_COLUMNS);
-          setCategories(mergedCats.length > 0 ? mergedCats : DEFAULT_CATEGORIES);
+          const finalCols = mergedCols.length > 0 ? mergedCols : DEFAULT_COLUMNS;
+          const finalCats = mergedCats.length > 0 ? mergedCats : DEFAULT_CATEGORIES;
+          setColumns(finalCols);
+          setCategories(finalCats);
+
+          const migratedFromLegacy =
+            rawDbCols.length === legacyDefaults.length &&
+            rawDbCols.every((c, i) => c === legacyDefaults[i]);
+          const renamedPending = rawDbCols.includes('Pending') && finalCols.includes('To Do');
+          if (migratedFromLegacy || renamedPending) {
+            try {
+              localStorage.setItem(
+                `innocean_columns_${selectedBoard.id}`,
+                JSON.stringify(finalCols)
+              );
+              syncBoardSettings(finalCols, finalCats);
+            } catch (e) {}
+          }
         } else {
           setColumns(DEFAULT_COLUMNS);
           setCategories(DEFAULT_CATEGORIES);
@@ -2404,7 +2461,7 @@ export default function useAppLogic() {
         setTasks(updatedTasks);
         tasksToUpdate.forEach((t) => {
           const payload = {
-            project_name: t.project_name,
+            task_name: t.task_name,
             requester: t.requester,
             category: t.category,
             description: t.description || '',
@@ -2438,6 +2495,15 @@ export default function useAppLogic() {
   }, [tasks, columns, categories, selectedBoard]);
 
   const handleOpenAddBoard = (target) => {
+    if (workspaceRole === 'staff') {
+      showNotification(
+        language === 'id'
+          ? 'Staff tidak dapat menambah status/kategori.'
+          : 'Staff cannot add statuses/categories.',
+        'error'
+      );
+      return;
+    }
     const maxLimit = 50;
     const currentLen = target === 'Status' ? columns.length : categories.length;
     const limitName = target === 'Status' ? 'columns' : 'categories';
@@ -2445,26 +2511,58 @@ export default function useAppLogic() {
       showNotification(`System limit reached. Maximum ${maxLimit} ${limitName} allowed.`, 'error');
       return;
     }
-    setColModal({ isOpen: true, target, mode: 'add', oldName: '', newName: '' });
+    setColModal({
+      isOpen: true,
+      target,
+      mode: 'add',
+      oldName: '',
+      newName: '',
+      color: STATUS_COLOR_PALETTE[2].hex,
+    });
   };
 
   const handleOpenRenameBoard = (target, oldName) => {
-    setColModal({ isOpen: true, target, mode: 'rename', oldName, newName: oldName });
+    if (workspaceRole === 'staff') {
+      showNotification(
+        language === 'id'
+          ? 'Staff tidak dapat mengubah nama board.'
+          : 'Staff cannot rename boards.',
+        'error'
+      );
+      return;
+    }
+    setColModal({
+      isOpen: true,
+      target,
+      mode: 'rename',
+      oldName,
+      newName: oldName,
+      color: target === 'Status' ? getStatusLabelColor(oldName) : '',
+    });
   };
 
   const handleOpenDeleteBoard = (target, oldName) => {
+    if (workspaceRole === 'staff') {
+      showNotification(
+        language === 'id'
+          ? 'Staff tidak dapat menghapus board.'
+          : 'Staff cannot delete boards.',
+        'error'
+      );
+      return;
+    }
     const hasTasks =
       target === 'Status' ? tasks.some((t) => t.status === oldName) : tasks.some((t) => t.category === oldName);
     if (hasTasks) {
       showNotification(`Cannot remove "${oldName}" because it currently contains tasks.`, 'error');
       return;
     }
-    setColModal({ isOpen: true, target, mode: 'delete', oldName, newName: '' });
+    setColModal({ isOpen: true, target, mode: 'delete', oldName, newName: '', color: '' });
   };
 
   const handleColSubmit = (e) => {
     e.preventDefault();
-    const { mode, oldName, newName, target } = colModal;
+    const { mode, oldName, newName, target, color } = colModal;
     const list = target === 'Status' ? columns : categories;
     const setList = target === 'Status' ? setColumns : setCategories;
     const storageKey =
@@ -2479,6 +2577,7 @@ export default function useAppLogic() {
       }
       const newList = [...list, name];
       setList(newList);
+      if (target === 'Status' && color) setStatusLabelColor(name, color);
       if (selectedBoard && selectedBoard.id !== 'global') {
         localStorage.setItem(storageKey, JSON.stringify(newList));
         if (target === 'Status') syncBoardSettings(newList, categories);
@@ -2491,6 +2590,22 @@ export default function useAppLogic() {
       showNotification(`${target} added!`, 'success');
     } else if (mode === 'rename') {
       const name = newName.trim();
+      if (target === 'Status' && color) {
+        if (!name || name.toLowerCase() === oldName.toLowerCase()) {
+          setStatusLabelColor(oldName, color);
+          setColumns((prev) => [...prev]); // refresh label colors
+          setColModal({
+            isOpen: false,
+            target: 'Status',
+            mode: 'add',
+            oldName: '',
+            newName: '',
+            color: STATUS_COLOR_PALETTE[7].hex,
+          });
+          showNotification(`${target} updated!`, 'success');
+          return;
+        }
+      }
       if (!name || name.toLowerCase() === oldName.toLowerCase()) {
         setColModal({ ...colModal, isOpen: false });
         return;
@@ -2509,6 +2624,7 @@ export default function useAppLogic() {
       }
 
       if (target === 'Status') {
+        bindStatusColorAlias(oldName, name, color);
         const updatedTasks = tasks.map((t) => (t.status === oldName ? { ...t, status: name } : t));
         setTasks(updatedTasks);
         const tasksToUpdate = tasks.filter((t) => t.status === oldName);
@@ -2519,7 +2635,7 @@ export default function useAppLogic() {
         const tasksToUpdate = tasks.filter((t) => t.category === oldName);
         tasksToUpdate.forEach((t) => {
           const payload = {
-            project_name: t.project_name,
+            task_name: t.task_name,
             requester: t.requester,
             category: name,
             description: t.description || '',
@@ -2548,28 +2664,38 @@ export default function useAppLogic() {
       showNotification(`${target} deleted!`, 'success');
     }
 
-    setColModal({ isOpen: false, target: 'Status', mode: 'add', oldName: '', newName: '' });
+    setColModal({
+      isOpen: false,
+      target: 'Status',
+      mode: 'add',
+      oldName: '',
+      newName: '',
+      color: STATUS_COLOR_PALETTE[7].hex,
+    });
   };
 
   useLayoutEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
       document.documentElement.style.colorScheme = 'dark';
-      if (isAuthenticated) localStorage.setItem('theme', 'dark');
     } else {
       document.documentElement.classList.remove('dark');
       document.documentElement.style.colorScheme = 'light';
-      if (isAuthenticated) localStorage.setItem('theme', 'light');
     }
-  }, [isDarkMode, isAuthenticated]);
+    if (isAuthenticated) localStorage.setItem('theme', themeMode);
+  }, [isDarkMode, isAuthenticated, themeMode]);
 
   useEffect(() => {
     if (selectedTask?.id) {
       fetchSubtasks(selectedTask.id);
       fetchComments(selectedTask.id);
 
-      // Fetch full task details if the current selectedTask is a partial search result (lacks queue/recurring fields)
-      if (selectedTask.queue_global_number === undefined || selectedTask.recurring === undefined) {
+      // Always hydrate full task when opening modal (list payloads may truncate description)
+      if (
+        selectedTask.description_truncated ||
+        selectedTask.queue_global_number === undefined ||
+        selectedTask.recurring === undefined
+      ) {
         axios
           .get(`/api/tasks/${selectedTask.id}`)
           .then((res) => {
@@ -2604,7 +2730,7 @@ export default function useAppLogic() {
     if (selectedTask?.id) {
       interval = setInterval(() => {
         if (document.visibilityState === 'visible') fetchComments(selectedTask.id);
-      }, 10000);
+      }, 30000);
     }
     return () => clearInterval(interval);
   }, [selectedTask?.id]);
@@ -2690,8 +2816,9 @@ export default function useAppLogic() {
   };
 
   const fetchComments = (taskId, loadMore = false) => {
+    // Poll always uses latest 50; never grow limit with history (was exploding Neon transfer)
     let offset = loadMore ? commentsLengthRef.current : 0;
-    let limit = loadMore ? 50 : Math.max(commentsLengthRef.current || 50, 50);
+    let limit = 50;
     axios
       .get(`/api/tasks/${taskId}/comments?offset=${offset}&limit=${limit}`)
       .then((res) => {
@@ -2716,7 +2843,13 @@ export default function useAppLogic() {
           setComments((prev) => [...msgs, ...prev]);
         } else {
           setHasMoreComments(msgs.length === limit);
-          setComments(msgs);
+          // Merge poll results so older "load more" history is kept
+          setComments((prev) => {
+            if (!prev.length || prev.length <= msgs.length) return msgs;
+            const byId = new Map(prev.map((c) => [c.id, c]));
+            msgs.forEach((c) => byId.set(c.id, c));
+            return Array.from(byId.values()).sort((a, b) => a.id - b.id);
+          });
         }
       })
       .catch((err) => console.error('Failed to load comments:', err));
@@ -2850,7 +2983,7 @@ export default function useAppLogic() {
     if (!selectedBoard || selectedBoard.id === 'global') return;
 
     let offset = loadMore ? projectChatLengthRef.current : 0;
-    let limit = loadMore ? 50 : Math.max(projectChatLengthRef.current || 50, 50);
+    let limit = 50;
     axios
       .get(`/api/boards/${selectedBoard.id}/chat?offset=${offset}&limit=${limit}`)
       .then((res) => {
@@ -2875,11 +3008,19 @@ export default function useAppLogic() {
           setProjectChatMessages((prev) => [...msgs, ...prev]);
         } else {
           setHasMoreProjectChat(msgs.length === limit);
-          setProjectChatMessages(msgs);
-          if (prevChatLenRef.current !== 0 && msgs.length > prevChatLenRef.current) {
-            if (!isProjectChatOpen || drawerTab !== 'team') setHasNewProjectChat(true);
-          }
-          prevChatLenRef.current = msgs.length;
+          setProjectChatMessages((prev) => {
+            let next = msgs;
+            if (prev.length > msgs.length) {
+              const byId = new Map(prev.map((c) => [c.id, c]));
+              msgs.forEach((c) => byId.set(c.id, c));
+              next = Array.from(byId.values()).sort((a, b) => a.id - b.id);
+            }
+            if (prevChatLenRef.current !== 0 && next.length > prevChatLenRef.current) {
+              if (!isProjectChatOpen || drawerTab !== 'team') setHasNewProjectChat(true);
+            }
+            prevChatLenRef.current = next.length;
+            return next;
+          });
         }
       })
       .catch(console.error);
@@ -2977,8 +3118,8 @@ export default function useAppLogic() {
         () => {
           if (document.visibilityState === 'visible') fetchProjectChat();
         },
-        isProjectChatOpen ? 10000 : 60000
-      ); // Live poll 10s (open) or 60s (closed)
+        isProjectChatOpen ? 30000 : 120000
+      ); // Live poll 30s (open) or 120s (closed) — cut Neon chat transfer
     }
     return () => clearInterval(interval);
   }, [isProjectChatOpen, selectedBoard]);
@@ -3138,7 +3279,7 @@ export default function useAppLogic() {
         });
     } else {
       const payload = {
-        project_name: draggedTask.project_name,
+        task_name: draggedTask.task_name,
         requester:
           groupBy === 'Assignee'
             ? destination.droppableId === 'Unassigned'
@@ -3219,8 +3360,13 @@ export default function useAppLogic() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.project_name || !formData.requester || !formData.start_date || !formData.deadline) {
-      showNotification('Project Name, Requester, Start Date, and Deadline are required!', 'error');
+    if (!formData.task_name || !formData.requester || !formData.start_date || !formData.deadline) {
+      showNotification(
+        language === 'id'
+          ? 'Nama Tugas, Project Owner/Requester, Tanggal Mulai, dan Tenggat Waktu wajib diisi!'
+          : 'Task Name, Project Owner/Requester, Start Date, and Deadline are required!',
+        'error'
+      );
       return;
     }
 
@@ -3252,6 +3398,12 @@ export default function useAppLogic() {
     setIsSubmitting(true);
     const formattedData = {
       ...formData,
+      head_of_project: Array.isArray(formData.head_of_project)
+        ? formData.head_of_project.join(',')
+        : formData.head_of_project || '',
+      rc_team: Array.isArray(formData.rc_team)
+        ? formData.rc_team.join(',')
+        : formData.rc_team || '',
       category: formData.category || categories[0] || 'Other',
       deadline: `${formData.deadline} 17:00:00`,
       etc: formData.etc || 2,
@@ -3264,8 +3416,10 @@ export default function useAppLogic() {
       .then(() => {
         setIsFormOpen(false);
         setFormData({
-          project_name: '',
+          task_name: '',
           requester: '',
+          head_of_project: [],
+          rc_team: [],
           category: 'Development',
           description: '',
           supporting_access: '',
@@ -3288,7 +3442,7 @@ export default function useAppLogic() {
   };
 
   const handleQuickAddTask = (taskData) => {
-    if (!taskData.project_name.trim() || !selectedBoard || selectedBoard.id === 'global') return;
+    if (!taskData.task_name.trim() || !selectedBoard || selectedBoard.id === 'global') return;
     const nowStr = getLocalToday();
     const deadlineStr = taskData.deadline;
 
@@ -3309,7 +3463,7 @@ export default function useAppLogic() {
     }
 
     const formattedData = {
-      project_name: taskData.project_name.trim(),
+      task_name: taskData.task_name.trim(),
       requester: taskData.requester || currentUser,
       category: taskData.category || categories[0] || 'Other',
       description: '',
@@ -3333,7 +3487,7 @@ export default function useAppLogic() {
     const updatedLinks = currentLinks.join('\n');
 
     const payload = {
-      project_name: task.project_name,
+      task_name: task.task_name,
       requester: task.requester,
       category: task.category,
       description: task.description || '',
@@ -3366,7 +3520,7 @@ export default function useAppLogic() {
     const updatedLinks = currentLinks.filter((l) => l !== linkToRemove).join('\n');
 
     const payload = {
-      project_name: task.project_name,
+      task_name: task.task_name,
       requester: task.requester,
       category: task.category,
       description: task.description || '',
@@ -3422,9 +3576,20 @@ export default function useAppLogic() {
   };
 
   const startEditing = () => {
+    const parseUserList = (val) => {
+      if (Array.isArray(val)) return val;
+      if (!val || !String(val).trim()) return [];
+      return String(val)
+        .split(',')
+        .map((u) => u.trim())
+        .filter(Boolean);
+    };
+
     setEditFormData({
-      project_name: selectedTask.project_name,
+      task_name: selectedTask.task_name,
       requester: selectedTask.requester,
+      head_of_project: parseUserList(selectedTask.head_of_project),
+      rc_team: parseUserList(selectedTask.rc_team),
       category: selectedTask.category,
       description: selectedTask.description || '',
       supporting_access: selectedTask.supporting_access || '',
@@ -3501,7 +3666,16 @@ export default function useAppLogic() {
 
     setIsSubmitting(true);
     const validDeadline = editFormData.deadline || getLocalToday();
-    const payload = { ...editFormData, deadline: `${validDeadline.trim()} 17:00:00` };
+    const payload = {
+      ...editFormData,
+      head_of_project: Array.isArray(editFormData.head_of_project)
+        ? editFormData.head_of_project.join(',')
+        : editFormData.head_of_project || '',
+      rc_team: Array.isArray(editFormData.rc_team)
+        ? editFormData.rc_team.join(',')
+        : editFormData.rc_team || '',
+      deadline: `${validDeadline.trim()} 17:00:00`,
+    };
 
     // Ensure etc is a number
     if (payload.etc === '' || isNaN(payload.etc)) {
@@ -3598,7 +3772,7 @@ export default function useAppLogic() {
 
       const keywords = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
       const combinedSearchText = [
-        task.project_name,
+        task.task_name,
         task.requester,
         task.category,
         task.description,
@@ -3890,7 +4064,7 @@ export default function useAppLogic() {
 
         return [
           isGlobal ? escapeCSV(t.board_name) : t.id,
-          escapeCSV(t.project_name),
+          escapeCSV(t.task_name),
           escapeCSV(t.description),
           escapeCSV(t.owner_username),
           escapeCSV(t.requester),
@@ -4665,7 +4839,8 @@ export default function useAppLogic() {
         if (t.status === 'Done') {
           memberDetailedStats[person].done_etc += splitEtc;
         } else {
-          if (t.status !== 'Pending') memberDetailedStats[person].active_etc += splitEtc;
+          if (t.status !== 'Pending' && t.status !== 'To Do')
+            memberDetailedStats[person].active_etc += splitEtc;
           if (t.priority_lvl === 'critical') memberDetailedStats[person].critical += 1;
         }
       });
@@ -4706,6 +4881,7 @@ export default function useAppLogic() {
     groupBy,
     sortBy,
     isDarkMode,
+    themeMode,
     calDate,
     subtasks,
     isSubtasksLoading,
@@ -4823,6 +4999,7 @@ export default function useAppLogic() {
     setGroupBy,
     setSortBy,
     setIsDarkMode,
+    setThemeMode,
     setCalDate,
     setSubtasks,
     setNewSubtaskName,

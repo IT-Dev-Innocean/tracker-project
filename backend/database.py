@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -6,6 +7,8 @@ import json
 from sqlalchemy import create_engine, Column, Integer, String, Text, text, DateTime, Boolean, Float
 from datetime import datetime
 from sqlalchemy.orm import declarative_base, sessionmaker
+
+logger = logging.getLogger(__name__)
 
 _BACKEND_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _BACKEND_DIR.parent
@@ -19,10 +22,18 @@ SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 if not SQLALCHEMY_DATABASE_URL:
     raise RuntimeError("DATABASE_URL is not set in the environment or .env file!")
 
-# Tambahkan pool_pre_ping dan pool_recycle untuk menangani auto-disconnect di cloud DB (seperti Neon DB)
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, pool_pre_ping=True, pool_recycle=300
-)
+_IS_SQLITE = SQLALCHEMY_DATABASE_URL.startswith("sqlite")
+
+if _IS_SQLITE:
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+    )
+else:
+    # pool_pre_ping + pool_recycle untuk auto-disconnect di cloud DB (Neon, dll.)
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL, pool_pre_ping=True, pool_recycle=300
+    )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -33,14 +44,16 @@ class Request(Base):
     id = Column(Integer, primary_key=True, index=True)
     board_id = Column(Integer, index=True, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
-    project_name = Column(String(100))
+    task_name = Column(String(255))
     requester = Column(String(100))
+    head_of_project = Column(Text, nullable=True)
+    rc_team = Column(Text, nullable=True)
     category = Column(String(50))
     description = Column(Text)
     supporting_access = Column(Text)
     start_date = Column(DateTime, nullable=True)
     deadline = Column(DateTime)
-    status = Column(String(50), default="Pending")
+    status = Column(String(50), default="To Do")
     completed_time = Column(DateTime, nullable=True)
     owner_username = Column(String(50), index=True)
     impact = Column(String(50), default="Medium")
@@ -208,30 +221,57 @@ def set_security_log(db, key: str, value):
 
 
 def setup_db():
-    Base.metadata.create_all(bind=engine)
-    # Ensure role and timesheet_required columns exist on older databases
     try:
-        with engine.begin() as conn:
-            conn.execute(
-                text(
-                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'project_owner'"
-                )
-            )
-            conn.execute(
-                text(
-                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS timesheet_required BOOLEAN DEFAULT TRUE"
-                )
-            )
-            conn.execute(
-                text(
-                    "UPDATE users SET timesheet_required = TRUE WHERE timesheet_required IS NULL"
-                )
-            )
-    except Exception:
+        Base.metadata.create_all(bind=engine)
+    except Exception as exc:
+        logger.error("Gagal membuat/membuka koneksi database: %s", exc)
+        raise
+
+    # Migrasi manual untuk DB lama (create_all tidak mengubah tabel yang sudah ada)
+    if not _IS_SQLITE:
         try:
             with engine.begin() as conn:
-                conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'project_owner'"))
-                conn.execute(text("ALTER TABLE users ADD COLUMN timesheet_required BOOLEAN DEFAULT TRUE"))
+                conn.execute(
+                    text(
+                        "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'project_owner'"
+                    )
+                )
+                conn.execute(
+                    text(
+                        "ALTER TABLE users ADD COLUMN IF NOT EXISTS timesheet_required BOOLEAN DEFAULT TRUE"
+                    )
+                )
+                conn.execute(
+                    text(
+                        "UPDATE users SET timesheet_required = TRUE WHERE timesheet_required IS NULL"
+                    )
+                )
+        except Exception:
+            try:
+                with engine.begin() as conn:
+                    conn.execute(
+                        text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'project_owner'")
+                    )
+                    conn.execute(
+                        text("ALTER TABLE users ADD COLUMN timesheet_required BOOLEAN DEFAULT TRUE")
+                    )
+            except Exception:
+                pass
+        try:
+            with engine.begin() as conn:
+                conn.execute(
+                    text("ALTER TABLE requests RENAME COLUMN project_name TO task_name")
+                )
+        except Exception:
+            pass
+        try:
+            with engine.begin() as conn:
+                conn.execute(
+                    text("ALTER TABLE requests ADD COLUMN IF NOT EXISTS head_of_project TEXT")
+                )
+                conn.execute(
+                    text("ALTER TABLE requests ADD COLUMN IF NOT EXISTS rc_team TEXT")
+                )
         except Exception:
             pass
 

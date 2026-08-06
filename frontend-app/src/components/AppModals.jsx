@@ -280,6 +280,7 @@ export default function AppModals() {
     handleUpdateUserStatus,
     inviteInput,
     isDarkMode,
+    themeMode,
     isFeedbackOpen,
     isInvitesModalOpen,
     isMyTicketsOpen,
@@ -294,6 +295,7 @@ export default function AppModals() {
     setExportEndDate,
     setExportStartDate,
     setIsDarkMode,
+    setThemeMode,
     setIsFeedbackOpen,
     setIsInvitesModalOpen,
     setIsMyTicketsOpen,
@@ -790,6 +792,8 @@ export default function AppModals() {
           setLanguage={setLanguage}
           isDarkMode={isDarkMode}
           setIsDarkMode={setIsDarkMode}
+          themeMode={themeMode}
+          setThemeMode={setThemeMode}
           currentUser={currentUser}
         />
       )}

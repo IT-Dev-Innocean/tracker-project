@@ -1,16 +1,50 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+
+const getSystemIsDark = () =>
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+const resolveIsDark = (mode) => {
+  if (mode === 'auto') return getSystemIsDark();
+  return mode === 'dark';
+};
+
+const readStoredThemeMode = () => {
+  if (typeof window === 'undefined') return 'dark';
+  if (localStorage.getItem('innocean_auth') !== 'true') return 'dark';
+  const stored = localStorage.getItem('theme');
+  if (stored === 'light' || stored === 'dark' || stored === 'auto') return stored;
+  return 'dark';
+};
 
 export function useTheme() {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      if (localStorage.getItem('innocean_auth') !== 'true') return true; // Landing Page selalu dark
-      if ('theme' in localStorage) {
-        return localStorage.getItem('theme') === 'dark';
-      }
-      return true; // Default to dark theme for new visitors
-    }
-    return true;
-  });
+  const [themeMode, setThemeModeState] = useState(readStoredThemeMode);
+  const [isDarkMode, setIsDarkModeState] = useState(() =>
+    resolveIsDark(readStoredThemeMode())
+  );
+
+  const setThemeMode = useCallback((mode) => {
+    setThemeModeState(mode);
+    setIsDarkModeState(resolveIsDark(mode));
+  }, []);
+
+  /** Legacy boolean setter — maps to light/dark (not auto). */
+  const setIsDarkMode = useCallback((value) => {
+    setIsDarkModeState((prev) => {
+      const next = typeof value === 'function' ? value(prev) : value;
+      setThemeModeState(next ? 'dark' : 'light');
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (themeMode !== 'auto' || typeof window === 'undefined') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = (e) => setIsDarkModeState(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [themeMode]);
+
   const [appTheme, setAppTheme] = useState(() => {
     if (typeof window !== 'undefined') {
       if (localStorage.getItem('innocean_auth') !== 'true') return '';
@@ -45,11 +79,19 @@ export function useTheme() {
   });
 
   return {
-    isDarkMode, setIsDarkMode,
-    appTheme, setAppTheme,
-    appBgImage, setAppBgImage,
-    appTexture, setAppTexture,
-    cardTheme, setCardTheme,
-    language, setLanguage,
+    isDarkMode,
+    setIsDarkMode,
+    themeMode,
+    setThemeMode,
+    appTheme,
+    setAppTheme,
+    appBgImage,
+    setAppBgImage,
+    appTexture,
+    setAppTexture,
+    cardTheme,
+    setCardTheme,
+    language,
+    setLanguage,
   };
 }

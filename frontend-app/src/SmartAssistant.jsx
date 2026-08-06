@@ -318,14 +318,14 @@ ${contextStr}
 Use this exact array format:
 [
   {
-    "project_name": "Clear task title",
+    "task_name": "Clear task title",
     "requester": "Extracted assignee or '@${currentUser}' if none",
     "category": "Choose one: Development, Design, Marketing, Research, Maintenance, Consulting, Other",
     "deadline": "YYYY-MM-DD (Estimate based on notes, or use ${todayStr})",
     "description": "Detailed and comprehensive brief from the notes, preserving all important context and specific requirements"
   },
   {
-    "project_name": "Another task title",
+    "task_name": "Another task title",
     "requester": "...",
     "category": "...",
     "deadline": "...",
@@ -378,7 +378,7 @@ ${Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n\n') : taskData
               );
 
               extractedTasks.forEach((t, i) => {
-                summaryHtml += `**${i + 1}. ${t.project_name}**\n*👤 ${t.requester} | 📂 ${t.category} | 📅 ${
+                summaryHtml += `**${i + 1}. ${t.task_name}**\n*👤 ${t.requester} | 📂 ${t.category} | 📅 ${
                   t.deadline
                 }*\n\n`;
               });
@@ -981,7 +981,7 @@ Please respond in the same language that the user used in their message.
 CRITICAL RULE: You must stay strictly within the context of INNOCEAN Tracker, project/task management, office work, scheduling, or developer/work collaboration. If the user's message is unrelated to these topics (e.g., cooking recipes, general chit-chat about hobbies, movies, trivia, sports, personal life, etc.), you must politely decline to answer, explaining in the user's language that your role is strictly to assist with project management, tasks, and productivity in INNOCEAN Tracker. Do not provide information or perform tasks for out-of-context topics under any circumstances.
 
 If the user wants to CREATE/ADD A TASK (e.g. "bikin task", "buatkan task", "create task"), extract the details and reply ONLY with this valid JSON format (do not wrap in markdown quotes, just the raw JSON object):
-{"action": "create_task", "project_name": "extracted title", "requester": "Assignee (with '@') OR Requester name (without '@') OR @${currentUser}", "category": "extracted or 'Other'", "deadline": "YYYY-MM-DD (format strictly like this)", "etc": "Estimate the time consumption in hours (integer) based on task complexity. If user specifies a time (e.g., 'this will take 4 hours'), use that. Default to 2 if unsure.", "description": "detailed description if provided, else empty", "subtasks": ["extracted subtask 1", "extracted subtask 2"]}
+{"action": "create_task", "task_name": "extracted title", "requester": "Assignee (with '@') OR Requester name (without '@') OR @${currentUser}", "category": "extracted or 'Other'", "deadline": "YYYY-MM-DD (format strictly like this)", "etc": "Estimate the time consumption in hours (integer) based on task complexity. If user specifies a time (e.g., 'this will take 4 hours'), use that. Default to 2 if unsure.", "description": "detailed description if provided, else empty", "subtasks": ["extracted subtask 1", "extracted subtask 2"]}
 
 If the user wants to ADD A LEAVE/TIME OFF (e.g. "bikin cuti", "tambah libur", "add leave"), extract the details and reply ONLY with this valid JSON format (do not wrap in markdown quotes, just the raw JSON object):
 {"action": "create_leave", "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "description": "extracted reason or 'Personal Leave'"}
@@ -1016,7 +1016,7 @@ If it's a general question or conversation related to project/task management, o
                 for (const jsonStr of multiJsonMatches) {
                   try {
                     const t = JSON.parse(jsonStr);
-                    if (t.action === 'create_task' && t.project_name) {
+                    if (t.action === 'create_task' && t.task_name) {
                       parsedTasks.push(t);
                     }
                   } catch (_) { /* skip malformed */ }
@@ -1030,7 +1030,7 @@ If it's a general question or conversation related to project/task management, o
 
                   const plannerReadyTasks = parsedTasks.map((t) => ({
                     id: Math.random().toString(),
-                    project_name: t.project_name,
+                    task_name: t.task_name,
                     requester: t.requester || `@${currentUser}`,
                     category: t.category || 'Other',
                     deadline: t.deadline || '',
@@ -1089,8 +1089,8 @@ If it's a general question or conversation related to project/task management, o
                     setStep('ask_board_for_create');
                     addBotMessage(
                       tMsg(
-                        `I've prepared the task **"${parsed.project_name}"**. Since you are in the Global Workspace, which project should this belong to?`,
-                        `Saya telah menyiapkan tugas **"${parsed.project_name}"**. Karena Anda berada di Ruang Kerja Global, proyek mana yang akan menjadi tempat tugas ini?`
+                        `I've prepared the task **"${parsed.task_name}"**. Since you are in the Global Workspace, which project should this belong to?`,
+                        `Saya telah menyiapkan tugas **"${parsed.task_name}"**. Karena Anda berada di Ruang Kerja Global, proyek mana yang akan menjadi tempat tugas ini?`
                       ),
                       (boards || []).map((b) => b.name).slice(0, 5)
                     );
@@ -1341,7 +1341,7 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
           (b) => b.name.toLowerCase() === data.toLowerCase() || b.id.toString() === data
         );
         if (foundBoard) {
-          if (taskData.action === 'create_task' || taskData.project_name) {
+          if (taskData.action === 'create_task' || taskData.task_name) {
             const finalData = { ...taskData, board_id: foundBoard.id, board_name: foundBoard.name };
             setTaskData(finalData);
             setStep('confirm_project_details');
@@ -1379,7 +1379,7 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
       }
 
       if (currentStep === 'ask_project') {
-        setTaskData((prev) => ({ ...prev, project_name: data }));
+        setTaskData((prev) => ({ ...prev, task_name: data }));
         setStep('ask_requester');
         addBotMessage(
           tMsg(
@@ -1576,7 +1576,7 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
               `Sempurna. Berikut adalah ringkasan tugas Anda:\n\n`
             ) +
             `• **${tMsg('Project', 'Proyek')}:** ${finalData.board_name || selectedBoard?.name || 'Unknown'}\n` +
-            `• **${tMsg('Title', 'Judul')}:** ${finalData.project_name}\n` +
+            `• **${tMsg('Title', 'Judul')}:** ${finalData.task_name}\n` +
             `• **${requesterLabel}:** ${finalData.requester}\n` +
             `• **${tMsg('Category', 'Kategori')}:** ${finalData.category}\n` +
             `• **${tMsg('Deadline', 'Tenggat Waktu')}:** ${finalData.deadline}\n` +
@@ -1590,7 +1590,7 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
 
         if (data === optDraftYes) {
           addBotMessage(tMsg('Drafting description with AI... ⏳', 'Membuat deskripsi dengan AI... ⏳'));
-          const prompt = `Write a short, professional, and structured task description (brief) for a project. Write it in the same language as the task title ("${taskData.project_name}"). The task title is "${taskData.project_name}", category is "${taskData.category}". Output 2 to 3 concise bullet points outlining expected deliverables or steps. Do not include greetings.`;
+          const prompt = `Write a short, professional, and structured task description (brief) for a project. Write it in the same language as the task title ("${taskData.task_name}"). The task title is "${taskData.task_name}", category is "${taskData.category}". Output 2 to 3 concise bullet points outlining expected deliverables or steps. Do not include greetings.`;
           axios
             .post('/api/ai/generate', { prompt, provider: selectedModel })
             .then((res) => {
@@ -1801,7 +1801,7 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
           let successCount = 0;
           for (const t of tasksToCreate) {
             const formattedData = {
-              project_name: t.project_name,
+              task_name: t.task_name,
               requester: t.requester,
               category: t.category,
               deadline: `${t.deadline} 17:00:00`,
@@ -1868,7 +1868,7 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
       } else if (currentStep === 'ask_edit' || currentStep === 'ask_delete') {
         const target = textLower;
         const matchedTasks = tasks.filter(
-          (t) => t.id.toString() === target || t.project_name.toLowerCase().includes(target)
+          (t) => t.id.toString() === target || t.task_name.toLowerCase().includes(target)
         );
 
         if (matchedTasks.length === 0) {
@@ -1896,16 +1896,16 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
             setTimeout(() => setIsEditing(true), 200);
             addBotMessage(
               tMsg(
-                `Opening task **#${t.id}: ${t.project_name}** in Edit Mode! ✏️`,
-                `Membuka tugas **#${t.id}: ${t.project_name}** dalam Mode Edit! ✏️`
+                `Opening task **#${t.id}: ${t.task_name}** in Edit Mode! ✏️`,
+                `Membuka tugas **#${t.id}: ${t.task_name}** dalam Mode Edit! ✏️`
               )
             );
           } else {
             setTimeout(() => setIsDeleteConfirmOpen(true), 200);
             addBotMessage(
               tMsg(
-                `Opening delete confirmation for **#${t.id}: ${t.project_name}**. Please confirm on the popup. ⚠️`,
-                `Membuka konfirmasi hapus untuk **#${t.id}: ${t.project_name}**. Silakan konfirmasi di popup. ⚠️`
+                `Opening delete confirmation for **#${t.id}: ${t.task_name}**. Please confirm on the popup. ⚠️`,
+                `Membuka konfirmasi hapus untuk **#${t.id}: ${t.task_name}**. Silakan konfirmasi di popup. ⚠️`
               )
             );
           }
@@ -2109,7 +2109,7 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
   const submitTask = () => {
     addBotMessage(tMsg('Creating task... ⏳', 'Membuat tugas... ⏳'));
     const formattedData = {
-      project_name: taskData.project_name,
+      task_name: taskData.task_name,
       requester: taskData.requester,
       category: taskData.category,
       deadline: `${taskData.deadline} 17:00:00`,
@@ -2182,7 +2182,7 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
 
     for (const t of quickTasks) {
       const payload = {
-        project_name: t.text,
+        task_name: t.text,
         requester: `@${currentUser}`,
         category: categories[0] || 'Other',
         description: '*⚡ Created via Quick To-Do*',
@@ -2227,14 +2227,14 @@ INSTRUCTIONS:
 1. Break down the user's request into specific, actionable tasks.
    - BROAD / GENERIC GOAL: If the user's request is generic or broad (e.g., "Paid search", "SEO", "marketing campaign", "website redesign") and does NOT explicitly mention a specific assignee (@name), a specific deadline/due date, a specific project name (#ProjectName), or any highly specific single action, you MUST logically break it down into multiple actionable tasks (minimum 3 tasks), regardless of how few words the user prompt is.
    - SPECIFIC TASK: If it is a single specific action, explicitly assigns work (@name), or specifies a distinct project (#ProjectName), generate EXACTLY ONE task per each action.
-2. "project_name" MUST ALWAYS be in English. When generating multiple tasks from a breakdown, you MUST prepend step numbers (e.g. "[Part 1] Task Title" or "1. Task Title") so the sequence and order of execution are clear.
+2. "task_name" MUST ALWAYS be in English. When generating multiple tasks from a breakdown, you MUST prepend step numbers (e.g. "[Part 1] Task Title" or "1. Task Title") so the sequence and order of execution are clear.
 3. "description" and "subtasks" MUST match the EXACT language used in the user's prompt.
 4. Output Format: Return ONLY a valid JSON array. DO NOT use markdown formatting blocks.
 
 JSON SCHEMA:
 [
   {
-    "project_name": "[Context] Actionable Title in ENGLISH ONLY",
+    "task_name": "[Context] Actionable Title in ENGLISH ONLY",
     "suggested_project": "Extract project name identified by '#' (e.g., '#WebsiteRedesign'). Leave empty if none.",
     "requester": "If assigning TO someone, use '@username' (e.g., '@budi'). Default to '@${currentUser}' if unspecified.",
     "category": "Identify the best category (e.g. Development, Design, Marketing).",
@@ -2329,7 +2329,7 @@ USER REQUEST:
       if (!targetId) continue;
 
       const payload = {
-        project_name: t.project_name,
+        task_name: t.task_name,
         requester: t.requester || `@${currentUser}`,
         category: t.category || categories[0] || 'Other',
         description: (t.description || '') + '\n\n*✨ Auto-generated by Smart Assistant Planner*',

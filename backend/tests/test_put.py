@@ -13,7 +13,7 @@ client.headers.update({"Authorization": f"Bearer {token}"})
 
 # create a recurring task
 task_data = {
-    "project_name": "Test Recurring",
+    "task_name": "Test Recurring",
     "requester": "@eka",
     "category": "Development",
     "description": "test",

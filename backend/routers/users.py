@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 from sqlalchemy import or_, and_, func, text
 import re
 import json
@@ -137,10 +137,26 @@ def update_profile(
 def get_all_avatars(
     current_user: str = Depends(get_current_user), db: Session = Depends(get_db)
 ):
-    users = db.query(User).all()
+    # Metadata without avatar/password — avatar base64 is fetched only for connected users
+    users = (
+        db.query(User)
+        .options(
+            load_only(
+                User.id,
+                User.username,
+                User.email,
+                User.full_name,
+                User.is_verified,
+                User.account_status,
+                User.is_superadmin,
+                User.role,
+            )
+        )
+        .all()
+    )
     can_manage = can_manage_workspace_users(db, current_user)
 
-    known_usernames = set([current_user])
+    known_usernames = set([current_user, "admin"])
     if not can_manage:
         owned_boards = db.query(Board.id).filter(Board.owner_username == current_user)
         member_boards = db.query(BoardMember.board_id).filter(
@@ -184,17 +200,33 @@ def get_all_avatars(
         for dm in dms_recv:
             known_usernames.add(dm[0])
 
+    avatar_usernames = (
+        [u.username for u in users]
+        if can_manage
+        else [u for u in known_usernames if u]
+    )
+    avatars = {}
+    if avatar_usernames:
+        for uname, avatar in (
+            db.query(User.username, User.avatar)
+            .filter(User.username.in_(avatar_usernames), User.avatar.isnot(None))
+            .all()
+        ):
+            if avatar:
+                avatars[uname] = avatar
+
     directory = []
     for u in users:
-        is_connected = can_manage or u.username in known_usernames or u.username == "admin"
+        is_connected = can_manage or u.username in known_usernames
         show_email = can_manage or u.username in known_usernames
         email_display = u.email if show_email else "Email hidden for privacy"
+        avatar_val = avatars.get(u.username) if is_connected else None
         directory.append(
             {
                 "username": u.username,
                 "full_name": u.full_name,
                 "email": email_display,
-                "avatar": u.avatar,
+                "avatar": avatar_val,
                 "is_connected": is_connected,
                 "is_verified": u.is_verified,
                 "account_status": u.account_status,
@@ -204,7 +236,7 @@ def get_all_avatars(
         )
 
     return {
-        "avatars": {u.username: u.avatar for u in users if u.avatar},
+        "avatars": avatars if can_manage else {k: v for k, v in avatars.items() if k in known_usernames},
         "directory": directory,
     }
 
@@ -223,21 +255,35 @@ def get_notifications(
     unread_notifs = (
         db.query(Notification)
         .filter(Notification.user_username == current_user, Notification.is_read == 0)
+        .order_by(Notification.id.desc())
+        .limit(100)
         .all()
     )
     combined_dict = {n.id: n for n in latest_notifs + unread_notifs}
     final_notifs = sorted(
         list(combined_dict.values()), key=lambda x: x.id, reverse=True
     )
+    task_ids = [
+        n.related_task_id
+        for n in final_notifs
+        if n.related_task_id
+        and n.type not in ["team_chat", "team_chat_no_email", "team_invite"]
+    ]
+    board_by_task = {}
+    if task_ids:
+        board_by_task = {
+            tid: bid
+            for tid, bid in db.query(Request.id, Request.board_id)
+            .filter(Request.id.in_(task_ids))
+            .all()
+        }
     res = []
     for n in final_notifs:
         board_id = None
         if n.type in ["team_chat", "team_chat_no_email", "team_invite"]:
             board_id = n.related_task_id
         elif n.related_task_id:
-            task = db.query(Request).filter(Request.id == n.related_task_id).first()
-            if task:
-                board_id = task.board_id
+            board_id = board_by_task.get(n.related_task_id)
         res.append(
             {
                 "id": n.id,
@@ -303,7 +349,7 @@ def get_my_tickets(
         tasks_list.append(
             {
                 "id": task.id,
-                "project_name": task.project_name,
+                "task_name": task.task_name,
                 "description": task.description,
                 "status": task.status,
                 "timestamp": task.timestamp,
