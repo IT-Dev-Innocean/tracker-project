@@ -58,10 +58,19 @@ ENCODERS_BY_TYPE[datetime.date] = lambda d: d.strftime("%Y-%m-%d")
 
 app = FastAPI(title="INNOCEAN Tracker API")
 
-# Jalankan inisialisasi DB awal (tanpa alter migrations manual)
-setup_db()
-
 load_dotenv()
+
+# Inisialisasi DB awal — gagal koneksi (mis. quota Neon habis) tidak boleh crash import
+try:
+    setup_db()
+except Exception as exc:
+    import logging
+
+    logging.getLogger(__name__).error(
+        "setup_db gagal: %s. Periksa DATABASE_URL di .env "
+        "(gunakan sqlite:///./local_dev.db untuk dev lokal).",
+        exc,
+    )
 
 # Primary frontend URL (email links, dll). Bisa diisi satu URL atau dipisah koma.
 FRONTEND_URL = os.getenv(
