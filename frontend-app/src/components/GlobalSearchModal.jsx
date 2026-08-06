@@ -9,7 +9,7 @@ import { excludeTodoListBoards } from '../utils/boards';
 
 function Kbd({ children }) {
   return (
-    <kbd className='inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded shadow-sm'>
+    <kbd className='inline-flex items-center justify-center min-w-6 h-6 px-1.5 text-[10px] font-semibold text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded shadow-sm'>
       {children}
     </kbd>
   );
@@ -45,7 +45,9 @@ export default function GlobalSearchModal() {
   const [timesheetEntries, setTimesheetEntries] = useState([]);
   const [isLoadingTimesheets, setIsLoadingTimesheets] = useState(false);
 
-  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+  const isMac =
+    typeof navigator !== 'undefined' &&
+    /Mac|iPhone|iPad/.test(navigator.platform);
 
   useEffect(() => {
     if (isGlobalSearchOpen && !isGlobalSearchClosing) {
@@ -68,7 +70,8 @@ export default function GlobalSearchModal() {
     return globalSearchQuery.toLowerCase().split(/\s+/).filter(Boolean);
   }, [globalSearchQuery]);
 
-  const hasMinQuery = keywords.length > 0 && globalSearchQuery.trim().length >= 2;
+  const hasMinQuery =
+    keywords.length > 0 && globalSearchQuery.trim().length >= 2;
 
   const matchedProjects = useMemo(() => {
     if (!hasMinQuery) return [];
@@ -81,7 +84,8 @@ export default function GlobalSearchModal() {
   const matchedTeams = useMemo(() => {
     if (!hasMinQuery) return [];
     return (userDirectory || []).filter((u) => {
-      const searchStr = `${u.username} ${u.full_name || ''} ${u.email || ''}`.toLowerCase();
+      const searchStr =
+        `${u.username} ${u.full_name || ''} ${u.email || ''}`.toLowerCase();
       return keywords.every((kw) => searchStr.includes(kw));
     });
   }, [userDirectory, keywords, hasMinQuery]);
@@ -109,7 +113,9 @@ export default function GlobalSearchModal() {
     const items = [];
     matchedProjects.forEach((b) => items.push({ type: 'project', data: b }));
     matchedTeams.forEach((u) => items.push({ type: 'team', data: u }));
-    matchedTimesheets.forEach((e) => items.push({ type: 'timesheet', data: e }));
+    matchedTimesheets.forEach((e) =>
+      items.push({ type: 'timesheet', data: e })
+    );
     return items;
   }, [matchedProjects, matchedTeams, matchedTimesheets]);
 
@@ -232,7 +238,9 @@ export default function GlobalSearchModal() {
         setActiveIndex((prev) => (prev + 1) % flatResults.length);
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setActiveIndex((prev) => (prev - 1 + flatResults.length) % flatResults.length);
+        setActiveIndex(
+          (prev) => (prev - 1 + flatResults.length) % flatResults.length
+        );
       } else if (e.key === 'Enter') {
         e.preventDefault();
         handleSelect(flatResults[activeIndex]);
@@ -241,7 +249,13 @@ export default function GlobalSearchModal() {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [isGlobalSearchOpen, flatResults, activeIndex, closeGlobalSearch, handleSelect]);
+  }, [
+    isGlobalSearchOpen,
+    flatResults,
+    activeIndex,
+    closeGlobalSearch,
+    handleSelect,
+  ]);
 
   useEffect(() => {
     if (!listRef.current) return;
@@ -269,14 +283,23 @@ export default function GlobalSearchModal() {
             : 'hover:bg-neutral-50 dark:hover:bg-neutral-900'
         }`}>
         <div className='w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0'>
-          <Icon name='folder' className='w-4 h-4 text-emerald-600 dark:text-emerald-400' />
+          <Icon
+            name='folder'
+            className='w-4 h-4 text-emerald-600 dark:text-emerald-400'
+          />
         </div>
         <div className='flex-1 min-w-0'>
           <div className='text-sm font-semibold text-black dark:text-white truncate'>
             <HighlightText text={board.name} query={globalSearchQuery} />
           </div>
           <div className='text-xs text-neutral-500 truncate'>
-            @{<HighlightText text={board.owner_username} query={globalSearchQuery} />}
+            @
+            {
+              <HighlightText
+                text={board.owner_username}
+                query={globalSearchQuery}
+              />
+            }
           </div>
         </div>
       </button>
@@ -306,7 +329,10 @@ export default function GlobalSearchModal() {
         />
         <div className='flex-1 min-w-0'>
           <div className='text-sm font-semibold text-black dark:text-white truncate'>
-            <HighlightText text={user.full_name || user.username} query={globalSearchQuery} />
+            <HighlightText
+              text={user.full_name || user.username}
+              query={globalSearchQuery}
+            />
           </div>
           <div className='text-xs text-neutral-500 truncate'>
             @<HighlightText text={user.username} query={globalSearchQuery} />
@@ -340,7 +366,10 @@ export default function GlobalSearchModal() {
             : 'hover:bg-neutral-50 dark:hover:bg-neutral-900'
         }`}>
         <div className='w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0'>
-          <Icon name='timer' className='w-4 h-4 text-violet-600 dark:text-violet-400' />
+          <Icon
+            name='timer'
+            className='w-4 h-4 text-violet-600 dark:text-violet-400'
+          />
         </div>
         <div className='flex-1 min-w-0'>
           <div className='text-sm font-semibold text-black dark:text-white truncate'>
@@ -359,7 +388,9 @@ export default function GlobalSearchModal() {
             {entry.status && (
               <>
                 <span>·</span>
-                <span className='uppercase text-[10px] font-bold'>{entry.status}</span>
+                <span className='uppercase text-[10px] font-bold'>
+                  {entry.status}
+                </span>
               </>
             )}
           </div>
@@ -369,10 +400,12 @@ export default function GlobalSearchModal() {
   };
 
   const hasResults =
-    matchedProjects.length > 0 || matchedTeams.length > 0 || matchedTimesheets.length > 0;
+    matchedProjects.length > 0 ||
+    matchedTeams.length > 0 ||
+    matchedTimesheets.length > 0;
 
   return (
-    <div className='fixed inset-0 z-[120] flex items-start justify-center pt-[12vh] px-4'>
+    <div className='fixed inset-0 z-50 flex items-start justify-center pt-[12vh] px-4'>
       <div
         className='absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm'
         onClick={closeGlobalSearch}
@@ -473,7 +506,9 @@ export default function GlobalSearchModal() {
 
         {/* Footer */}
         <div className='flex items-center justify-between px-4 py-2.5 border-t border-neutral-100 dark:border-neutral-800 bg-neutral-50/50 dark:bg-neutral-900/50'>
-          <span className='text-[11px] text-neutral-400 font-medium'>INNOCEAN Search</span>
+          <span className='text-[11px] text-neutral-400 font-medium'>
+            INNOCEAN Search
+          </span>
           <div className='flex items-center gap-1 text-[11px] text-neutral-400'>
             <Kbd>{isMac ? '⌘' : 'Ctrl'}</Kbd>
             <span>+</span>

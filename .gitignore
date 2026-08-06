@@ -5,6 +5,12 @@
 .env.example
 **/.env.example
 
+# Local dev database & dumps
+backend/local_dev.db
+backend/local_dev.db-*
+backups/
+*.sql.dump
+
 # Python
 .venv/
 backend/.venv/

@@ -115,7 +115,7 @@ export default function ChatSidebar({
             // 2. Filter Tasks
             const matchingTasks = (tasks || [])
               .filter(t => {
-                const combined = (t.project_name || '').toLowerCase();
+                const combined = (t.task_name || '').toLowerCase();
                 return keywords.every(kw => combined.includes(kw));
               })
               .slice(0, 5);
@@ -177,14 +177,14 @@ export default function ChatSidebar({
                       <button
                         key={`global-search-task-${t.id}`}
                         onClick={() => {
-                          setActiveChat({ type: 'task', id: t.id, name: t.project_name, board_id: t.board_id, is_involved: t.is_involved });
+                          setActiveChat({ type: 'task', id: t.id, name: t.task_name, board_id: t.board_id, is_involved: t.is_involved });
                           setBoardSearchQuery('');
                         }}
                         className="w-full text-left px-2 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors flex items-center gap-2"
                       >
                         <Icon name="clipboard-list" className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
                         <span className="truncate flex-1">
-                          <HighlightText text={t.project_name} query={boardSearchQuery} />
+                          <HighlightText text={t.task_name} query={boardSearchQuery} />
                         </span>
                       </button>
                     ))}
@@ -205,7 +205,7 @@ export default function ChatSidebar({
                       } else if (c.is_project_chat) {
                         displayName = c.board_name;
                       } else {
-                        displayName = c.project_name;
+                        displayName = c.task_name;
                       }
                       return (
                         <button
@@ -217,7 +217,7 @@ export default function ChatSidebar({
                               setActiveChat({
                                 type: c.is_project_chat ? 'project' : 'task',
                                 id: c.is_project_chat ? c.board_id : c.task_id,
-                                name: c.is_project_chat ? `${c.board_name} (General)` : c.project_name,
+                                name: c.is_project_chat ? `${c.board_name} (General)` : c.task_name,
                                 board_id: c.board_id,
                               });
                             }
@@ -422,7 +422,7 @@ export default function ChatSidebar({
                       return (
                         <button
                           key={`tree-task-${t.id}`}
-                          onClick={() => setActiveChat({ type: 'task', id: t.id, name: t.project_name, board_id: board.id, is_involved: t.is_involved })}
+                          onClick={() => setActiveChat({ type: 'task', id: t.id, name: t.task_name, board_id: board.id, is_involved: t.is_involved })}
                           className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center justify-between ${
                             activeChat?.type === 'task' && activeChat?.id === t.id
                               ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400 font-bold'
@@ -431,7 +431,7 @@ export default function ChatSidebar({
                         >
                           <span className="truncate flex-1 flex items-center gap-1.5">
                             <Icon name="clipboard-list" className="w-3 h-3 opacity-70 shrink-0" />
-                            {t.project_name}
+                            {t.task_name}
                           </span>
                           {unreadTask > 0 && (
                             <span className="bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-md shadow-sm shrink-0 animate-pulse ml-2">

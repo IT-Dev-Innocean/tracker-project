@@ -10,6 +10,8 @@ from typing import Sequence, Union
 from alembic import op
 import sqlalchemy as sa
 
+from migration_helpers import column_exists
+
 
 revision: str = "a7c3e91d2b44"
 down_revision: Union[str, Sequence[str], None] = "01bc0511f253"
@@ -18,10 +20,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "users",
-        sa.Column("role", sa.String(length=50), nullable=True, server_default="project_owner"),
-    )
+    if not column_exists("users", "role"):
+        op.add_column(
+            "users",
+            sa.Column("role", sa.String(length=50), nullable=True, server_default="project_owner"),
+        )
     # Backfill: superadmins become admin, everyone else project_owner
     op.execute(
         """

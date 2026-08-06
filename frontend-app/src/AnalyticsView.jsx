@@ -261,7 +261,7 @@ export default function AnalyticsView({
         memberDetailedStats[person].done += 1;
         memberDetailedStats[person].done_etc += splitEtc;
       } else {
-        if (t.status !== 'Pending') {
+        if (t.status !== 'Pending' && t.status !== 'To Do') {
           memberDetailedStats[person].active += 1;
           memberDetailedStats[person].active_etc += splitEtc;
         }
@@ -690,7 +690,7 @@ export default function AnalyticsView({
                 </p>
                 <p className="font-bold text-[8px] opacity-50 uppercase tracking-widest mb-1">Logic / Method</p>
                 <p className="font-mono text-[9px] bg-black/20 dark:bg-black/5 p-1.5 rounded wrap-break-word">
-                  Count(Status ∉ ['Done', 'Rejected', 'Pending'])
+                  Count(Status ∉ ['Done', 'Rejected', 'Pending', 'To Do'])
                 </p>
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900 dark:border-b-white"></div>
               </div>
@@ -699,7 +699,11 @@ export default function AnalyticsView({
           <p className="text-2xl sm:text-3xl font-extrabold text-blue-600">
             {
               tasksWithLivePriority.filter(
-                (t) => t.status !== 'Done' && t.status !== 'Rejected' && t.status !== 'Pending'
+                (t) =>
+                  t.status !== 'Done' &&
+                  t.status !== 'Rejected' &&
+                  t.status !== 'Pending' &&
+                  t.status !== 'To Do'
               ).length
             }
           </p>
@@ -1305,9 +1309,9 @@ export default function AnalyticsView({
                 >
                   <p
                     className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate mb-1"
-                    title={t.project_name}
+                    title={t.task_name}
                   >
-                    {t.project_name}
+                    {t.task_name}
                   </p>
                   <div className="flex justify-between items-center mt-2">
                     <span className="text-[10px] font-medium text-slate-500 truncate max-w-25">{t.requester}</span>
@@ -1358,7 +1362,7 @@ export default function AnalyticsView({
                           ? 'bg-emerald-500'
                           : status === 'Rejected'
                           ? 'bg-slate-400'
-                          : status === 'Pending'
+                          : status === 'Pending' || status === 'To Do'
                           ? 'bg-amber-500'
                           : 'bg-blue-500'
                       }`}

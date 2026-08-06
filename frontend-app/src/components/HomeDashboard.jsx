@@ -375,8 +375,7 @@ export default function HomeDashboard() {
   }).length;
   const overdueProjectsCount = projectBoards.filter(
     (b) =>
-      overdueBoardIds.has(b.id) ||
-      (b.health_alert || '').includes('Attention')
+      overdueBoardIds.has(b.id) || (b.health_alert || '').includes('Attention')
   ).length;
   const averageProgressPct =
     projectBoards.length === 0
@@ -416,14 +415,14 @@ export default function HomeDashboard() {
     try {
       const topQueue = topQueueTasks
         .slice(0, 3)
-        .map((t) => t.project_name || t.title)
+        .map((t) => t.task_name || t.title)
         .join(', ');
       const recentComments = visibleChatsForKey
         .slice(0, 2)
         .map((chat) => {
           const place = chat.is_dm
             ? `DM with @${chat.partner_username}`
-            : chat.board_name || chat.project_name;
+            : chat.board_name || chat.task_name;
           if (chat.latest_sender === currentUser) {
             return `You replied in ${place}`;
           }
@@ -588,8 +587,7 @@ export default function HomeDashboard() {
                 type='button'
                 onClick={() => setIsCreateBoardOpen(true)}
                 disabled={accountStatus === 'suspended'}
-                className='tour-home-new-project inline-flex items-center gap-1.5 rounded-full border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3.5 py-2 text-sm font-semibold text-black dark:text-white hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
-              >
+                className='tour-home-new-project inline-flex items-center gap-1.5 rounded-full border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3.5 py-2 text-sm font-semibold text-black dark:text-white hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'>
                 <Icon name='plus' className='w-4 h-4' />
                 {tMsg('Create Project', 'Buat Proyek')}
               </button>
@@ -597,8 +595,7 @@ export default function HomeDashboard() {
                 type='button'
                 onClick={openInvitePeople}
                 disabled={accountStatus === 'suspended'}
-                className='inline-flex items-center gap-1.5 rounded-full border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3.5 py-2 text-sm font-semibold text-black dark:text-white hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
-              >
+                className='inline-flex items-center gap-1.5 rounded-full border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 px-3.5 py-2 text-sm font-semibold text-black dark:text-white hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'>
                 <Icon name='user-plus' className='w-4 h-4' />
                 {tMsg('Invite', 'Undang')}
               </button>
@@ -632,7 +629,10 @@ export default function HomeDashboard() {
                     }}
                     disabled={isSummarizing}
                     className='text-slate-400 hover:text-black dark:hover:text-white transition-colors disabled:opacity-50'
-                    title={tMsg('Refresh AI Briefing', 'Perbarui Ringkasan AI')}>
+                    title={tMsg(
+                      'Refresh AI Briefing',
+                      'Perbarui Ringkasan AI'
+                    )}>
                     <Icon name='refresh-cw' className='w-4 h-4' />
                   </button>
                 )}
@@ -650,8 +650,7 @@ export default function HomeDashboard() {
                     type='button'
                     onClick={() => requestAiInsight(false)}
                     disabled={isLoading || isTasksLoading || isBoardsLoading}
-                    className='shrink-0 inline-flex items-center justify-center gap-2 rounded-full bg-black dark:bg-white text-white dark:text-black px-4 py-2 text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50'
-                  >
+                    className='shrink-0 inline-flex items-center justify-center gap-2 rounded-full bg-black dark:bg-white text-white dark:text-black px-4 py-2 text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50'>
                     <Icon name='sparkles' className='w-4 h-4' />
                     {tMsg('Show AI Overview', 'Tampilkan Insight Overview')}
                   </button>
@@ -744,7 +743,8 @@ export default function HomeDashboard() {
               value: totalProjectsCount,
               valueSuffix: '',
               icon: 'folder',
-              iconWrap: 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400',
+              iconWrap:
+                'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400',
               valueClass: 'text-blue-600 dark:text-blue-400',
               spark: '#3b82f6',
             },
@@ -755,7 +755,8 @@ export default function HomeDashboard() {
               value: completedProjectsCount,
               valueSuffix: '',
               icon: 'check-circle',
-              iconWrap: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400',
+              iconWrap:
+                'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400',
               valueClass: 'text-emerald-600 dark:text-emerald-400',
               spark: '#10b981',
             },
@@ -766,7 +767,8 @@ export default function HomeDashboard() {
               value: overdueProjectsCount,
               valueSuffix: '',
               icon: 'alert-triangle',
-              iconWrap: 'bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400',
+              iconWrap:
+                'bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400',
               valueClass: 'text-red-600 dark:text-red-400',
               spark: '#ef4444',
             },
@@ -777,14 +779,15 @@ export default function HomeDashboard() {
               value: averageProgressPct,
               valueSuffix: '%',
               icon: 'trending-up',
-              iconWrap: 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400',
+              iconWrap:
+                'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400',
               valueClass: 'text-amber-500 dark:text-amber-400',
               spark: '#f59e0b',
             },
           ].map((stat) => (
             <div
               key={stat.key}
-              className='relative overflow-hidden bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 p-5 rounded-2xl shadow-sm flex flex-col min-h-[168px]'>
+              className='relative overflow-hidden bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 p-5 rounded-2xl shadow-sm flex flex-col min-h-40'>
               <div className='relative z-10 flex flex-col flex-1'>
                 <div
                   className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${stat.iconWrap}`}>
@@ -808,7 +811,10 @@ export default function HomeDashboard() {
                   {stat.sub}
                 </div>
               </div>
-              <StatSparkline color={stat.spark} id={`home-stat-spark-${stat.key}`} />
+              <StatSparkline
+                color={stat.spark}
+                id={`home-stat-spark-${stat.key}`}
+              />
             </div>
           ))}
         </div>
@@ -874,10 +880,11 @@ export default function HomeDashboard() {
                     })
                   ) : (
                     <div className='text-sm text-slate-500 flex flex-col items-center h-full justify-center text-center gap-2 py-8'>
-                      <Icon name='folder-open' className='w-10 h-10 opacity-50' />
-                      <div>
-                        {tMsg('No projects yet.', 'Belum ada proyek.')}
-                      </div>
+                      <Icon
+                        name='folder-open'
+                        className='w-10 h-10 opacity-50'
+                      />
+                      <div>{tMsg('No projects yet.', 'Belum ada proyek.')}</div>
                       <button
                         type='button'
                         onClick={() => setIsCreateBoardOpen(true)}
@@ -919,9 +926,7 @@ export default function HomeDashboard() {
                           className='w-full flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-left'>
                           <Avatar
                             name={person.username}
-                            url={
-                              avatarsMap?.[person.username] || person.avatar
-                            }
+                            url={avatarsMap?.[person.username] || person.avatar}
                             size='w-9 h-9'
                             textClass='text-xs'
                           />
@@ -960,303 +965,308 @@ export default function HomeDashboard() {
             </>
           ) : (
             <>
-          {/* Top Queue Tasks */}
-          <div className='tour-top-queue bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-sm flex flex-col h-full min-h-75'>
-            <h3 className='text-xs font-black text-slate-800 dark:text-slate-200 mb-4 uppercase tracking-widest flex items-center gap-2 shrink-0'>
-              <Icon name='zap' className='w-4 h-4' />{' '}
-              {tMsg('My Top Queue', 'Antrean Teratas Saya')}
-            </h3>
-            <div className='flex-1 space-y-1 pr-2'>
-              {topQueueTasks.length > 0 ? (
-                topQueueTasks.map((task, index) => (
-                  <div
-                    key={task.id}
-                    onClick={() => openTaskInGlobal(task)}
-                    className='flex items-center gap-3 border-b border-neutral-100 dark:border-neutral-800 py-3 last:border-0 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/50 px-2 -mx-2 rounded-lg transition-colors'>
-                    <div className='w-6 h-6 rounded-md bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 flex items-center justify-center text-[10px] font-black shrink-0 shadow-sm'>
-                      #{index + 1}
-                    </div>
-                    <div className='flex-1 min-w-0'>
+              {/* Top Queue Tasks */}
+              <div className='tour-top-queue bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-sm flex flex-col h-full min-h-75'>
+                <h3 className='text-xs font-black text-slate-800 dark:text-slate-200 mb-4 uppercase tracking-widest flex items-center gap-2 shrink-0'>
+                  <Icon name='zap' className='w-4 h-4' />{' '}
+                  {tMsg('My Top Queue', 'Antrean Teratas Saya')}
+                </h3>
+                <div className='flex-1 space-y-1 pr-2'>
+                  {topQueueTasks.length > 0 ? (
+                    topQueueTasks.map((task, index) => (
                       <div
-                        className='text-sm font-bold text-slate-800 dark:text-slate-200 truncate'
-                        title={task.project_name || task.title}>
-                        {task.project_name || task.title}
-                      </div>
+                        key={task.id}
+                        onClick={() => openTaskInGlobal(task)}
+                        className='flex items-center gap-3 border-b border-neutral-100 dark:border-neutral-800 py-3 last:border-0 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/50 px-2 -mx-2 rounded-lg transition-colors'>
+                        <div className='w-6 h-6 rounded-md bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 flex items-center justify-center text-[10px] font-black shrink-0 shadow-sm'>
+                          #{index + 1}
+                        </div>
+                        <div className='flex-1 min-w-0'>
+                          <div
+                            className='text-sm font-bold text-slate-800 dark:text-slate-200 truncate'
+                            title={task.task_name || task.title}>
+                            {task.task_name || task.title}
+                          </div>
 
-                      <div className='flex items-center gap-2 overflow-x-auto scrollbar-hide text-[10px] mt-1'>
-                        <span className='text-slate-500 shrink-0 font-medium'>
-                          {boards.find(
-                            (b) => parseInt(b.id) === parseInt(task.board_id)
-                          )?.name || 'Global'}
-                        </span>
+                          <div className='flex items-center gap-2 overflow-x-auto scrollbar-hide text-[10px] mt-1'>
+                            <span className='text-slate-500 shrink-0 font-medium'>
+                              {boards.find(
+                                (b) =>
+                                  parseInt(b.id) === parseInt(task.board_id)
+                              )?.name || 'Global'}
+                            </span>
 
-                        {/* Assignee Avatar */}
-                        {(() => {
-                          const assigneeName = getTaskAssignee(task).replace(
-                            '@',
-                            ''
-                          );
-                          return (
-                            <div
-                              className='flex items-center shrink-0 ml-1'
-                              title={`Assignee: ${assigneeName}`}>
-                              <Avatar
-                                name={assigneeName}
-                                url={avatarsMap?.[assigneeName]}
-                                size='w-3.5 h-3.5'
-                                textClass='text-[6px]'
-                              />
-                            </div>
-                          );
-                        })()}
-
-                        {/* Category */}
-                        {task.category && (
-                          <span className='shrink-0 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400 font-medium border border-neutral-200 dark:border-neutral-700'>
-                            {task.category}
-                          </span>
-                        )}
-
-                        {/* Impact */}
-                        {task.impact && (
-                          <span
-                            className={`shrink-0 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5 ${
-                              task.impact === 'High'
-                                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-900/50'
-                                : task.impact === 'Medium'
-                                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50'
-                                  : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-900/50'
-                            }`}>
-                            <Icon
-                              name={
-                                task.impact === 'High'
-                                  ? 'flame'
-                                  : task.impact === 'Medium'
-                                    ? 'zap'
-                                    : 'sprout'
-                              }
-                              className='w-3 h-3'
-                            />{' '}
-                            {task.impact}
-                          </span>
-                        )}
-
-                        {/* Recurring */}
-                        {task.recurring && task.recurring !== 'none' && (
-                          <span className='shrink-0 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 px-1.5 py-0.5 rounded font-medium flex items-center gap-0.5 border border-purple-200 dark:border-purple-900/50'>
-                            <Icon name='refresh-cw' className='w-3 h-3' />{' '}
-                            {task.recurring}
-                          </span>
-                        )}
-
-                        {/* ETC */}
-                        {task.etc && (
-                          <span className='shrink-0 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium flex items-center gap-0.5 border border-blue-200 dark:border-blue-900/50'>
-                            <Icon name='clock' className='w-3 h-3' /> {task.etc}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Dates / Countdown (Row 3) */}
-                      {(task.start_date || task.deadline) && (
-                        <div className='flex items-center gap-3 text-[10px] text-slate-500 mt-1.5'>
-                          {task.start_date && (
-                            <div>
-                              <span className='font-medium'>Start: </span>
-                              {formatDateMMM(task.start_date)}
-                            </div>
-                          )}
-                          {task.deadline &&
-                            (() => {
-                              const dlInfo = getTaskDeadlineInfo(task);
+                            {/* Assignee Avatar */}
+                            {(() => {
+                              const assigneeName = getTaskAssignee(
+                                task
+                              ).replace('@', '');
                               return (
-                                <div className='flex items-center gap-1.5'>
-                                  <span className='font-bold'>Due: </span>
-                                  <span className={`font-bold ${dlInfo.color}`}>
-                                    {formatDateMMM(task.deadline)}
-                                  </span>
-                                  <span
-                                    className={`px-1.5 py-0.5 rounded font-black border tracking-wider text-[9px] ${dlInfo.badgeColor}`}>
-                                    {dlInfo.timeStr}
-                                  </span>
+                                <div
+                                  className='flex items-center shrink-0 ml-1'
+                                  title={`Assignee: ${assigneeName}`}>
+                                  <Avatar
+                                    name={assigneeName}
+                                    url={avatarsMap?.[assigneeName]}
+                                    size='w-3.5 h-3.5'
+                                    textClass='text-[6px]'
+                                  />
                                 </div>
                               );
                             })()}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className='text-sm text-slate-500 flex flex-col items-center h-full justify-center text-center gap-2'>
-                  <Icon name='party-popper' className='w-10 h-10' />
-                  <div>
-                    {tMsg(
-                      'You have no pending tasks! You are all caught up.',
-                      'Tidak ada tugas tertunda! Anda sudah menyelesaikan semuanya.'
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
 
-          {/* Recent Comments */}
-          <div className='tour-recent-comments bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-sm flex flex-col h-full min-h-75'>
-            <h3 className='text-xs font-black text-slate-800 dark:text-slate-200 mb-4 uppercase tracking-widest flex items-center gap-2 shrink-0'>
-              <Icon name='message-circle' className='w-4 h-4' />{' '}
-              {tMsg('Recent Comments', 'Komentar Terbaru')}
-            </h3>
-            <div className='flex-1 space-y-3 pr-2'>
-              {isInboxLoading ? (
-                <div className='flex justify-center items-center h-full'>
-                  <div className='animate-spin rounded-full h-6 w-6 border-2 border-indigo-500 border-t-transparent'></div>
-                </div>
-              ) : (
-                (() => {
-                  const visibleChats = inboxChats.filter((chat) => {
-                    const displayMessage = chat.latest_message || '';
-                    return !displayMessage.includes('<!--PRIVATE:');
-                  });
-                  return visibleChats.length > 0 ? (
-                    visibleChats.slice(0, 4).map((chat) => {
-                      let displayMessage =
-                        chat.latest_message || 'No message content';
-                      const isUnread = (() => {
-                        if (chat.latest_sender === currentUser) return false;
-                        if (chat.is_dm) return chat.unread_count > 0;
-                        if (chat.is_project_chat) {
-                          const lastRead = localStorage.getItem(
-                            `innocean_last_read_board_${chat.board_id}_${currentUser}`
-                          );
-                          const hasUnreadNotification = (
-                            notifications || []
-                          ).some(
-                            (n) =>
-                              !n.is_read &&
-                              String(n.related_task_id) ===
-                                String(chat.board_id) &&
-                              (n.type === 'team_chat' ||
-                                n.type === 'team_chat_no_email' ||
-                                n.type === 'mention' ||
-                                n.type === 'mention_no_email')
-                          );
-                          if (!lastRead) return true;
-                          return (
-                            chat.timestamp > lastRead || hasUnreadNotification
-                          );
-                        } else {
-                          const lastRead = localStorage.getItem(
-                            `innocean_last_read_task_${chat.task_id}_${currentUser}`
-                          );
-                          const hasUnreadNotification = (
-                            notifications || []
-                          ).some(
-                            (n) =>
-                              !n.is_read &&
-                              String(n.related_task_id) ===
-                                String(chat.task_id) &&
-                              (n.type === 'comment' ||
-                                n.type === 'mention' ||
-                                n.type === 'mention_no_email')
-                          );
-                          if (!lastRead) return true;
-                          return (
-                            chat.timestamp > lastRead || hasUnreadNotification
-                          );
-                        }
-                      })();
+                            {/* Category */}
+                            {task.category && (
+                              <span className='shrink-0 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400 font-medium border border-neutral-200 dark:border-neutral-700'>
+                                {task.category}
+                              </span>
+                            )}
 
-                      return (
-                        <div
-                          key={`${chat.is_dm ? 'dm-' + chat.partner_username : chat.task_id}-${chat.timestamp}`}
-                          onClick={() => {
-                            if (chat.is_dm) {
-                              setWorkspaceChatTarget({
-                                type: 'dm',
-                                id: chat.partner_username,
-                                name: chat.partner_username,
-                                partner: chat.partner_username,
-                              });
-                              setIsChatWorkspaceOpen(true);
-                            } else if (chat.is_project_chat) {
-                              setWorkspaceChatTarget({
-                                type: 'project',
-                                id: chat.board_id,
-                                name: chat.board_name || 'Project Chat',
-                                board_id: chat.board_id,
-                              });
-                              setIsChatWorkspaceOpen(true);
-                            } else {
-                              handleNotificationTaskClick(chat.task_id);
-                            }
-                          }}
-                          className={`flex flex-col gap-1 border-b border-neutral-100 dark:border-neutral-800 pb-3 last:border-0 last:pb-0 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/50 p-2 -mx-2 rounded-lg transition-all ${
-                            isUnread
-                              ? 'bg-indigo-50/50 dark:bg-indigo-950/20 border-l-2 border-l-indigo-500 pl-3'
-                              : ''
-                          }`}>
-                          <div className='flex items-center gap-2'>
-                            <div className='text-lg shrink-0'>
-                              <Icon
-                                name={
-                                  chat.is_dm
-                                    ? 'message-circle'
-                                    : chat.is_project_chat
-                                      ? 'building'
-                                      : 'clipboard-list'
-                                }
-                                className='w-5 h-5'
-                              />
-                            </div>
-                            <div className='flex flex-col min-w-0'>
-                              <div className='text-xs font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1.5'>
-                                {chat.is_dm
-                                  ? `DM: @${chat.partner_username}`
-                                  : chat.is_project_chat
-                                    ? `Project: ${chat.board_name}`
-                                    : chat.project_name}
-                                {isUnread && (
-                                  <span
-                                    className='w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 inline-block animate-pulse'
-                                    title='Unread'
-                                  />
-                                )}
-                              </div>
-                              <div className='text-[10px] font-bold text-indigo-600 dark:text-indigo-400'>
-                                @{chat.latest_sender}
-                              </div>
-                            </div>
-                            <div className='text-[10px] text-slate-400 font-medium ml-auto shrink-0 self-start'>
-                              {formatDateMMM(chat.timestamp)}
-                            </div>
+                            {/* Impact */}
+                            {task.impact && (
+                              <span
+                                className={`shrink-0 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5 ${
+                                  task.impact === 'High'
+                                    ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-900/50'
+                                    : task.impact === 'Medium'
+                                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-900/50'
+                                      : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-900/50'
+                                }`}>
+                                <Icon
+                                  name={
+                                    task.impact === 'High'
+                                      ? 'flame'
+                                      : task.impact === 'Medium'
+                                        ? 'zap'
+                                        : 'sprout'
+                                  }
+                                  className='w-3 h-3'
+                                />{' '}
+                                {task.impact}
+                              </span>
+                            )}
+
+                            {/* Recurring */}
+                            {task.recurring && task.recurring !== 'none' && (
+                              <span className='shrink-0 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 px-1.5 py-0.5 rounded font-medium flex items-center gap-0.5 border border-purple-200 dark:border-purple-900/50'>
+                                <Icon name='refresh-cw' className='w-3 h-3' />{' '}
+                                {task.recurring}
+                              </span>
+                            )}
+
+                            {/* ETC */}
+                            {task.etc && (
+                              <span className='shrink-0 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 px-1.5 py-0.5 rounded font-medium flex items-center gap-0.5 border border-blue-200 dark:border-blue-900/50'>
+                                <Icon name='clock' className='w-3 h-3' />{' '}
+                                {task.etc}
+                              </span>
+                            )}
                           </div>
-                          {!chat.is_dm && (
-                            <div className='text-sm text-slate-700 dark:text-slate-300 leading-relaxed mt-1 line-clamp-2 pl-7'>
-                              {cleanMarkdown(displayMessage)}
+
+                          {/* Dates / Countdown (Row 3) */}
+                          {(task.start_date || task.deadline) && (
+                            <div className='flex items-center gap-3 text-[10px] text-slate-500 mt-1.5'>
+                              {task.start_date && (
+                                <div>
+                                  <span className='font-medium'>Start: </span>
+                                  {formatDateMMM(task.start_date)}
+                                </div>
+                              )}
+                              {task.deadline &&
+                                (() => {
+                                  const dlInfo = getTaskDeadlineInfo(task);
+                                  return (
+                                    <div className='flex items-center gap-1.5'>
+                                      <span className='font-bold'>Due: </span>
+                                      <span
+                                        className={`font-bold ${dlInfo.color}`}>
+                                        {formatDateMMM(task.deadline)}
+                                      </span>
+                                      <span
+                                        className={`px-1.5 py-0.5 rounded font-black border tracking-wider text-[9px] ${dlInfo.badgeColor}`}>
+                                        {dlInfo.timeStr}
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
                             </div>
                           )}
                         </div>
-                      );
-                    })
+                      </div>
+                    ))
                   ) : (
                     <div className='text-sm text-slate-500 flex flex-col items-center h-full justify-center text-center gap-2'>
-                      <Icon
-                        name='message-circle'
-                        className='w-10 h-10 opacity-50'
-                      />
+                      <Icon name='party-popper' className='w-10 h-10' />
                       <div>
                         {tMsg(
-                          'No recent comments found.',
-                          'Tidak ada komentar terbaru.'
+                          'You have no pending tasks! You are all caught up.',
+                          'Tidak ada tugas tertunda! Anda sudah menyelesaikan semuanya.'
                         )}
                       </div>
                     </div>
-                  );
-                })()
-              )}
-            </div>
-          </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Recent Comments */}
+              <div className='tour-recent-comments bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 shadow-sm flex flex-col h-full min-h-75'>
+                <h3 className='text-xs font-black text-slate-800 dark:text-slate-200 mb-4 uppercase tracking-widest flex items-center gap-2 shrink-0'>
+                  <Icon name='message-circle' className='w-4 h-4' />{' '}
+                  {tMsg('Recent Comments', 'Komentar Terbaru')}
+                </h3>
+                <div className='flex-1 space-y-3 pr-2'>
+                  {isInboxLoading ? (
+                    <div className='flex justify-center items-center h-full'>
+                      <div className='animate-spin rounded-full h-6 w-6 border-2 border-indigo-500 border-t-transparent'></div>
+                    </div>
+                  ) : (
+                    (() => {
+                      const visibleChats = inboxChats.filter((chat) => {
+                        const displayMessage = chat.latest_message || '';
+                        return !displayMessage.includes('<!--PRIVATE:');
+                      });
+                      return visibleChats.length > 0 ? (
+                        visibleChats.slice(0, 4).map((chat) => {
+                          let displayMessage =
+                            chat.latest_message || 'No message content';
+                          const isUnread = (() => {
+                            if (chat.latest_sender === currentUser)
+                              return false;
+                            if (chat.is_dm) return chat.unread_count > 0;
+                            if (chat.is_project_chat) {
+                              const lastRead = localStorage.getItem(
+                                `innocean_last_read_board_${chat.board_id}_${currentUser}`
+                              );
+                              const hasUnreadNotification = (
+                                notifications || []
+                              ).some(
+                                (n) =>
+                                  !n.is_read &&
+                                  String(n.related_task_id) ===
+                                    String(chat.board_id) &&
+                                  (n.type === 'team_chat' ||
+                                    n.type === 'team_chat_no_email' ||
+                                    n.type === 'mention' ||
+                                    n.type === 'mention_no_email')
+                              );
+                              if (!lastRead) return true;
+                              return (
+                                chat.timestamp > lastRead ||
+                                hasUnreadNotification
+                              );
+                            } else {
+                              const lastRead = localStorage.getItem(
+                                `innocean_last_read_task_${chat.task_id}_${currentUser}`
+                              );
+                              const hasUnreadNotification = (
+                                notifications || []
+                              ).some(
+                                (n) =>
+                                  !n.is_read &&
+                                  String(n.related_task_id) ===
+                                    String(chat.task_id) &&
+                                  (n.type === 'comment' ||
+                                    n.type === 'mention' ||
+                                    n.type === 'mention_no_email')
+                              );
+                              if (!lastRead) return true;
+                              return (
+                                chat.timestamp > lastRead ||
+                                hasUnreadNotification
+                              );
+                            }
+                          })();
+
+                          return (
+                            <div
+                              key={`${chat.is_dm ? 'dm-' + chat.partner_username : chat.task_id}-${chat.timestamp}`}
+                              onClick={() => {
+                                if (chat.is_dm) {
+                                  setWorkspaceChatTarget({
+                                    type: 'dm',
+                                    id: chat.partner_username,
+                                    name: chat.partner_username,
+                                    partner: chat.partner_username,
+                                  });
+                                  setIsChatWorkspaceOpen(true);
+                                } else if (chat.is_project_chat) {
+                                  setWorkspaceChatTarget({
+                                    type: 'project',
+                                    id: chat.board_id,
+                                    name: chat.board_name || 'Project Chat',
+                                    board_id: chat.board_id,
+                                  });
+                                  setIsChatWorkspaceOpen(true);
+                                } else {
+                                  handleNotificationTaskClick(chat.task_id);
+                                }
+                              }}
+                              className={`flex flex-col gap-1 border-b border-neutral-100 dark:border-neutral-800 pb-3 last:border-0 last:pb-0 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800/50 p-2 -mx-2 rounded-lg transition-all ${
+                                isUnread
+                                  ? 'bg-indigo-50/50 dark:bg-indigo-950/20 border-l-2 border-l-indigo-500 pl-3'
+                                  : ''
+                              }`}>
+                              <div className='flex items-center gap-2'>
+                                <div className='text-lg shrink-0'>
+                                  <Icon
+                                    name={
+                                      chat.is_dm
+                                        ? 'message-circle'
+                                        : chat.is_project_chat
+                                          ? 'building'
+                                          : 'clipboard-list'
+                                    }
+                                    className='w-5 h-5'
+                                  />
+                                </div>
+                                <div className='flex flex-col min-w-0'>
+                                  <div className='text-xs font-bold text-slate-800 dark:text-slate-200 truncate flex items-center gap-1.5'>
+                                    {chat.is_dm
+                                      ? `DM: @${chat.partner_username}`
+                                      : chat.is_project_chat
+                                        ? `Project: ${chat.board_name}`
+                                        : chat.task_name}
+                                    {isUnread && (
+                                      <span
+                                        className='w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 inline-block animate-pulse'
+                                        title='Unread'
+                                      />
+                                    )}
+                                  </div>
+                                  <div className='text-[10px] font-bold text-indigo-600 dark:text-indigo-400'>
+                                    @{chat.latest_sender}
+                                  </div>
+                                </div>
+                                <div className='text-[10px] text-slate-400 font-medium ml-auto shrink-0 self-start'>
+                                  {formatDateMMM(chat.timestamp)}
+                                </div>
+                              </div>
+                              {!chat.is_dm && (
+                                <div className='text-sm text-slate-700 dark:text-slate-300 leading-relaxed mt-1 line-clamp-2 pl-7'>
+                                  {cleanMarkdown(displayMessage)}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className='text-sm text-slate-500 flex flex-col items-center h-full justify-center text-center gap-2'>
+                          <Icon
+                            name='message-circle'
+                            className='w-10 h-10 opacity-50'
+                          />
+                          <div>
+                            {tMsg(
+                              'No recent comments found.',
+                              'Tidak ada komentar terbaru.'
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()
+                  )}
+                </div>
+              </div>
             </>
           )}
         </div>

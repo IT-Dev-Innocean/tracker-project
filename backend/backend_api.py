@@ -58,10 +58,19 @@ ENCODERS_BY_TYPE[datetime.date] = lambda d: d.strftime("%Y-%m-%d")
 
 app = FastAPI(title="INNOCEAN Tracker API")
 
-# Jalankan inisialisasi DB awal (tanpa alter migrations manual)
-setup_db()
-
 load_dotenv()
+
+# Inisialisasi DB awal — gagal koneksi (mis. quota Neon habis) tidak boleh crash import
+try:
+    setup_db()
+except Exception as exc:
+    import logging
+
+    logging.getLogger(__name__).error(
+        "setup_db gagal: %s. Periksa DATABASE_URL di .env "
+        "(gunakan sqlite:///./local_dev.db untuk dev lokal).",
+        exc,
+    )
 
 # Primary frontend URL (email links, dll). Bisa diisi satu URL atau dipisah koma.
 FRONTEND_URL = os.getenv(
@@ -350,7 +359,7 @@ def submit_feedback(
     )
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if not board:
-        default_statuses = json.dumps(["Pending", "In Progress", "Done", "Rejected"])
+        default_statuses = json.dumps(["To Do", "In Progress", "Done"])
         default_categories = json.dumps(
             [
                 "Development",
@@ -387,7 +396,7 @@ def submit_feedback(
     new_task = Request(
         board_id=board.id,
         timestamp=now_str,
-        project_name=f"{prefix} [{ticket_num}] - {current_user}",
+        task_name=f"{prefix} [{ticket_num}] - {current_user}",
         requester=current_user,
         category="Support" if is_support else "Feedback",
         description=clean_desc,
@@ -500,7 +509,7 @@ def run_auto_nudge():
             deadline_date = parse_raw_date(task.deadline)
             if not deadline_date:
                 nudge_skipped_no_date += 1
-                print(f"[Auto Nudge] ⚠️  Task ID={task.id} '{task.project_name}' — deadline tidak bisa di-parse, skip.")
+                print(f"[Auto Nudge] ⚠️  Task ID={task.id} '{task.task_name}' — deadline tidak bisa di-parse, skip.")
                 continue
 
             deadline_date = deadline_date.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -516,7 +525,7 @@ def run_auto_nudge():
             is_overdue = days_diff < 0  # Tidak terbatas — semua hari setelah deadline
 
             if not (is_pre_deadline or is_overdue):
-                print(f"[Auto Nudge] ⏭️  Task ID={task.id} '{task.project_name}' — days_diff={days_diff}, tidak dalam jadwal nudge hari ini.")
+                print(f"[Auto Nudge] ⏭️  Task ID={task.id} '{task.task_name}' — days_diff={days_diff}, tidak dalam jadwal nudge hari ini.")
                 continue
 
             assignees = get_assignees(task.requester)
@@ -533,7 +542,7 @@ def run_auto_nudge():
 
             if not targets:
                 nudge_skipped_no_target += 1
-                print(f"[Auto Nudge] ⚠️  Task ID={task.id} '{task.project_name}' — tidak ada target assignee, skip.")
+                print(f"[Auto Nudge] ⚠️  Task ID={task.id} '{task.task_name}' — tidak ada target assignee, skip.")
                 continue
 
             mention_str = " ".join([f"@{m}" for m in targets])
@@ -557,7 +566,7 @@ def run_auto_nudge():
 
             if last_nudge:
                 nudge_skipped_dup += 1
-                print(f"[Auto Nudge] 🔁 Task ID={task.id} '{task.project_name}' — sudah di-nudge hari ini, skip duplikat.")
+                print(f"[Auto Nudge] 🔁 Task ID={task.id} '{task.task_name}' — sudah di-nudge hari ini, skip duplikat.")
                 continue
 
             now_full = now_wib.strftime("%Y-%m-%d %H:%M:%S")
@@ -573,13 +582,13 @@ def run_auto_nudge():
             for m in targets:
                 create_notification(
                     db, m,
-                    f"Auto Nudge: {task.project_name} is {'overdue' if days_diff < 0 else 'due soon'}.",
+                    f"Auto Nudge: {task.task_name} is {'overdue' if days_diff < 0 else 'due soon'}.",
                     "auto_nudge", task.id
                 )
 
             nudge_sent += 1
             status_label = f"OVERDUE +{abs(days_diff)}d" if days_diff < 0 else f"H-{days_diff}"
-            print(f"[Auto Nudge] ✅ Nudge terkirim — Task ID={task.id} '{task.project_name}' ({status_label}) → {', '.join(targets)}")
+            print(f"[Auto Nudge] ✅ Nudge terkirim — Task ID={task.id} '{task.task_name}' ({status_label}) → {', '.join(targets)}")
 
         print(f"[Auto Nudge] 📊 Selesai: {nudge_sent} terkirim, {nudge_skipped_dup} skip duplikat, {nudge_skipped_no_date} skip no-date, {nudge_skipped_no_target} skip no-target.")
 

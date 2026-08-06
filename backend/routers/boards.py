@@ -1,10 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 from sqlalchemy import or_, and_, func, text
 import re
 import json
 from datetime import datetime, timedelta
 import os
+from collections import defaultdict
 
 from database import get_db, User, Request, Subtask, Board, BoardMember, LeaveDay, LeaveRecord, Comment, Notification, DirectMessage
 from schemas import *
@@ -59,19 +60,73 @@ def get_boards(
             date_str = ldate.strftime("%Y-%m-%d") if hasattr(ldate, "strftime") else str(ldate)[:10]
             personal_leaves[uname].add(date_str)
 
-    def get_metrics(board_id):
-        tasks = (
+    valid_owned = [b for b in owned if not evaluate_board_lifecycle(db, b)]
+    valid_shared = [b for b in shared if b and not evaluate_board_lifecycle(db, b)]
+    valid_extra = [b for b in extra_managed if b and not evaluate_board_lifecycle(db, b)]
+    all_valid_boards = valid_owned + valid_shared + valid_extra
+    all_board_ids = list({b.id for b in all_valid_boards})
+
+    # One light query for all boards — avoid per-board full-row task scans (huge Neon transfer)
+    tasks_by_board = defaultdict(list)
+    if all_board_ids:
+        light_tasks = (
             db.query(Request)
+            .options(
+                load_only(
+                    Request.id,
+                    Request.board_id,
+                    Request.requester,
+                    Request.owner_username,
+                    Request.status,
+                    Request.deadline,
+                    Request.task_name,
+                )
+            )
             .filter(
-                Request.board_id == board_id,
+                Request.board_id.in_(all_board_ids),
                 or_(Request.requester == None, Request.requester != "System"),
                 or_(
-                    Request.project_name == None,
-                    Request.project_name != "[SYSTEM] PROJECT CHAT",
+                    Request.task_name == None,
+                    Request.task_name != "[SYSTEM] PROJECT CHAT",
                 ),
             )
             .all()
         )
+        for t in light_tasks:
+            tasks_by_board[t.board_id].append(t)
+
+    active_task_ids = [
+        t.id
+        for tasks in tasks_by_board.values()
+        for t in tasks
+        if t.status not in ("Done", "Rejected")
+    ]
+    subs_by_task = batch_subtasks_by_request(db, active_task_ids)
+
+    request_counts = dict(
+        db.query(BoardMember.board_id, func.count(BoardMember.id))
+        .filter(
+            BoardMember.board_id.in_(all_board_ids) if all_board_ids else False,
+            BoardMember.status == "requesting",
+        )
+        .group_by(BoardMember.board_id)
+        .all()
+    ) if all_board_ids else {}
+
+    members_by_board = defaultdict(list)
+    if all_board_ids:
+        for board_id, username in (
+            db.query(BoardMember.board_id, BoardMember.member_username)
+            .filter(
+                BoardMember.board_id.in_(all_board_ids),
+                BoardMember.status == "accepted",
+            )
+            .all()
+        ):
+            members_by_board[board_id].append(username)
+
+    def get_metrics(board_id):
+        tasks = tasks_by_board.get(board_id, [])
         total = len(tasks)
         done = sum(1 for t in tasks if t.status == "Done")
         my_pending = 0
@@ -97,8 +152,7 @@ def get_boards(
                 is_mine = True
 
             if not is_mine:
-                subs = db.query(Subtask).filter(Subtask.request_id == t.id).all()
-                for s in subs:
+                for s in subs_by_task.get(t.id, []):
                     if (
                         s.assignee
                         and s.assignee.lower() == curr_user_lower
@@ -109,7 +163,6 @@ def get_boards(
             if is_mine:
                 my_pending += 1
 
-            # For Health Alert Summary
             task_leaves = set(leave_dates)
             for a in assignees:
                 task_leaves.update(personal_leaves.get(a, set()))
@@ -146,118 +199,39 @@ def get_boards(
         elif not alert_msg and total > 0:
             alert_msg = "Project is on track. Keep it up! ✨"
 
-        requests_count = db.query(BoardMember).filter(BoardMember.board_id == board_id, BoardMember.status == "requesting").count()
+        return total, done, my_pending, alert_msg, request_counts.get(board_id, 0)
 
-        return total, done, my_pending, alert_msg, requests_count
+    def board_payload(b, role):
+        total, done, my_pending, alert_msg, requests_count = get_metrics(b.id)
+        members_db = members_by_board.get(b.id, [])
+        team = [b.owner_username] + [m for m in members_db if m != b.owner_username]
+        return {
+            "id": b.id,
+            "name": b.name,
+            "owner_username": b.owner_username,
+            "role": role,
+            "total_tasks": total,
+            "done_tasks": done,
+            "my_pending": my_pending,
+            "statuses": b.statuses,
+            "categories": b.categories,
+            "deletion_date": b.deletion_date,
+            "created_at": b.created_at,
+            "team_preview": team[:20],
+            "health_alert": alert_msg,
+            "is_private": getattr(b, "is_private", 0),
+            "project_number": getattr(b, "project_number", None),
+            "access_requests_count": requests_count,
+        }
 
     res = []
-    valid_owned = [b for b in owned if not evaluate_board_lifecycle(db, b)]
     for b in valid_owned:
-        total, done, my_pending, alert_msg, requests_count = get_metrics(b.id)
-
-        # Pre-fetch Top 5 Members untuk List View UI
-        members_db = (
-            db.query(BoardMember.member_username)
-            .filter(BoardMember.board_id == b.id, BoardMember.status == "accepted")
-            .limit(19)
-            .all()
-        )
-        team = [b.owner_username] + [
-            m[0] for m in members_db if m[0] != b.owner_username
-        ]
-        team_preview = team[:20]
-
-        res.append(
-            {
-                "id": b.id,
-                "name": b.name,
-                "owner_username": b.owner_username,
-                "role": "owner",
-                "total_tasks": total,
-                "done_tasks": done,
-                "my_pending": my_pending,
-                "statuses": b.statuses,
-                "categories": b.categories,
-                "deletion_date": b.deletion_date,
-                "created_at": b.created_at,
-                "team_preview": team_preview,
-                "health_alert": alert_msg,
-                "is_private": getattr(b, "is_private", 0),
-                "project_number": getattr(b, "project_number", None),
-                "access_requests_count": requests_count,
-            }
-        )
-    valid_shared = [b for b in shared if b and not evaluate_board_lifecycle(db, b)]
+        res.append(board_payload(b, "owner"))
     for b in valid_shared:
-        if True:
-            total, done, my_pending, alert_msg, requests_count = get_metrics(b.id)
-
-            # Pre-fetch Top 5 Members untuk List View UI
-            members_db = (
-                db.query(BoardMember.member_username)
-                .filter(BoardMember.board_id == b.id, BoardMember.status == "accepted")
-                .limit(19)
-                .all()
-            )
-            team = [b.owner_username] + [
-                m[0] for m in members_db if m[0] != b.owner_username
-            ]
-            team_preview = team[:20]
-
-            res.append(
-                {
-                    "id": b.id,
-                    "name": b.name,
-                    "owner_username": b.owner_username,
-                    "role": "member",
-                    "total_tasks": total,
-                    "done_tasks": done,
-                    "my_pending": my_pending,
-                    "statuses": b.statuses,
-                    "categories": b.categories,
-                    "deletion_date": b.deletion_date,
-                    "created_at": b.created_at,
-                    "team_preview": team_preview,
-                    "health_alert": alert_msg,
-                    "is_private": getattr(b, "is_private", 0),
-                    "project_number": getattr(b, "project_number", None),
-                    "access_requests_count": requests_count,
-                }
-            )
-
-    valid_extra = [b for b in extra_managed if b and not evaluate_board_lifecycle(db, b)]
+        res.append(board_payload(b, "member"))
     for b in valid_extra:
-        total, done, my_pending, alert_msg, requests_count = get_metrics(b.id)
-        members_db = (
-            db.query(BoardMember.member_username)
-            .filter(BoardMember.board_id == b.id, BoardMember.status == "accepted")
-            .limit(19)
-            .all()
-        )
-        team = [b.owner_username] + [
-            m[0] for m in members_db if m[0] != b.owner_username
-        ]
-        team_preview = team[:20]
-        res.append(
-            {
-                "id": b.id,
-                "name": b.name,
-                "owner_username": b.owner_username,
-                "role": "owner" if b.owner_username == current_user else "manager",
-                "total_tasks": total,
-                "done_tasks": done,
-                "my_pending": my_pending,
-                "statuses": b.statuses,
-                "categories": b.categories,
-                "deletion_date": b.deletion_date,
-                "created_at": b.created_at,
-                "team_preview": team_preview,
-                "health_alert": alert_msg,
-                "is_private": getattr(b, "is_private", 0),
-                "project_number": getattr(b, "project_number", None),
-                "access_requests_count": requests_count,
-            }
-        )
+        role = "owner" if b.owner_username == current_user else "manager"
+        res.append(board_payload(b, role))
     return {"boards": res}
 
 
@@ -291,7 +265,7 @@ def create_board(
         )
 
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    default_statuses = json.dumps(["Pending", "In Progress", "Done", "Rejected"])
+    default_statuses = json.dumps(["To Do", "In Progress", "Done"])
     default_categories = json.dumps(
         [
             "Development",
@@ -473,37 +447,73 @@ def get_board_tasks(
 
     tasks = (
         db.query(Request)
+        .options(
+            load_only(
+                Request.id,
+                Request.board_id,
+                Request.timestamp,
+                Request.task_name,
+                Request.requester,
+                Request.category,
+                Request.start_date,
+                Request.deadline,
+                Request.impact,
+                Request.etc,
+                Request.auto_nudge,
+                Request.recurring,
+                Request.status,
+                Request.completed_time,
+                Request.owner_username,
+                Request.supporting_access,
+            )
+        )
         .filter(
             Request.board_id == board_id,
             or_(Request.requester == None, Request.requester != "System"),
             or_(
-                Request.project_name == None,
-                Request.project_name != "[SYSTEM] PROJECT CHAT",
+                Request.task_name == None,
+                Request.task_name != "[SYSTEM] PROJECT CHAT",
             ),
         )
         .all()
     )
 
+    task_ids = [t.id for t in tasks]
+    subs_by_task = batch_subtasks_by_request(db, task_ids)
+    desc_meta = {}
+    if task_ids:
+        for tid, preview, full_len in (
+            db.query(
+                Request.id,
+                func.left(Request.description, 280),
+                func.length(Request.description),
+            )
+            .filter(Request.id.in_(task_ids))
+            .all()
+        ):
+            desc_meta[tid] = (preview or "", int(full_len or 0))
+
     tasks_list = []
     for task in tasks:
         q_info = global_queues.get(task.id, {})
+        desc_preview, full_len = desc_meta.get(task.id, ("", 0))
         t_dict = {
             "id": task.id,
             "board_id": task.board_id,
             "board_name": board.name if board else "Unknown",
             "timestamp": task.timestamp,
-            "project_name": task.project_name,
+            "task_name": task.task_name,
             "requester": task.requester,
+            "head_of_project": getattr(task, "head_of_project", "") or "",
+            "rc_team": getattr(task, "rc_team", "") or "",
             "category": task.category,
-            "description": task.description,
-            "supporting_access": task.supporting_access,
+            "description": desc_preview,
+            "supporting_access": task.supporting_access or "",
             "start_date": format_dt(task.start_date) or (format_dt(task.timestamp).split(" ")[0] if task.timestamp else None),
             "deadline": format_dt(task.deadline),
             "impact": getattr(task, "impact", "Medium"),
             "etc": getattr(task, "etc", 2),
             "auto_nudge": bool(getattr(task, "auto_nudge", False)),
-            "recurring": getattr(task, "recurring", "none"),
-            "recurring": getattr(task, "recurring", "none"),
             "recurring": getattr(task, "recurring", "none"),
             "status": task.status,
             "completed_time": task.completed_time,
@@ -513,13 +523,9 @@ def get_board_tasks(
             "queue_project_number": q_info.get("project_q"),
             "total_project_queue": q_info.get("project_t"),
             "main_assignee": q_info.get("main_assignee"),
+            "description_truncated": full_len > 280,
         }
-        subtasks = (
-            db.query(Subtask)
-            .filter(Subtask.request_id == task.id)
-            .order_by(Subtask.position.asc(), Subtask.id.asc())
-            .all()
-        )
+        subtasks = subs_by_task.get(task.id, [])
         t_dict["subtask_total"] = len(subtasks)
         t_dict["subtask_done"] = sum(1 for s in subtasks if s.is_done == 1)
         t_dict["subtask_assignees"] = ", ".join(
@@ -533,7 +539,6 @@ def get_board_tasks(
         )
 
         assignees = get_assignees(task.requester)
-        # Tambahkan pekerja sub-task ke dalam perhitungan kalkulasi Cuti
         for s in subtasks:
             if s.assignee:
                 assignees.add(s.assignee)
@@ -563,7 +568,7 @@ def get_light_tasks(
         db.query(Request)
         .filter(
             Request.board_id == board_id,
-            Request.project_name != "[SYSTEM] PROJECT CHAT",
+            Request.task_name != "[SYSTEM] PROJECT CHAT",
             Request.status.notin_(["Done", "Rejected"]),
         )
         .order_by(Request.id.desc())
@@ -590,7 +595,7 @@ def get_light_tasks(
         res.append(
             {
                 "id": t.id,
-                "project_name": t.project_name,
+                "task_name": t.task_name,
                 "status": t.status,
                 "is_involved": involved,
             }
@@ -606,7 +611,7 @@ def create_task(
     current_user: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if len(task.project_name) > 255 or len(task.description) > 10000:
+    if len(task.task_name) > 255 or len(task.description) > 10000:
         raise HTTPException(
             status_code=400, detail="Payload size exceeds maximum allowed limit."
         )
@@ -642,8 +647,10 @@ def create_task(
         new_task = Request(
             board_id=board_id,
             timestamp=timestamp,
-            project_name=task.project_name,
+            task_name=task.task_name,
             requester=task.requester,
+            head_of_project=task.head_of_project or "",
+            rc_team=task.rc_team or "",
             category=task.category,
             description=task.description,
             supporting_access=task.supporting_access,
@@ -652,7 +659,7 @@ def create_task(
             impact=task.impact or "Medium",
             etc=task.etc if task.etc is not None else 2,
             auto_nudge=True if task.auto_nudge else False,
-            status="Pending",
+            status="To Do",
             owner_username=current_user,
         )
         setattr(new_task, "recurring", task.recurring or "none")
@@ -691,7 +698,7 @@ def create_task(
                     create_notification(
                         db,
                         m,
-                        f"@{current_user} assigned you a new task: {task.project_name or 'Untitled'}",
+                        f"@{current_user} assigned you a new task: {task.task_name or 'Untitled'}",
                         "task_assigned",
                         new_task.id,
                     )
@@ -709,7 +716,7 @@ def create_task(
 
         return {
             "message": response_message,
-            "project": task.project_name,
+            "project": task.task_name,
             "task_id": new_task.id,
         }
     except Exception as e:
@@ -747,7 +754,7 @@ def request_board_access(
     if task_id:
         task = db.query(Request).filter(Request.id == task_id).first()
         if task:
-            task_info = f" to view task: {task.project_name} <!--TASK_ID:{task.id}-->"
+            task_info = f" to view task: {task.task_name} <!--TASK_ID:{task.id}-->"
 
     create_notification(
         db, board.owner_username,
@@ -785,7 +792,7 @@ def accept_access_request(board_id: int, member_id: int, current_user: str = Dep
             task_id_match = match.group(1)
             task = db.query(Request).filter(Request.id == int(task_id_match)).first()
             if task:
-                task_info = f" You can now view the task: {task.project_name} <!--TASK_ID:{task.id}-->"
+                task_info = f" You can now view the task: {task.task_name} <!--TASK_ID:{task.id}-->"
 
     create_notification(
         db, req.member_username,

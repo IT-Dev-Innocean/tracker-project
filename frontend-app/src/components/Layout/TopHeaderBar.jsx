@@ -28,6 +28,8 @@ export default function TopHeaderBar() {
     currentUser,
     avatarsMap,
     language,
+    workspaceRole,
+    isSuperAdmin,
     unreadCount,
     isNotifOpen,
     setIsNotifOpen,
@@ -70,6 +72,15 @@ export default function TopHeaderBar() {
     typeof navigator !== 'undefined' &&
     /Mac|iPhone|iPad/.test(navigator.platform);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+
+  const roleLabel = (() => {
+    const role = isSuperAdmin ? 'admin' : workspaceRole;
+    if (role === 'admin') return tMsg('Admin', 'Admin');
+    if (role === 'project_owner') return tMsg('Owner', 'Pemilik');
+    if (role === 'manager') return tMsg('Manager', 'Manager');
+    if (role === 'staff') return tMsg('Staff', 'Staff');
+    return role || tMsg('Member', 'Anggota');
+  })();
 
   const unreadInboxChatsCount = useMemo(() => {
     return (inboxChats || []).filter((chat) => {
@@ -170,7 +181,7 @@ export default function TopHeaderBar() {
         <button
           type='button'
           onClick={() => setIsChatWorkspaceOpen(true)}
-          className='hidden md:flex flex-col items-center gap-0.5 text-slate-600 dark:text-slate-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg px-2.5 py-1.5 transition-colors relative'
+          className='theme-interactive hidden md:flex flex-col items-center gap-0.5 text-slate-600 dark:text-slate-400 rounded-lg px-2.5 py-1.5 transition-colors relative'
           title={tMsg('Chat', 'Obrolan')}>
           <Icon name='message-circle' className='w-5 h-5' />
           <span className='text-[10px] font-semibold'>
@@ -189,7 +200,7 @@ export default function TopHeaderBar() {
             setExportMode('global');
             setIsExportModalOpen(true);
           }}
-          className='hidden md:flex flex-col items-center gap-0.5 text-slate-600 dark:text-slate-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg px-2.5 py-1.5 transition-colors'
+          className='theme-interactive hidden md:flex flex-col items-center gap-0.5 text-slate-600 dark:text-slate-400 rounded-lg px-2.5 py-1.5 transition-colors'
           title={tMsg('Export', 'Ekspor')}>
           <Icon name='globe' className='w-5 h-5' />
           <span className='text-[10px] font-semibold'>
@@ -201,7 +212,7 @@ export default function TopHeaderBar() {
           <button
             type='button'
             onClick={toggleNotifOpen}
-            className='flex flex-col items-center gap-0.5 text-slate-600 dark:text-slate-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg px-2.5 py-1.5 transition-colors relative'
+            className='theme-interactive flex flex-col items-center gap-0.5 text-slate-600 dark:text-slate-400 rounded-lg px-2.5 py-1.5 transition-colors relative'
             title={tMsg('Notifications', 'Notifikasi')}>
             <Icon name='bell' className='w-5 h-5' />
             <span className='text-[10px] font-semibold'>
@@ -339,14 +350,17 @@ export default function TopHeaderBar() {
           <button
             type='button'
             onClick={openProfileMenu}
-            className='rounded-lg p-1 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors tour-account-menu'
-            title={currentUser}>
+            className='theme-interactive flex flex-col items-center gap-0.5 rounded-lg px-1.5 py-1 transition-colors tour-account-menu text-slate-600 dark:text-slate-400'
+            title={`${currentUser} · ${roleLabel}`}>
             <Avatar
               name={currentUser}
               url={avatarsMap[currentUser]}
               size='w-9 h-9'
               textClass='text-sm'
             />
+            <span className='text-xs font-semibold leading-none max-w-16 truncate mt-2'>
+              {roleLabel}
+            </span>
           </button>
 
           {isProfileMenuOpen && (

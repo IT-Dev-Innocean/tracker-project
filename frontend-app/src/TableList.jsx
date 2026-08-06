@@ -134,7 +134,7 @@ export default function TableList({
   const defaultDeadline = getLocalToday();
 
   const [quickAddData, setQuickAddData] = useState({
-    project_name: '',
+    task_name: '',
     requester: currentUser ? `@${currentUser}` : '',
     category: categories?.[0] || 'Development',
     deadline: '',
@@ -148,7 +148,7 @@ export default function TableList({
     if (optimisticIdRef.current) {
       const realNewTask = filteredTasks.find(
         (t) =>
-          t.project_name === optimisticIdRef.current.name &&
+          t.task_name === optimisticIdRef.current.name &&
           t.requester === optimisticIdRef.current.requester &&
           !displayTasks.some((dt) => dt.id === t.id)
       );
@@ -199,7 +199,7 @@ export default function TableList({
     try {
       for (const t of tasksToMove) {
         const payload = {
-          project_name: t.project_name,
+          task_name: t.task_name,
           requester: t.requester,
           category: t.category,
           description: t.description || '',
@@ -297,13 +297,13 @@ export default function TableList({
   }, [categories]);
 
   const submitQuickAdd = () => {
-    if (quickAddData.project_name.trim()) {
+    if (quickAddData.task_name.trim()) {
       const tempId = `temp-${Date.now()}`;
       const newTask = {
         ...quickAddData,
         id: tempId,
         timestamp: new Date().toISOString(),
-        status: 'Pending',
+        status: 'To Do',
         priority_lvl: 'normal',
         priority_str: 'NORMAL',
         subtask_total: 0,
@@ -313,7 +313,7 @@ export default function TableList({
         board_name: selectedBoard.name,
       };
 
-      optimisticIdRef.current = { id: tempId, name: newTask.project_name, requester: newTask.requester };
+      optimisticIdRef.current = { id: tempId, name: newTask.task_name, requester: newTask.requester };
 
       setDisplayTasks((prev) => [newTask, ...prev]);
       setNewlyAddedId(tempId);
@@ -330,7 +330,7 @@ export default function TableList({
         });
 
       setQuickAddData({
-        project_name: '',
+        task_name: '',
         requester: currentUser ? `@${currentUser}` : '',
         category: categories?.[0] || 'Development',
         deadline: '',
@@ -536,7 +536,7 @@ export default function TableList({
             <div className="hidden md:flex flex-wrap items-center gap-2">
               {[
                 { key: 'queue', label: 'Queue' },
-                { key: 'project_name', label: 'Name' },
+                { key: 'task_name', label: 'Name' },
                 { key: 'status', label: 'Status' },
                 { key: 'start_date', label: 'Start Date' },
                 { key: 'deadline', label: 'Deadline' },
@@ -557,7 +557,7 @@ export default function TableList({
             </div>
             <select onChange={(e) => requestSort(e.target.value)} value={sortConfig.key || ''} className="flex-1 md:hidden bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 rounded-lg px-2 py-1.5 text-xs font-bold">
               <option value="">Default</option>
-              {[{ key: 'queue', label: 'Queue' }, { key: 'project_name', label: 'Name' }, { key: 'status', label: 'Status' }, { key: 'start_date', label: 'Start Date' }, { key: 'deadline', label: 'Deadline' }, { key: 'priority_lvl', label: 'Priority' }].map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
+              {[{ key: 'queue', label: 'Queue' }, { key: 'task_name', label: 'Name' }, { key: 'status', label: 'Status' }, { key: 'start_date', label: 'Start Date' }, { key: 'deadline', label: 'Deadline' }, { key: 'priority_lvl', label: 'Priority' }].map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
             </select>
             {isBulkSelectMode && (
               <div className="ml-auto flex items-center gap-3">
@@ -610,8 +610,8 @@ export default function TableList({
                   <Icon name="sparkles" className="w-5 h-5 text-indigo-500" />
                   <input
                     type="text"
-                    value={quickAddData.project_name}
-                    onChange={(e) => setQuickAddData({ ...quickAddData, project_name: e.target.value })}
+                    value={quickAddData.task_name}
+                    onChange={(e) => setQuickAddData({ ...quickAddData, task_name: e.target.value })}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
@@ -840,7 +840,7 @@ export default function TableList({
                             </span>
                           )}
                           <h4 className={`text-base font-bold text-slate-800 dark:text-slate-100 leading-snug ${task.status === 'Done' ? 'line-through text-slate-500 dark:text-slate-400' : ''}`}>
-                            <HighlightText text={task.project_name} query={searchQuery} />
+                            <HighlightText text={task.task_name} query={searchQuery} />
                           </h4>
                           {unreadComments > 0 && (
                             <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-md shadow-sm font-black animate-pulse flex items-center gap-1 shrink-0">
@@ -1036,7 +1036,7 @@ export default function TableList({
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-xs font-bold line-through text-neutral-600 dark:text-neutral-400 truncate group-hover:text-indigo-600 transition-colors">
-                              {task.project_name}
+                              {task.task_name}
                             </p>
                             <p className="text-[9px] font-medium text-neutral-400 mt-0.5">
                               {formatDateMMM(task.completed_time)}
@@ -1188,9 +1188,9 @@ export default function TableList({
                     <div className="flex-1 min-w-0" onClick={() => setSelectedTask(task)}>
                       <p
                         className="text-sm font-bold line-through text-neutral-600 dark:text-neutral-400 truncate group-hover:text-indigo-600 transition-colors"
-                        title={task.project_name}
+                        title={task.task_name}
                       >
-                        {task.project_name}
+                        {task.task_name}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[9px] font-bold text-neutral-500 bg-neutral-100 dark:bg-neutral-800 px-1.5 py-0.5 rounded">
