@@ -590,10 +590,10 @@ export default function AdminModal({
                                 onChange={async (e) => {
                                   const isReq = e.target.value === 'required';
                                   try {
-                                    await axios.put(`${import.meta.env.VITE_API_BASE_URL || ''}/api/admin/users/timesheet-requirement`, {
+                                    await axios.put('/api/admin/users/timesheet-requirement', {
                                       username: u.username,
                                       timesheet_required: isReq,
-                                    }, { headers: { Authorization: `Bearer ${localStorage.getItem('innocean_token')}` } });
+                                    });
                                     if (setAdminUsers) {
                                       setAdminUsers(prev => prev.map(usr => usr.username === u.username ? { ...usr, timesheet_required: isReq } : usr));
                                     }
