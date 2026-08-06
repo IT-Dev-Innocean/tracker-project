@@ -1309,9 +1309,9 @@ export default function AnalyticsView({
                 >
                   <p
                     className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate mb-1"
-                    title={t.project_name}
+                    title={t.task_name}
                   >
-                    {t.project_name}
+                    {t.task_name}
                   </p>
                   <div className="flex justify-between items-center mt-2">
                     <span className="text-[10px] font-medium text-slate-500 truncate max-w-25">{t.requester}</span>

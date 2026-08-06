@@ -33,7 +33,7 @@ def get_my_timesheets(db: Session = Depends(get_db), current_user: str = Depends
         if entry.request_id:
             req = db.query(Request).filter(Request.id == entry.request_id).first()
             if req:
-                task_name = req.project_name[:50] + "..." if req.project_name and len(req.project_name) > 50 else req.project_name
+                task_name = req.task_name[:50] + "..." if req.task_name and len(req.task_name) > 50 else req.task_name
         else:
             task_name = entry.custom_task_name
  
@@ -154,7 +154,7 @@ def get_approvals(db: Session = Depends(get_db), current_user: str = Depends(get
         if entry.request_id:
             req = db.query(Request).filter(Request.id == entry.request_id).first()
             if req:
-                task_name = req.project_name[:50] + "..." if req.project_name and len(req.project_name) > 50 else req.project_name
+                task_name = req.task_name[:50] + "..." if req.task_name and len(req.task_name) > 50 else req.task_name
         else:
             task_name = entry.custom_task_name
  

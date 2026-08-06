@@ -557,7 +557,7 @@ export default function TimelineView({
                       >
                         <div
                           className="text-[10px] md:text-xs font-bold text-slate-800 dark:text-slate-200 w-full group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight flex items-center gap-1.5"
-                          title={t.project_name}
+                          title={t.task_name}
                         >
                           {(() => {
                             const isGlobal = !selectedBoard || selectedBoard.id === 'global';
@@ -579,7 +579,7 @@ export default function TimelineView({
                             }
                             return null;
                           })()}
-                          <span className="truncate">{t.project_name || 'Untitled Task'}</span>
+                          <span className="truncate">{t.task_name || 'Untitled Task'}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-[8px] md:text-[9px] text-slate-500 dark:text-slate-400 mt-1">
                           <span
@@ -861,7 +861,7 @@ export default function TimelineView({
                                   onClick={(e) => {
                                     if (!timelineDrag || timelineDrag.startOffsetDays === 0) setSelectedTask(t);
                                   }}
-                                  title={`${t.project_name} - ${t.status}`}
+                                  title={`${t.task_name} - ${t.status}`}
                                 >
                                   {isFirst && isDraggable && (
                                     <div

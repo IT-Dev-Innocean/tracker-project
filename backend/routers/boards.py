@@ -79,15 +79,15 @@ def get_boards(
                     Request.owner_username,
                     Request.status,
                     Request.deadline,
-                    Request.project_name,
+                    Request.task_name,
                 )
             )
             .filter(
                 Request.board_id.in_(all_board_ids),
                 or_(Request.requester == None, Request.requester != "System"),
                 or_(
-                    Request.project_name == None,
-                    Request.project_name != "[SYSTEM] PROJECT CHAT",
+                    Request.task_name == None,
+                    Request.task_name != "[SYSTEM] PROJECT CHAT",
                 ),
             )
             .all()
@@ -452,7 +452,7 @@ def get_board_tasks(
                 Request.id,
                 Request.board_id,
                 Request.timestamp,
-                Request.project_name,
+                Request.task_name,
                 Request.requester,
                 Request.category,
                 Request.start_date,
@@ -471,8 +471,8 @@ def get_board_tasks(
             Request.board_id == board_id,
             or_(Request.requester == None, Request.requester != "System"),
             or_(
-                Request.project_name == None,
-                Request.project_name != "[SYSTEM] PROJECT CHAT",
+                Request.task_name == None,
+                Request.task_name != "[SYSTEM] PROJECT CHAT",
             ),
         )
         .all()
@@ -502,8 +502,10 @@ def get_board_tasks(
             "board_id": task.board_id,
             "board_name": board.name if board else "Unknown",
             "timestamp": task.timestamp,
-            "project_name": task.project_name,
+            "task_name": task.task_name,
             "requester": task.requester,
+            "head_of_project": getattr(task, "head_of_project", "") or "",
+            "rc_team": getattr(task, "rc_team", "") or "",
             "category": task.category,
             "description": desc_preview,
             "supporting_access": task.supporting_access or "",
@@ -566,7 +568,7 @@ def get_light_tasks(
         db.query(Request)
         .filter(
             Request.board_id == board_id,
-            Request.project_name != "[SYSTEM] PROJECT CHAT",
+            Request.task_name != "[SYSTEM] PROJECT CHAT",
             Request.status.notin_(["Done", "Rejected"]),
         )
         .order_by(Request.id.desc())
@@ -593,7 +595,7 @@ def get_light_tasks(
         res.append(
             {
                 "id": t.id,
-                "project_name": t.project_name,
+                "task_name": t.task_name,
                 "status": t.status,
                 "is_involved": involved,
             }
@@ -609,7 +611,7 @@ def create_task(
     current_user: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if len(task.project_name) > 255 or len(task.description) > 10000:
+    if len(task.task_name) > 255 or len(task.description) > 10000:
         raise HTTPException(
             status_code=400, detail="Payload size exceeds maximum allowed limit."
         )
@@ -645,8 +647,10 @@ def create_task(
         new_task = Request(
             board_id=board_id,
             timestamp=timestamp,
-            project_name=task.project_name,
+            task_name=task.task_name,
             requester=task.requester,
+            head_of_project=task.head_of_project or "",
+            rc_team=task.rc_team or "",
             category=task.category,
             description=task.description,
             supporting_access=task.supporting_access,
@@ -694,7 +698,7 @@ def create_task(
                     create_notification(
                         db,
                         m,
-                        f"@{current_user} assigned you a new task: {task.project_name or 'Untitled'}",
+                        f"@{current_user} assigned you a new task: {task.task_name or 'Untitled'}",
                         "task_assigned",
                         new_task.id,
                     )
@@ -712,7 +716,7 @@ def create_task(
 
         return {
             "message": response_message,
-            "project": task.project_name,
+            "project": task.task_name,
             "task_id": new_task.id,
         }
     except Exception as e:
@@ -750,7 +754,7 @@ def request_board_access(
     if task_id:
         task = db.query(Request).filter(Request.id == task_id).first()
         if task:
-            task_info = f" to view task: {task.project_name} <!--TASK_ID:{task.id}-->"
+            task_info = f" to view task: {task.task_name} <!--TASK_ID:{task.id}-->"
 
     create_notification(
         db, board.owner_username,
@@ -788,7 +792,7 @@ def accept_access_request(board_id: int, member_id: int, current_user: str = Dep
             task_id_match = match.group(1)
             task = db.query(Request).filter(Request.id == int(task_id_match)).first()
             if task:
-                task_info = f" You can now view the task: {task.project_name} <!--TASK_ID:{task.id}-->"
+                task_info = f" You can now view the task: {task.task_name} <!--TASK_ID:{task.id}-->"
 
     create_notification(
         db, req.member_username,

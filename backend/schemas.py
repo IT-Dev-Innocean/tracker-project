@@ -7,8 +7,10 @@ class AIGenerateModel(BaseModel):
 
 
 class RequestFormModel(BaseModel):
-    project_name: str
+    task_name: str
     requester: str
+    head_of_project: Optional[str] = ""
+    rc_team: Optional[str] = ""
     category: str
     description: str
     supporting_access: str
@@ -26,8 +28,10 @@ class TaskUpdateModel(BaseModel):
 
 
 class TaskEditModel(BaseModel):
-    project_name: str
+    task_name: str
     requester: str
+    head_of_project: Optional[str] = ""
+    rc_team: Optional[str] = ""
     category: str
     description: str
     supporting_access: str

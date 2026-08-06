@@ -143,7 +143,7 @@ INSTRUCTIONS:
 3. Task Breakdown (Specific vs Generic):
    - BROAD / GENERIC GOAL: If the user's request is generic or broad (e.g., "Paid search", "SEO", "marketing campaign", "website redesign") and does NOT explicitly mention a specific assignee (@name), a specific deadline/due date, a specific project name (#ProjectName), or any highly specific single action, you MUST logically break it down into multiple actionable tasks (minimum 3 tasks), regardless of how few words the user prompt is.
    - SPECIFIC TASK: If it is a single specific action, explicitly assigns work (@name), or specifies a distinct project (#ProjectName), generate EXACTLY ONE task per each action.
-4. Naming Convention (project_name):
+4. Naming Convention (task_name):
    - Language: MUST ALWAYS be in English for task titles, regardless of the prompt's language.
    - Format: "[Context/Brand] Task Title". Extract the unique context prefix (e.g., brand, activity, or game title).
    - Numbering: When generating multiple tasks from a breakdown, you MUST prepend step numbers (e.g. "[Part 1] Task Title" or "1. Task Title") so the sequence and order of execution are clear.
@@ -154,7 +154,7 @@ INSTRUCTIONS:
 JSON SCHEMA:
 [
   {
-    "project_name": "[Context] Actionable Title in ENGLISH ONLY",
+    "task_name": "[Context] Actionable Title in ENGLISH ONLY",
     "suggested_project": "Extract project name identified by '#' (e.g., '#WebsiteRedesign'). Leave empty if none.",
     "requester": "If assigning TO someone, use '@username' (e.g., '@budi'). If requested BY someone else, use their name without '@' (e.g., 'Mr. Smith'). Default to '@${currentUser}' if unspecified.",
     "category": "Identify the best category (e.g. Development, Design, Marketing). If none fit, create a short new category name in English.",
@@ -374,7 +374,7 @@ USER REQUEST:
       const bId = t.target_board_id || targetBoard?.id;
 
       const formattedData = {
-        project_name: t.project_name,
+        task_name: t.task_name,
         requester: t.requester || `@${currentUser}`,
         category: t.category || 'Other',
         deadline: t.finalDeadline,
@@ -399,7 +399,7 @@ USER REQUEST:
         console.error(e);
         const errorMsg =
           e.response?.data?.detail ||
-          `${tMsg('Failed to create task', 'Gagal membuat tugas')}: ${t.project_name}`;
+          `${tMsg('Failed to create task', 'Gagal membuat tugas')}: ${t.task_name}`;
         error_messages.add(errorMsg);
       }
     }
@@ -850,7 +850,7 @@ USER REQUEST:
                         />
                         <div className='flex-1'>
                           <h4 className='font-bold text-black dark:text-white text-sm mb-1'>
-                            {t.project_name}
+                            {t.task_name}
                           </h4>
                           <div className='flex flex-wrap gap-2 mb-2'>
                             <span className='text-[9px] font-bold bg-neutral-200 dark:bg-neutral-800 px-2 py-0.5 rounded text-neutral-600 dark:text-neutral-400 inline-block uppercase tracking-wider'>
@@ -997,7 +997,7 @@ USER REQUEST:
 
                     <div className='mb-2'>
                       <div className='font-bold text-sm text-black dark:text-white break-normal uppercase tracking-wider leading-snug line-clamp-2'>
-                        {t.project_name}
+                        {t.task_name}
                       </div>
                       {t.description && (
                         <p className='text-xs text-neutral-600 dark:text-neutral-400 mt-2 leading-relaxed line-clamp-2 font-medium'>

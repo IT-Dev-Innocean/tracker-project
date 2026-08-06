@@ -975,7 +975,7 @@ export default function ChatWorkspaceModal({
                                   setActiveChat({
                                     type: chat.is_project_chat ? 'project' : 'task',
                                     id: chat.is_project_chat ? chat.board_id : chat.task_id,
-                                    name: chat.is_project_chat ? `${chat.board_name} (General)` : chat.project_name,
+                                    name: chat.is_project_chat ? `${chat.board_name} (General)` : chat.task_name,
                                     board_id: chat.board_id,
                                   });
                                 }
@@ -1000,7 +1000,7 @@ export default function ChatWorkspaceModal({
                                           )
                                         : chat.is_project_chat
                                         ? `Project Chat: ${chat.board_name}`
-                                        : chat.project_name}
+                                        : chat.task_name}
                                     </h3>
                                     {isUnread && (
                                       <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 inline-block animate-pulse" title="Unread" />

@@ -33,8 +33,10 @@ class Request(Base):
     id = Column(Integer, primary_key=True, index=True)
     board_id = Column(Integer, index=True, nullable=True)
     timestamp = Column(DateTime, default=datetime.utcnow)
-    project_name = Column(String(100))
+    task_name = Column(String(255))
     requester = Column(String(100))
+    head_of_project = Column(Text, nullable=True)
+    rc_team = Column(Text, nullable=True)
     category = Column(String(50))
     description = Column(Text)
     supporting_access = Column(Text)
@@ -222,6 +224,23 @@ def setup_db():
                 conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'project_owner'"))
         except Exception:
             pass
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text("ALTER TABLE requests RENAME COLUMN project_name TO task_name")
+            )
+    except Exception:
+        pass
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text("ALTER TABLE requests ADD COLUMN IF NOT EXISTS head_of_project TEXT")
+            )
+            conn.execute(
+                text("ALTER TABLE requests ADD COLUMN IF NOT EXISTS rc_team TEXT")
+            )
+    except Exception:
+        pass
 
     db = SessionLocal()
     try:

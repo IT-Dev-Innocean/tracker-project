@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { IconPlus } from './SharedUI';
 import { Icon } from './components/icons/Icon';
+import MultiUserSelect from './components/MultiUserSelect';
 import { useCloseAnimation, LoadingSpinner } from './Utils';
 import { TASK_FORM_AI_ASSISTANT_ENABLED } from './featureFlags';
 
@@ -48,7 +49,7 @@ export default function TaskFormModal({
 
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const handleGenerateDesc = async () => {
-    if (!formData.project_name) {
+    if (!formData.task_name) {
       alert(
         language === 'id'
           ? 'Silakan masukkan nama/judul tugas terlebih dahulu.'
@@ -61,7 +62,7 @@ export default function TaskFormModal({
       const baseDesc = formData.description
         ? `\n\nUser's initial brief/draft:\n${formData.description}`
         : '';
-      const prompt = `Write a professional, structured task description (brief) in markdown format. The task title is "${formData.project_name}", category is "${formData.category}". Please respond in the same language as the task title.${baseDesc}`;
+      const prompt = `Write a professional, structured task description (brief) in markdown format. The task title is "${formData.task_name}", category is "${formData.category}". Please respond in the same language as the task title.${baseDesc}`;
       const res = await axios.post('/api/ai/generate', { prompt });
       setFormData({ ...formData, description: res.data.text });
     } catch (err) {
@@ -85,7 +86,7 @@ export default function TaskFormModal({
 The user currently logged in is "@${currentUser}".
 The user wants to create a new task: "${aiPrompt}".
 1. Extract the details into a JSON object.
-2. "project_name" MUST ALWAYS be in English. "description" MUST be in the SAME LANGUAGE the user used (e.g., if the prompt is in Indonesian, write the description and notes in Indonesian).
+2. "task_name" MUST ALWAYS be in English. "description" MUST be in the SAME LANGUAGE the user used (e.g., if the prompt is in Indonesian, write the description and notes in Indonesian).
 3. Break down the task into 3-5 actionable "subtasks".
 4. Determine the "requester" field. If the task is ASSIGNED TO someone, use an '@' prefix (e.g., "@budi"). If someone else REQUESTED the task for you to do, write their name WITHOUT the '@' prefix (e.g., "Robert"). If the user implies the task is for themselves to do, use "@${currentUser}".
 5. Find the closest "category" from: [${categories.join(
@@ -98,7 +99,7 @@ The user wants to create a new task: "${aiPrompt}".
 
 Format:
 {
-  "project_name": "[Brand/Context] Short, clear task title",
+  "task_name": "[Brand/Context] Short, clear task title",
   "requester": "Assignee with '@' prefix OR Requester name without '@'",
   "category": "Category name",
   "description": "Well-structured description using markdown",
@@ -130,7 +131,7 @@ Format:
 
       setFormData({
         ...formData,
-        project_name: parsed.project_name || '',
+        task_name: parsed.task_name || '',
         requester: parsed.requester || formData.requester,
         category: parsed.category || categories[0] || 'Other',
         description: parsed.description || '',
@@ -161,7 +162,7 @@ Format:
 
   const [isEstimatingEtc, setIsEstimatingEtc] = useState(false);
   const handleEstimateEtc = async () => {
-    if (!formData.project_name) {
+    if (!formData.task_name) {
       alert(
         language === 'id'
           ? 'Silakan masukkan judul tugas terlebih dahulu.'
@@ -172,7 +173,7 @@ Format:
     setIsEstimatingEtc(true);
     try {
       const prompt = `Estimate the time consumption in hours to complete this task based on its title and description. Task Title: "${
-        formData.project_name
+        formData.task_name
       }". Description: "${
         formData.description || ''
       }". Return ONLY a number (e.g. 2.5, 4, 10). Do not include any other text.`;
@@ -207,8 +208,10 @@ Format:
   const handleCancel = () => {
     setFormData((prev) => ({
       ...prev,
-      project_name: '',
+      task_name: '',
       requester: '',
+      head_of_project: [],
+      rc_team: [],
       category: categories[0] || 'Development',
       description: '',
       supporting_access: '',
@@ -233,6 +236,16 @@ Format:
           .map((u) => u.username)
           .filter((u) => u !== 'admin')
       : teamMembers;
+
+  const allEmployees =
+    userDirectory && userDirectory.length > 0
+      ? userDirectory.filter((u) => u.username !== 'admin')
+      : teamMembers
+          .filter((m) => m !== 'admin')
+          .map((username) => ({ username, full_name: username }));
+
+  const headOfProject = formData.head_of_project || [];
+  const rcTeam = formData.rc_team || [];
 
   return (
     <div
@@ -335,11 +348,11 @@ Format:
               <div className='mb-8'>
                 <input
                   type='text'
-                  value={formData.project_name}
+                  value={formData.task_name}
                   onChange={(e) =>
-                    setFormData({ ...formData, project_name: e.target.value })
+                    setFormData({ ...formData, task_name: e.target.value })
                   }
-                  className='w-full text-lg font-extrabold bg-transparent border-0 border-b-2 border-neutral-200 dark:border-neutral-800 focus:border-black dark:focus:border-white focus:ring-0 px-0 py-3 text-black dark:text-white placeholder-neutral-300 dark:placeholder-neutral-700 transition-colors outline-none tour-form-project'
+                  className='w-full text-lg md:text-2xl font-bold bg-transparent border-0 border-b-2 border-neutral-200 dark:border-neutral-800 focus:border-black dark:focus:border-white focus:ring-0 px-0 py-3 text-black dark:text-white placeholder-neutral-300 dark:placeholder-neutral-700 transition-colors outline-none tour-form-project'
                   placeholder={tMsg(
                     'Enter task name...',
                     'Masukkan judul tugas...'
@@ -350,11 +363,14 @@ Format:
               </div>
 
               <div className='space-y-6'>
-                <div className='grid grid-cols-1 sm:grid-cols-5 gap-4 sm:gap-6 mb-6 relative z-50'>
-                  <div className='sm:col-span-2 group tour-form-requester relative z-50'>
-                    <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2'>
+                <div className='grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4 relative z-40'>
+                  <div className='group tour-form-requester relative z-50'>
+                    <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
                       <Icon name='user' className='w-4 h-4' />{' '}
-                      {tMsg('Assignee / Requester', 'Pekerja / Peminta')}
+                      {tMsg(
+                        'Project Owner / Requester',
+                        'Project Owner / Peminta'
+                      )}
                     </label>
                     <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center relative h-12 sm:h-14'>
                       <input
@@ -401,10 +417,10 @@ Format:
                             }
                           }
                         }}
-                        className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white outline-none placeholder-neutral-400 placeholder:text-[9px] sm:placeholder:text-[10px] h-full'
+                        className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-normal text-black dark:text-white outline-none placeholder-neutral-400 placeholder:text-xs h-full'
                         placeholder={tMsg(
-                          'Requester name (or type @ to assign someone)',
-                          'Nama peminta (atau ketik @ untuk menugaskan)'
+                          'Select or type employee name...',
+                          'Pilih atau ketik nama karyawan...'
                         )}
                         required
                         autoComplete='off'
@@ -450,11 +466,39 @@ Format:
                       )}
                     </div>
                   </div>
+                  <MultiUserSelect
+                    label={tMsg('Head of Project', 'Head of Project')}
+                    icon='users'
+                    selected={headOfProject}
+                    onChange={(users) =>
+                      setFormData({ ...formData, head_of_project: users })
+                    }
+                    employees={allEmployees}
+                    placeholder={tMsg(
+                      'Select Head of Project...',
+                      'Pilih Head PIC Proyek...'
+                    )}
+                    tMsg={tMsg}
+                  />
 
-                  <div className='sm:col-span-2 group'>
-                    <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2'>
+                  <MultiUserSelect
+                    label={tMsg('R&C Team', 'Tim R&C')}
+                    icon='users'
+                    selected={rcTeam}
+                    onChange={(users) =>
+                      setFormData({ ...formData, rc_team: users })
+                    }
+                    employees={allEmployees}
+                    placeholder={tMsg('Select R&C Team...', 'Pilih Tim R&C...')}
+                    tMsg={tMsg}
+                  />
+                </div>
+
+                <div className='grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 relative z-40'>
+                  <div className='group'>
+                    <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
                       <Icon name='folder-open' className='w-4 h-4' />{' '}
-                      {tMsg('Category', 'Kategori')}
+                      {tMsg('Job Type', 'Tipe Pekerjaan')}
                     </label>
                     <div className='flex gap-1.5 sm:gap-2'>
                       <div className='flex-1 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center min-w-0 h-12 sm:h-14'>
@@ -489,18 +533,18 @@ Format:
                         onClick={() => handleOpenAddBoard('Category')}
                         className='bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 px-3 sm:px-4 rounded-2xl transition-colors text-sm font-bold flex items-center justify-center shrink-0 shadow-sm h-12 sm:h-14'
                         title={tMsg(
-                          'Add New Category',
-                          'Tambah Kategori Baru'
+                          'Add New Job Type',
+                          'Tambah Tipe Pekerjaan'
                         )}>
                         <Icon name='plus' className='w-4 h-4' />
                       </button>
                     </div>
                   </div>
 
-                  <div className='sm:col-span-1 group'>
-                    <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-4'>
+                  <div className='group'>
+                    <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2 min-h-4'>
                       <Icon name='zap' className='w-4 h-4' />{' '}
-                      {tMsg('Impact', 'Dampak')}
+                      {tMsg('Priority', 'Prioritas')}
                     </label>
                     <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-12 sm:h-14'>
                       <select
@@ -517,9 +561,9 @@ Format:
                   </div>
                 </div>
 
-                <div className='grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6'>
+                <div className='grid grid-cols-2 gap-3 sm:gap-4'>
                   <div className='group'>
-                    <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-4'>
+                    <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2 min-h-4'>
                       <Icon name='calendar-days' className='w-4 h-4' />{' '}
                       {tMsg('Start Date', 'Tanggal Mulai')}
                     </label>
@@ -539,7 +583,7 @@ Format:
                     </div>
                   </div>
                   <div className='group tour-form-deadline'>
-                    <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-4'>
+                    <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2 min-h-4'>
                       <Icon name='calendar' className='w-4 h-4' />{' '}
                       {tMsg('Deadline', 'Tenggat Waktu')}
                     </label>
@@ -555,95 +599,10 @@ Format:
                       />
                     </div>
                   </div>
-                  <div className='group'>
-                    <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-4'>
-                      <Icon name='repeat' className='w-4 h-4' />{' '}
-                      {tMsg('Recurring', 'Berulang')}
-                    </label>
-                    <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-12 sm:h-14'>
-                      <select
-                        value={formData.recurring || 'none'}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            recurring: e.target.value,
-                          })
-                        }
-                        className='w-full h-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider [&>option]:bg-white dark:[&>option]:bg-neutral-950'>
-                        <option value='none'>{tMsg('None', 'Tidak')}</option>
-                        <option value='daily'>{tMsg('Daily', 'Harian')}</option>
-                        <option value='weekly'>
-                          {tMsg('Weekly', 'Mingguan')}
-                        </option>
-                        <option value='monthly'>
-                          {tMsg('Monthly', 'Bulanan')}
-                        </option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className='group'>
-                    <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2 min-h-4'>
-                      <Icon name='clock' className='w-4 h-4' />{' '}
-                      {tMsg('ETC (Hrs)', 'ETC (Jam)')}
-                    </label>
-                    <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center p-1.5 h-12 sm:h-14'>
-                      <button
-                        type='button'
-                        onClick={() =>
-                          setFormData({
-                            ...formData,
-                            etc: Math.max(
-                              0,
-                              (parseFloat(formData.etc) || 0) - 0.5
-                            ),
-                          })
-                        }
-                        className='w-7 h-7 flex items-center justify-center text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 rounded-xl font-bold transition-colors shrink-0'>
-                        -
-                      </button>
-                      <input
-                        type='number'
-                        step='0.1'
-                        min='0'
-                        value={formData.etc}
-                        onChange={(e) =>
-                          setFormData({ ...formData, etc: e.target.value })
-                        }
-                        className='w-full min-w-0 text-center bg-transparent border-0 focus:ring-0 p-0 text-xs font-bold text-black dark:text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
-                        required
-                      />
-                      <button
-                        type='button'
-                        onClick={() =>
-                          setFormData({
-                            ...formData,
-                            etc: (parseFloat(formData.etc) || 0) + 0.5,
-                          })
-                        }
-                        className='w-7 h-7 flex items-center justify-center text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 rounded-xl font-bold transition-colors shrink-0'>
-                        +
-                      </button>
-                      <button
-                        type='button'
-                        onClick={handleEstimateEtc}
-                        disabled={isEstimatingEtc}
-                        className='w-7 h-7 ml-1 flex items-center justify-center text-indigo-500 hover:text-white hover:bg-indigo-500 dark:hover:bg-indigo-600 rounded-xl font-bold transition-colors shrink-0 disabled:opacity-50'
-                        title='AI Estimate'>
-                        {isEstimatingEtc ? (
-                          <Icon
-                            name='clock'
-                            className='w-4 h-4 animate-pulse'
-                          />
-                        ) : (
-                          <Icon name='sparkles' className='w-4 h-4' />
-                        )}
-                      </button>
-                    </div>
-                  </div>
                 </div>
 
                 <div className='group pt-2'>
-                  <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2'>
+                  <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
                     <Icon name='file-text' className='w-4 h-4' />{' '}
                     {tMsg('Description', 'Deskripsi')}
                   </label>
@@ -728,7 +687,7 @@ Format:
                         'Tambahkan detail atau catatan...'
                       )}></textarea>
                   </div>
-                  <p className='text-[10px] text-neutral-400 mt-2 ml-4 font-medium italic'>
+                  <p className='text-[11px] text-neutral-400 mt-2 ml-4 font-normal italic'>
                     {tMsg(
                       'Rich text supported: **bold**, *italic*, __underline__, and new lines starting with "- " for bullets.',
                       'Dukungan teks kaya: **tebal**, *miring*, __garis bawah__, dan baris baru dengan "- " untuk poin.'
@@ -737,7 +696,7 @@ Format:
                 </div>
 
                 <div className='group pt-2'>
-                  <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 flex items-center gap-2'>
+                  <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
                     <Icon name='link' className='w-4 h-4' />{' '}
                     {tMsg(
                       'External Links / Supporting Access',
@@ -808,7 +767,7 @@ Format:
               </div>
 
               <div className='group pt-8 mt-8 border-t border-neutral-200 dark:border-neutral-800 tour-form-checklist'>
-                <label className='text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-4 flex items-center gap-2'>
+                <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-4 flex items-center gap-2'>
                   <Icon name='clipboard-list' className='w-4 h-4' />{' '}
                   {tMsg('Sub-task Checklist', 'Daftar Periksa Sub-tugas')}
                 </label>

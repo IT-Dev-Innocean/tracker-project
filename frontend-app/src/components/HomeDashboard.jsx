@@ -415,14 +415,14 @@ export default function HomeDashboard() {
     try {
       const topQueue = topQueueTasks
         .slice(0, 3)
-        .map((t) => t.project_name || t.title)
+        .map((t) => t.task_name || t.title)
         .join(', ');
       const recentComments = visibleChatsForKey
         .slice(0, 2)
         .map((chat) => {
           const place = chat.is_dm
             ? `DM with @${chat.partner_username}`
-            : chat.board_name || chat.project_name;
+            : chat.board_name || chat.task_name;
           if (chat.latest_sender === currentUser) {
             return `You replied in ${place}`;
           }
@@ -984,8 +984,8 @@ export default function HomeDashboard() {
                         <div className='flex-1 min-w-0'>
                           <div
                             className='text-sm font-bold text-slate-800 dark:text-slate-200 truncate'
-                            title={task.project_name || task.title}>
-                            {task.project_name || task.title}
+                            title={task.task_name || task.title}>
+                            {task.task_name || task.title}
                           </div>
 
                           <div className='flex items-center gap-2 overflow-x-auto scrollbar-hide text-[10px] mt-1'>
@@ -1225,7 +1225,7 @@ export default function HomeDashboard() {
                                       ? `DM: @${chat.partner_username}`
                                       : chat.is_project_chat
                                         ? `Project: ${chat.board_name}`
-                                        : chat.project_name}
+                                        : chat.task_name}
                                     {isUnread && (
                                       <span
                                         className='w-1.5 h-1.5 rounded-full bg-red-500 shrink-0 inline-block animate-pulse'

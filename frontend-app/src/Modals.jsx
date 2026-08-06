@@ -364,7 +364,7 @@ export function DeleteTaskModal({
           )}{' '}
           <br />
           <strong className='text-black dark:text-white font-bold'>
-            {selectedTask?.project_name}
+            {selectedTask?.task_name}
           </strong>
           ?<br />{' '}
           {tMsg(
@@ -1830,7 +1830,7 @@ export function MyTicketsModal({
                   className='bg-neutral-50 dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-2xl p-5 flex flex-col gap-3 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md transition-all group'>
                   <div className='flex justify-between items-start'>
                     <h3 className='font-bold text-sm text-black dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors'>
-                      {t.project_name}
+                      {t.task_name}
                       {notifications &&
                         notifications.some(
                           (n) => !n.is_read && n.related_task_id === t.id

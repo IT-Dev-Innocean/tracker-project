@@ -219,7 +219,7 @@ def test_dos_task_creation_protection():
 
     # Payload dengan deskripsi teks raksasa (25.000 karakter)
     huge_payload = {
-        "project_name": "Normal Title",
+        "task_name": "Normal Title",
         "requester": "attacker_user",
         "category": "Development",
         "description": "A" * 25000,

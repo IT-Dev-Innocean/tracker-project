@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
-import { IconPerson, IconPlus, Avatar } from './SharedUI';
+import { IconPlus, Avatar } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import { getTaskAssignee } from './useAppLogic';
 import { HighlightText } from './Utils';
@@ -45,6 +45,13 @@ export default function KanbanBoard({
   };
 
   const tMsg = (en, id) => (language === 'id' ? id : en);
+  const formatUserList = (val) => {
+    if (!val || !String(val).trim()) return null;
+    return String(val)
+      .split(',')
+      .map((u) => `@${u.trim()}`)
+      .join(', ');
+  };
   const canManageColumns =
     workspaceRole !== 'staff' && accountStatus !== 'suspended';
   const isProtectedStatus = (colName) =>
@@ -169,7 +176,7 @@ export default function KanbanBoard({
                         {task.board_name && task.board_name !== 'Unknown' && (
                           <>
                             <span
-                              className='text-[9px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-2 py-1 rounded-md cursor-pointer flex items-center gap-1 truncate max-w-[100px] transition-colors border border-indigo-100 dark:border-indigo-800/50'
+                              className='text-[9px] font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-2 py-1 rounded-md cursor-pointer flex items-center gap-1 truncate max-w-full transition-colors border border-indigo-100 dark:border-indigo-800/50'
                               onClick={(e) => {
                                 e.stopPropagation();
                                 if (boards && setSelectedBoard) {
@@ -189,36 +196,23 @@ export default function KanbanBoard({
                           </>
                         )}
                         <span
-                          className='text-[9px] font-bold text-neutral-600 bg-neutral-100 dark:bg-neutral-800 dark:text-neutral-300 px-2 py-1 rounded-md truncate max-w-[80px] border border-neutral-200 dark:border-neutral-700'
-                          title={task.category}>
+                          className='text-[9px] font-bold text-neutral-600 bg-neutral-100 dark:bg-neutral-800 dark:text-neutral-300 px-2 py-1 rounded-md truncate max-w-32 border border-neutral-200 dark:border-neutral-700'
+                          title={`${tMsg('Job Type', 'Tipe Pekerjaan')}: ${task.category || '-'}`}>
                           {task.category || 'Task'}
-                        </span>
-                      </div>
-                      <div className='flex items-center gap-2'>
-                        <span
-                          className='text-[9px] font-bold text-neutral-400 uppercase tracking-widest shrink-0 ml-2 flex items-center gap-1'
-                          title='Date Created'>
-                          <Icon
-                            name='calendar'
-                            className='w-3 h-3 inline-block'
-                          />{' '}
-                          {formatDateMMM(task.timestamp)}
                         </span>
                       </div>
                     </div>
 
                     <div className='mb-2'>
-                      <div className='font-bold text-sm text-black dark:text-white break-words uppercase tracking-wider leading-snug'>
+                      <div className='font-bold text-sm text-black dark:text-white break-normal uppercase tracking-wider leading-snug'>
                         <HighlightText
-                          text={task.project_name}
+                          text={task.task_name}
                           query={searchQuery}
                         />
                       </div>
                       {task.status !== 'Done' &&
                         task.status !== 'Rejected' &&
-                        (task.priority_lvl ||
-                          task.impact ||
-                          task.recurring !== 'none') && (
+                        (task.priority_lvl || task.impact) && (
                           <div className='flex flex-wrap items-center gap-1.5 mt-2.5'>
                             {task.priority_lvl && (
                               <span
@@ -240,7 +234,7 @@ export default function KanbanBoard({
                                     ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                                     : 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
                               }`}
-                              title={`Impact: ${task.impact}`}>
+                              title={`${tMsg('Priority', 'Prioritas')}: ${task.impact || 'Medium'}`}>
                               {task.impact === 'High' ? (
                                 <>
                                   <Icon
@@ -267,33 +261,11 @@ export default function KanbanBoard({
                                 </>
                               )}
                             </span>
-                            <span
-                              className='text-[9px] font-bold px-2 py-1 rounded-md uppercase tracking-widest shadow-sm bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 cursor-help'
-                              title='Estimated Time Consumption'>
-                              <Icon
-                                name='clock'
-                                className='w-3 h-3 inline-block'
-                              />{' '}
-                              {task.etc || 2}h
-                            </span>
-                            {((task.recurring && task.recurring !== 'none') ||
-                              isNewClone) && (
+                            {isNewClone && (
                               <span
-                                className={`text-[9px] font-bold px-2 py-1 rounded-md uppercase tracking-widest shadow-sm ${
-                                  isNewClone
-                                    ? 'bg-indigo-500 dark:bg-indigo-600 text-white animate-pulse shadow-indigo-500/50'
-                                    : 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                }`}
-                                title={
-                                  isNewClone
-                                    ? 'Newly Cloned Task'
-                                    : 'Recurring Task'
-                                }>
-                                <Icon
-                                  name='repeat'
-                                  className='w-3 h-3 inline-block'
-                                />{' '}
-                                {isNewClone ? 'NEW CLONE' : task.recurring}
+                                className='text-[9px] font-bold px-2 py-1 rounded-md uppercase tracking-widest shadow-sm bg-indigo-500 dark:bg-indigo-600 text-white animate-pulse shadow-indigo-500/50'
+                                title='Newly Cloned Task'>
+                                NEW CLONE
                               </span>
                             )}
                             {(() => {
@@ -338,7 +310,7 @@ export default function KanbanBoard({
                           </div>
                         )}
                     </div>
-                    <div className='text-[10px] text-neutral-500 dark:text-neutral-400 mb-3 line-clamp-2 break-words font-medium leading-relaxed'>
+                    <div className='text-[10px] text-neutral-500 dark:text-neutral-400 mb-3 line-clamp-2 break-normal font-medium leading-relaxed'>
                       {task.description
                         ? String(task.description)
                             .replace(/<[^>]+>/g, '')
@@ -358,16 +330,10 @@ export default function KanbanBoard({
                       <div className='flex justify-between items-center gap-2 min-w-0'>
                         <span
                           className='flex items-center gap-1.5 truncate text-black dark:text-white min-w-0'
-                          title={
-                            task.requester.includes('@')
-                              ? 'Assigned To'
-                              : 'Requester'
-                          }>
-                          {task.requester.includes('@') ? (
-                            <Icon name='pointer' className='w-4 h-4 shrink-0' />
-                          ) : (
-                            <IconPerson className='w-4 h-4 shrink-0' />
-                          )}
+                          title={tMsg(
+                            'Project Owner / Requester',
+                            'Project Owner / Peminta'
+                          )}>
                           <Avatar
                             name={task.requester}
                             url={
@@ -420,37 +386,56 @@ export default function KanbanBoard({
                           )}
                         </div>
                       </div>
-                      <div className='flex justify-between items-center flex-wrap gap-1.5'>
-                        <span title='Created At'>
-                          <Icon
-                            name='calendar'
-                            className='w-3 h-3 inline-block'
-                          />{' '}
+                      {(formatUserList(task.head_of_project) ||
+                        formatUserList(task.rc_team)) && (
+                        <div className='flex flex-col gap-1 text-[9px] font-bold text-neutral-500 dark:text-neutral-400 normal-case tracking-normal mb-1'>
+                          {formatUserList(task.head_of_project) && (
+                            <span
+                              className='truncate'
+                              title={formatUserList(task.head_of_project)}>
+                              {tMsg('Head of Project', 'Head of Project')}:{' '}
+                              {formatUserList(task.head_of_project)}
+                            </span>
+                          )}
+                          {formatUserList(task.rc_team) && (
+                            <span
+                              className='truncate'
+                              title={formatUserList(task.rc_team)}>
+                              {tMsg('R&C Team', 'Tim R&C')}:{' '}
+                              {formatUserList(task.rc_team)}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <div className='flex justify-between items-center flex-wrap gap-1.5 mt-2'>
+                        <span
+                          className='text-[9px] font-bold text-neutral-600 bg-neutral-100 dark:bg-neutral-800 dark:text-neutral-300 px-2 py-1 rounded-md truncate border border-neutral-200 dark:border-neutral-700 flex items-center gap-1 shrink-0'
+                          title={tMsg('Created At', 'Dibuat Pada')}>
+                          <Icon name='calendar' className='w-3 h-3 shrink-0' />
                           {formatDateMMM(task.timestamp)}
                         </span>
                         <span
                           title={
-                            task.status === 'Done' ? 'Completed At' : 'Deadline'
-                          }
-                          className={
                             task.status === 'Done'
-                              ? 'text-black dark:text-white'
-                              : ''
-                          }>
+                              ? tMsg('Completed At', 'Selesai Pada')
+                              : tMsg('Deadline', 'Tenggat Waktu')
+                          }
+                          className={`text-[9px] font-bold px-2 py-1 rounded-md truncate border flex items-center gap-1 shrink-0 ${
+                            task.status === 'Done'
+                              ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50'
+                              : 'text-neutral-600 bg-neutral-100 dark:bg-neutral-800 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700'
+                          }`}>
                           {task.status === 'Done' ? (
                             <>
                               <Icon
                                 name='check-circle'
-                                className='w-3 h-3 inline-block'
-                              />{' '}
+                                className='w-3 h-3 shrink-0'
+                              />
                               {formatDateMMM(task.completed_time)}
                             </>
                           ) : (
                             <>
-                              <Icon
-                                name='clock'
-                                className='w-3 h-3 inline-block'
-                              />{' '}
+                              <Icon name='clock' className='w-3 h-3 shrink-0' />
                               {formatDateMMM(task.deadline)}
                             </>
                           )}
@@ -623,15 +608,14 @@ export default function KanbanBoard({
         )}
       </Droppable>
 
-      {canManageColumns &&
-        (groupBy === 'Status' || groupBy === 'Category') && (
-          <div
-            onClick={() => handleOpenAddBoard(groupBy)}
-            className='bg-transparent border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-2xl w-80 h-[56px] flex-shrink-0 flex items-center justify-center text-neutral-500 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white cursor-pointer transition-all uppercase tracking-widest text-xs font-bold'>
-            <IconPlus className='w-5 h-5 mr-2' />
-            <span className='font-bold'>Add {groupBy}</span>
-          </div>
-        )}
+      {canManageColumns && (groupBy === 'Status' || groupBy === 'Category') && (
+        <div
+          onClick={() => handleOpenAddBoard(groupBy)}
+          className='bg-transparent border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-2xl w-80 h-[56px] flex-shrink-0 flex items-center justify-center text-neutral-500 hover:border-black dark:hover:border-white hover:text-black dark:hover:text-white cursor-pointer transition-all uppercase tracking-widest text-xs font-bold'>
+          <IconPlus className='w-5 h-5 mr-2' />
+          <span className='font-bold'>Add {groupBy}</span>
+        </div>
+      )}
     </div>
   );
 }

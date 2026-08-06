@@ -346,7 +346,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
           board_id: isCustomProject ? null : (row.board_id ? parseInt(row.board_id) : null),
           request_id: isCustomTask ? null : (row.request_id ? parseInt(row.request_id) : null),
           project_name: isCustomProject ? row.custom_project_name : (b ? b.name : null),
-          task_name: isCustomTask ? row.custom_task_name : (t ? t.project_name : null),
+          task_name: isCustomTask ? row.custom_task_name : (t ? t.task_name : null),
           custom_project_name: isCustomProject ? row.custom_project_name : null,
           custom_task_name: isCustomTask ? row.custom_task_name : null,
           status: 'Draft',
@@ -517,7 +517,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
               board_id: row.board_id && row.board_id !== 'custom' ? parseInt(row.board_id) : null,
               request_id: row.request_id && row.request_id !== 'custom' ? parseInt(row.request_id) : null,
               project_name: row.board_id === 'custom' ? row.custom_project_name : (b ? b.name : null),
-              task_name: row.request_id === 'custom' ? row.custom_task_name : (t ? t.project_name : null),
+              task_name: row.request_id === 'custom' ? row.custom_task_name : (t ? t.task_name : null),
               custom_project_name: row.board_id === 'custom' ? row.custom_project_name : null,
               custom_task_name: row.request_id === 'custom' ? row.custom_task_name : null,
               status: 'Draft',
@@ -955,7 +955,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                           >
                             <option value="">-- Select Task --</option>
                             {projectTasks.map(t => (
-                              <option key={t.id} value={t.id}>[{t.id}] {t.project_name && t.project_name.length > 40 ? t.project_name.substring(0, 40) + '...' : t.project_name}</option>
+                              <option key={t.id} value={t.id}>[{t.id}] {t.task_name && t.task_name.length > 40 ? t.task_name.substring(0, 40) + '...' : t.task_name}</option>
                             ))}
                             <option value="custom">✍️ Custom Task...</option>
                           </select>

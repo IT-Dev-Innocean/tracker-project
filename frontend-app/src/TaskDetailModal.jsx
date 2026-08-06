@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { IconPerson, Avatar } from './SharedUI';
 import { Icon } from './components/icons/Icon';
+import MultiUserSelect from './components/MultiUserSelect';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import {
   HighlightText,
@@ -17,7 +18,11 @@ import TaskDetailSubtasks from './components/TaskDetail/TaskDetailSubtasks';
 import TaskDetailActivity from './components/TaskDetail/TaskDetailActivity';
 import TaskDetailComments from './components/TaskDetail/TaskDetailComments';
 import TaskDetailCommentForm from './components/TaskDetail/TaskDetailCommentForm';
-import { TASK_COMMENT_AI_MENTION_ENABLED } from './featureFlags';
+import {
+  TASK_COMMENT_AI_MENTION_ENABLED,
+  TASK_SMART_NUDGE_UI_ENABLED,
+  TASK_MEET_NOW_UI_ENABLED,
+} from './featureFlags';
 export default function TaskDetailModal({
   tasks,
   selectedTask,
@@ -144,7 +149,7 @@ export default function TaskDetailModal({
     setMobileTab('activity');
 
     const promptText = `Please act as the Smart Assistant. Write a short, friendly, and professional follow-up message (1-2 sentences) to check the progress of the task "${
-      selectedTask.project_name
+      selectedTask.task_name
     }". Address it to the assignee(s): ${uniqueAssignees.join(
       ', '
     )}. Explicitly mention that @${currentUser} requested this check-in/update. Please respond in the same language as the task title.`;
@@ -180,6 +185,16 @@ export default function TaskDetailModal({
           .map((u) => u.username)
           .filter((u) => u !== 'admin')
       : teamMembers;
+
+  const allEmployees =
+    userDirectory && userDirectory.length > 0
+      ? userDirectory.filter((u) => u.username !== 'admin')
+      : teamMembers
+          .filter((m) => m !== 'admin')
+          .map((username) => ({ username, full_name: username }));
+
+  const headOfProject = editFormData.head_of_project || [];
+  const rcTeam = editFormData.rc_team || [];
 
   const [taskChatSearchQuery, setTaskChatSearchQuery] = useState('');
   const [isTaskChatSearchOpen, setIsTaskChatSearchOpen] = useState(false);
@@ -221,7 +236,7 @@ export default function TaskDetailModal({
   };
 
   const handleStartTaskMeet = () => {
-    const cleanName = (selectedTask.project_name || 'task')
+    const cleanName = (selectedTask.task_name || 'task')
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
@@ -241,7 +256,7 @@ export default function TaskDetailModal({
 
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const handleGenerateDesc = async () => {
-    if (!editFormData.project_name) {
+    if (!editFormData.task_name) {
       alert(
         language === 'id'
           ? 'Silakan masukkan nama/judul tugas terlebih dahulu.'
@@ -254,7 +269,7 @@ export default function TaskDetailModal({
       const baseDesc = editFormData.description
         ? `\n\nUser's initial brief/draft:\n${editFormData.description}`
         : '';
-      const prompt = `Write a professional, structured task description (brief) in markdown format. The task title is "${editFormData.project_name}", category is "${editFormData.category}". Please respond in the same language as the task title.${baseDesc}`;
+      const prompt = `Write a professional, structured task description (brief) in markdown format. The task title is "${editFormData.task_name}", category is "${editFormData.category}". Please respond in the same language as the task title.${baseDesc}`;
       const res = await axios.post('/api/ai/generate', { prompt });
       setEditFormData({ ...editFormData, description: res.data.text });
     } catch (err) {
@@ -266,44 +281,6 @@ export default function TaskDetailModal({
       if (showNotification) showNotification(errorMsg, 'error');
     } finally {
       setIsGeneratingDesc(false);
-    }
-  };
-
-  const [isEstimatingEtc, setIsEstimatingEtc] = useState(false);
-  const handleEstimateEtc = async () => {
-    if (!editFormData.project_name) {
-      alert(
-        language === 'id'
-          ? 'Silakan masukkan judul tugas terlebih dahulu.'
-          : 'Please enter a task name first.'
-      );
-      return;
-    }
-    setIsEstimatingEtc(true);
-    try {
-      const prompt = `Estimate the time consumption in hours (integer) to complete this task based on its title and description. Task Title: "${
-        editFormData.project_name
-      }". Description: "${
-        editFormData.description || ''
-      }". Return ONLY a single integer representing the hours. Do not include any other text.`;
-      const res = await axios.post('/api/ai/generate', {
-        prompt,
-        provider: 'auto',
-      });
-      const val = parseInt(res.data.text.trim());
-      if (!isNaN(val)) {
-        setEditFormData({ ...editFormData, etc: val });
-      }
-    } catch (err) {
-      console.error(err);
-      const errorMsg =
-        err.response?.data?.detail ||
-        (language === 'id'
-          ? 'Gagal mengestimasi ETC.'
-          : 'Failed to estimate ETC.');
-      if (showNotification) showNotification(errorMsg, 'error');
-    } finally {
-      setIsEstimatingEtc(false);
     }
   };
 
@@ -450,9 +427,7 @@ export default function TaskDetailModal({
         selectedTask.requester.toLowerCase() === currentUser.toLowerCase()));
 
   const generateGoogleCalendarUrl = () => {
-    const text = encodeURIComponent(
-      selectedTask.project_name || 'Untitled Task'
-    );
+    const text = encodeURIComponent(selectedTask.task_name || 'Untitled Task');
     let desc = selectedTask.description || '';
     // Membersihkan simbol markdown dasar agar rapi di Google Calendar
     desc = desc
@@ -482,7 +457,7 @@ export default function TaskDetailModal({
 
   const generateGoogleMeetScheduleUrl = () => {
     const text = encodeURIComponent(
-      `Meeting: ${selectedTask.project_name || 'Untitled Task'}`
+      `Meeting: ${selectedTask.task_name || 'Untitled Task'}`
     );
     let desc = selectedTask.description || '';
     desc = desc
@@ -490,7 +465,7 @@ export default function TaskDetailModal({
       .replace(/\*(.*?)\*/g, '$1')
       .replace(/__(.*?)__/g, '$1');
     const details = encodeURIComponent(
-      `Discussion for task: ${selectedTask.project_name}\n\n${desc}`
+      `Discussion for task: ${selectedTask.task_name}\n\n${desc}`
     );
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&details=${details}`;
   };
@@ -562,7 +537,7 @@ export default function TaskDetailModal({
           ? `flex flex-col h-full w-full bg-white dark:bg-neutral-950 lg:border-l border-neutral-200 dark:border-neutral-800 shadow-[-10px_0_20px_rgba(0,0,0,0.05)] dark:shadow-[-10px_0_20px_rgba(0,0,0,0.2)] relative z-10 transition-transform duration-500 ease-in-out min-h-0 ${
               isClosing ? 'translate-x-full' : 'translate-x-0 mac-slide-in'
             }`
-          : `fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-100 p-3 sm:p-4 transition-opacity duration-200 ${
+          : `fixed inset-0 bg-white/60 dark:bg-black/z60 backdrop-blur-md flex items-center justify-center z-100 p-3 sm:p-4 transition-opacity duration-200 ${
               isClosing ? 'opacity-0' : 'opacity-100'
             }`
       }>
@@ -635,11 +610,11 @@ export default function TaskDetailModal({
                   <div className='mb-8 mt-1'>
                     <input
                       type='text'
-                      value={editFormData.project_name}
+                      value={editFormData.task_name}
                       onChange={(e) =>
                         setEditFormData({
                           ...editFormData,
-                          project_name: e.target.value,
+                          task_name: e.target.value,
                         })
                       }
                       className='w-full text-lg font-extrabold bg-transparent border-0 border-b-2 border-neutral-200 dark:border-neutral-800 focus:border-black dark:focus:border-white focus:ring-0 px-0 py-3 text-black dark:text-white placeholder-neutral-400 transition-colors outline-none'
@@ -654,7 +629,7 @@ export default function TaskDetailModal({
 
                   <div className='flex flex-col sm:flex-row gap-6 mb-8'>
                     <div className='flex-1 bg-neutral-50 dark:bg-neutral-900 p-5 border border-neutral-100 dark:border-neutral-800 rounded-2xl flex flex-col justify-center'>
-                      <p className='text-[10px] uppercase tracking-widest font-bold text-neutral-500 dark:text-neutral-400 mb-1'>
+                      <p className='text-xs uppercase tracking-normal font-bold text-neutral-500 dark:text-neutral-400 mb-1'>
                         {tMsg('Created At', 'Dibuat Pada')}
                       </p>
                       <p className='text-xs font-bold text-black dark:text-white uppercase tracking-wider'>
@@ -663,7 +638,7 @@ export default function TaskDetailModal({
                     </div>
 
                     <div className='flex-1 bg-neutral-50 dark:bg-neutral-900 p-5 border border-neutral-100 dark:border-neutral-800 rounded-2xl group focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all flex flex-col justify-center relative'>
-                      <label className='block text-[10px] uppercase tracking-widest font-bold text-neutral-500 dark:text-neutral-400 mb-1'>
+                      <label className='block text-xs uppercase tracking-normal font-bold text-neutral-500 dark:text-neutral-400 mb-1'>
                         {tMsg('Project', 'Proyek')}
                       </label>
                       <select
@@ -698,23 +673,17 @@ export default function TaskDetailModal({
                     )}
                   </div>
 
-                  <div className='space-y-4 sm:space-y-6'>
-                    <div className='grid grid-cols-2 gap-4 sm:gap-6 relative z-50'>
-                      <div className='flex items-center gap-2 sm:gap-4 group relative z-50 min-w-0'>
-                        <span
-                          className='text-neutral-400 group-focus-within:text-black dark:group-focus-within:text-white transition-colors w-8 flex justify-center text-xl'
-                          title={
-                            editFormData.requester?.includes('@')
-                              ? tMsg('Assignee', 'Pekerja')
-                              : tMsg('Requester', 'Peminta')
-                          }>
-                          {editFormData.requester?.includes('@') ? (
-                            <Icon name='pointer' className='w-6 h-6' />
-                          ) : (
-                            <IconPerson className='w-6 h-6' />
+                  <div className='space-y-6'>
+                    <div className='grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4 relative z-40'>
+                      <div className='group relative z-50'>
+                        <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
+                          <Icon name='user' className='w-4 h-4' />{' '}
+                          {tMsg(
+                            'Project Owner / Requester',
+                            'Project Owner / Peminta'
                           )}
-                        </span>
-                        <div className='flex-1 min-w-0 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center relative'>
+                        </label>
+                        <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center relative h-12 sm:h-14'>
                           <input
                             type='text'
                             value={editFormData.requester}
@@ -760,11 +729,11 @@ export default function TaskDetailModal({
                                 }
                               }
                             }}
-                            className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white outline-none placeholder-neutral-400 placeholder:text-[9px] sm:placeholder:text-[10px]'
+                            className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-normal text-black dark:text-white outline-none placeholder-neutral-400 placeholder:text-xs h-full'
                             required
                             placeholder={tMsg(
-                              'Requester name (or type @ to assign someone)',
-                              'Nama peminta (atau ketik @ untuk menugaskan)'
+                              'Select or type employee name...',
+                              'Pilih atau ketik nama karyawan...'
                             )}
                             autoComplete='off'
                           />
@@ -814,102 +783,48 @@ export default function TaskDetailModal({
                         </div>
                       </div>
 
-                      <div className='flex items-center gap-2 sm:gap-4 group min-w-0'>
-                        <span
-                          className='text-neutral-400 group-focus-within:text-black dark:group-focus-within:text-white transition-colors w-8 flex justify-center text-xl'
-                          title='Status'>
-                          <Icon name='pin' className='w-5 h-5' />
-                        </span>
-                        <div
-                          className={`flex-1 min-w-0 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 transition-all flex items-center ${
-                            isSubtasksLoading
-                              ? 'opacity-70'
-                              : 'focus-within:bg-white dark:focus-within:bg-black'
-                          }`}>
-                          <select
-                            value={editFormData.status}
-                            onChange={(e) =>
-                              setEditFormData({
-                                ...editFormData,
-                                status: e.target.value,
-                              })
-                            }
-                            disabled={isSubtasksLoading}
-                            className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider truncate [&>option]:bg-white dark:[&>option]:bg-neutral-950 [&>option]:text-black dark:[&>option]:text-white disabled:cursor-not-allowed'>
-                            {columns.map((c) => (
-                              <option key={c} value={c}>
-                                {c}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
+                      <MultiUserSelect
+                        label={tMsg('Head of Project', 'Head of Project')}
+                        icon='users'
+                        selected={headOfProject}
+                        onChange={(users) =>
+                          setEditFormData({
+                            ...editFormData,
+                            head_of_project: users,
+                          })
+                        }
+                        employees={allEmployees}
+                        placeholder={tMsg(
+                          'Select Head of Project...',
+                          'Pilih Head PIC Proyek...'
+                        )}
+                        tMsg={tMsg}
+                      />
+
+                      <MultiUserSelect
+                        label={tMsg('R&C Team', 'Tim R&C')}
+                        icon='users'
+                        selected={rcTeam}
+                        onChange={(users) =>
+                          setEditFormData({ ...editFormData, rc_team: users })
+                        }
+                        employees={allEmployees}
+                        placeholder={tMsg(
+                          'Select R&C Team...',
+                          'Pilih Tim R&C...'
+                        )}
+                        tMsg={tMsg}
+                      />
                     </div>
 
-                    <div className='grid grid-cols-2 gap-4 sm:gap-6 mt-2 sm:mt-6'>
+                    <div className='grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4 relative z-40'>
                       <div className='group'>
-                        <div className='flex justify-between items-center mb-2'>
-                          <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest items-center gap-2'>
-                            <Icon
-                              name='calendar-days'
-                              className='w-4 h-4 inline'
-                            />{' '}
-                            {tMsg('Start Date', 'Tanggal Mulai')}
-                          </label>
-                          <span className='text-[9px] font-bold text-indigo-500'>
-                            {formatDateMMM(editFormData.start_date)}
-                          </span>
-                        </div>
-                        <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center'>
-                          <input
-                            type='date'
-                            value={editFormData.start_date}
-                            onChange={(e) =>
-                              setEditFormData({
-                                ...editFormData,
-                                start_date: e.target.value,
-                              })
-                            }
-                            className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider'
-                            required
-                          />
-                        </div>
-                      </div>
-                      <div className='group'>
-                        <div className='flex justify-between items-center mb-2'>
-                          <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest items-center gap-2'>
-                            <Icon name='calendar' className='w-4 h-4' />{' '}
-                            {tMsg('Deadline', 'Tenggat Waktu')}
-                          </label>
-                          <span className='text-[9px] font-bold text-indigo-500'>
-                            {formatDateMMM(editFormData.deadline)}
-                          </span>
-                        </div>
-                        <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center'>
-                          <input
-                            type='date'
-                            value={editFormData.deadline}
-                            onChange={(e) =>
-                              setEditFormData({
-                                ...editFormData,
-                                deadline: e.target.value,
-                              })
-                            }
-                            className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider'
-                            required
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className='grid grid-cols-1 gap-4 sm:gap-6 mt-2 sm:mt-6'>
-                      <div className='group'>
-                        <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 items-center gap-2'>
+                        <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
                           <Icon name='folder-open' className='w-4 h-4' />{' '}
-                          {tMsg('Category', 'Kategori')}
+                          {tMsg('Job Type', 'Tipe Pekerjaan')}
                         </label>
                         <div className='flex gap-1.5 sm:gap-2'>
-                          <div className='flex-1 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center min-w-0'>
+                          <div className='flex-1 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center min-w-0 h-12 sm:h-14'>
                             <select
                               value={
                                 editFormData.category || categories[0] || ''
@@ -920,7 +835,7 @@ export default function TaskDetailModal({
                                   category: e.target.value,
                                 })
                               }
-                              className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider truncate [&>option]:bg-white dark:[&>option]:bg-neutral-950'>
+                              className='w-full h-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider truncate [&>option]:bg-white dark:[&>option]:bg-neutral-950'>
                               {categories.map((c) => (
                                 <option key={c} value={c}>
                                   {c}
@@ -931,60 +846,22 @@ export default function TaskDetailModal({
                           <button
                             type='button'
                             onClick={() => handleOpenAddBoard('Category')}
-                            className='bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 px-3 sm:px-4 rounded-2xl transition-colors text-sm font-bold flex items-center justify-center shrink-0 shadow-sm'
+                            className='bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800 px-3 sm:px-4 rounded-2xl transition-colors text-sm font-bold flex items-center justify-center shrink-0 shadow-sm h-12 sm:h-14'
                             title={tMsg(
-                              'Add New Category',
-                              'Tambah Kategori Baru'
+                              'Add New Job Type',
+                              'Tambah Tipe Pekerjaan'
                             )}>
                             <Icon name='plus' className='w-4 h-4' />
                           </button>
                         </div>
                       </div>
-                    </div>
 
-                    <div className='grid grid-cols-3 gap-3 sm:gap-6 mt-2 sm:mt-6'>
-                      <div className='group min-w-0'>
-                        <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 items-center gap-2 truncate'>
-                          <Icon
-                            name='repeat'
-                            className='w-4 h-4 hidden sm:inline'
-                          />{' '}
-                          {tMsg('Recurring', 'Berulang')}
+                      <div className='group'>
+                        <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2 min-h-4'>
+                          <Icon name='zap' className='w-4 h-4' />{' '}
+                          {tMsg('Priority', 'Prioritas')}
                         </label>
-                        <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center'>
-                          <select
-                            value={editFormData.recurring || 'none'}
-                            onChange={(e) =>
-                              setEditFormData({
-                                ...editFormData,
-                                recurring: e.target.value,
-                              })
-                            }
-                            className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-[10px] sm:text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider truncate [&>option]:bg-white dark:[&>option]:bg-neutral-950'>
-                            <option value='none'>
-                              {tMsg('None', 'Tidak')}
-                            </option>
-                            <option value='daily'>
-                              {tMsg('Daily', 'Harian')}
-                            </option>
-                            <option value='weekly'>
-                              {tMsg('Weekly', 'Mingguan')}
-                            </option>
-                            <option value='monthly'>
-                              {tMsg('Monthly', 'Bulanan')}
-                            </option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className='group col-span-1'>
-                        <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 items-center gap-2 min-h-4 truncate'>
-                          <Icon
-                            name='zap'
-                            className='w-4 h-4 hidden sm:inline'
-                          />{' '}
-                          {tMsg('Impact', 'Dampak')}
-                        </label>
-                        <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center'>
+                        <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-12 sm:h-14'>
                           <select
                             value={editFormData.impact || 'Medium'}
                             onChange={(e) =>
@@ -993,78 +870,64 @@ export default function TaskDetailModal({
                                 impact: e.target.value,
                               })
                             }
-                            className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-[10px] sm:text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider truncate [&>option]:bg-white dark:[&>option]:bg-neutral-950'>
+                            className='w-full h-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider [&>option]:bg-white dark:[&>option]:bg-neutral-950'>
                             <option value='High'>High</option>
                             <option value='Medium'>Medium</option>
                             <option value='Low'>Low</option>
                           </select>
                         </div>
                       </div>
-                      <div className='group col-span-1'>
-                        <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 items-center gap-2 min-h-4 truncate'>
-                          <Icon
-                            name='clock'
-                            className='w-4 h-4 hidden sm:inline'
-                          />{' '}
-                          {tMsg('ETC (Hrs)', 'ETC (Jam)')}
-                          <span
-                            className='cursor-help text-neutral-400 font-normal normal-case tracking-normal'
-                            title='Estimated Time Consumption'>
-                            🛈
-                          </span>
+                    </div>
+
+                    <div className='grid grid-cols-2 gap-3 sm:gap-4'>
+                      <div className='group'>
+                        <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2 min-h-4'>
+                          <Icon name='calendar-days' className='w-4 h-4' />{' '}
+                          {tMsg('Start Date', 'Tanggal Mulai')}
                         </label>
-                        <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center p-1 sm:pr-1'>
+                        <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-12 sm:h-14'>
                           <input
-                            type='number'
-                            min='0.5'
-                            step='0.5'
-                            value={editFormData.etc}
+                            type='date'
+                            value={editFormData.start_date}
                             onChange={(e) =>
                               setEditFormData({
                                 ...editFormData,
-                                etc: parseFloat(e.target.value) || 2,
+                                start_date: e.target.value,
                               })
                             }
-                            className='w-full min-w-0 text-center sm:text-left bg-transparent border-0 focus:ring-0 p-2.5 sm:p-3.5 text-[10px] sm:text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider'
+                            className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider h-full'
                             required
                           />
-                          <button
-                            type='button'
-                            onClick={handleEstimateEtc}
-                            disabled={isEstimatingEtc}
-                            className='shrink-0 text-[10px] font-bold px-1.5 sm:px-2 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg sm:rounded-xl shadow-sm border border-indigo-200 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 disabled:opacity-50 transition-colors'
-                            title='AI Estimate'>
-                            {isEstimatingEtc ? (
-                              <Icon
-                                name='clock'
-                                className='w-4 h-4 animate-pulse'
-                              />
-                            ) : (
-                              <>
-                                <Icon
-                                  name='sparkles'
-                                  className='w-4 h-4 sm:hidden'
-                                />
-                                <span className='hidden sm:inline-flex sm:items-center sm:gap-1'>
-                                  <Icon
-                                    name='sparkles'
-                                    className='w-3.5 h-3.5'
-                                  />{' '}
-                                  AI Est.
-                                </span>
-                              </>
-                            )}
-                          </button>
+                        </div>
+                      </div>
+                      <div className='group'>
+                        <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2 min-h-4'>
+                          <Icon name='calendar' className='w-4 h-4' />{' '}
+                          {tMsg('Deadline', 'Tenggat Waktu')}
+                        </label>
+                        <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center h-12 sm:h-14'>
+                          <input
+                            type='date'
+                            value={editFormData.deadline}
+                            onChange={(e) =>
+                              setEditFormData({
+                                ...editFormData,
+                                deadline: e.target.value,
+                              })
+                            }
+                            className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider h-full'
+                            required
+                          />
                         </div>
                       </div>
                     </div>
 
                     <div className='group pt-2'>
-                      <label className='block text-[10px] font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-widest mb-2 items-center gap-2'>
+                      <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
                         <Icon name='file-text' className='w-4 h-4' />{' '}
                         {tMsg('Description', 'Deskripsi')}
                       </label>
-                      <div className='bg-neutral-100 dark:bg-neutral-900 rounded-3xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all p-2'>
+                      <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all p-2'>
                         <div className='flex gap-2 mb-2 px-2 pb-2 border-b border-neutral-200 dark:border-neutral-800'>
                           <button
                             type='button'
@@ -1279,7 +1142,7 @@ export default function TaskDetailModal({
                           className='bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200 px-2 py-1 rounded-md border border-neutral-200 dark:border-neutral-700 shrink-0 cursor-pointer hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors'
                           title={tMsg('Copy Task Link', 'Salin Tautan Tugas')}
                           onClick={() => {
-                            const slug = (selectedTask.project_name || '')
+                            const slug = (selectedTask.task_name || '')
                               .toLowerCase()
                               .replace(/[^a-z0-9]+/g, '-')
                               .replace(/(^-|-$)+/g, '');
@@ -1364,7 +1227,7 @@ export default function TaskDetailModal({
                       </span>
                     </div>
                     <p className='text-lg font-extrabold wrap-break-word'>
-                      {selectedTask.project_name || 'Untitled Task'}
+                      {selectedTask.task_name || 'Untitled Task'}
                     </p>
                   </div>
                   <TaskDetailSidebar
@@ -1392,7 +1255,7 @@ export default function TaskDetailModal({
                     showNotification={showNotification}
                   />
                   <div>
-                    <p className='text-[10px] uppercase tracking-widest font-bold text-neutral-500 dark:text-neutral-400 mb-2'>
+                    <p className='text-xs uppercase tracking-normal font-bold text-neutral-500 dark:text-neutral-400 mb-2'>
                       {tMsg('Description', 'Deskripsi')}
                     </p>
                     {isPreviewMode ? (
@@ -1801,17 +1664,19 @@ export default function TaskDetailModal({
                             strokeWidth={2.5}
                           />
                         </button>
-                        <button
-                          type='button'
-                          onClick={handleStartTaskMeet}
-                          className='text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors uppercase tracking-widest'>
-                          <Icon
-                            name='video'
-                            className='w-4 h-4'
-                            strokeWidth={2.5}
-                          />
-                          <span className='hidden sm:inline'>Meet Now</span>
-                        </button>
+                        {TASK_MEET_NOW_UI_ENABLED && (
+                          <button
+                            type='button'
+                            onClick={handleStartTaskMeet}
+                            className='text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors uppercase tracking-widest'>
+                            <Icon
+                              name='video'
+                              className='w-4 h-4'
+                              strokeWidth={2.5}
+                            />
+                            <span className='hidden sm:inline'>Meet Now</span>
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -2043,7 +1908,7 @@ export default function TaskDetailModal({
             </div>
           </div>
         )}
-        {isNudgeConfirmOpen && (
+        {TASK_SMART_NUDGE_UI_ENABLED && isNudgeConfirmOpen && (
           <div className='fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-70 p-4 transition-opacity duration-200 opacity-100'>
             <div className='bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-sm border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] text-center mac-animate'>
               <div className='w-20 h-20 bg-amber-50 dark:bg-amber-900/30 text-amber-500 rounded-lg flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-amber-200 dark:border-amber-800/50'>

@@ -32,7 +32,7 @@ def get_all_global_tasks(
             Request.id,
             Request.board_id,
             Request.timestamp,
-            Request.project_name,
+            Request.task_name,
             Request.requester,
             Request.category,
             Request.start_date,
@@ -50,8 +50,8 @@ def get_all_global_tasks(
             or_(Request.board_id.in_(owned_subq), Request.board_id.in_(shared_subq)),
             or_(Request.requester == None, Request.requester != "System"),
             or_(
-                Request.project_name == None,
-                Request.project_name != "[SYSTEM] PROJECT CHAT",
+                Request.task_name == None,
+                Request.task_name != "[SYSTEM] PROJECT CHAT",
             ),
         )
         .all()
@@ -101,8 +101,10 @@ def get_all_global_tasks(
             "board_id": task.board_id,
             "board_name": boards_dict.get(task.board_id, "Unknown"),
             "timestamp": task.timestamp,
-            "project_name": task.project_name,
+            "task_name": task.task_name,
             "requester": task.requester,
+            "head_of_project": getattr(task, "head_of_project", "") or "",
+            "rc_team": getattr(task, "rc_team", "") or "",
             "category": task.category,
             "description": desc_preview,
             "supporting_access": task.supporting_access or "",
@@ -167,8 +169,8 @@ def get_global_export(
             or_(Request.board_id.in_(owned_subq), Request.board_id.in_(shared_subq)),
             or_(Request.requester == None, Request.requester != "System"),
             or_(
-                Request.project_name == None,
-                Request.project_name != "[SYSTEM] PROJECT CHAT",
+                Request.task_name == None,
+                Request.task_name != "[SYSTEM] PROJECT CHAT",
             ),
         )
         .all()
@@ -194,7 +196,7 @@ def get_global_export(
             {
                 "id": t.id,
                 "board_name": boards_dict.get(t.board_id, "Unknown"),
-                "project_name": t.project_name,
+                "task_name": t.task_name,
                 "description": t.description,
                 "requester": t.requester,
                 "category": t.category,
@@ -247,7 +249,7 @@ def global_search_tasks(
             or_(Subtask.assignee.ilike(search_term), Subtask.task_name.ilike(search_term))
         )
         kw_cond = or_(
-            Request.project_name.ilike(search_term),
+            Request.task_name.ilike(search_term),
             Request.requester.ilike(search_term),
             Request.category.ilike(search_term),
             Request.owner_username.ilike(search_term),
@@ -264,8 +266,8 @@ def global_search_tasks(
             or_(Request.board_id.in_(owned_subq), Request.board_id.in_(shared_subq)),
             or_(Request.requester == None, Request.requester != "System"),
             or_(
-                Request.project_name == None,
-                Request.project_name != "[SYSTEM] PROJECT CHAT",
+                Request.task_name == None,
+                Request.task_name != "[SYSTEM] PROJECT CHAT",
             ),
             recent_condition,
             final_search_condition,
@@ -298,8 +300,10 @@ def global_search_tasks(
             "board_id": task.board_id,
             "board_name": boards_dict.get(task.board_id, "Unknown"),
             "timestamp": task.timestamp,
-            "project_name": task.project_name,
+            "task_name": task.task_name,
             "requester": task.requester,
+            "head_of_project": getattr(task, "head_of_project", "") or "",
+            "rc_team": getattr(task, "rc_team", "") or "",
             "category": task.category,
             "description": task.description,
             "supporting_access": task.supporting_access,
@@ -352,8 +356,10 @@ def get_single_task(
         "board_id": task.board_id,
         "board_name": board.name if board else "Unknown",
         "timestamp": task.timestamp,
-        "project_name": task.project_name,
+        "task_name": task.task_name,
         "requester": task.requester,
+        "head_of_project": getattr(task, "head_of_project", "") or "",
+        "rc_team": getattr(task, "rc_team", "") or "",
         "category": task.category,
         "description": task.description,
         "supporting_access": task.supporting_access,
@@ -401,8 +407,10 @@ def get_task_preview(task_id: int, db: Session = Depends(get_db)):
     t_dict = {
         "id": task.id,
         "board_id": task.board_id,
-        "project_name": task.project_name,
+        "task_name": task.task_name,
         "requester": task.requester,
+        "head_of_project": getattr(task, "head_of_project", "") or "",
+        "rc_team": getattr(task, "rc_team", "") or "",
         "category": task.category,
         "start_date": format_dt(task.start_date),
         "deadline": format_dt(task.deadline),
@@ -497,7 +505,7 @@ def update_task_status(
             create_notification(
                 db,
                 task.owner_username,
-                f"@{current_user} changed task status to {update.status}: {task.project_name or 'Untitled'}",
+                f"@{current_user} changed task status to {update.status}: {task.task_name or 'Untitled'}",
                 notif_type,
                 task.id,
             )
@@ -513,7 +521,7 @@ def update_task_status(
                     create_notification(
                         db,
                         a,
-                        f"@{current_user} changed task status to {update.status}: {task.project_name or 'Untitled'}",
+                        f"@{current_user} changed task status to {update.status}: {task.task_name or 'Untitled'}",
                         notif_type,
                         task.id,
                     )
@@ -529,7 +537,7 @@ def edit_task_details(
     current_user: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if len(update.project_name) > 255 or len(update.description) > 10000:
+    if len(update.task_name) > 255 or len(update.description) > 10000:
         raise HTTPException(
             status_code=400, detail="Payload size exceeds maximum allowed limit."
         )
@@ -568,8 +576,8 @@ def edit_task_details(
     old_status = task.status
 
     changes = []
-    if task.project_name != update.project_name:
-        changes.append(f"**Title**: `{task.project_name}` ➔ `{update.project_name}`")
+    if task.task_name != update.task_name:
+        changes.append(f"**Title**: `{task.task_name}` ➔ `{update.task_name}`")
     if task.requester != update.requester:
         changes.append(f"**Assignee**: `{task.requester}` ➔ `{update.requester}`")
     if task.category != update.category:
@@ -621,8 +629,10 @@ def edit_task_details(
     if task.supporting_access != update.supporting_access:
         changes.append("**Links** were modified")
 
-    task.project_name = update.project_name
+    task.task_name = update.task_name
     task.requester = update.requester
+    task.head_of_project = update.head_of_project or ""
+    task.rc_team = update.rc_team or ""
     task.category = update.category
     task.description = effective_description
     task.supporting_access = update.supporting_access
@@ -678,7 +688,7 @@ def edit_task_details(
                 create_notification(
                     db,
                     m,
-                    f"@{current_user} assigned you to the task: {update.project_name or 'Untitled'}",
+                    f"@{current_user} assigned you to the task: {update.task_name or 'Untitled'}",
                     "task_assigned",
                     task.id,
                 )
@@ -691,7 +701,7 @@ def edit_task_details(
             create_notification(
                 db,
                 task.owner_username,
-                f"@{current_user} changed task status to {update.status}: {task.project_name or 'Untitled'}",
+                f"@{current_user} changed task status to {update.status}: {task.task_name or 'Untitled'}",
                 notif_type,
                 task.id,
             )
@@ -707,7 +717,7 @@ def edit_task_details(
                     create_notification(
                         db,
                         a,
-                        f"@{current_user} changed task status to {update.status}: {update.project_name or 'Untitled'}",
+                        f"@{current_user} changed task status to {update.status}: {update.task_name or 'Untitled'}",
                         notif_type,
                         task.id,
                     )
@@ -852,7 +862,7 @@ def create_subtask(
             create_notification(
                 db,
                 payload.assignee,
-                f"@{current_user} assigned you to a sub-task in: {task.project_name or 'Untitled'}",
+                f"@{current_user} assigned you to a sub-task in: {task.task_name or 'Untitled'}",
                 "task_assigned",
                 task_id,
             )
@@ -936,7 +946,7 @@ def toggle_subtask(
                 create_notification(
                     db,
                     payload.assignee,
-                    f"@{current_user} assigned you to a sub-task in: {task.project_name or 'Untitled'}",
+                    f"@{current_user} assigned you to a sub-task in: {task.task_name or 'Untitled'}",
                     "task_assigned",
                     sub.request_id,
                 )
@@ -1037,7 +1047,7 @@ def add_comment(
 
     if (
         task
-        and task.project_name != "[SYSTEM] PROJECT CHAT"
+        and task.task_name != "[SYSTEM] PROJECT CHAT"
         and not is_user_involved_in_task(db, task, current_user)
     ):
         raise HTTPException(
@@ -1068,7 +1078,7 @@ def add_comment(
                     create_notification(
                         db,
                         m,
-                        f"@{current_user} mentioned you in a comment on: {task.project_name or 'Untitled'}",
+                        f"@{current_user} mentioned you in a comment on: {task.task_name or 'Untitled'}",
                         "mention",
                         task.id,
                     )
@@ -1079,7 +1089,7 @@ def add_comment(
                 create_notification(
                     db,
                     task.owner_username,
-                    f"@{current_user} commented on your task: {task.project_name or 'Untitled'}",
+                    f"@{current_user} commented on your task: {task.task_name or 'Untitled'}",
                     "comment",
                     task.id,
                 )
@@ -1093,7 +1103,7 @@ def add_comment(
                         create_notification(
                             db,
                             a,
-                            f"@{current_user} commented on a task assigned to you: {task.project_name or 'Untitled'}",
+                            f"@{current_user} commented on a task assigned to you: {task.task_name or 'Untitled'}",
                             "comment",
                             task.id,
                         )
@@ -1144,7 +1154,7 @@ def ai_task_reply(
     if not has_task_read_access(db, task, current_user):
         raise HTTPException(status_code=403, detail="Access denied")
 
-    if task.project_name != "[SYSTEM] PROJECT CHAT" and not is_user_involved_in_task(
+    if task.task_name != "[SYSTEM] PROJECT CHAT" and not is_user_involved_in_task(
         db, task, current_user
     ):
         raise HTTPException(
@@ -1185,7 +1195,7 @@ def ai_task_reply(
 You are assisting the team within a specific task.
 
 ### TASK CONTEXT ###
-Title: {task.project_name}
+Title: {task.task_name}
 Category: {task.category}
 Status: {task.status}
 Deadline: {task.deadline}
@@ -1249,7 +1259,7 @@ Use markdown for formatting. Do not wrap your response in JSON. Respond in the s
             create_notification(
                 db,
                 m,
-                f"Smart Assistant 🤖 replied to a task you are involved in: {task.project_name}",
+                f"Smart Assistant 🤖 replied to a task you are involved in: {task.task_name}",
                 "info",
                 task_id,
             )
@@ -1294,7 +1304,7 @@ def toggle_reaction(
         # Notif cerdas tanpa email spam dikirim hanya jika itu emotikon baru
         if comment.username != current_user:
             task = db.query(Request).filter(Request.id == comment.request_id).first()
-            if task and task.project_name == "[SYSTEM] PROJECT CHAT":
+            if task and task.task_name == "[SYSTEM] PROJECT CHAT":
                 board = db.query(Board).filter(Board.id == task.board_id).first()
                 create_notification(
                     db,

@@ -345,7 +345,7 @@ def get_my_tickets(
         tasks_list.append(
             {
                 "id": task.id,
-                "project_name": task.project_name,
+                "task_name": task.task_name,
                 "description": task.description,
                 "status": task.status,
                 "timestamp": task.timestamp,

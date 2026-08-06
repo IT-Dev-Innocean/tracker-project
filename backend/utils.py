@@ -619,8 +619,10 @@ def spawn_recurring_task(db: Session, original_task: Request):
     new_task = Request(
         board_id=original_task.board_id,
         timestamp=timestamp,
-        project_name=original_task.project_name,
+        task_name=original_task.task_name,
         requester=original_task.requester,
+        head_of_project=getattr(original_task, "head_of_project", "") or "",
+        rc_team=getattr(original_task, "rc_team", "") or "",
         category=original_task.category,
         description=original_task.description,
         supporting_access=original_task.supporting_access,
@@ -662,7 +664,7 @@ def get_or_create_chat_task(db: Session, board_id: int):
         db.query(Request)
         .filter(
             Request.board_id == board_id,
-            Request.project_name == "[SYSTEM] PROJECT CHAT",
+            Request.task_name == "[SYSTEM] PROJECT CHAT",
         )
         .first()
     )
@@ -671,7 +673,7 @@ def get_or_create_chat_task(db: Session, board_id: int):
         task = Request(
             board_id=board_id,
             timestamp=now_str,
-            project_name="[SYSTEM] PROJECT CHAT",
+            task_name="[SYSTEM] PROJECT CHAT",
             requester="System",
             category="Other",
             description="Internal Chat Space",

@@ -326,8 +326,10 @@ export default function useAppLogic() {
   const [newSubtaskName, setNewSubtaskName] = useState('');
   const [newSubtaskAssignee, setNewSubtaskAssignee] = useState('');
   const [formData, setFormData] = useState({
-    project_name: '',
+    task_name: '',
     requester: '',
+    head_of_project: [],
+    rc_team: [],
     category: 'Development',
     description: '',
     supporting_access: '',
@@ -1497,7 +1499,7 @@ export default function useAppLogic() {
       let requiresUpdate = false;
       const t = currentDrag.task;
       const payload = {
-        project_name: t.project_name,
+        task_name: t.task_name,
         requester: t.requester,
         category: t.category,
         description: t.description || '',
@@ -1695,7 +1697,7 @@ export default function useAppLogic() {
     setTasks((prev) => prev.map((t) => (t.id === task.id ? updatedTask : t)));
 
     const payload = {
-      project_name: task.project_name,
+      task_name: task.task_name,
       requester: task.requester,
       category: task.category,
       description: task.description || '',
@@ -2393,7 +2395,7 @@ export default function useAppLogic() {
         setTasks(updatedTasks);
         tasksToUpdate.forEach((t) => {
           const payload = {
-            project_name: t.project_name,
+            task_name: t.task_name,
             requester: t.requester,
             category: t.category,
             description: t.description || '',
@@ -2567,7 +2569,7 @@ export default function useAppLogic() {
         const tasksToUpdate = tasks.filter((t) => t.category === oldName);
         tasksToUpdate.forEach((t) => {
           const payload = {
-            project_name: t.project_name,
+            task_name: t.task_name,
             requester: t.requester,
             category: name,
             description: t.description || '',
@@ -3211,7 +3213,7 @@ export default function useAppLogic() {
         });
     } else {
       const payload = {
-        project_name: draggedTask.project_name,
+        task_name: draggedTask.task_name,
         requester:
           groupBy === 'Assignee'
             ? destination.droppableId === 'Unassigned'
@@ -3292,8 +3294,13 @@ export default function useAppLogic() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.project_name || !formData.requester || !formData.start_date || !formData.deadline) {
-      showNotification('Project Name, Requester, Start Date, and Deadline are required!', 'error');
+    if (!formData.task_name || !formData.requester || !formData.start_date || !formData.deadline) {
+      showNotification(
+        language === 'id'
+          ? 'Nama Tugas, Project Owner/Requester, Tanggal Mulai, dan Tenggat Waktu wajib diisi!'
+          : 'Task Name, Project Owner/Requester, Start Date, and Deadline are required!',
+        'error'
+      );
       return;
     }
 
@@ -3325,6 +3332,12 @@ export default function useAppLogic() {
     setIsSubmitting(true);
     const formattedData = {
       ...formData,
+      head_of_project: Array.isArray(formData.head_of_project)
+        ? formData.head_of_project.join(',')
+        : formData.head_of_project || '',
+      rc_team: Array.isArray(formData.rc_team)
+        ? formData.rc_team.join(',')
+        : formData.rc_team || '',
       category: formData.category || categories[0] || 'Other',
       deadline: `${formData.deadline} 17:00:00`,
       etc: formData.etc || 2,
@@ -3337,8 +3350,10 @@ export default function useAppLogic() {
       .then(() => {
         setIsFormOpen(false);
         setFormData({
-          project_name: '',
+          task_name: '',
           requester: '',
+          head_of_project: [],
+          rc_team: [],
           category: 'Development',
           description: '',
           supporting_access: '',
@@ -3361,7 +3376,7 @@ export default function useAppLogic() {
   };
 
   const handleQuickAddTask = (taskData) => {
-    if (!taskData.project_name.trim() || !selectedBoard || selectedBoard.id === 'global') return;
+    if (!taskData.task_name.trim() || !selectedBoard || selectedBoard.id === 'global') return;
     const nowStr = getLocalToday();
     const deadlineStr = taskData.deadline;
 
@@ -3382,7 +3397,7 @@ export default function useAppLogic() {
     }
 
     const formattedData = {
-      project_name: taskData.project_name.trim(),
+      task_name: taskData.task_name.trim(),
       requester: taskData.requester || currentUser,
       category: taskData.category || categories[0] || 'Other',
       description: '',
@@ -3406,7 +3421,7 @@ export default function useAppLogic() {
     const updatedLinks = currentLinks.join('\n');
 
     const payload = {
-      project_name: task.project_name,
+      task_name: task.task_name,
       requester: task.requester,
       category: task.category,
       description: task.description || '',
@@ -3439,7 +3454,7 @@ export default function useAppLogic() {
     const updatedLinks = currentLinks.filter((l) => l !== linkToRemove).join('\n');
 
     const payload = {
-      project_name: task.project_name,
+      task_name: task.task_name,
       requester: task.requester,
       category: task.category,
       description: task.description || '',
@@ -3495,9 +3510,20 @@ export default function useAppLogic() {
   };
 
   const startEditing = () => {
+    const parseUserList = (val) => {
+      if (Array.isArray(val)) return val;
+      if (!val || !String(val).trim()) return [];
+      return String(val)
+        .split(',')
+        .map((u) => u.trim())
+        .filter(Boolean);
+    };
+
     setEditFormData({
-      project_name: selectedTask.project_name,
+      task_name: selectedTask.task_name,
       requester: selectedTask.requester,
+      head_of_project: parseUserList(selectedTask.head_of_project),
+      rc_team: parseUserList(selectedTask.rc_team),
       category: selectedTask.category,
       description: selectedTask.description || '',
       supporting_access: selectedTask.supporting_access || '',
@@ -3574,7 +3600,16 @@ export default function useAppLogic() {
 
     setIsSubmitting(true);
     const validDeadline = editFormData.deadline || getLocalToday();
-    const payload = { ...editFormData, deadline: `${validDeadline.trim()} 17:00:00` };
+    const payload = {
+      ...editFormData,
+      head_of_project: Array.isArray(editFormData.head_of_project)
+        ? editFormData.head_of_project.join(',')
+        : editFormData.head_of_project || '',
+      rc_team: Array.isArray(editFormData.rc_team)
+        ? editFormData.rc_team.join(',')
+        : editFormData.rc_team || '',
+      deadline: `${validDeadline.trim()} 17:00:00`,
+    };
 
     // Ensure etc is a number
     if (payload.etc === '' || isNaN(payload.etc)) {
@@ -3671,7 +3706,7 @@ export default function useAppLogic() {
 
       const keywords = searchQuery.toLowerCase().split(/\s+/).filter(Boolean);
       const combinedSearchText = [
-        task.project_name,
+        task.task_name,
         task.requester,
         task.category,
         task.description,
@@ -3963,7 +3998,7 @@ export default function useAppLogic() {
 
         return [
           isGlobal ? escapeCSV(t.board_name) : t.id,
-          escapeCSV(t.project_name),
+          escapeCSV(t.task_name),
           escapeCSV(t.description),
           escapeCSV(t.owner_username),
           escapeCSV(t.requester),
