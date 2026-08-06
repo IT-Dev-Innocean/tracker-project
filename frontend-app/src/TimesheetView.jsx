@@ -339,9 +339,9 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     setIsLoading(true);
     try {
       const [entriesRes, approvalsRes, historyRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entries`, { headers }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/approvals`, { headers }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/approvals/history`, { headers }),
+        axios.get('/api/timesheets/entries', { headers }),
+        axios.get('/api/timesheets/approvals', { headers }),
+        axios.get('/api/timesheets/approvals/history', { headers }),
       ]);
       setEntries(entriesRes.data.entries || []);
       setApprovals(approvalsRes.data.entries || []);
@@ -656,7 +656,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       try {
         await Promise.all(
           entryIdsToDelete.map(id =>
-            axios.delete(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry/${id}`, { headers })
+            axios.delete(`/api/timesheets/entry/${id}`, { headers })
           )
         );
         fetchData();
@@ -682,7 +682,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
         if (entry._frontendId) {
           // Save if hours >= 0 (allow 0 for leave/cuti days)
           if (entry.hours_logged >= 0) {
-            requests.push(axios.post(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry`, {
+            requests.push(axios.post('/api/timesheets/entry', {
               date: entry.date,
               hours_logged: entry.hours_logged,
               board_id: entry.board_id,
@@ -694,9 +694,9 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
           }
         } else if (entry.id) {
           if (entry.hours_logged === 0 || entry.is_deleted) {
-            requests.push(axios.delete(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry/${entry.id}`, { headers }));
+            requests.push(axios.delete(`/api/timesheets/entry/${entry.id}`, { headers }));
           } else {
-            requests.push(axios.put(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry/${entry.id}`, {
+            requests.push(axios.put(`/api/timesheets/entry/${entry.id}`, {
               hours_logged: entry.hours_logged,
               description: entry.description
             }, { headers }));
@@ -710,7 +710,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
       setManualRows([]);
       const [entriesRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entries`, { headers })
+        axios.get('/api/timesheets/entries', { headers })
       ]);
       newEntries = entriesRes.data.entries || [];
       setEntries(newEntries);
@@ -837,10 +837,10 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       setIsSaving(true);
       try {
         await Promise.all(autoZeroEntries.map(entry =>
-          axios.post(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry`, entry, { headers })
+          axios.post('/api/timesheets/entry', entry, { headers })
         ));
         // Refresh entries list
-        const entriesRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entries`, { headers });
+        const entriesRes = await axios.get('/api/timesheets/entries', { headers });
         latestEntries = entriesRes.data.entries || [];
         setEntries(latestEntries);
       } catch (err) {
@@ -876,7 +876,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     }));
 
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/submit`, {
+      const res = await axios.post('/api/timesheets/submit', {
         entry_ids: entryIdsToSubmit
       }, { headers });
       setSelectedRowIds(new Set());
@@ -904,7 +904,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     }
 
     try {
-      const res = await axios.patch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/approve`, {
+      const res = await axios.patch('/api/timesheets/approve', {
         entry_ids,
         status
       }, { headers });

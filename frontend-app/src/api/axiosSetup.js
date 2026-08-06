@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-// Setup Axios Base URL (should only be done once)
-axios.defaults.baseURL =
+const rawBaseURL =
   import.meta.env.VITE_API_BASE_URL ||
   (import.meta.env.PROD ? 'https://innocean-tracker.onrender.com' : 'http://localhost:8000');
+
+axios.defaults.baseURL = rawBaseURL.replace(/\/$/, '');
 
 // Setup Axios Interceptor untuk JWT Token
 axios.interceptors.request.clear();
