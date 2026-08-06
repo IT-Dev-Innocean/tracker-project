@@ -1,14 +1,21 @@
 import { useState, useCallback } from 'react';
 import axios from 'axios';
 
-const DEFAULT_COLUMNS = ['Pending', 'In Progress', 'Done', 'Rejected'];
+const DEFAULT_COLUMNS = ['To Do', 'In Progress', 'Done'];
 const DEFAULT_CATEGORIES = ['Development', 'Design', 'Marketing', 'Research', 'Maintenance', 'Consulting', 'Other'];
 
 export function useTask({ isAuthenticated, selectedBoard, setSelectedBoard, currentUser, showNotification, setIsLoading }) {
   const [tasks, setTasks] = useState([]);
   const [columns, setColumns] = useState(DEFAULT_COLUMNS);
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
-  const [colModal, setColModal] = useState({ isOpen: false, target: 'Status', mode: 'add', oldName: '', newName: '' });
+  const [colModal, setColModal] = useState({
+    isOpen: false,
+    target: 'Status',
+    mode: 'add',
+    oldName: '',
+    newName: '',
+    color: '',
+  });
   const [viewMode, setViewMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('innocean_view_mode') || 'kanban';
@@ -39,7 +46,7 @@ export function useTask({ isAuthenticated, selectedBoard, setSelectedBoard, curr
   const [newSubtaskAssignee, setNewSubtaskAssignee] = useState('');
   const [formData, setFormData] = useState({
     description: '',
-    status: 'Pending',
+    status: 'To Do',
     category: 'Development',
     requester: '',
     etc: 0,
@@ -93,7 +100,7 @@ export function useTask({ isAuthenticated, selectedBoard, setSelectedBoard, curr
 
     const taskPayload = {
       description: taskData.description.trim(),
-      status: taskData.status || 'Pending',
+      status: taskData.status || 'To Do',
       category: taskData.category || 'Development',
       requester: taskData.requester.trim(),
       etc: Number(taskData.etc) || 0,

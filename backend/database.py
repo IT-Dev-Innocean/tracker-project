@@ -40,7 +40,7 @@ class Request(Base):
     supporting_access = Column(Text)
     start_date = Column(DateTime, nullable=True)
     deadline = Column(DateTime)
-    status = Column(String(50), default="Pending")
+    status = Column(String(50), default="To Do")
     completed_time = Column(DateTime, nullable=True)
     owner_username = Column(String(50), index=True)
     impact = Column(String(50), default="Medium")

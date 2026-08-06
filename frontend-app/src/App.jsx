@@ -492,7 +492,10 @@ function App() {
   const tMsg = (en, id) => (language === 'id' ? id : en);
 
   const totalUnreadChats = useMemo(() => {
-    const unreadDms = (dmConversations || []).reduce((sum, convo) => sum + (convo.unread_count || 0), 0);
+    const unreadDms = (dmConversations || []).reduce(
+      (sum, convo) => sum + (convo.unread_count || 0),
+      0
+    );
     const unreadMentionsAndComments = (notifications || []).filter(
       (n) =>
         !n.is_read &&
@@ -506,7 +509,8 @@ function App() {
   }, [notifications, dmConversations]);
 
   const chatContainerRef = React.useRef(null);
-  const [firstUnreadProjectChatId, setFirstUnreadProjectChatId] = useState(null);
+  const [firstUnreadProjectChatId, setFirstUnreadProjectChatId] =
+    useState(null);
   const sessionLastReadProjectRef = React.useRef(null);
   const initialScrollProjectDoneRef = React.useRef(false);
   const lastProjectMsgIdRef = React.useRef(null);
@@ -523,17 +527,25 @@ function App() {
   }, [isProjectChatOpen, drawerTab, selectedBoard?.id, currentUser]);
 
   React.useEffect(() => {
-    if (isProjectChatOpen && drawerTab === 'team' && projectChatMessages.length > 0) {
+    if (
+      isProjectChatOpen &&
+      drawerTab === 'team' &&
+      projectChatMessages.length > 0
+    ) {
       const lastRead = sessionLastReadProjectRef.current;
       let targetId = firstUnreadProjectChatId;
 
-      const latestMsgId = projectChatMessages[projectChatMessages.length - 1].id;
+      const latestMsgId =
+        projectChatMessages[projectChatMessages.length - 1].id;
       const isFirstLoad = lastProjectMsgIdRef.current === null;
-      const isNewMessageAtBottom = !isFirstLoad && lastProjectMsgIdRef.current !== latestMsgId;
+      const isNewMessageAtBottom =
+        !isFirstLoad && lastProjectMsgIdRef.current !== latestMsgId;
       lastProjectMsgIdRef.current = latestMsgId;
 
       if (!targetId && lastRead && isFirstLoad) {
-        const unreadMsg = projectChatMessages.find((c) => c.timestamp > lastRead && c.username !== currentUser);
+        const unreadMsg = projectChatMessages.find(
+          (c) => c.timestamp > lastRead && c.username !== currentUser
+        );
         if (unreadMsg) {
           targetId = unreadMsg.id;
           setFirstUnreadProjectChatId(targetId);
@@ -575,8 +587,14 @@ function App() {
       } else if (isNewMessageAtBottom) {
         const container = chatContainerRef.current;
         if (container) {
-          const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 300;
-          const isMyMessage = projectChatMessages[projectChatMessages.length - 1].username === currentUser;
+          const isNearBottom =
+            container.scrollHeight -
+              container.scrollTop -
+              container.clientHeight <
+            300;
+          const isMyMessage =
+            projectChatMessages[projectChatMessages.length - 1].username ===
+            currentUser;
 
           if (isNearBottom || isMyMessage) {
             chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -593,7 +611,14 @@ function App() {
         }
       }
     }
-  }, [projectChatMessages, isProjectChatOpen, drawerTab, currentUser, firstUnreadProjectChatId, selectedBoard]);
+  }, [
+    projectChatMessages,
+    isProjectChatOpen,
+    drawerTab,
+    currentUser,
+    firstUnreadProjectChatId,
+    selectedBoard,
+  ]);
 
   const sortedBoards = useMemo(() => {
     let sorted = excludeTodoListBoards(boards);
@@ -618,37 +643,65 @@ function App() {
   // Pagination State for Projects
   const [boardPage, setBoardPage] = useState(1);
   const [boardsPerPage, setBoardsPerPage] = useState(() => {
-    if (typeof window !== 'undefined') return Number(localStorage.getItem('innocean_boards_per_page')) || 7;
+    if (typeof window !== 'undefined')
+      return Number(localStorage.getItem('innocean_boards_per_page')) || 7;
     return 7;
   });
-  useEffect(() => localStorage.setItem('innocean_boards_per_page', boardsPerPage), [boardsPerPage]);
+  useEffect(
+    () => localStorage.setItem('innocean_boards_per_page', boardsPerPage),
+    [boardsPerPage]
+  );
 
   const translateNotif = (msg) => {
     if (!msg) return '';
 
     // Selalu bersihkan tag TASK_ID dari HTML terlepas dari pengaturan bahasa
-    const cleanMsg = msg.replace(/(?:<!--|&lt;!--)\s*TASK_ID:\d+\s*(?:-->|--&gt;)/gi, '');
+    const cleanMsg = msg.replace(
+      /(?:<!--|&lt;!--)\s*TASK_ID:\d+\s*(?:-->|--&gt;)/gi,
+      ''
+    );
     if (language !== 'id') return cleanMsg;
 
     return cleanMsg
       .replace('assigned you a new task:', 'menugaskan Anda tugas baru:')
       .replace('assigned you to the task:', 'menugaskan Anda ke tugas:')
-      .replace('assigned you to a sub-task in:', 'menugaskan Anda ke sub-tugas di:')
-      .replace('mentioned you in a comment on:', 'menyebut Anda dalam komentar di:')
+      .replace(
+        'assigned you to a sub-task in:',
+        'menugaskan Anda ke sub-tugas di:'
+      )
+      .replace(
+        'mentioned you in a comment on:',
+        'menyebut Anda dalam komentar di:'
+      )
       .replace('mentioned you in', 'menyebut Anda di')
       .replace('mentioned @team in', 'menyebut @team di')
       .replace('commented on your task:', 'mengomentari tugas Anda:')
-      .replace('commented on a task assigned to you:', 'mengomentari tugas yang diberikan kepada Anda:')
+      .replace(
+        'commented on a task assigned to you:',
+        'mengomentari tugas yang diberikan kepada Anda:'
+      )
       .replace('changed task status to', 'mengubah status tugas menjadi')
       .replace('invited you to project:', 'mengundang Anda ke proyek:')
-      .replace('is requesting access to your project', 'meminta akses ke proyek Anda')
+      .replace(
+        'is requesting access to your project',
+        'meminta akses ke proyek Anda'
+      )
       .replace('to view task', 'untuk melihat tugas')
-      .replace("Your request to join project '", "Permintaan Anda untuk bergabung dengan proyek '")
-      .replace("' has been accepted. You are now a member!", "' telah diterima. Anda sekarang adalah anggota!")
+      .replace(
+        "Your request to join project '",
+        "Permintaan Anda untuk bergabung dengan proyek '"
+      )
+      .replace(
+        "' has been accepted. You are now a member!",
+        "' telah diterima. Anda sekarang adalah anggota!"
+      )
       .replace('reacted', 'memberikan reaksi')
       .replace('to your message in', 'pada pesan Anda di')
       .replace('to your comment', 'pada komentar Anda')
-      .replace('submitted a new system feedback.', 'mengirimkan masukan sistem baru.')
+      .replace(
+        'submitted a new system feedback.',
+        'mengirimkan masukan sistem baru.'
+      )
       .replace('chat', 'obrolan');
   };
 
@@ -670,11 +723,10 @@ function App() {
         <AppThemes appTheme={appTheme} />
         {isLoading && (
           <div
-            className="fixed inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-black/80 backdrop-blur-sm transition-all duration-300"
-            style={{ zIndex: 9999 }}
-          >
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent mb-4 shadow-sm"></div>
-            <p className="text-sm font-bold text-slate-800 dark:text-slate-200 animate-pulse uppercase tracking-widest">
+            className='fixed inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-black/80 backdrop-blur-sm transition-all duration-300'
+            style={{ zIndex: 9999 }}>
+            <div className='animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent mb-4 shadow-sm'></div>
+            <p className='text-sm font-bold text-slate-800 dark:text-slate-200 animate-pulse uppercase tracking-widest'>
               Processing...
             </p>
           </div>
@@ -792,17 +844,20 @@ function App() {
 
     // Intersepsi Manual Jika Tugas Dijatuhkan Ke Tong Sampah (Tanpa perlu Droppable Pustaka)
     if (isTrashHovered && result.draggableId && result.type !== 'subtask') {
-      const draggedTask = tasks.find((t) => t.id.toString() === result.draggableId);
+      const draggedTask = tasks.find(
+        (t) => t.id.toString() === result.draggableId
+      );
       if (draggedTask) {
         const isTaskAdmin =
           workspaceRole !== 'staff' &&
           (isSuperAdmin ||
-          draggedTask.owner_username === currentUser ||
-          (selectedBoard && selectedBoard.owner_username === currentUser) ||
-          (draggedTask.requester &&
-            new RegExp(`@${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(
-              draggedTask.requester
-            )));
+            draggedTask.owner_username === currentUser ||
+            (selectedBoard && selectedBoard.owner_username === currentUser) ||
+            (draggedTask.requester &&
+              new RegExp(
+                `@${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
+                'i'
+              ).test(draggedTask.requester)));
         if (isTaskAdmin) {
           setSelectedTask(draggedTask);
           setIsDeleteConfirmOpen(true);
@@ -851,15 +906,24 @@ function App() {
   };
 
   const toggleFavoriteBoard = (id) => {
-    setFavoriteBoards((prev) => (prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]));
+    setFavoriteBoards((prev) =>
+      prev.includes(id) ? prev.filter((f) => f !== id) : [...prev, id]
+    );
   };
 
   const totalBoardPages = Math.ceil(sortedBoards.length / boardsPerPage) || 1;
   const currentBoardPage = Math.min(boardPage, totalBoardPages);
-  const currentBoards = sortedBoards.slice((currentBoardPage - 1) * boardsPerPage, currentBoardPage * boardsPerPage);
+  const currentBoards = sortedBoards.slice(
+    (currentBoardPage - 1) * boardsPerPage,
+    currentBoardPage * boardsPerPage
+  );
 
-  const globalCriticalCount = boards.filter((b) => b.health_alert && b.health_alert.includes('Attention')).length;
-  const globalWorkloadCount = boards.filter((b) => b.health_alert && b.health_alert.includes('Workload')).length;
+  const globalCriticalCount = boards.filter(
+    (b) => b.health_alert && b.health_alert.includes('Attention')
+  ).length;
+  const globalWorkloadCount = boards.filter(
+    (b) => b.health_alert && b.health_alert.includes('Workload')
+  ).length;
   let globalHealthAlert = '';
   let globalAlertClass = 'bg-slate-500/10 border-slate-500/30';
   let globalAlertTextClass = 'text-slate-200';
@@ -882,7 +946,10 @@ function App() {
     globalAlertTextClass = 'text-amber-200';
     globalAlertIcon = 'handshake';
   } else if (boards.length > 0) {
-    globalHealthAlert = tMsg(`All projects are on track. Keep it up!`, `Semua proyek berjalan lancar. Pertahankan!`);
+    globalHealthAlert = tMsg(
+      `All projects are on track. Keep it up!`,
+      `Semua proyek berjalan lancar. Pertahankan!`
+    );
     globalAlertClass = 'bg-emerald-500/20 border-emerald-500/30';
     globalAlertTextClass = 'text-emerald-200';
     globalAlertIcon = 'sparkles';
@@ -901,7 +968,8 @@ function App() {
       } else if (currentBoardPage >= totalBoardPages - 2) {
         pages.push(1);
         pages.push('...');
-        for (let i = totalBoardPages - 3; i <= totalBoardPages; i++) pages.push(i);
+        for (let i = totalBoardPages - 3; i <= totalBoardPages; i++)
+          pages.push(i);
       } else {
         pages.push(1);
         pages.push('...');
@@ -927,7 +995,8 @@ function App() {
         if (typeof window !== 'undefined') {
           if (x > window.innerWidth - 120) {
             x = clientX - 800; // Pindah ke kiri jika mentok
-            if (x < 120) x = clientX > window.innerWidth / 2 ? 80 : window.innerWidth - 80;
+            if (x < 120)
+              x = clientX > window.innerWidth / 2 ? 80 : window.innerWidth - 80;
           }
           if (y < 120) y = 120;
           if (y > window.innerHeight - 120) y = window.innerHeight - 120;
@@ -959,7 +1028,11 @@ function App() {
 
       if ((isKanbanDragging && activeDragType !== 'column') || timelineDrag) {
         const trashEl = document.getElementById('floating-trash');
-        if (trashEl && typeof window !== 'undefined' && window.innerWidth >= 768) {
+        if (
+          trashEl &&
+          typeof window !== 'undefined' &&
+          window.innerWidth >= 768
+        ) {
           const rect = trashEl.getBoundingClientRect();
           const padding = 40;
           const isOver =
@@ -973,38 +1046,70 @@ function App() {
     };
 
     if (isKanbanDragging || timelineDrag) {
-      window.addEventListener('mousemove', handleMouseMoveGlobal, { capture: true, passive: true });
-      window.addEventListener('touchmove', handleMouseMoveGlobal, { capture: true, passive: true });
+      window.addEventListener('mousemove', handleMouseMoveGlobal, {
+        capture: true,
+        passive: true,
+      });
+      window.addEventListener('touchmove', handleMouseMoveGlobal, {
+        capture: true,
+        passive: true,
+      });
 
       const autoScrollLoop = () => {
-        if (scrollRef.current && (isKanbanDragging || timelineDrag) && currentMouseX !== -1) {
+        if (
+          scrollRef.current &&
+          (isKanbanDragging || timelineDrag) &&
+          currentMouseX !== -1
+        ) {
           const rect = scrollRef.current.getBoundingClientRect();
-          const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+          const isMobile =
+            typeof window !== 'undefined' && window.innerWidth < 768;
           const threshold = isMobile ? 80 : 150;
           const maxSpeed = isMobile ? 12 : 16;
 
           if (currentMouseX < rect.left + threshold) {
-            const intensity = Math.max(0.1, 1 - (currentMouseX - rect.left) / threshold);
+            const intensity = Math.max(
+              0.1,
+              1 - (currentMouseX - rect.left) / threshold
+            );
             scrollRef.current.scrollLeft -= maxSpeed * intensity;
           } else if (currentMouseX > rect.right - threshold) {
-            const intensity = Math.max(0.1, 1 - (rect.right - currentMouseX) / threshold);
+            const intensity = Math.max(
+              0.1,
+              1 - (rect.right - currentMouseX) / threshold
+            );
             scrollRef.current.scrollLeft += maxSpeed * intensity;
           }
         }
         animationFrameId = requestAnimationFrame(autoScrollLoop);
       };
-      
+
       animationFrameId = requestAnimationFrame(autoScrollLoop);
     }
     return () => {
-      window.removeEventListener('mousemove', handleMouseMoveGlobal, { capture: true, passive: true });
-      window.removeEventListener('touchmove', handleMouseMoveGlobal, { capture: true, passive: true });
+      window.removeEventListener('mousemove', handleMouseMoveGlobal, {
+        capture: true,
+        passive: true,
+      });
+      window.removeEventListener('touchmove', handleMouseMoveGlobal, {
+        capture: true,
+        passive: true,
+      });
       cancelAnimationFrame(animationFrameId);
     };
-  }, [isKanbanDragging, activeDragType, timelineDrag, isTrashHovered, setIsTrashHovered]);
+  }, [
+    isKanbanDragging,
+    activeDragType,
+    timelineDrag,
+    isTrashHovered,
+    setIsTrashHovered,
+  ]);
 
   return (
-    <DragDropContext onBeforeCapture={handleBeforeCapture} onDragStart={handleGlobalDragStart} onDragEnd={handleGlobalDragEnd}>
+    <DragDropContext
+      onBeforeCapture={handleBeforeCapture}
+      onDragStart={handleGlobalDragStart}
+      onDragEnd={handleGlobalDragEnd}>
       <AppThemes appTheme={appTheme} />
       <style>{`
       @keyframes mac-enter {
@@ -1166,45 +1271,46 @@ function App() {
                 backgroundAttachment: 'fixed',
               }
             : appTheme &&
-              appTheme !== 'gamer' &&
-              appTheme !== 'minimal' &&
-              appTheme !== 'hacker' &&
-              appTheme !== 'chatapp' &&
-              appTheme !== 'editor' &&
-              appTheme !== 'cupertino' &&
-              appTheme !== 'social' &&
-              appTheme !== 'retail'
-            ? {
-                background:
-                  appTheme === 'sunset'
-                    ? 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)'
-                    : appTheme,
-                backgroundAttachment: 'fixed',
-              }
-            : {}
-        }
-      >
+                appTheme !== 'gamer' &&
+                appTheme !== 'minimal' &&
+                appTheme !== 'hacker' &&
+                appTheme !== 'chatapp' &&
+                appTheme !== 'editor' &&
+                appTheme !== 'cupertino' &&
+                appTheme !== 'social' &&
+                appTheme !== 'retail'
+              ? {
+                  background:
+                    appTheme === 'sunset'
+                      ? 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)'
+                      : appTheme,
+                  backgroundAttachment: 'fixed',
+                }
+              : {}
+        }>
         {appTexture && (
           <div
-            className="fixed inset-0 z-0 pointer-events-none opacity-60"
+            className='fixed inset-0 z-0 pointer-events-none opacity-60'
             style={{
               backgroundImage: textureStyles[appTexture],
               backgroundSize: appTexture === 'noise' ? '150px' : '20px 20px',
               backgroundAttachment: 'fixed',
-            }}
-          ></div>
+            }}></div>
         )}
-        {isLoading && !isProactiveAIOpen && !isChatWorkspaceOpen && !isDocsOpen && !isChangelogOpen && (
-          <div
-            className="fixed inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-neutral-950/80 backdrop-blur-sm transition-all duration-300"
-            style={{ zIndex: 9999 }}
-          >
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent mb-4 shadow-sm"></div>
-            <p className="text-sm font-bold text-slate-800 dark:text-slate-200 animate-pulse uppercase tracking-widest">
-              Loading...
-            </p>
-          </div>
-        )}
+        {isLoading &&
+          !isProactiveAIOpen &&
+          !isChatWorkspaceOpen &&
+          !isDocsOpen &&
+          !isChangelogOpen && (
+            <div
+              className='fixed inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-neutral-950/80 backdrop-blur-sm transition-all duration-300'
+              style={{ zIndex: 9999 }}>
+              <div className='animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 dark:border-indigo-400 border-t-transparent mb-4 shadow-sm'></div>
+              <p className='text-sm font-bold text-slate-800 dark:text-slate-200 animate-pulse uppercase tracking-widest'>
+                Loading...
+              </p>
+            </div>
+          )}
         {notification && (
           <NotificationModal
             key={notification.id}
@@ -1217,39 +1323,36 @@ function App() {
           />
         )}
         {showTosUpdate && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-90 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 md:p-10 max-w-lg w-full shadow-2xl mac-animate text-center">
-              <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-6 shadow-inner border border-indigo-100 dark:border-indigo-800/50">
+          <div className='fixed inset-0 bg-black/80 backdrop-blur-sm z-90 flex items-center justify-center p-4'>
+            <div className='bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 md:p-10 max-w-lg w-full shadow-2xl mac-animate text-center'>
+              <div className='w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center text-3xl mx-auto mb-6 shadow-inner border border-indigo-100 dark:border-indigo-800/50'>
                 📜
               </div>
-              <h2 className="text-2xl font-black text-black dark:text-white uppercase mb-4">
+              <h2 className='text-2xl font-black text-black dark:text-white uppercase mb-4'>
                 {tMsg('Updated Terms', 'Pembaruan Persyaratan')}
               </h2>
-              <p className="text-sm text-neutral-600 dark:text-neutral-400 font-medium leading-relaxed mb-8">
+              <p className='text-sm text-neutral-600 dark:text-neutral-400 font-medium leading-relaxed mb-8'>
                 {tMsg(
                   'We have updated our Terms of Service and Privacy Policy to better protect your data and improve our services. Please review and accept them to continue using INNOCEAN Tracker.',
                   'Kami telah memperbarui Syarat dan Ketentuan serta Kebijakan Privasi untuk melindungi data Anda dan meningkatkan layanan kami. Silakan tinjau dan setujui untuk melanjutkan.'
                 )}
               </p>
-              <div className="flex flex-col gap-3">
-                <div className="flex gap-3">
+              <div className='flex flex-col gap-3'>
+                <div className='flex gap-3'>
                   <button
                     onClick={() => setIsTermsOpen(true)}
-                    className="flex-1 bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-black dark:text-white font-bold py-3 rounded-xl transition-colors text-xs uppercase tracking-widest border border-neutral-200 dark:border-neutral-800"
-                  >
+                    className='flex-1 bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-black dark:text-white font-bold py-3 rounded-xl transition-colors text-xs uppercase tracking-widest border border-neutral-200 dark:border-neutral-800'>
                     Terms
                   </button>
                   <button
                     onClick={() => setIsPrivacyOpen(true)}
-                    className="flex-1 bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-black dark:text-white font-bold py-3 rounded-xl transition-colors text-xs uppercase tracking-widest border border-neutral-200 dark:border-neutral-800"
-                  >
+                    className='flex-1 bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-black dark:text-white font-bold py-3 rounded-xl transition-colors text-xs uppercase tracking-widest border border-neutral-200 dark:border-neutral-800'>
                     Privacy
                   </button>
                 </div>
                 <button
                   onClick={handleAcceptTos}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg transition-colors text-xs uppercase tracking-widest mt-2"
-                >
+                  className='w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg transition-colors text-xs uppercase tracking-widest mt-2'>
                   {tMsg('I Have Read & Agree', 'Saya Telah Membaca & Setuju')}
                 </button>
               </div>
@@ -1257,20 +1360,33 @@ function App() {
           </div>
         )}
         {accountStatus === 'suspended' && (
-          <div className="bg-cyan-100 dark:bg-cyan-900/40 border-b border-cyan-200 dark:border-cyan-800 text-cyan-800 dark:text-cyan-300 text-center py-3 px-4 font-bold text-sm sticky top-0 z-99">
-            ❄️ Your account is currently frozen. All editing capabilities are disabled. Please contact an Administrator.
+          <div className='bg-cyan-100 dark:bg-cyan-900/40 border-b border-cyan-200 dark:border-cyan-800 text-cyan-800 dark:text-cyan-300 text-center py-3 px-4 font-bold text-sm sticky top-0 z-99'>
+            ❄️ Your account is currently frozen. All editing capabilities are
+            disabled. Please contact an Administrator.
           </div>
         )}
-        {selectedBoard && selectedBoard.deletion_date && accountStatus !== 'suspended' && (
-          <ProjectLifecycleBanner deletionDateStr={selectedBoard.deletion_date} language={language} />
-        )}
-        <Sidebar showTimesheets={showTimesheets} setShowTimesheets={setShowTimesheets} />
-        <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+        {selectedBoard &&
+          selectedBoard.deletion_date &&
+          accountStatus !== 'suspended' && (
+            <ProjectLifecycleBanner
+              deletionDateStr={selectedBoard.deletion_date}
+              language={language}
+            />
+          )}
+        <Sidebar
+          showTimesheets={showTimesheets}
+          setShowTimesheets={setShowTimesheets}
+        />
+        <div className='flex-1 flex flex-col min-w-0 overflow-hidden relative'>
           <MobileTopBar />
           <TopHeaderBar />
           {!selectedBoard ? (
             showTimesheets ? (
-              <TimesheetView currentUser={currentUser} tasks={tasks} boards={boards} />
+              <TimesheetView
+                currentUser={currentUser}
+                tasks={tasks}
+                boards={boards}
+              />
             ) : showAdmin ? (
               <AdminModal
                 adminUsers={adminUsers}
@@ -1294,27 +1410,30 @@ function App() {
               <HomeDashboard />
             )
           ) : (
-            <div className="flex-1 flex flex-col w-full min-h-0 overflow-hidden">
+            <div className='flex-1 flex flex-col w-full min-h-0 overflow-hidden'>
               <MainToolbar />
 
               <main
                 ref={scrollRef}
-                className={`flex-1 px-6 pb-4 flex flex-col min-h-0 ${
-                  viewMode === 'kanban' ? 'overflow-auto sm:overflow-x-auto sm:overflow-y-hidden' : 'overflow-auto'
+                className={`flex-1 px-4 md:px-6 pb-4 pt-4 md:pt-0 flex flex-col min-h-0 ${
+                  viewMode === 'kanban'
+                    ? 'overflow-auto sm:overflow-x-auto sm:overflow-y-hidden'
+                    : 'overflow-auto'
                 } ${accountStatus === 'suspended' ? 'cursor-not-allowed' : ''} ${
                   timelineDrag
-                    ? (timelineDrag.mode === 'both' ? 'cursor-grabbing' : 'cursor-ew-resize') + ' select-none'
+                    ? (timelineDrag.mode === 'both'
+                        ? 'cursor-grabbing'
+                        : 'cursor-ew-resize') + ' select-none'
                     : ''
                 }`}
                 onMouseDown={handleMouseDown}
                 onMouseLeave={handleMouseLeave}
                 onMouseUp={handleMouseUp}
-                onMouseMove={handleMouseMove}
-              >
+                onMouseMove={handleMouseMove}>
                 {isTasksLoading && tasks.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center min-h-100 h-full opacity-70">
-                    <div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 dark:border-indigo-400 border-t-transparent mb-4 shadow-sm"></div>
-                    <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest animate-pulse">
+                  <div className='flex-1 flex flex-col items-center justify-center min-h-100 h-full opacity-70'>
+                    <div className='animate-spin rounded-full h-10 w-10 border-4 border-indigo-500 dark:border-indigo-400 border-t-transparent mb-4 shadow-sm'></div>
+                    <p className='text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest animate-pulse'>
                       {tMsg('Loading Tasks...', 'Memuat Tugas...')}
                     </p>
                   </div>
@@ -1346,6 +1465,7 @@ function App() {
                         cardTheme={cardTheme}
                         isTrashHovered={isTrashHovered}
                         language={language}
+                        workspaceRole={workspaceRole}
                       />
                     )}
 
@@ -1380,7 +1500,7 @@ function App() {
                     )}
 
                     {viewMode === 'analytics' && (
-                      <div className="instagram-solid-cards contents">
+                      <div className='instagram-solid-cards contents'>
                         <AnalyticsView
                           filteredTasks={filteredTasks}
                           columns={columns}
@@ -1441,39 +1561,34 @@ function App() {
           )}
 
           {/* Universal Footer for Logged In User */}
-          <footer className="flex flex-col sm:flex-row py-2.5 px-6 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black justify-between items-center gap-2 sm:gap-4 shrink-0 z-40 relative">
-            <p className="text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest text-center sm:text-left">
+          <footer className='flex flex-col sm:flex-row py-2.5 px-6 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black justify-between items-center gap-2 sm:gap-4 shrink-0 z-40 relative'>
+            <p className='text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase tracking-widest text-center sm:text-left'>
               © {new Date().getFullYear()} INNOCEAN Tracker.
             </p>
-            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5">
+            <div className='flex flex-wrap justify-center gap-x-4 gap-y-1.5'>
               <button
                 onClick={() => setIsSpecsOpen(true)}
-                className="text-[10px] font-bold text-neutral-500 hover:text-black dark:hover:text-white uppercase tracking-widest transition-colors"
-              >
+                className='text-[10px] font-bold text-neutral-500 hover:text-black dark:hover:text-white uppercase tracking-widest transition-colors'>
                 Specs
               </button>
               <button
                 onClick={() => setIsChangelogOpen(true)}
-                className="text-[10px] font-bold text-neutral-500 hover:text-black dark:hover:text-white uppercase tracking-widest transition-colors"
-              >
+                className='text-[10px] font-bold text-neutral-500 hover:text-black dark:hover:text-white uppercase tracking-widest transition-colors'>
                 Changelog
               </button>
               <button
                 onClick={() => setIsDocsOpen(true)}
-                className="text-[10px] font-bold text-neutral-500 hover:text-black dark:hover:text-white uppercase tracking-widest transition-colors"
-              >
+                className='text-[10px] font-bold text-neutral-500 hover:text-black dark:hover:text-white uppercase tracking-widest transition-colors'>
                 Docs
               </button>
               <button
                 onClick={() => setIsPrivacyOpen(true)}
-                className="text-[10px] font-bold text-neutral-500 hover:text-black dark:hover:text-white uppercase tracking-widest transition-colors"
-              >
+                className='text-[10px] font-bold text-neutral-500 hover:text-black dark:hover:text-white uppercase tracking-widest transition-colors'>
                 Privacy
               </button>
               <button
                 onClick={() => setIsTermsOpen(true)}
-                className="text-[10px] font-bold text-neutral-500 hover:text-black dark:hover:text-white uppercase tracking-widest transition-colors"
-              >
+                className='text-[10px] font-bold text-neutral-500 hover:text-black dark:hover:text-white uppercase tracking-widest transition-colors'>
                 Terms
               </button>
             </div>
@@ -1481,34 +1596,35 @@ function App() {
 
           {/* Floating Trash for Drag and Drop Deletion */}
           <div
-            id="trash-wrapper"
-            className="fixed z-100 pointer-events-none hidden md:block"
+            id='trash-wrapper'
+            className='fixed z-100 pointer-events-none hidden md:block'
             style={{
               left: '-1000px',
               top: '-1000px',
               transform: 'translate(-50%, -50%)',
-            }}
-          >
+            }}>
             <div
               className={`transition-all duration-300 ease-out ${
-                (isKanbanDragging && activeDragType !== 'column') || timelineDrag
+                (isKanbanDragging && activeDragType !== 'column') ||
+                timelineDrag
                   ? 'opacity-100 scale-100'
                   : 'opacity-0 scale-50'
-              }`}
-            >
+              }`}>
               <div
-                id="floating-trash"
+                id='floating-trash'
                 className={`flex items-center justify-center text-[70px] sm:text-[90px] transition-all duration-300 pointer-events-auto ${
                   isTrashHovered
                     ? 'scale-125 -rotate-12 opacity-100 drop-shadow-[0_0_40px_rgba(220,38,38,0.8)]'
                     : 'scale-100 grayscale opacity-40 drop-shadow-xl hover:grayscale-0 hover:opacity-100'
-                }`}
-              >
-                <Icon name="trash" className="w-[70px] h-[70px] sm:w-[90px] sm:h-[90px]" />
+                }`}>
+                <Icon
+                  name='trash'
+                  className='w-[70px] h-[70px] sm:w-[90px] sm:h-[90px]'
+                />
                 {/* Kertas diremas yang melompat ke dalam tong sampah */}
                 {isTrashHovered && (
-                  <div className="absolute top-0 left-1/4 animate-crumple pointer-events-none drop-shadow-md z-50">
-                    <Icon name="file-text" className="w-[50px] h-[50px]" />
+                  <div className='absolute top-0 left-1/4 animate-crumple pointer-events-none drop-shadow-md z-50'>
+                    <Icon name='file-text' className='w-[50px] h-[50px]' />
                   </div>
                 )}
               </div>
@@ -1563,105 +1679,115 @@ function App() {
             tMsg={tMsg}
           />
         )}
-        {pomodoroEnabled && accountStatus !== 'suspended' && <PomodoroWidget isDarkMode={isDarkMode} />}
-        {/* Floating Smart Assistant Button */}
-        {!isProjectChatOpen && accountStatus !== 'suspended' && showAssistantButton && (
-          <button
-            onClick={() => {
-              setIsProjectChatOpen(true);
-              setDrawerTab('assistant');
-            }}
-            className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-60 w-14 h-14 bg-black dark:bg-white text-white dark:text-black rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.3)] dark:shadow-[0_10px_30px_rgba(255,255,255,0.2)] flex items-center justify-center transition-all duration-300 hover:scale-110 hover:-translate-y-1 group"
-            title={tMsg('Smart Assistant', 'Asisten Pintar AI')}
-          >
-            <Icon name="sparkles" className="w-7 h-7 group-hover:rotate-12 transition-transform" />
-            <span className="absolute -top-1 -right-1 flex h-4 w-4">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-4 w-4 bg-indigo-500 border-2 border-white dark:border-black"></span>
-            </span>
-          </button>
+        {pomodoroEnabled && accountStatus !== 'suspended' && (
+          <PomodoroWidget isDarkMode={isDarkMode} />
         )}
+        {/* Floating Smart Assistant Button */}
+        {!isProjectChatOpen &&
+          accountStatus !== 'suspended' &&
+          showAssistantButton && (
+            <button
+              onClick={() => {
+                setIsProjectChatOpen(true);
+                setDrawerTab('assistant');
+              }}
+              className='fixed bottom-6 right-6 md:bottom-10 md:right-10 z-60 w-14 h-14 bg-black dark:bg-white text-white dark:text-black rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.3)] dark:shadow-[0_10px_30px_rgba(255,255,255,0.2)] flex items-center justify-center transition-all duration-300 hover:scale-110 hover:-translate-y-1 group'
+              title={tMsg('Smart Assistant', 'Asisten Pintar AI')}>
+              <Icon
+                name='sparkles'
+                className='w-7 h-7 group-hover:rotate-12 transition-transform'
+              />
+              <span className='absolute -top-1 -right-1 flex h-4 w-4'>
+                <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75'></span>
+                <span className='relative inline-flex rounded-full h-4 w-4 bg-indigo-500 border-2 border-white dark:border-black'></span>
+              </span>
+            </button>
+          )}
         {/* Transparent Dark Overlay & Smooth Slide-in Drawer */}
         <div
           className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-85 transition-opacity duration-300 ${
             isProjectChatOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
-          onClick={() => setIsProjectChatOpen(false)}
-        ></div>
+          onClick={() => setIsProjectChatOpen(false)}></div>
         <div
           className={`fixed inset-0 sm:inset-auto sm:bottom-28 sm:right-10 w-full sm:w-100 xl:w-112.5 sm:h-[calc(100vh-160px)] sm:max-h-200 bg-white dark:bg-neutral-950 sm:shadow-2xl sm:border border-neutral-200 dark:border-neutral-800 z-90 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] origin-bottom-right sm:rounded-4xl overflow-hidden ${
             isProjectChatOpen
               ? 'opacity-100 scale-100 translate-y-0'
               : 'opacity-0 scale-90 translate-y-10 pointer-events-none'
-          }`}
-        >
-          <div className="flex border-b border-neutral-200 dark:border-neutral-800 shrink-0 bg-white dark:bg-neutral-950">
+          }`}>
+          <div className='flex border-b border-neutral-200 dark:border-neutral-800 shrink-0 bg-white dark:bg-neutral-950'>
             <button
               onClick={() => setDrawerTab('assistant')}
-              className="flex-1 py-4 text-[10px] sm:text-xs uppercase tracking-wider transition-colors font-black text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50/30 dark:bg-indigo-900/10"
-            >
-              <Icon name="sparkles" className="w-3.5 h-3.5 inline-block mr-1" /> Assistant
+              className='flex-1 py-4 text-[10px] sm:text-xs uppercase tracking-wider transition-colors font-black text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50/30 dark:bg-indigo-900/10'>
+              <Icon name='sparkles' className='w-3.5 h-3.5 inline-block mr-1' />{' '}
+              Assistant
             </button>
             <button
               onClick={() => setIsProjectChatOpen(false)}
-              className="px-4 text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors border-b-2 border-transparent"
-            >
-              <Icon name="x" className="w-4 h-4" />
+              className='px-4 text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors border-b-2 border-transparent'>
+              <Icon name='x' className='w-4 h-4' />
             </button>
           </div>
 
           {/* Team Chat Tab */}
           {selectedBoard && selectedBoard.id !== 'global' && (
-            <div className={`flex-1 flex-col overflow-hidden relative ${drawerTab === 'team' ? 'flex' : 'hidden'}`}>
-              <div className="px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex flex-col gap-3 shrink-0 z-20">
-                <div className="flex justify-between items-center">
-                  <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest truncate flex items-center gap-2">
+            <div
+              className={`flex-1 flex-col overflow-hidden relative ${drawerTab === 'team' ? 'flex' : 'hidden'}`}>
+              <div className='px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex flex-col gap-3 shrink-0 z-20'>
+                <div className='flex justify-between items-center'>
+                  <p className='text-[10px] font-bold text-neutral-500 uppercase tracking-widest truncate flex items-center gap-2'>
                     <span>Project Space:</span>
-                    <span className="text-indigo-600 dark:text-indigo-400 font-black">{selectedBoard.name}</span>
+                    <span className='text-indigo-600 dark:text-indigo-400 font-black'>
+                      {selectedBoard.name}
+                    </span>
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className='flex items-center gap-2'>
                     <button
-                      type="button"
+                      type='button'
                       onClick={() => setIsChatSearchOpen(!isChatSearchOpen)}
                       className={`p-1.5 rounded-lg transition-colors flex items-center justify-center ${
                         isChatSearchOpen
                           ? 'bg-neutral-200 dark:bg-neutral-800 text-black dark:text-white'
                           : 'text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800'
                       }`}
-                      title={tMsg('Search Chat', 'Cari Obrolan')}
-                    >
-                      <Icon name="search" className="w-4 h-4" />
+                      title={tMsg('Search Chat', 'Cari Obrolan')}>
+                      <Icon name='search' className='w-4 h-4' />
                     </button>
                     <button
-                      type="button"
+                      type='button'
                       onClick={() => handleStartMeet(selectedBoard.id)}
-                      className="text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors uppercase tracking-widest"
-                    >
-                      <Icon name="video" className="w-4 h-4" />{' '}
-                      Meet Now
+                      className='text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors uppercase tracking-widest'>
+                      <Icon name='video' className='w-4 h-4' /> Meet Now
                     </button>
                   </div>
                 </div>
               </div>
 
               {isChatSearchOpen && (
-                <div className="border-b border-neutral-200 dark:border-neutral-800 p-2 bg-neutral-50 dark:bg-neutral-900 shrink-0 z-10 shadow-inner">
-                  <div className="relative">
-                    <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400" />
+                <div className='border-b border-neutral-200 dark:border-neutral-800 p-2 bg-neutral-50 dark:bg-neutral-900 shrink-0 z-10 shadow-inner'>
+                  <div className='relative'>
+                    <Icon
+                      name='search'
+                      className='absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400'
+                    />
                     <input
-                      type="text"
+                      type='text'
                       placeholder={tMsg('Search messages...', 'Cari pesan...')}
                       value={chatSearchQuery}
                       onChange={(e) => setChatSearchQuery(e.target.value)}
-                      className="w-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl pl-8 pr-4 py-2 text-xs font-medium text-black dark:text-white outline-none focus:border-indigo-500 transition-colors shadow-inner"
+                      className='w-full bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl pl-8 pr-4 py-2 text-xs font-medium text-black dark:text-white outline-none focus:border-indigo-500 transition-colors shadow-inner'
                     />
                     {chatSearchQuery && (
-                      <div className="absolute top-full mt-2 left-0 w-full bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-700 shadow-2xl rounded-xl z-50 max-h-64 overflow-y-auto custom-scrollbar mac-animate">
+                      <div className='absolute top-full mt-2 left-0 w-full bg-white/95 dark:bg-neutral-900/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-700 shadow-2xl rounded-xl z-50 max-h-64 overflow-y-auto custom-scrollbar mac-animate'>
                         {projectChatMessages
                           .filter(
                             (c) =>
-                              (c.text || '').toLowerCase().includes(chatSearchQuery.toLowerCase()) ||
-                              (c.username || '').toLowerCase().includes(chatSearchQuery.toLowerCase())
+                              (c.text || '')
+                                .toLowerCase()
+                                .includes(chatSearchQuery.toLowerCase()) ||
+                              (c.username || '')
+                                .toLowerCase()
+                                .includes(chatSearchQuery.toLowerCase())
                           )
                           .map((c) => (
                             <div
@@ -1669,9 +1795,14 @@ function App() {
                               onClick={() => {
                                 setChatSearchQuery('');
                                 setIsChatSearchOpen(false);
-                                const el = document.getElementById(`chat-msg-${c.id}`);
+                                const el = document.getElementById(
+                                  `chat-msg-${c.id}`
+                                );
                                 if (el) {
-                                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  el.scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'center',
+                                  });
                                   el.classList.add(
                                     'ring-2',
                                     'ring-indigo-500',
@@ -1694,25 +1825,32 @@ function App() {
                                   }, 2500);
                                 }
                               }}
-                              className="p-4 border-b border-neutral-100 dark:border-neutral-800 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex flex-col gap-1.5"
-                            >
-                              <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                              className='p-4 border-b border-neutral-100 dark:border-neutral-800 cursor-pointer hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors flex flex-col gap-1.5'>
+                              <div className='flex justify-between items-center'>
+                                <span className='text-[10px] font-bold text-indigo-600 dark:text-indigo-400'>
                                   @{c.username}
                                 </span>
-                                <span className="text-[9px] font-medium text-neutral-400">
+                                <span className='text-[9px] font-medium text-neutral-400'>
                                   {formatDateMMM(c.timestamp)}
                                 </span>
                               </div>
-                              <p className="text-xs text-black dark:text-white line-clamp-2">{stripHtml(c.text)}</p>
+                              <p className='text-xs text-black dark:text-white line-clamp-2'>
+                                {stripHtml(c.text)}
+                              </p>
                             </div>
                           ))}
                         {projectChatMessages.filter(
                           (c) =>
-                            (c.text || '').toLowerCase().includes(chatSearchQuery.toLowerCase()) ||
-                            (c.username || '').toLowerCase().includes(chatSearchQuery.toLowerCase())
+                            (c.text || '')
+                              .toLowerCase()
+                              .includes(chatSearchQuery.toLowerCase()) ||
+                            (c.username || '')
+                              .toLowerCase()
+                              .includes(chatSearchQuery.toLowerCase())
                         ).length === 0 && (
-                          <div className="p-4 text-center text-xs font-bold text-neutral-500">No messages found.</div>
+                          <div className='p-4 text-center text-xs font-bold text-neutral-500'>
+                            No messages found.
+                          </div>
                         )}
                       </div>
                     )}
@@ -1720,34 +1858,36 @@ function App() {
                 </div>
               )}
 
-              <div className="flex-1 relative flex flex-col min-h-0 overflow-hidden">
+              <div className='flex-1 relative flex flex-col min-h-0 overflow-hidden'>
                 {/* Static Background Layer */}
                 {chatBg && (
                   <div
-                    className="absolute inset-0 z-0 pointer-events-none"
+                    className='absolute inset-0 z-0 pointer-events-none'
                     style={
                       chatBg.startsWith('data:image')
-                        ? { backgroundImage: `url(${chatBg})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                        ? {
+                            backgroundImage: `url(${chatBg})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                          }
                         : { background: chatBg }
                     }
                   />
                 )}
                 {chatBg && (
-                  <div className="absolute inset-0 bg-white/40 dark:bg-black/60 backdrop-blur-[2px] z-0 pointer-events-none"></div>
+                  <div className='absolute inset-0 bg-white/40 dark:bg-black/60 backdrop-blur-[2px] z-0 pointer-events-none'></div>
                 )}
 
                 <div
                   ref={chatContainerRef}
                   onScroll={handleProjectChatScroll}
-                  className="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-5 custom-scrollbar bg-neutral-50/50 dark:bg-neutral-900/30 relative z-10"
-                >
-                  <div className="relative z-10 flex flex-col gap-4">
+                  className='flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-5 custom-scrollbar bg-neutral-50/50 dark:bg-neutral-900/30 relative z-10'>
+                  <div className='relative z-10 flex flex-col gap-4'>
                     {hasMoreProjectChat && (
-                      <div className="flex justify-center my-2 relative">
+                      <div className='flex justify-center my-2 relative'>
                         <button
                           onClick={loadMoreProjectChat}
-                          className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-4 py-2 rounded-full transition-colors border border-indigo-200 dark:border-indigo-800/50 shadow-sm z-10"
-                        >
+                          className='text-[10px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-4 py-2 rounded-full transition-colors border border-indigo-200 dark:border-indigo-800/50 shadow-sm z-10'>
                           Load older messages
                         </button>
                       </div>
@@ -1755,17 +1895,26 @@ function App() {
 
                     {projectChatMessages.map((c, index, arr) => {
                       const isMe = c.username === currentUser;
-                      const currDate = new Date(c.timestamp.replace(/-/g, '/')).toDateString();
+                      const currDate = new Date(
+                        c.timestamp.replace(/-/g, '/')
+                      ).toDateString();
                       const prevDate =
-                        index > 0 ? new Date(arr[index - 1].timestamp.replace(/-/g, '/')).toDateString() : null;
+                        index > 0
+                          ? new Date(
+                              arr[index - 1].timestamp.replace(/-/g, '/')
+                            ).toDateString()
+                          : null;
                       const showDivider = currDate !== prevDate;
 
                       let dividerDisplay = '';
                       if (showDivider) {
                         const today = new Date().toDateString();
-                        const yesterday = new Date(Date.now() - 86400000).toDateString();
+                        const yesterday = new Date(
+                          Date.now() - 86400000
+                        ).toDateString();
                         if (currDate === today) dividerDisplay = 'Today';
-                        else if (currDate === yesterday) dividerDisplay = 'Yesterday';
+                        else if (currDate === yesterday)
+                          dividerDisplay = 'Yesterday';
                         else dividerDisplay = formatDateMMM(c.timestamp);
                       }
                       const isFirstUnread = c.id === firstUnreadProjectChatId;
@@ -1773,17 +1922,17 @@ function App() {
                       return (
                         <React.Fragment key={c.id}>
                           {showDivider && (
-                            <div className="flex justify-center my-2 relative">
-                              <div className="absolute top-1/2 left-0 w-full h-px bg-neutral-200 dark:bg-neutral-800 z-0"></div>
-                              <span className="bg-neutral-100 dark:bg-neutral-800 text-neutral-500 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest z-10 border border-neutral-200 dark:border-neutral-700 shadow-sm">
+                            <div className='flex justify-center my-2 relative'>
+                              <div className='absolute top-1/2 left-0 w-full h-px bg-neutral-200 dark:bg-neutral-800 z-0'></div>
+                              <span className='bg-neutral-100 dark:bg-neutral-800 text-neutral-500 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest z-10 border border-neutral-200 dark:border-neutral-700 shadow-sm'>
                                 {dividerDisplay}
                               </span>
                             </div>
                           )}
                           {isFirstUnread && (
-                            <div className="flex justify-center my-4 relative chat-animate">
-                              <div className="absolute top-1/2 left-0 w-full h-px bg-red-200 dark:bg-red-800/50 z-0"></div>
-                              <span className="bg-red-50 dark:bg-red-900/30 text-red-500 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest z-10 border border-red-200 dark:border-red-800/50 shadow-sm">
+                            <div className='flex justify-center my-4 relative chat-animate'>
+                              <div className='absolute top-1/2 left-0 w-full h-px bg-red-200 dark:bg-red-800/50 z-0'></div>
+                              <span className='bg-red-50 dark:bg-red-900/30 text-red-500 px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest z-10 border border-red-200 dark:border-red-800/50 shadow-sm'>
                                 {tMsg('Unread Messages', 'Pesan Belum Dibaca')}
                               </span>
                             </div>
@@ -1792,23 +1941,24 @@ function App() {
                             id={`chat-msg-${c.id}`}
                             className={`flex gap-3 w-full p-1.5 -mx-1.5 transition-all duration-500 ${
                               isMe ? 'flex-row-reverse' : 'flex-row'
-                            } chat-animate scroll-mt-20 group/bubble`}
-                          >
+                            } chat-animate scroll-mt-20 group/bubble`}>
                             <Avatar
                               name={c.username}
                               url={avatarsMap[c.username]}
-                              size="w-8 h-8 shrink-0"
-                              textClass="text-[10px]"
+                              size='w-8 h-8 shrink-0'
+                              textClass='text-[10px]'
                             />
-                            <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} min-w-0 max-w-[92%]`}>
+                            <div
+                              className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} min-w-0 max-w-[92%]`}>
                               <div
-                                className={`flex items-baseline gap-2 mb-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
-                              >
-                                <span className="text-[10px] font-bold text-neutral-600 dark:text-neutral-400">
+                                className={`flex items-baseline gap-2 mb-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                                <span className='text-[10px] font-bold text-neutral-600 dark:text-neutral-400'>
                                   @{c.username}
                                 </span>
-                                <span className="text-[8px] font-bold text-neutral-400 opacity-70">
-                                  {new Date(c.timestamp.replace(/-/g, '/')).toLocaleTimeString([], {
+                                <span className='text-[8px] font-bold text-neutral-400 opacity-70'>
+                                  {new Date(
+                                    c.timestamp.replace(/-/g, '/')
+                                  ).toLocaleTimeString([], {
                                     hour: '2-digit',
                                     minute: '2-digit',
                                   })}
@@ -1818,54 +1968,68 @@ function App() {
                               <div
                                 className={`flex items-center gap-2 max-w-full ${
                                   isMe ? 'flex-row-reverse' : 'flex-row'
-                                }`}
-                              >
+                                }`}>
                                 <div
                                   className={`p-3 text-sm font-medium leading-relaxed shadow-sm shrink min-w-0 ${
                                     isMe
                                       ? 'bg-indigo-600 text-white rounded-2xl rounded-tr-sm'
                                       : 'bg-white dark:bg-neutral-800 text-black dark:text-white border border-neutral-100 dark:border-neutral-700 rounded-2xl rounded-tl-sm'
-                                  }`}
-                                >
+                                  }`}>
                                   <div
-                                    dangerouslySetInnerHTML={{ __html: renderChatMessageContent(c.text, isMe) }}
-                                    className="wrap-break-word space-y-1 select-text"
+                                    dangerouslySetInnerHTML={{
+                                      __html: renderChatMessageContent(
+                                        c.text,
+                                        isMe
+                                      ),
+                                    }}
+                                    className='wrap-break-word space-y-1 select-text'
                                   />
                                 </div>
                                 <div
-                                  className={`flex flex-col items-center justify-center gap-1 opacity-100 md:opacity-0 group-hover/bubble:opacity-100 transition-opacity shrink-0`}
-                                >
+                                  className={`flex flex-col items-center justify-center gap-1 opacity-100 md:opacity-0 group-hover/bubble:opacity-100 transition-opacity shrink-0`}>
                                   <button
                                     onClick={() => setProjectChatReplyingTo(c)}
-                                    className="p-1.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-indigo-500 transition-colors"
-                                    title="Reply"
-                                  >
-                                    <Icon name="reply" className="w-3 h-3" />
+                                    className='p-1.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-indigo-500 transition-colors'
+                                    title='Reply'>
+                                    <Icon name='reply' className='w-3 h-3' />
                                   </button>
-                                  {(isMe || isSuperAdmin) && accountStatus !== 'suspended' && (
-                                    <button
-                                      onClick={() => deleteProjectChatMessage(c.id)}
-                                      className="p-1.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-red-500 transition-colors"
-                                      title="Delete"
-                                    >
-                                      <Icon name="trash" className="w-3 h-3" />
-                                    </button>
-                                  )}
+                                  {(isMe || isSuperAdmin) &&
+                                    accountStatus !== 'suspended' && (
+                                      <button
+                                        onClick={() =>
+                                          deleteProjectChatMessage(c.id)
+                                        }
+                                        className='p-1.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-red-500 transition-colors'
+                                        title='Delete'>
+                                        <Icon
+                                          name='trash'
+                                          className='w-3 h-3'
+                                        />
+                                      </button>
+                                    )}
                                   <button
                                     onClick={() => {
                                       let cleanText = c.text
                                         .replace(/\*\*(.*?)\*\*/g, '$1')
                                         .replace(/\*(.*?)\*/g, '$1')
                                         .replace(/__(.*?)__/g, '$1');
-                                      const temp = document.createElement('textarea');
+                                      const temp =
+                                        document.createElement('textarea');
                                       temp.innerHTML = cleanText;
-                                      navigator.clipboard.writeText(temp.value.trim());
-                                      showNotification(tMsg('Copied to clipboard!', 'Disalin ke papan klip!'), 'info');
+                                      navigator.clipboard.writeText(
+                                        temp.value.trim()
+                                      );
+                                      showNotification(
+                                        tMsg(
+                                          'Copied to clipboard!',
+                                          'Disalin ke papan klip!'
+                                        ),
+                                        'info'
+                                      );
                                     }}
-                                    className="p-1.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-indigo-500 transition-colors"
-                                    title="Copy"
-                                  >
-                                    <Icon name="copy" className="w-3.5 h-3.5" />
+                                    className='p-1.5 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-indigo-500 transition-colors'
+                                    title='Copy'>
+                                    <Icon name='copy' className='w-3.5 h-3.5' />
                                   </button>
                                 </div>
                               </div>
@@ -1873,46 +2037,65 @@ function App() {
                               <div
                                 className={`flex flex-wrap items-center gap-1.5 mt-1.5 ${
                                   isMe ? 'justify-end' : 'justify-start'
-                                }`}
-                              >
+                                }`}>
                                 {c.reactions &&
                                   Object.keys(c.reactions).length > 0 &&
-                                  Object.entries(c.reactions).map(([emoji, users]) => (
-                                    <button
-                                      key={emoji}
-                                      onClick={() => handleToggleReaction(c.id, emoji, true)}
-                                      className={`px-1.5 py-0.5 rounded-full text-[10px] flex items-center gap-1 border shadow-sm transition-colors ${
-                                        users.includes(currentUser)
-                                          ? 'bg-indigo-100 border-indigo-300 text-indigo-700 dark:bg-indigo-900/40 dark:border-indigo-600 dark:text-indigo-300'
-                                          : 'bg-white border-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-700'
-                                      }`}
-                                      title={users.join(', ')}
-                                    >
-                                      <span>{emoji}</span> <span className="font-bold">{users.length}</span>
-                                    </button>
-                                  ))}
-                                <div className="relative group/picker flex items-center opacity-100 md:opacity-0 group-hover/bubble:opacity-100 transition-opacity">
+                                  Object.entries(c.reactions).map(
+                                    ([emoji, users]) => (
+                                      <button
+                                        key={emoji}
+                                        onClick={() =>
+                                          handleToggleReaction(
+                                            c.id,
+                                            emoji,
+                                            true
+                                          )
+                                        }
+                                        className={`px-1.5 py-0.5 rounded-full text-[10px] flex items-center gap-1 border shadow-sm transition-colors ${
+                                          users.includes(currentUser)
+                                            ? 'bg-indigo-100 border-indigo-300 text-indigo-700 dark:bg-indigo-900/40 dark:border-indigo-600 dark:text-indigo-300'
+                                            : 'bg-white border-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-400 hover:bg-neutral-50 dark:hover:bg-neutral-700'
+                                        }`}
+                                        title={users.join(', ')}>
+                                        <span>{emoji}</span>{' '}
+                                        <span className='font-bold'>
+                                          {users.length}
+                                        </span>
+                                      </button>
+                                    )
+                                  )}
+                                <div className='relative group/picker flex items-center opacity-100 md:opacity-0 group-hover/bubble:opacity-100 transition-opacity'>
                                   <button
-                                    className="p-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-indigo-500 transition-colors"
-                                    title="Add Reaction"
-                                  >
-                                    <Icon name="smile-plus" className="w-3 h-3" />
+                                    className='p-1 bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-sm text-neutral-400 hover:text-indigo-500 transition-colors'
+                                    title='Add Reaction'>
+                                    <Icon
+                                      name='smile-plus'
+                                      className='w-3 h-3'
+                                    />
                                   </button>
                                   <div
                                     className={`absolute top-1/2 -translate-y-1/2 ${
-                                      isMe ? 'right-full pr-1.5' : 'left-full pl-1.5'
-                                    } hidden group-hover/picker:flex z-50`}
-                                  >
-                                    <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-lg p-1 flex gap-1 flex-nowrap">
-                                      {['👍', '❤️', '😂', '😮', '🙏', '✅'].map((em) => (
-                                        <button
-                                          key={em}
-                                          onClick={() => handleToggleReaction(c.id, em, true)}
-                                          className="w-6 h-6 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full flex items-center justify-center transition-transform hover:scale-125 text-sm"
-                                        >
-                                          {em}
-                                        </button>
-                                      ))}
+                                      isMe
+                                        ? 'right-full pr-1.5'
+                                        : 'left-full pl-1.5'
+                                    } hidden group-hover/picker:flex z-50`}>
+                                    <div className='bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-full shadow-lg p-1 flex gap-1 flex-nowrap'>
+                                      {['👍', '❤️', '😂', '😮', '🙏', '✅'].map(
+                                        (em) => (
+                                          <button
+                                            key={em}
+                                            onClick={() =>
+                                              handleToggleReaction(
+                                                c.id,
+                                                em,
+                                                true
+                                              )
+                                            }
+                                            className='w-6 h-6 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full flex items-center justify-center transition-transform hover:scale-125 text-sm'>
+                                            {em}
+                                          </button>
+                                        )
+                                      )}
                                     </div>
                                   </div>
                                 </div>
@@ -1923,57 +2106,67 @@ function App() {
                       );
                     })}
                     {projectChatMessages.length === 0 && (
-                      <p className="text-center text-sm text-neutral-500 font-medium italic mt-10">
+                      <p className='text-center text-sm text-neutral-500 font-medium italic mt-10'>
                         No messages yet. Say hello to the team! 👋
                       </p>
                     )}
 
-                    <div ref={chatEndRef} className="h-32 shrink-0" />
+                    <div ref={chatEndRef} className='h-32 shrink-0' />
                   </div>
                 </div>
               </div>
 
               <div
                 className={`p-4 border-t border-neutral-200 dark:border-neutral-800 shrink-0 relative z-20 ${
-                  chatBg ? 'bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md' : 'bg-white dark:bg-neutral-950'
-                }`}
-              >
+                  chatBg
+                    ? 'bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md'
+                    : 'bg-white dark:bg-neutral-950'
+                }`}>
                 <form
                   onSubmit={(e) => {
                     sendProjectChatMessage(e);
                     const ta = e.target.querySelector('textarea');
                     if (ta) ta.style.height = '44px';
                   }}
-                  className="flex gap-2 relative items-end"
-                >
+                  className='flex gap-2 relative items-end'>
                   <textarea
                     value={newProjectChatMessage}
                     onChange={(e) => handleProjectChatChange(e.target.value)}
                     disabled={accountStatus === 'suspended'}
-                    placeholder="Message the team..."
-                    className="flex-1 py-3 px-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-xl focus:bg-white dark:focus:bg-black focus:border-indigo-500 dark:focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-sm font-medium placeholder-neutral-400 transition-colors disabled:opacity-50 resize-none max-h-30"
+                    placeholder='Message the team...'
+                    className='flex-1 py-3 px-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-xl focus:bg-white dark:focus:bg-black focus:border-indigo-500 dark:focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-sm font-medium placeholder-neutral-400 transition-colors disabled:opacity-50 resize-none max-h-30'
                     style={{ minHeight: '44px' }}
-                    rows="1"
+                    rows='1'
                     onInput={(e) => {
                       e.target.style.height = '44px';
-                      e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                      e.target.style.height =
+                        Math.min(e.target.scrollHeight, 120) + 'px';
                     }}
                     onKeyDown={(e) => {
                       if (isProjectMentioning) {
                         const allOptions = ['team', ...teamMembers];
-                        const filteredOptions = allOptions.filter((m) => m.toLowerCase().includes(projectMentionQuery));
+                        const filteredOptions = allOptions.filter((m) =>
+                          m.toLowerCase().includes(projectMentionQuery)
+                        );
                         if (e.key === 'ArrowDown') {
                           e.preventDefault();
-                          setProjectMentionIndex((prev) => (prev + 1) % (filteredOptions.length || 1));
+                          setProjectMentionIndex(
+                            (prev) => (prev + 1) % (filteredOptions.length || 1)
+                          );
                         } else if (e.key === 'ArrowUp') {
                           e.preventDefault();
                           setProjectMentionIndex(
-                            (prev) => (prev - 1 + filteredOptions.length) % (filteredOptions.length || 1)
+                            (prev) =>
+                              (prev - 1 + filteredOptions.length) %
+                              (filteredOptions.length || 1)
                           );
                         } else if (e.key === 'Enter' || e.key === 'Tab') {
                           if (filteredOptions.length > 0) {
                             e.preventDefault();
-                            insertProjectMention(filteredOptions[projectMentionIndex] || filteredOptions[0]);
+                            insertProjectMention(
+                              filteredOptions[projectMentionIndex] ||
+                                filteredOptions[0]
+                            );
                           } else if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
                             setIsProjectMentioning(false);
@@ -1994,10 +2187,12 @@ function App() {
                     }}
                   />
                   {isProjectMentioning && accountStatus !== 'suspended' && (
-                    <div className="absolute left-0 bottom-full mb-2 w-full bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl z-50 max-h-40 overflow-y-auto py-2 origin-bottom mac-animate">
+                    <div className='absolute left-0 bottom-full mb-2 w-full bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl z-50 max-h-40 overflow-y-auto py-2 origin-bottom mac-animate'>
                       {(() => {
                         const allOptions = ['team', ...teamMembers];
-                        const filteredOptions = allOptions.filter((m) => m.toLowerCase().includes(projectMentionQuery));
+                        const filteredOptions = allOptions.filter((m) =>
+                          m.toLowerCase().includes(projectMentionQuery)
+                        );
                         if (filteredOptions.length > 0) {
                           return filteredOptions.map((m, idx) => (
                             <div
@@ -2007,40 +2202,50 @@ function App() {
                                   ? 'bg-neutral-100 dark:bg-neutral-800'
                                   : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'
                               }`}
-                              onClick={() => insertProjectMention(m)}
-                            >
+                              onClick={() => insertProjectMention(m)}>
                               <span>@{m}</span>
                               {m === 'team' && (
-                                <span className="text-xs text-neutral-500 dark:text-neutral-400 font-normal">
+                                <span className='text-xs text-neutral-500 dark:text-neutral-400 font-normal'>
                                   (Notify everyone in project)
                                 </span>
                               )}
                             </div>
                           ));
                         }
-                        return <div className="px-4 py-3 text-sm text-neutral-500 italic">No members found</div>;
+                        return (
+                          <div className='px-4 py-3 text-sm text-neutral-500 italic'>
+                            No members found
+                          </div>
+                        );
                       })()}
                     </div>
                   )}
                   <button
-                    type="submit"
-                    disabled={accountStatus === 'suspended' || !newProjectChatMessage.trim()}
-                    className="bg-indigo-600 text-white hover:bg-indigo-700 w-12 h-12 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 disabled:bg-neutral-300 dark:disabled:bg-neutral-800 shrink-0"
-                  >
-                    <Icon name="send" className="w-5 h-5" />
+                    type='submit'
+                    disabled={
+                      accountStatus === 'suspended' ||
+                      !newProjectChatMessage.trim()
+                    }
+                    className='bg-indigo-600 text-white hover:bg-indigo-700 w-12 h-12 rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 disabled:bg-neutral-300 dark:disabled:bg-neutral-800 shrink-0'>
+                    <Icon name='send' className='w-5 h-5' />
                   </button>
                 </form>
               </div>
 
               {/* Floating Action Buttons inside Drawer */}
-              <div className="absolute bottom-24 right-6 flex flex-col gap-2 z-40 pointer-events-none [&>button]:pointer-events-auto">
+              <div className='absolute bottom-24 right-6 flex flex-col gap-2 z-40 pointer-events-none [&>button]:pointer-events-auto'>
                 {latestMentionId && (
                   <button
-                    type="button"
+                    type='button'
                     onClick={() => {
-                      const el = document.getElementById(`chat-msg-${latestMentionId}`);
+                      const el = document.getElementById(
+                        `chat-msg-${latestMentionId}`
+                      );
                       if (el) {
-                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        el.scrollIntoView({
+                          behavior: 'smooth',
+                          block: 'center',
+                        });
                         el.classList.add(
                           'ring-2',
                           'ring-indigo-500',
@@ -2062,23 +2267,23 @@ function App() {
                       }
                       dismissMention(latestMentionId);
                     }}
-                    className="w-10 h-10 bg-indigo-600 text-white rounded-full shadow-xl flex items-center justify-center font-black text-lg hover:scale-110 transition-transform"
-                    title="Jump to mention"
-                  >
+                    className='w-10 h-10 bg-indigo-600 text-white rounded-full shadow-xl flex items-center justify-center font-black text-lg hover:scale-110 transition-transform'
+                    title='Jump to mention'>
                     @
                   </button>
                 )}
                 {showScrollBottom && (
                   <button
-                    type="button"
+                    type='button'
                     onClick={() => {
-                      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                      chatEndRef.current?.scrollIntoView({
+                        behavior: 'smooth',
+                      });
                       setShowScrollBottom(false);
                     }}
-                    className="w-10 h-10 bg-indigo-600 text-white rounded-full shadow-xl flex items-center justify-center font-black hover:scale-110 transition-transform"
-                    title="Scroll to bottom"
-                  >
-                    <Icon name="arrow-down" className="w-5 h-5" />
+                    className='w-10 h-10 bg-indigo-600 text-white rounded-full shadow-xl flex items-center justify-center font-black hover:scale-110 transition-transform'
+                    title='Scroll to bottom'>
+                    <Icon name='arrow-down' className='w-5 h-5' />
                   </button>
                 )}
               </div>
@@ -2086,7 +2291,8 @@ function App() {
           )}
 
           {/* Assistant Tab */}
-          <div className={`flex-1 flex-col overflow-hidden ${drawerTab === 'assistant' ? 'flex' : 'hidden'}`}>
+          <div
+            className={`flex-1 flex-col overflow-hidden ${drawerTab === 'assistant' ? 'flex' : 'hidden'}`}>
             <SmartAssistant
               currentUser={currentUser}
               selectedBoard={selectedBoard}

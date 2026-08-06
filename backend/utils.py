@@ -585,7 +585,7 @@ def spawn_recurring_task(db: Session, original_task: Request):
         impact=getattr(original_task, "impact", "Medium"),
         etc=getattr(original_task, "etc", 2.0),
         auto_nudge=getattr(original_task, "auto_nudge", False),
-        status="Pending",
+        status="To Do",
         owner_username=original_task.owner_username,
     )
     setattr(new_task, "recurring", original_task.recurring)

@@ -350,7 +350,7 @@ def submit_feedback(
     )
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if not board:
-        default_statuses = json.dumps(["Pending", "In Progress", "Done", "Rejected"])
+        default_statuses = json.dumps(["To Do", "In Progress", "Done"])
         default_categories = json.dumps(
             [
                 "Development",

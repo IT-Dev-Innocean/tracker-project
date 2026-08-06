@@ -58,7 +58,7 @@ export default function LandingFeatures({ showAuthForm }) {
       case 'kanban':
         return (
           <div className="flex gap-3 h-full p-4 sm:p-6 bg-slate-50/50 dark:bg-slate-900/50">
-            {['Pending', 'In Progress', 'Done'].map((title, i) => (
+            {['To Do', 'In Progress', 'Done'].map((title, i) => (
               <div
                 key={title}
                 className="flex-1 bg-slate-100 dark:bg-slate-800/50 rounded-2xl p-3 sm:p-4 flex flex-col gap-3"
@@ -167,7 +167,7 @@ export default function LandingFeatures({ showAuthForm }) {
               {[
                 { label: 'Completed', color: 'bg-emerald-500', width: 'w-[76%]' },
                 { label: 'In Progress', color: 'bg-blue-500', width: 'w-[15%]' },
-                { label: 'Pending', color: 'bg-amber-500', width: 'w-[9%]' },
+                { label: 'To Do', color: 'bg-amber-500', width: 'w-[9%]' },
               ].map((stat, i) => (
                 <div key={i}>
                   <div className="text-[9px] sm:text-[10px] font-bold text-slate-500 mb-1">{stat.label}</div>

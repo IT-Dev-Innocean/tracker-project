@@ -11,13 +11,20 @@ import {
   TIMESHEETS_UI_ENABLED,
   TODO_LIST_UI_ENABLED,
 } from './featureFlags';
+import {
+  bindStatusColorAlias,
+  DEFAULT_STATUS_COLUMNS,
+  getStatusLabelColor,
+  setStatusLabelColor,
+  STATUS_COLOR_PALETTE,
+} from './utils/statusColors';
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
 import axios from 'axios'; 
 import { useGoogleLogin, useGoogleOneTapLogin, googleLogout } from '@react-oauth/google';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 
-const DEFAULT_COLUMNS = ['Pending', 'In Progress', 'Done', 'Rejected'];
+const DEFAULT_COLUMNS = DEFAULT_STATUS_COLUMNS;
 const DEFAULT_CATEGORIES = ['Development', 'Design', 'Marketing', 'Research', 'Maintenance', 'Consulting', 'Other'];
 const DAY_WIDTH = 45;
 let cachedGlobalTasks = null;
@@ -280,7 +287,14 @@ export default function useAppLogic() {
   const [tasks, setTasks] = useState([]);
   const [columns, setColumns] = useState(DEFAULT_COLUMNS);
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
-  const [colModal, setColModal] = useState({ isOpen: false, target: 'Status', mode: 'add', oldName: '', newName: '' });
+  const [colModal, setColModal] = useState({
+    isOpen: false,
+    target: 'Status',
+    mode: 'add',
+    oldName: '',
+    newName: '',
+    color: STATUS_COLOR_PALETTE[7].hex,
+  });
   const [viewMode, setViewMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('innocean_view_mode') || 'kanban';
@@ -1848,7 +1862,19 @@ export default function useAppLogic() {
     axios
       .get(`/api/boards/${selectedBoard.id}/tasks`)
       .then((res) => {
-        handleNewTasks(res.data.tasks || []);
+        const incoming = res.data.tasks || [];
+        const pendingTasks = incoming.filter((t) => t.status === 'Pending');
+        if (pendingTasks.length > 0) {
+          const migrated = incoming.map((t) =>
+            t.status === 'Pending' ? { ...t, status: 'To Do' } : t
+          );
+          handleNewTasks(migrated);
+          pendingTasks.forEach((t) =>
+            axios.put(`/api/tasks/${t.id}`, { status: 'To Do' }).catch(console.error)
+          );
+        } else {
+          handleNewTasks(incoming);
+        }
       })
       .catch((err) => {
         if (err.response?.status === 403 || err.response?.status === 404) setSelectedBoard(null);
@@ -2082,8 +2108,28 @@ export default function useAppLogic() {
 
           const savedCols = localStorage.getItem(`innocean_columns_${selectedBoard.id}`);
           const savedCats = localStorage.getItem(`innocean_categories_${selectedBoard.id}`);
-          let localCols = savedCols && savedCols !== 'null' && savedCols !== 'undefined' ? JSON.parse(savedCols) : [];
-          let localCats = savedCats && savedCats !== 'null' && savedCats !== 'undefined' ? JSON.parse(savedCats) : [];
+          let localCols =
+            savedCols && savedCols !== 'null' && savedCols !== 'undefined'
+              ? JSON.parse(savedCols)
+              : [];
+          let localCats =
+            savedCats && savedCats !== 'null' && savedCats !== 'undefined'
+              ? JSON.parse(savedCats)
+              : [];
+
+          const legacyDefaults = ['Pending', 'In Progress', 'Done', 'Rejected'];
+          const normalizeStatusColumns = (cols) => {
+            if (!cols?.length) return [...DEFAULT_COLUMNS];
+            const isLegacyExact =
+              cols.length === legacyDefaults.length &&
+              cols.every((c, i) => c === legacyDefaults[i]);
+            if (isLegacyExact) return [...DEFAULT_COLUMNS];
+            return cols.map((c) => (c === 'Pending' ? 'To Do' : c));
+          };
+
+          const rawDbCols = [...dbCols];
+          dbCols = normalizeStatusColumns(dbCols);
+          localCols = normalizeStatusColumns(localCols);
 
           const mergedCols = [
             ...localCols.filter((c) => dbCols.includes(c)),
@@ -2094,8 +2140,24 @@ export default function useAppLogic() {
             ...dbCats.filter((c) => !localCats.includes(c)),
           ];
 
-          setColumns(mergedCols.length > 0 ? mergedCols : DEFAULT_COLUMNS);
-          setCategories(mergedCats.length > 0 ? mergedCats : DEFAULT_CATEGORIES);
+          const finalCols = mergedCols.length > 0 ? mergedCols : DEFAULT_COLUMNS;
+          const finalCats = mergedCats.length > 0 ? mergedCats : DEFAULT_CATEGORIES;
+          setColumns(finalCols);
+          setCategories(finalCats);
+
+          const migratedFromLegacy =
+            rawDbCols.length === legacyDefaults.length &&
+            rawDbCols.every((c, i) => c === legacyDefaults[i]);
+          const renamedPending = rawDbCols.includes('Pending') && finalCols.includes('To Do');
+          if (migratedFromLegacy || renamedPending) {
+            try {
+              localStorage.setItem(
+                `innocean_columns_${selectedBoard.id}`,
+                JSON.stringify(finalCols)
+              );
+              syncBoardSettings(finalCols, finalCats);
+            } catch (e) {}
+          }
         } else {
           setColumns(DEFAULT_COLUMNS);
           setCategories(DEFAULT_CATEGORIES);
@@ -2372,6 +2434,15 @@ export default function useAppLogic() {
   }, [tasks, columns, categories, selectedBoard]);
 
   const handleOpenAddBoard = (target) => {
+    if (workspaceRole === 'staff') {
+      showNotification(
+        language === 'id'
+          ? 'Staff tidak dapat menambah status/kategori.'
+          : 'Staff cannot add statuses/categories.',
+        'error'
+      );
+      return;
+    }
     const maxLimit = 50;
     const currentLen = target === 'Status' ? columns.length : categories.length;
     const limitName = target === 'Status' ? 'columns' : 'categories';
@@ -2379,26 +2450,58 @@ export default function useAppLogic() {
       showNotification(`System limit reached. Maximum ${maxLimit} ${limitName} allowed.`, 'error');
       return;
     }
-    setColModal({ isOpen: true, target, mode: 'add', oldName: '', newName: '' });
+    setColModal({
+      isOpen: true,
+      target,
+      mode: 'add',
+      oldName: '',
+      newName: '',
+      color: STATUS_COLOR_PALETTE[2].hex,
+    });
   };
 
   const handleOpenRenameBoard = (target, oldName) => {
-    setColModal({ isOpen: true, target, mode: 'rename', oldName, newName: oldName });
+    if (workspaceRole === 'staff') {
+      showNotification(
+        language === 'id'
+          ? 'Staff tidak dapat mengubah nama board.'
+          : 'Staff cannot rename boards.',
+        'error'
+      );
+      return;
+    }
+    setColModal({
+      isOpen: true,
+      target,
+      mode: 'rename',
+      oldName,
+      newName: oldName,
+      color: target === 'Status' ? getStatusLabelColor(oldName) : '',
+    });
   };
 
   const handleOpenDeleteBoard = (target, oldName) => {
+    if (workspaceRole === 'staff') {
+      showNotification(
+        language === 'id'
+          ? 'Staff tidak dapat menghapus board.'
+          : 'Staff cannot delete boards.',
+        'error'
+      );
+      return;
+    }
     const hasTasks =
       target === 'Status' ? tasks.some((t) => t.status === oldName) : tasks.some((t) => t.category === oldName);
     if (hasTasks) {
       showNotification(`Cannot remove "${oldName}" because it currently contains tasks.`, 'error');
       return;
     }
-    setColModal({ isOpen: true, target, mode: 'delete', oldName, newName: '' });
+    setColModal({ isOpen: true, target, mode: 'delete', oldName, newName: '', color: '' });
   };
 
   const handleColSubmit = (e) => {
     e.preventDefault();
-    const { mode, oldName, newName, target } = colModal;
+    const { mode, oldName, newName, target, color } = colModal;
     const list = target === 'Status' ? columns : categories;
     const setList = target === 'Status' ? setColumns : setCategories;
     const storageKey =
@@ -2413,6 +2516,7 @@ export default function useAppLogic() {
       }
       const newList = [...list, name];
       setList(newList);
+      if (target === 'Status' && color) setStatusLabelColor(name, color);
       if (selectedBoard && selectedBoard.id !== 'global') {
         localStorage.setItem(storageKey, JSON.stringify(newList));
         if (target === 'Status') syncBoardSettings(newList, categories);
@@ -2425,6 +2529,22 @@ export default function useAppLogic() {
       showNotification(`${target} added!`, 'success');
     } else if (mode === 'rename') {
       const name = newName.trim();
+      if (target === 'Status' && color) {
+        if (!name || name.toLowerCase() === oldName.toLowerCase()) {
+          setStatusLabelColor(oldName, color);
+          setColumns((prev) => [...prev]); // refresh label colors
+          setColModal({
+            isOpen: false,
+            target: 'Status',
+            mode: 'add',
+            oldName: '',
+            newName: '',
+            color: STATUS_COLOR_PALETTE[7].hex,
+          });
+          showNotification(`${target} updated!`, 'success');
+          return;
+        }
+      }
       if (!name || name.toLowerCase() === oldName.toLowerCase()) {
         setColModal({ ...colModal, isOpen: false });
         return;
@@ -2443,6 +2563,7 @@ export default function useAppLogic() {
       }
 
       if (target === 'Status') {
+        bindStatusColorAlias(oldName, name, color);
         const updatedTasks = tasks.map((t) => (t.status === oldName ? { ...t, status: name } : t));
         setTasks(updatedTasks);
         const tasksToUpdate = tasks.filter((t) => t.status === oldName);
@@ -2482,7 +2603,14 @@ export default function useAppLogic() {
       showNotification(`${target} deleted!`, 'success');
     }
 
-    setColModal({ isOpen: false, target: 'Status', mode: 'add', oldName: '', newName: '' });
+    setColModal({
+      isOpen: false,
+      target: 'Status',
+      mode: 'add',
+      oldName: '',
+      newName: '',
+      color: STATUS_COLOR_PALETTE[7].hex,
+    });
   };
 
   useLayoutEffect(() => {
@@ -4599,7 +4727,8 @@ export default function useAppLogic() {
         if (t.status === 'Done') {
           memberDetailedStats[person].done_etc += splitEtc;
         } else {
-          if (t.status !== 'Pending') memberDetailedStats[person].active_etc += splitEtc;
+          if (t.status !== 'Pending' && t.status !== 'To Do')
+            memberDetailedStats[person].active_etc += splitEtc;
           if (t.priority_lvl === 'critical') memberDetailedStats[person].critical += 1;
         }
       });

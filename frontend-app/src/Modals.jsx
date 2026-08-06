@@ -1,15 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { IconPerson, IconPlus, Avatar, SegmentedControl } from './SharedUI';
+import { Avatar, SegmentedControl } from './SharedUI';
 import { Icon } from './components/icons/Icon';
-import { Droppable, Draggable } from '@hello-pangea/dnd';
-import {
-  HighlightText,
-  stripHtml,
-  useCloseAnimation,
-  LoadingSpinner,
-  renderRichText,
-} from './Utils';
+import { useCloseAnimation, LoadingSpinner } from './Utils';
+import { STATUS_COLOR_PALETTE } from './utils/statusColors';
 
 export function BaseConfirmModal({
   onClose,
@@ -50,7 +44,7 @@ export function BaseConfirmModal({
 
   return (
     <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[110] p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}>
       <div
@@ -133,7 +127,7 @@ export function WelcomeTourModal({
 
   return (
     <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}>
       <div
@@ -958,16 +952,27 @@ export function ColumnModal({
       mode: 'add',
       oldName: '',
       newName: '',
+      color: '',
     })
   );
+  const [isColorPickerOpen, setIsColorPickerOpen] = useState(true);
+  const customColorRef = useRef(null);
   const tMsg = (en, id) => (language === 'id' ? id : en);
+  const showColorPicker =
+    colModal.target === 'Status' && colModal.mode !== 'delete';
+  const selectedColor = colModal.color || STATUS_COLOR_PALETTE[7].hex;
+
+  useEffect(() => {
+    setIsColorPickerOpen(showColorPicker);
+  }, [showColorPicker, colModal.oldName, colModal.mode]);
+
   return (
     <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[70] p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}>
       <div
-        className={`bg-white dark:bg-neutral-950 p-6 sm:p-10 border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] w-full max-w-sm ${
+        className={`bg-white dark:bg-neutral-950 p-6 sm:p-10 border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-lg md:rounded-xl w-full max-w-sm ${
           isClosing ? 'mac-exit' : 'mac-animate'
         }`}>
         <h2 className='text-2xl font-black text-black dark:text-white mb-6 uppercase flex items-center gap-2'>
@@ -990,20 +995,84 @@ export function ColumnModal({
         </h2>
         <form onSubmit={handleColSubmit}>
           {colModal.mode !== 'delete' ? (
-            <input
-              type='text'
-              value={colModal.newName}
-              onChange={(e) =>
-                setColModal({ ...colModal, newName: e.target.value })
-              }
-              placeholder={tMsg(
-                `ENTER ${colModal.target.toUpperCase()} NAME...`,
-                `MASUKKAN NAMA ${colModal.target.toUpperCase()}...`
+            <div className='mb-8 space-y-3'>
+              <div className='relative flex items-center gap-2.5 w-full p-3 bg-neutral-100 dark:bg-neutral-900 border border-indigo-300 dark:border-indigo-500/50 text-black dark:text-white rounded-2xl focus-within:border-indigo-400 dark:focus-within:border-indigo-400 focus-within:bg-white dark:focus-within:bg-black transition-all'>
+                {showColorPicker && (
+                  <button
+                    type='button'
+                    onClick={() => setIsColorPickerOpen((v) => !v)}
+                    className='w-7 h-7 rounded-md shrink-0 border border-black/10 dark:border-white/10 shadow-sm'
+                    style={{ backgroundColor: selectedColor }}
+                    title={tMsg('Pick color', 'Pilih warna')}
+                    aria-label={tMsg('Pick color', 'Pilih warna')}
+                  />
+                )}
+                <input
+                  type='text'
+                  value={colModal.newName}
+                  onChange={(e) =>
+                    setColModal({ ...colModal, newName: e.target.value })
+                  }
+                  placeholder={tMsg(
+                    `ENTER ${colModal.target.toUpperCase()} NAME...`,
+                    `MASUKKAN NAMA ${colModal.target.toUpperCase()}...`
+                  )}
+                  className='flex-1 min-w-0 bg-transparent outline-none uppercase tracking-widest text-xs font-bold placeholder-neutral-400'
+                  autoFocus
+                  required
+                />
+              </div>
+
+              {showColorPicker && isColorPickerOpen && (
+                <div className='rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg p-3'>
+                  <div className='text-[11px] font-semibold text-neutral-400 mb-2.5'>
+                    {tMsg('Color', 'Warna')}
+                  </div>
+                  <div className='grid grid-cols-8 gap-2'>
+                    {STATUS_COLOR_PALETTE.map((swatch) => {
+                      const isActive =
+                        selectedColor.toLowerCase() === swatch.hex.toLowerCase();
+                      return (
+                        <button
+                          key={swatch.id}
+                          type='button'
+                          onClick={() =>
+                            setColModal({ ...colModal, color: swatch.hex })
+                          }
+                          className={`w-6 h-6 rounded-full transition-transform hover:scale-110 ${
+                            isActive
+                              ? 'ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-neutral-900 scale-110'
+                              : ''
+                          }`}
+                          style={{ backgroundColor: swatch.hex }}
+                          title={swatch.id}
+                          aria-label={swatch.id}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div className='mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800'>
+                    <button
+                      type='button'
+                      onClick={() => customColorRef.current?.click()}
+                      className='flex items-center gap-1.5 text-xs font-semibold text-neutral-600 dark:text-neutral-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors'>
+                      <Icon name='plus' className='w-3.5 h-3.5' />
+                      {tMsg('Add color', 'Tambah warna')}
+                    </button>
+                    <input
+                      ref={customColorRef}
+                      type='color'
+                      value={selectedColor}
+                      onChange={(e) =>
+                        setColModal({ ...colModal, color: e.target.value })
+                      }
+                      className='sr-only'
+                      tabIndex={-1}
+                    />
+                  </div>
+                </div>
               )}
-              className='w-full p-4 mb-8 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none uppercase tracking-widest text-xs font-bold placeholder-neutral-400 transition-all'
-              autoFocus
-              required
-            />
+            </div>
           ) : (
             <div className='mb-8'>
               <div className='w-20 h-20 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm'>
@@ -1034,12 +1103,12 @@ export function ColumnModal({
             <button
               type='button'
               onClick={close}
-              className='flex-1 px-4 py-4 rounded-full font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors uppercase tracking-widest text-xs'>
+              className='flex-1 px-4 py-4 rounded-xl font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors uppercase tracking-widest text-xs'>
               {tMsg('Cancel', 'Batal')}
             </button>
             <button
               type='submit'
-              className={`flex-1 px-4 py-4 rounded-full font-bold text-white transition-all uppercase tracking-widest text-xs shadow-md border hover:-translate-y-0.5 ${
+              className={`flex-1 px-4 py-4 rounded-xl font-bold text-white transition-all uppercase tracking-widest text-xs shadow-md border hover:-translate-y-0.5 ${
                 colModal.mode === 'delete'
                   ? 'bg-red-500 hover:bg-red-600 border-red-500'
                   : 'bg-black dark:bg-white dark:text-black hover:opacity-80 border-black dark:border-white'
@@ -1076,7 +1145,7 @@ export function LeaveModal({
   const tMsg = (en, id) => (language === 'id' ? id : en);
   return (
     <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[70] p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}>
       <div
@@ -1249,7 +1318,7 @@ export function FeedbackModal({
   const tMsg = (en, id) => (language === 'id' ? id : en);
   return (
     <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[80] p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}>
       <div
@@ -1277,7 +1346,7 @@ export function FeedbackModal({
               'I think it would be great if...',
               'Menurut saya akan luar biasa jika...'
             )}
-            className='w-full p-4 mb-8 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm placeholder-neutral-400 transition-all min-h-[120px] resize-y shadow-inner'
+            className='w-full p-4 mb-8 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm placeholder-neutral-400 transition-all min-h-32 resize-y shadow-inner'
             required
             autoFocus></textarea>
 
@@ -1285,13 +1354,13 @@ export function FeedbackModal({
             <button
               type='button'
               onClick={close}
-              className='flex-1 px-4 py-4 rounded-full font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors text-sm'>
+              className='flex-1 px-4 py-4 rounded-xl font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors text-sm'>
               {tMsg('Cancel', 'Batal')}
             </button>
             <button
               type='submit'
               disabled={isSubmitting}
-              className='flex-1 px-4 py-4 rounded-full font-bold text-white bg-black dark:bg-white dark:text-black border border-black dark:border-white shadow-lg transition-all text-sm hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed'>
+              className='flex-1 px-4 py-4 rounded-xl font-bold text-white bg-black dark:bg-white dark:text-black border border-black dark:border-white shadow-lg transition-all text-sm hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed'>
               {isSubmitting ? (
                 <>
                   <LoadingSpinner /> {tMsg('Sending...', 'Mengirim...')}
@@ -1319,7 +1388,7 @@ export function ContactSupportModal({
   const tMsg = (en, id) => (language === 'id' ? id : en);
   return (
     <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[80] p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}>
       <div
@@ -1347,7 +1416,7 @@ export function ContactSupportModal({
               'I am unable to do...',
               'Saya tidak bisa melakukan...'
             )}
-            className='w-full p-4 mb-8 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-blue-500 dark:focus:border-blue-500 focus:bg-white dark:focus:bg-black focus:outline-none text-sm placeholder-neutral-400 transition-all min-h-[120px] resize-y shadow-inner'
+            className='w-full p-4 mb-8 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-blue-500 dark:focus:border-blue-500 focus:bg-white dark:focus:bg-black focus:outline-none text-sm placeholder-neutral-400 transition-all min-h-32 resize-y shadow-inner'
             required
             autoFocus></textarea>
 
@@ -1355,13 +1424,13 @@ export function ContactSupportModal({
             <button
               type='button'
               onClick={close}
-              className='flex-1 px-4 py-4 rounded-full font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors text-sm'>
+              className='flex-1 px-4 py-4 rounded-xl font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors text-sm'>
               {tMsg('Cancel', 'Batal')}
             </button>
             <button
               type='submit'
               disabled={isSubmitting}
-              className='flex-1 px-4 py-4 rounded-full font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg transition-all text-sm hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed'>
+              className='flex-1 px-4 py-4 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg transition-all text-sm hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed'>
               {isSubmitting ? (
                 <>
                   <LoadingSpinner /> {tMsg('Sending...', 'Mengirim...')}
@@ -1574,7 +1643,7 @@ export function MyTicketsModal({
 
   return (
     <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[80] p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}>
       <div

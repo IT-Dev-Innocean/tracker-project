@@ -383,7 +383,7 @@ export default function CalendarView({
                                 bgColor = 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300';
                               else if (t.status === 'In Progress')
                                 bgColor = 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
-                              else if (t.status === 'Pending')
+                              else if (t.status === 'Pending' || t.status === 'To Do')
                                 bgColor = 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400';
 
                               const isFirst = cellDate.getTime() === t.start.getTime();
@@ -543,7 +543,7 @@ export default function CalendarView({
                             statusBg = 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300';
                           else if (t.status === 'In Progress')
                             statusBg = 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
-                          else if (t.status === 'Pending')
+                          else if (t.status === 'Pending' || t.status === 'To Do')
                             statusBg = 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400';
 
                           return (

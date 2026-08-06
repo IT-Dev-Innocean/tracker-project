@@ -10,15 +10,17 @@ import {
 } from '../../featureFlags';
 
 function NotificationTypeIcon({ type }) {
-  if (type === 'task_assigned') return <Icon name="arrow-right" className="w-5 h-5" />;
-  if (type === 'task_completed') return <Icon name="check-circle" className="w-5 h-5" />;
+  if (type === 'task_assigned')
+    return <Icon name='arrow-right' className='w-5 h-5' />;
+  if (type === 'task_completed')
+    return <Icon name='check-circle' className='w-5 h-5' />;
   if (type === 'comment' || type === 'mention' || type === 'team_chat') {
-    return <Icon name="message-circle" className="w-5 h-5" />;
+    return <Icon name='message-circle' className='w-5 h-5' />;
   }
   if (type === 'team_invite' || type === 'access_request') {
-    return <Icon name="handshake" className="w-5 h-5" />;
+    return <Icon name='handshake' className='w-5 h-5' />;
   }
-  return <Icon name="bell" className="w-5 h-5" />;
+  return <Icon name='bell' className='w-5 h-5' />;
 }
 
 export default function MobileTopBar() {
@@ -40,6 +42,8 @@ export default function MobileTopBar() {
     setIsMobileProfileOpen,
     currentUser,
     avatarsMap,
+    workspaceRole,
+    isSuperAdmin,
     setIsSettingsOpen,
     t,
     setIsLeaveModalOpen,
@@ -59,14 +63,25 @@ export default function MobileTopBar() {
   } = useAppContext();
 
   const tMsg = (en, id) => (language === 'id' ? id : en);
+  const role = isSuperAdmin ? 'admin' : workspaceRole;
+  const roleLabel =
+    role === 'admin'
+      ? tMsg('Admin', 'Admin')
+      : role === 'project_owner'
+        ? tMsg('Owner', 'Pemilik')
+        : role === 'manager'
+          ? tMsg('Manager', 'Manager')
+          : role === 'staff'
+            ? tMsg('Staff', 'Staff')
+            : role || tMsg('Member', 'Anggota');
 
   return (
     <div className='md:hidden flex items-center justify-between bg-white/95 dark:bg-neutral-950/95 backdrop-blur-md px-4 py-3 border-b border-neutral-200/50 dark:border-neutral-800/50 shrink-0 z-[45]'>
       <div className='flex items-center gap-2'>
         <button
           onClick={() => setIsMobileMenuOpen(true)}
-          className='p-1.5 -ml-1.5 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-md transition-colors'>
-          <Icon name="menu" className="w-6 h-6" />
+          className='theme-interactive p-1.5 -ml-1.5 text-neutral-600 dark:text-neutral-300 rounded-md transition-colors'>
+          <Icon name='menu' className='w-6 h-6' />
         </button>
         <InnoceanLogo
           size='md'
@@ -82,23 +97,23 @@ export default function MobileTopBar() {
         <button
           type='button'
           onClick={openGlobalSearch}
-          className='p-1 text-neutral-600 dark:text-neutral-300'
+          className='theme-interactive p-1 text-neutral-600 dark:text-neutral-300 rounded-md transition-colors'
           title={tMsg('Search', 'Cari')}>
-          <Icon name="search" className="w-5 h-5" />
+          <Icon name='search' className='w-5 h-5' />
         </button>
         <div className='relative'>
           {unreadCount > 0 ? (
             <button
               onClick={() => setIsNotifOpen(true)}
-              className='text-xl relative p-1 text-neutral-600 dark:text-neutral-300'>
-              <Icon name="bell" className="w-5 h-5" />
+              className='theme-interactive text-xl relative p-1 text-neutral-600 dark:text-neutral-300 rounded-md transition-colors'>
+              <Icon name='bell' className='w-5 h-5' />
               <span className='absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-black'></span>
             </button>
           ) : (
             <button
               onClick={() => setIsNotifOpen(true)}
-              className='text-xl p-1 text-neutral-600 dark:text-neutral-300'>
-              <Icon name="bell" className="w-5 h-5" />
+              className='theme-interactive text-xl p-1 text-neutral-600 dark:text-neutral-300 rounded-md transition-colors'>
+              <Icon name='bell' className='w-5 h-5' />
             </button>
           )}
           {isNotifOpen && (
@@ -122,7 +137,10 @@ export default function MobileTopBar() {
                 <div className='overflow-y-auto flex-1'>
                   {notifications.length === 0 ? (
                     <div className='p-8 text-center text-neutral-400 text-sm'>
-                      <Icon name="mail" className="w-8 h-8 mx-auto mb-2 opacity-60" />
+                      <Icon
+                        name='mail'
+                        className='w-8 h-8 mx-auto mb-2 opacity-60'
+                      />
                       {tMsg('No notifications yet.', 'Belum ada notifikasi.')}
                     </div>
                   ) : (
@@ -187,13 +205,17 @@ export default function MobileTopBar() {
           )}
           <button
             onClick={() => setIsMobileProfileOpen(!isMobileProfileOpen)}
-            className='p-1 -mr-1 tour-account-menu-mobile'>
+            className='theme-interactive flex flex-col items-center gap-0.5 p-1 -mr-1 rounded-lg transition-colors tour-account-menu-mobile text-slate-600 dark:text-slate-400'
+            title={`${currentUser} · ${roleLabel}`}>
             <Avatar
               name={currentUser}
               url={avatarsMap[currentUser]}
               size='w-8 h-8'
               textClass='text-xs'
             />
+            <span className='text-[10px] font-semibold leading-none max-w-14 truncate mt-2'>
+              {roleLabel}
+            </span>
           </button>
           {isMobileProfileOpen && (
             <div className='absolute top-full right-0 mt-2 w-56 z-50'>
@@ -204,7 +226,8 @@ export default function MobileTopBar() {
                     setIsMobileProfileOpen(false);
                   }}
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
-                  <Icon name="settings" className="w-4 h-4" /> {tMsg('Settings', 'Pengaturan')}
+                  <Icon name='settings' className='w-4 h-4' />{' '}
+                  {tMsg('Settings', 'Pengaturan')}
                 </button>
                 <button
                   onClick={() => {
@@ -213,7 +236,8 @@ export default function MobileTopBar() {
                   }}
                   disabled={accountStatus === 'suspended'}
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                  <Icon name="calendar-days" className="w-4 h-4" /> {tMsg('Time Off', 'Cuti')}
+                  <Icon name='calendar-days' className='w-4 h-4' />{' '}
+                  {tMsg('Time Off', 'Cuti')}
                 </button>
                 <button
                   onClick={() => {
@@ -223,7 +247,8 @@ export default function MobileTopBar() {
                   }}
                   disabled={accountStatus === 'suspended'}
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                  <Icon name="sparkles" className="w-4 h-4" /> {tMsg('Smart Assistant', 'Asisten Pintar AI')}
+                  <Icon name='sparkles' className='w-4 h-4' />{' '}
+                  {tMsg('Smart Assistant', 'Asisten Pintar AI')}
                 </button>
                 {MY_TICKETS_UI_ENABLED && (
                   <button
@@ -233,7 +258,8 @@ export default function MobileTopBar() {
                     }}
                     disabled={accountStatus === 'suspended'}
                     className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                    <Icon name="ticket" className="w-4 h-4" /> {tMsg('My Tickets', 'Tiket Saya')}
+                    <Icon name='ticket' className='w-4 h-4' />{' '}
+                    {tMsg('My Tickets', 'Tiket Saya')}
                   </button>
                 )}
                 <div className='border-t border-neutral-200 dark:border-neutral-800 my-1'></div>
@@ -243,7 +269,8 @@ export default function MobileTopBar() {
                     setIsMobileProfileOpen(false);
                   }}
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
-                  <Icon name="book-open" className="w-4 h-4" /> {tMsg('Documentation', 'Dokumentasi')}
+                  <Icon name='book-open' className='w-4 h-4' />{' '}
+                  {tMsg('Documentation', 'Dokumentasi')}
                 </button>
                 {SUBMIT_IDEA_UI_ENABLED && (
                   <button
@@ -253,7 +280,8 @@ export default function MobileTopBar() {
                     }}
                     disabled={accountStatus === 'suspended'}
                     className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                    <Icon name="lightbulb" className="w-4 h-4" /> {tMsg('Submit Idea', 'Kirim Masukan')}
+                    <Icon name='lightbulb' className='w-4 h-4' />{' '}
+                    {tMsg('Submit Idea', 'Kirim Masukan')}
                   </button>
                 )}
                 {CONTACT_SUPPORT_UI_ENABLED && (
@@ -264,7 +292,8 @@ export default function MobileTopBar() {
                     }}
                     disabled={accountStatus === 'suspended'}
                     className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                    <Icon name="phone" className="w-4 h-4" /> {tMsg('Contact Support', 'Hubungi Dukungan')}
+                    <Icon name='phone' className='w-4 h-4' />{' '}
+                    {tMsg('Contact Support', 'Hubungi Dukungan')}
                   </button>
                 )}
                 {REPLAY_TOUR_UI_ENABLED && (
@@ -274,7 +303,8 @@ export default function MobileTopBar() {
                       setIsMobileProfileOpen(false);
                     }}
                     className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors'>
-                    <Icon name="compass" className="w-4 h-4" /> {tMsg('Replay Tour', 'Ulangi Tur')}
+                    <Icon name='compass' className='w-4 h-4' />{' '}
+                    {tMsg('Replay Tour', 'Ulangi Tur')}
                   </button>
                 )}
                 {isInstallable && (
@@ -284,7 +314,7 @@ export default function MobileTopBar() {
                       setIsMobileProfileOpen(false);
                     }}
                     className='w-full text-left px-4 py-3 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center gap-2 transition-colors mt-1 rounded-lg'>
-                    <Icon name="download" className="w-4 h-4" />
+                    <Icon name='download' className='w-4 h-4' />
                     {tMsg('Install App', 'Instal Aplikasi')}
                   </button>
                 )}
@@ -295,7 +325,8 @@ export default function MobileTopBar() {
                     setIsMobileProfileOpen(false);
                   }}
                   className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 flex items-center gap-2 transition-colors'>
-                  <Icon name="logout" className="w-4 h-4" /> {tMsg('Logout', 'Keluar')}
+                  <Icon name='logout' className='w-4 h-4' />{' '}
+                  {tMsg('Logout', 'Keluar')}
                 </button>
               </div>
             </div>

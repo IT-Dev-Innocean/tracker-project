@@ -100,10 +100,10 @@ export default function BoardFilterSort({
       <button
         ref={buttonRef}
         onClick={togglePopover}
-        className={`flex items-center gap-2 py-1.5 sm:py-2 px-3 sm:px-4 rounded-lg shadow-sm border text-[11px] sm:text-sm font-medium transition-all ${
+        className={`theme-interactive flex items-center gap-2 py-1.5 sm:py-2 px-3 sm:px-4 rounded-lg shadow-sm border text-[11px] sm:text-sm font-medium transition-all ${
           isOpen || hasActiveFilters
             ? 'bg-indigo-50 dark:bg-indigo-500/20 border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300'
-            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
         }`}
       >
         <Icon name="sliders" className="w-4 h-4" />
