@@ -326,7 +326,7 @@ Generate the MoM with EXACTLY these sections:
         const extractPrompt = `Extract ALL action items from the following Minutes of Meeting (MoM). Return ONLY a raw JSON array — no markdown, no extra text.
 
 RULES:
-- project_name: SHORT and CONCISE task title, max 6 words. Do NOT copy full sentences from the MoM. Summarize the task intent only. Example: 'Revisi proposal anggaran Q3' or 'Setup staging environment'.
+- task_name: SHORT and CONCISE task title, max 6 words. Do NOT copy full sentences from the MoM. Summarize the task intent only. Example: 'Revisi proposal anggaran Q3' or 'Setup staging environment'.
 - requester: MUST be one of the exact usernames below. If a person is mentioned for a task, use their username. Default to '@${currentUser}' only if truly unspecified.
 - deadline: Use the date stated in the MoM. If none stated, use '${meetingDate}'.
 - description: 1-2 sentence summary of what needs to be done.
@@ -341,7 +341,7 @@ MINUTES OF MEETING:
 ${momRes.data.text}
 
 If no action items found, return []. JSON Schema:
-[{"project_name":"judul task singkat max 6 kata","requester":"@username","category":"Development|Design|Marketing|Research|Maintenance|Consulting|Other","deadline":"YYYY-MM-DD","description":"deskripsi singkat"}]`;
+[{"task_name":"judul task singkat max 6 kata","requester":"@username","category":"Development|Design|Marketing|Research|Maintenance|Consulting|Other","deadline":"YYYY-MM-DD","description":"deskripsi singkat"}]`;
 
         const extractRes = await axios.post('/api/ai/generate', { prompt: extractPrompt, provider: AI_MODEL });
         let raw = extractRes.data.text.trim().replace(/```json/gi, '').replace(/```/g, '').trim();
@@ -397,7 +397,7 @@ If no action items found, return []. JSON Schema:
           ? (t.deadline.includes(' ') ? t.deadline : `${t.deadline} 17:00:00`)
           : `${meetingDate} 17:00:00`;
         const res = await axios.post(`/api/boards/${targetBoardId}/tasks`, {
-          project_name: t.project_name || 'Untitled Task',
+          task_name: t.task_name || 'Untitled Task',
           requester: t.requester || `@${currentUser}`,
           category: t.category || 'Other',
           deadline,
@@ -757,8 +757,8 @@ If no action items found, return []. JSON Schema:
                         onChange={e => setSelectedTasks(prev => ({ ...prev, [idx]: e.target.checked }))}
                         className="mt-1 w-4 h-4 rounded border-neutral-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0" />
                       <div className="min-w-0 flex-1">
-                        <input type="text" value={task.project_name}
-                          onChange={e => { const u = [...extractedTasks]; u[idx].project_name = e.target.value; setExtractedTasks(u); }}
+                        <input type="text" value={task.task_name}
+                          onChange={e => { const u = [...extractedTasks]; u[idx].task_name = e.target.value; setExtractedTasks(u); }}
                           className="bg-transparent border-none p-0 focus:outline-none text-xs font-bold text-black dark:text-white w-full" />
                         <div className="flex flex-wrap gap-1.5 mt-1.5">
                           <span className="text-[9px] bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 px-1.5 py-0.5 rounded font-black border border-neutral-200 dark:border-neutral-700">

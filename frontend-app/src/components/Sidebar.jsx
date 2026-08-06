@@ -232,8 +232,8 @@ export default function Sidebar() {
           !showAdmin &&
           !showProjectManage &&
           !showClientManage
-            ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white'
-            : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400'
+            ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400'
+            : 'theme-interactive text-slate-600 dark:text-slate-400'
         }`}>
         {isActive &&
           !showTimesheets &&
@@ -241,7 +241,7 @@ export default function Sidebar() {
           !showAdmin &&
           !showProjectManage &&
           !showClientManage && (
-            <div className='absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-black dark:bg-white rounded-r-md'></div>
+            <div className='absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-indigo-600 dark:bg-indigo-400 rounded-r-md'></div>
           )}
         <div className='flex items-center gap-3 min-w-0'>
           <div
@@ -355,7 +355,7 @@ export default function Sidebar() {
                 e.stopPropagation();
                 toggleCollapse();
               }}
-              className='ml-auto p-1.5 text-neutral-400 hover:text-black dark:hover:text-white transition-colors rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800'
+              className='theme-interactive ml-auto p-1.5 text-neutral-400 transition-colors rounded-md'
               title='Collapse sidebar'>
               <Icon name='panel-left-close' className='w-6 h-6' />
             </button>
@@ -370,7 +370,7 @@ export default function Sidebar() {
             <div className='sticky top-0 bg-white dark:bg-neutral-950 z-10 flex flex-col items-center py-2 mb-2 border-b border-neutral-100 dark:border-neutral-800 w-full gap-1'>
               <button
                 onClick={toggleCollapse}
-                className='w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors'
+                className='theme-interactive w-10 h-10 flex items-center justify-center rounded-lg text-neutral-400 transition-colors'
                 title='Expand sidebar'>
                 <Icon name='panel-left-open' className='w-6 h-6' />
               </button>
@@ -398,8 +398,8 @@ export default function Sidebar() {
                 !showProjectManage &&
                 !showClientManage &&
                 !showTimesheets
-                  ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
-                  : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+                  ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                  : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
               } ${isCollapsed ? 'justify-center' : ''}`}
               title={tMsg('Home', 'Beranda')}>
               <div className='w-6 h-6 flex items-center justify-center'>
@@ -434,8 +434,8 @@ export default function Sidebar() {
                 !showTeams &&
                 !showAdmin &&
                 !showTimesheets
-                  ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
-                  : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+                  ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                  : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
               } ${isCollapsed ? 'justify-center' : ''}`}
               title={tMsg('Projects', 'Proyek')}>
               <div className='w-6 h-6 flex items-center justify-center'>
@@ -464,8 +464,8 @@ export default function Sidebar() {
               }}
               className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
                 showClientManage || sidebarNav === 'clients'
-                  ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
-                  : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+                  ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                  : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
               } ${isCollapsed ? 'justify-center' : ''}`}
               title={tMsg('Clients', 'Klien')}>
               <div className='w-6 h-6 flex items-center justify-center'>
@@ -494,8 +494,8 @@ export default function Sidebar() {
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
                   showTeams || sidebarNav === 'teams'
-                    ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
-                    : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                    : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
                 } ${isCollapsed ? 'justify-center' : ''}`}
                 title={tMsg('Teams', 'Tim')}>
                 <div className='w-6 h-6 flex items-center justify-center'>
@@ -529,8 +529,8 @@ export default function Sidebar() {
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
                   showTimesheets
-                    ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
-                    : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                    : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
                 } ${isCollapsed ? 'justify-center' : ''}`}
                 title={tMsg('Timesheets', 'Lembar Waktu')}>
                 <div className='w-6 h-6 flex items-center justify-center relative'>
@@ -566,8 +566,8 @@ export default function Sidebar() {
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
                   showAdmin || sidebarNav === 'admin'
-                    ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
-                    : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                    : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
                 } ${isCollapsed ? 'justify-center' : ''}`}
                 title={tMsg('Administrator', 'Administrator')}>
                 <div className='w-6 h-6 flex items-center justify-center'>
@@ -609,8 +609,8 @@ export default function Sidebar() {
                   !showAdmin &&
                   !showProjectManage &&
                   !showClientManage
-                    ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
-                    : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                    : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
                 } ${isCollapsed ? 'justify-center' : ''}`}
                 title={tMsg('See the Big Picture', 'Lihat Gambaran Besar')}>
                 <div className='w-6 h-6 flex items-center justify-center'>
@@ -646,8 +646,8 @@ export default function Sidebar() {
                   !showAdmin &&
                   !showProjectManage &&
                   !showClientManage
-                    ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
-                    : 'hover:bg-neutral-50 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 font-medium'
+                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                    : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
                 } ${isCollapsed ? 'justify-center' : ''}`}
                 title={tMsg('My To-Do List', 'Daftar Tugas Saya')}>
                 <div className='w-6 h-6 flex items-center justify-center'>
@@ -761,7 +761,7 @@ export default function Sidebar() {
                 setIsChatWorkspaceOpen(true);
                 setIsMobileMenuOpen(false);
               }}
-              className='flex-1 flex flex-col items-center gap-0.5 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 transition-colors relative'
+              className='theme-interactive flex-1 flex flex-col items-center gap-0.5 py-2 rounded-lg text-slate-600 dark:text-slate-400 transition-colors relative'
               title={tMsg('Chat', 'Obrolan')}>
               <Icon name='message-circle' className='w-5 h-5' />
               <span className='text-[10px] font-semibold'>
@@ -780,7 +780,7 @@ export default function Sidebar() {
                 setIsExportModalOpen(true);
                 setIsMobileMenuOpen(false);
               }}
-              className='flex-1 flex flex-col items-center gap-0.5 py-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 text-slate-600 dark:text-slate-400 transition-colors'
+              className='theme-interactive flex-1 flex flex-col items-center gap-0.5 py-2 rounded-lg text-slate-600 dark:text-slate-400 transition-colors'
               title={tMsg('Export', 'Ekspor')}>
               <Icon name='globe' className='w-5 h-5' />
               <span className='text-[10px] font-semibold'>

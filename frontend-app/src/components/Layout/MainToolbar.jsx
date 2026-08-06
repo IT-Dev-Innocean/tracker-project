@@ -102,7 +102,7 @@ export default function MainToolbar() {
         GET_ALL_DATA_UI_ENABLED);
 
     const toolBtnClass =
-      'inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors relative whitespace-nowrap shrink-0';
+      'theme-interactive inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-500 rounded-lg transition-colors relative whitespace-nowrap shrink-0';
 
     return (
       <>
@@ -266,32 +266,33 @@ export default function MainToolbar() {
         </div>
       </div>
 
-      {/* View tabs — always visible, above search/filters on mobile */}
-      <div className='flex items-center w-full overflow-x-auto custom-scrollbar border-t md:border-t-0 border-b border-neutral-200 dark:border-neutral-800 tour-views'>
-        {['kanban', 'list', 'timeline', 'calendar', 'analytics'].map((v) => {
-          const isActive = viewMode === v;
-          return (
-            <button
-              key={v}
-              onClick={() => {
-                if (v === 'timeline' && groupBy === 'Status')
-                  setGroupBy('Project');
-                else if (v === 'kanban' && groupBy === 'Project')
-                  setGroupBy('Status');
-                setViewMode(v);
-              }}
-              className={`relative flex items-center gap-1.5 px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all capitalize whitespace-nowrap shrink-0 border-b-2 -mb-px ${
-                isActive
-                  ? 'border-indigo-500 text-slate-900 dark:text-white'
-                  : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-              }`}>
-              <span className={isActive ? 'text-indigo-500' : ''}>
+      {/* View tabs — pill segmented control (theme-aware active bg) */}
+      <div className='w-full overflow-x-auto custom-scrollbar tour-views'>
+        <div className='inline-flex items-center gap-1 p-1 rounded-none bg-transparent w-full border-t md:border-t-0 border-b border-neutral-200 dark:border-neutral-700'>
+          {['kanban', 'list', 'timeline', 'calendar', 'analytics'].map((v) => {
+            const isActive = viewMode === v;
+            return (
+              <button
+                key={v}
+                type='button'
+                onClick={() => {
+                  if (v === 'timeline' && groupBy === 'Status')
+                    setGroupBy('Project');
+                  else if (v === 'kanban' && groupBy === 'Project')
+                    setGroupBy('Status');
+                  setViewMode(v);
+                }}
+                className={`relative flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition-all capitalize whitespace-nowrap shrink-0 rounded-lg ${
+                  isActive
+                    ? 'theme-tab-active shadow-sm'
+                    : 'theme-interactive text-slate-500 dark:text-slate-400'
+                }`}>
                 {viewTabIcons[v]}
-              </span>
-              {viewTabLabels[v]}
-            </button>
-          );
-        })}
+                {viewTabLabels[v]}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Mobile: create task (full width) then search + filters */}
@@ -301,7 +302,7 @@ export default function MainToolbar() {
           {renderSearchField()}
           <button
             onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
-            className={`p-2 rounded-lg border transition-all flex items-center justify-center gap-1.5 text-xs font-bold shrink-0 ${
+            className={`theme-interactive p-2 rounded-lg border transition-all flex items-center justify-center gap-1.5 text-xs font-bold shrink-0 ${
               isMobileFiltersOpen || hasActiveFilters
                 ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800 text-indigo-600 dark:text-indigo-400'
                 : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'

@@ -383,7 +383,7 @@ export default function CalendarView({
                                 bgColor = 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300';
                               else if (t.status === 'In Progress')
                                 bgColor = 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
-                              else if (t.status === 'Pending')
+                              else if (t.status === 'Pending' || t.status === 'To Do')
                                 bgColor = 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400';
 
                               const isFirst = cellDate.getTime() === t.start.getTime();
@@ -413,7 +413,7 @@ export default function CalendarView({
                                         : 'shadow-2xl -rotate-1 cursor-grabbing z-60 ring-4 ring-indigo-500/40 scale-105 opacity-95 transition-[box-shadow,transform,opacity,border-color] duration-200'
                                       : 'transition-all duration-200 hover:scale-[1.02] hover:shadow-sm'
                                   }`}
-                                  title={t.project_name}
+                                  title={t.task_name}
                                 >
                                   {isFirst && isDraggable && (
                                     <div
@@ -433,7 +433,7 @@ export default function CalendarView({
                                     }}
                                   >
                                     {isFirst && <span className="opacity-70 font-black mr-1">Start:</span>}
-                                    {t.project_name}
+                                    {t.task_name}
                                     {isLast && <span className="opacity-70 font-black ml-1">:End</span>}
                                   </div>
                                   {isLast && isDraggable && (
@@ -543,7 +543,7 @@ export default function CalendarView({
                             statusBg = 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300';
                           else if (t.status === 'In Progress')
                             statusBg = 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
-                          else if (t.status === 'Pending')
+                          else if (t.status === 'Pending' || t.status === 'To Do')
                             statusBg = 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400';
 
                           return (
@@ -554,7 +554,7 @@ export default function CalendarView({
                             >
                               <div className="flex-1 min-w-0 w-full">
                                 <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white line-clamp-2 wrap-break-word">
-                                  {t.project_name}
+                                  {t.task_name}
                                 </h4>
                                 <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 flex flex-wrap gap-x-2 gap-y-1">
                                   {t.owner_username && (

@@ -1,15 +1,58 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { IconPerson, IconPlus, Avatar, SegmentedControl } from './SharedUI';
+import { Avatar, SegmentedControl } from './SharedUI';
 import { Icon } from './components/icons/Icon';
-import { Droppable, Draggable } from '@hello-pangea/dnd';
-import {
-  HighlightText,
-  stripHtml,
-  useCloseAnimation,
-  LoadingSpinner,
-  renderRichText,
-} from './Utils';
+import { useCloseAnimation, LoadingSpinner } from './Utils';
+import { STATUS_COLOR_PALETTE } from './utils/statusColors';
+import { WELCOME_TOUR_BUTTONS_ENABLED } from './featureFlags';
+
+function ThemeThumbnail({ variant }) {
+  const isDark = variant === 'dark';
+  const isAuto = variant === 'auto';
+
+  const Panel = ({ dark, clipPath }) => (
+    <div
+      className='absolute inset-0 flex overflow-hidden'
+      style={{
+        background: dark ? '#2a2d34' : '#e8eaed',
+        ...(clipPath ? { clipPath } : null),
+      }}>
+      <div
+        className='h-full w-[28%] shrink-0'
+        style={{ background: dark ? '#1e2128' : '#ffffff' }}
+      />
+      <div className='flex-1 p-[10%] flex flex-col gap-[8%]'>
+        <div
+          className='h-[18%] w-[55%] rounded-sm'
+          style={{ background: dark ? '#3d424c' : '#c5c9d0' }}
+        />
+        <div className='flex gap-[8%] mt-auto'>
+          <div
+            className='h-[22%] w-[22%] rounded-sm'
+            style={{ background: '#5b8def' }}
+          />
+          <div
+            className='h-[22%] w-[22%] rounded-sm'
+            style={{ background: dark ? '#3d424c' : '#c5c9d0' }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className='relative w-full aspect-video rounded-xl overflow-hidden'>
+      {isAuto ? (
+        <>
+          <Panel dark={false} clipPath='inset(0 50% 0 0)' />
+          <Panel dark={true} clipPath='inset(0 0 0 50%)' />
+        </>
+      ) : (
+        <Panel dark={isDark} />
+      )}
+    </div>
+  );
+}
 
 export function BaseConfirmModal({
   onClose,
@@ -50,7 +93,7 @@ export function BaseConfirmModal({
 
   return (
     <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[110] p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}>
       <div
@@ -119,8 +162,15 @@ export function WelcomeTourModal({
   setLanguage,
   isDarkMode,
   setIsDarkMode,
+  themeMode,
+  setThemeMode,
   currentUser,
 }) {
+  const [pendingLang, setPendingLang] = useState(language);
+  const [pendingTheme, setPendingTheme] = useState(
+    themeMode || (isDarkMode ? 'dark' : 'light')
+  );
+
   const [isClosing, close] = useCloseAnimation((action) => {
     setShowWelcomeTour(false);
     if (action === 'start') {
@@ -129,11 +179,42 @@ export function WelcomeTourModal({
       localStorage.setItem(`innocean_tour_done_v2_${currentUser}`, 'true');
     }
   });
-  const tMsg = (en, id) => (language === 'id' ? id : en);
+  const tMsg = (en, id) => (pendingLang === 'id' ? id : en);
+
+  const themeOptions = [
+    { value: 'light', label: tMsg('Light', 'Terang') },
+    { value: 'dark', label: tMsg('Dark', 'Gelap') },
+    { value: 'auto', label: tMsg('Auto', 'Otomatis') },
+  ];
+
+  const applyPreferences = () => {
+    setLanguage(pendingLang);
+    localStorage.setItem('innocean_lang', pendingLang);
+    if (typeof setThemeMode === 'function') {
+      setThemeMode(pendingTheme);
+    } else {
+      setIsDarkMode(
+        pendingTheme === 'dark' ||
+          (pendingTheme === 'auto' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches)
+      );
+    }
+    localStorage.setItem('theme', pendingTheme);
+  };
+
+  const handleSave = () => {
+    applyPreferences();
+    close('skip');
+  };
+
+  const handleTourAction = (action) => {
+    applyPreferences();
+    close(action);
+  };
 
   return (
     <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}>
       <div
@@ -147,10 +228,15 @@ export function WelcomeTourModal({
           {tMsg('Welcome to Tracker', 'Selamat Datang di Tracker')}
         </h2>
         <p className='text-neutral-500 dark:text-neutral-400 text-sm font-medium mb-8 leading-relaxed'>
-          {tMsg(
-            "Before we start the tour, let's set up your basic preferences.",
-            'Sebelum kita mulai tur, mari atur preferensi dasar Anda.'
-          )}
+          {WELCOME_TOUR_BUTTONS_ENABLED
+            ? tMsg(
+                "Before we start the tour, let's set up your basic preferences.",
+                'Sebelum kita mulai tur, mari atur preferensi dasar Anda.'
+              )
+            : tMsg(
+                "Let's set up your basic preferences.",
+                'Mari atur preferensi dasar Anda.'
+              )}
         </p>
 
         <div className='space-y-6 text-left mb-8'>
@@ -163,11 +249,8 @@ export function WelcomeTourModal({
                 { label: '🇺🇸 English', value: 'en' },
                 { label: '🇮🇩 Indonesia', value: 'id' },
               ]}
-              value={language}
-              onChange={(val) => {
-                setLanguage(val);
-                localStorage.setItem('innocean_lang', val);
-              }}
+              value={pendingLang}
+              onChange={setPendingLang}
               fullWidth={true}
             />
           </div>
@@ -176,30 +259,59 @@ export function WelcomeTourModal({
             <label className='block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-2'>
               {tMsg('Theme', 'Tema')}
             </label>
-            <SegmentedControl
-              options={[
-                { label: 'Light', value: 'light' },
-                { label: 'Dark', value: 'dark' },
-              ]}
-              value={isDarkMode ? 'dark' : 'light'}
-              onChange={(val) => setIsDarkMode(val === 'dark')}
-              fullWidth={true}
-            />
+            <div className='grid grid-cols-3 gap-3'>
+              {themeOptions.map((opt) => {
+                const selected = pendingTheme === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type='button'
+                    onClick={() => setPendingTheme(opt.value)}
+                    className='flex flex-col items-center gap-2 group focus:outline-none'>
+                    <div
+                      className={`w-full rounded-xl p-0.5 transition-all ${
+                        selected
+                          ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-neutral-950'
+                          : 'ring-1 ring-transparent hover:ring-neutral-300 dark:hover:ring-neutral-600'
+                      }`}>
+                      <ThemeThumbnail variant={opt.value} />
+                    </div>
+                    <span
+                      className={`text-xs font-bold ${
+                        selected
+                          ? 'text-black dark:text-white'
+                          : 'text-neutral-500 dark:text-neutral-400'
+                      }`}>
+                      {opt.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        <div className='flex gap-4 w-full'>
+        {WELCOME_TOUR_BUTTONS_ENABLED ? (
+          <div className='flex gap-4 w-full'>
+            <button
+              onClick={() => handleTourAction('skip')}
+              className='flex-1 px-4 py-4 rounded-full font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors uppercase tracking-widest text-xs'>
+              {tMsg('Skip Tour', 'Lewati')}
+            </button>
+            <button
+              onClick={() => handleTourAction('start')}
+              className='flex-1 px-4 py-4 rounded-full font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg transition-all uppercase tracking-widest text-xs hover:-translate-y-0.5'>
+              {tMsg('Start Tour', 'Mulai Tur')}
+            </button>
+          </div>
+        ) : (
           <button
-            onClick={() => close('skip')}
-            className='flex-1 px-4 py-4 rounded-full font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors uppercase tracking-widest text-xs'>
-            {tMsg('Skip Tour', 'Lewati')}
+            type='button'
+            onClick={handleSave}
+            className='w-full px-4 py-4 rounded-full font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg transition-all uppercase tracking-widest text-xs hover:-translate-y-0.5'>
+            {tMsg('Save', 'Simpan')}
           </button>
-          <button
-            onClick={() => close('start')}
-            className='flex-1 px-4 py-4 rounded-full font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-lg transition-all uppercase tracking-widest text-xs hover:-translate-y-0.5'>
-            {tMsg('Start Tour', 'Mulai Tur')}
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -252,7 +364,7 @@ export function DeleteTaskModal({
           )}{' '}
           <br />
           <strong className='text-black dark:text-white font-bold'>
-            {selectedTask?.project_name}
+            {selectedTask?.task_name}
           </strong>
           ?<br />{' '}
           {tMsg(
@@ -958,16 +1070,27 @@ export function ColumnModal({
       mode: 'add',
       oldName: '',
       newName: '',
+      color: '',
     })
   );
+  const [isColorPickerOpen, setIsColorPickerOpen] = useState(true);
+  const customColorRef = useRef(null);
   const tMsg = (en, id) => (language === 'id' ? id : en);
+  const showColorPicker =
+    colModal.target === 'Status' && colModal.mode !== 'delete';
+  const selectedColor = colModal.color || STATUS_COLOR_PALETTE[7].hex;
+
+  useEffect(() => {
+    setIsColorPickerOpen(showColorPicker);
+  }, [showColorPicker, colModal.oldName, colModal.mode]);
+
   return (
     <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[70] p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}>
       <div
-        className={`bg-white dark:bg-neutral-950 p-6 sm:p-10 border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] w-full max-w-sm ${
+        className={`bg-white dark:bg-neutral-950 p-6 sm:p-10 border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-lg md:rounded-xl w-full max-w-sm ${
           isClosing ? 'mac-exit' : 'mac-animate'
         }`}>
         <h2 className='text-2xl font-black text-black dark:text-white mb-6 uppercase flex items-center gap-2'>
@@ -990,20 +1113,85 @@ export function ColumnModal({
         </h2>
         <form onSubmit={handleColSubmit}>
           {colModal.mode !== 'delete' ? (
-            <input
-              type='text'
-              value={colModal.newName}
-              onChange={(e) =>
-                setColModal({ ...colModal, newName: e.target.value })
-              }
-              placeholder={tMsg(
-                `ENTER ${colModal.target.toUpperCase()} NAME...`,
-                `MASUKKAN NAMA ${colModal.target.toUpperCase()}...`
+            <div className='mb-8 space-y-3'>
+              <div className='relative flex items-center gap-2.5 w-full p-3 bg-neutral-100 dark:bg-neutral-900 border border-indigo-300 dark:border-indigo-500/50 text-black dark:text-white rounded-2xl focus-within:border-indigo-400 dark:focus-within:border-indigo-400 focus-within:bg-white dark:focus-within:bg-black transition-all'>
+                {showColorPicker && (
+                  <button
+                    type='button'
+                    onClick={() => setIsColorPickerOpen((v) => !v)}
+                    className='w-7 h-7 rounded-md shrink-0 border border-black/10 dark:border-white/10 shadow-sm'
+                    style={{ backgroundColor: selectedColor }}
+                    title={tMsg('Pick color', 'Pilih warna')}
+                    aria-label={tMsg('Pick color', 'Pilih warna')}
+                  />
+                )}
+                <input
+                  type='text'
+                  value={colModal.newName}
+                  onChange={(e) =>
+                    setColModal({ ...colModal, newName: e.target.value })
+                  }
+                  placeholder={tMsg(
+                    `ENTER ${colModal.target.toUpperCase()} NAME...`,
+                    `MASUKKAN NAMA ${colModal.target.toUpperCase()}...`
+                  )}
+                  className='flex-1 min-w-0 bg-transparent outline-none uppercase tracking-widest text-xs font-bold placeholder-neutral-400'
+                  autoFocus
+                  required
+                />
+              </div>
+
+              {showColorPicker && isColorPickerOpen && (
+                <div className='rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 shadow-lg p-3'>
+                  <div className='text-[11px] font-semibold text-neutral-400 mb-2.5'>
+                    {tMsg('Color', 'Warna')}
+                  </div>
+                  <div className='grid grid-cols-8 gap-2'>
+                    {STATUS_COLOR_PALETTE.map((swatch) => {
+                      const isActive =
+                        selectedColor.toLowerCase() ===
+                        swatch.hex.toLowerCase();
+                      return (
+                        <button
+                          key={swatch.id}
+                          type='button'
+                          onClick={() =>
+                            setColModal({ ...colModal, color: swatch.hex })
+                          }
+                          className={`w-6 h-6 rounded-full transition-transform hover:scale-110 ${
+                            isActive
+                              ? 'ring-2 ring-offset-2 ring-indigo-500 dark:ring-offset-neutral-900 scale-110'
+                              : ''
+                          }`}
+                          style={{ backgroundColor: swatch.hex }}
+                          title={swatch.id}
+                          aria-label={swatch.id}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div className='mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800'>
+                    <button
+                      type='button'
+                      onClick={() => customColorRef.current?.click()}
+                      className='flex items-center gap-1.5 text-xs font-semibold text-neutral-600 dark:text-neutral-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors'>
+                      <Icon name='plus' className='w-3.5 h-3.5' />
+                      {tMsg('Add color', 'Tambah warna')}
+                    </button>
+                    <input
+                      ref={customColorRef}
+                      type='color'
+                      value={selectedColor}
+                      onChange={(e) =>
+                        setColModal({ ...colModal, color: e.target.value })
+                      }
+                      className='sr-only'
+                      tabIndex={-1}
+                    />
+                  </div>
+                </div>
               )}
-              className='w-full p-4 mb-8 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none uppercase tracking-widest text-xs font-bold placeholder-neutral-400 transition-all'
-              autoFocus
-              required
-            />
+            </div>
           ) : (
             <div className='mb-8'>
               <div className='w-20 h-20 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm'>
@@ -1034,12 +1222,12 @@ export function ColumnModal({
             <button
               type='button'
               onClick={close}
-              className='flex-1 px-4 py-4 rounded-full font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors uppercase tracking-widest text-xs'>
+              className='flex-1 px-4 py-4 rounded-xl font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors uppercase tracking-widest text-xs'>
               {tMsg('Cancel', 'Batal')}
             </button>
             <button
               type='submit'
-              className={`flex-1 px-4 py-4 rounded-full font-bold text-white transition-all uppercase tracking-widest text-xs shadow-md border hover:-translate-y-0.5 ${
+              className={`flex-1 px-4 py-4 rounded-xl font-bold text-white transition-all uppercase tracking-widest text-xs shadow-md border hover:-translate-y-0.5 ${
                 colModal.mode === 'delete'
                   ? 'bg-red-500 hover:bg-red-600 border-red-500'
                   : 'bg-black dark:bg-white dark:text-black hover:opacity-80 border-black dark:border-white'
@@ -1076,7 +1264,7 @@ export function LeaveModal({
   const tMsg = (en, id) => (language === 'id' ? id : en);
   return (
     <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[70] p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}>
       <div
@@ -1249,7 +1437,7 @@ export function FeedbackModal({
   const tMsg = (en, id) => (language === 'id' ? id : en);
   return (
     <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[80] p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}>
       <div
@@ -1277,7 +1465,7 @@ export function FeedbackModal({
               'I think it would be great if...',
               'Menurut saya akan luar biasa jika...'
             )}
-            className='w-full p-4 mb-8 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm placeholder-neutral-400 transition-all min-h-[120px] resize-y shadow-inner'
+            className='w-full p-4 mb-8 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm placeholder-neutral-400 transition-all min-h-32 resize-y shadow-inner'
             required
             autoFocus></textarea>
 
@@ -1285,13 +1473,13 @@ export function FeedbackModal({
             <button
               type='button'
               onClick={close}
-              className='flex-1 px-4 py-4 rounded-full font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors text-sm'>
+              className='flex-1 px-4 py-4 rounded-xl font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors text-sm'>
               {tMsg('Cancel', 'Batal')}
             </button>
             <button
               type='submit'
               disabled={isSubmitting}
-              className='flex-1 px-4 py-4 rounded-full font-bold text-white bg-black dark:bg-white dark:text-black border border-black dark:border-white shadow-lg transition-all text-sm hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed'>
+              className='flex-1 px-4 py-4 rounded-xl font-bold text-white bg-black dark:bg-white dark:text-black border border-black dark:border-white shadow-lg transition-all text-sm hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed'>
               {isSubmitting ? (
                 <>
                   <LoadingSpinner /> {tMsg('Sending...', 'Mengirim...')}
@@ -1319,7 +1507,7 @@ export function ContactSupportModal({
   const tMsg = (en, id) => (language === 'id' ? id : en);
   return (
     <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[80] p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}>
       <div
@@ -1347,7 +1535,7 @@ export function ContactSupportModal({
               'I am unable to do...',
               'Saya tidak bisa melakukan...'
             )}
-            className='w-full p-4 mb-8 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-blue-500 dark:focus:border-blue-500 focus:bg-white dark:focus:bg-black focus:outline-none text-sm placeholder-neutral-400 transition-all min-h-[120px] resize-y shadow-inner'
+            className='w-full p-4 mb-8 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-blue-500 dark:focus:border-blue-500 focus:bg-white dark:focus:bg-black focus:outline-none text-sm placeholder-neutral-400 transition-all min-h-32 resize-y shadow-inner'
             required
             autoFocus></textarea>
 
@@ -1355,13 +1543,13 @@ export function ContactSupportModal({
             <button
               type='button'
               onClick={close}
-              className='flex-1 px-4 py-4 rounded-full font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors text-sm'>
+              className='flex-1 px-4 py-4 rounded-xl font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors text-sm'>
               {tMsg('Cancel', 'Batal')}
             </button>
             <button
               type='submit'
               disabled={isSubmitting}
-              className='flex-1 px-4 py-4 rounded-full font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg transition-all text-sm hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed'>
+              className='flex-1 px-4 py-4 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-lg transition-all text-sm hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed'>
               {isSubmitting ? (
                 <>
                   <LoadingSpinner /> {tMsg('Sending...', 'Mengirim...')}
@@ -1509,7 +1697,7 @@ export function NotificationModal({
           <p
             className={`text-neutral-600 dark:text-neutral-400 ${
               isToast ? 'text-xs' : 'mb-8 text-sm'
-            } font-medium leading-relaxed break-words`}>
+            } font-medium leading-relaxed break-normal`}>
             {displayMessage}
           </p>
           {!isToast && (
@@ -1574,7 +1762,7 @@ export function MyTicketsModal({
 
   return (
     <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[80] p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}>
       <div
@@ -1642,7 +1830,7 @@ export function MyTicketsModal({
                   className='bg-neutral-50 dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 rounded-2xl p-5 flex flex-col gap-3 cursor-pointer hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md transition-all group'>
                   <div className='flex justify-between items-start'>
                     <h3 className='font-bold text-sm text-black dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors'>
-                      {t.project_name}
+                      {t.task_name}
                       {notifications &&
                         notifications.some(
                           (n) => !n.is_read && n.related_task_id === t.id

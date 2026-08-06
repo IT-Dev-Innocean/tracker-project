@@ -1,6 +1,75 @@
+import { resolveThemeAccent } from './themeAccents';
+
 export default function AppThemes({ appTheme }) {
+  const accent = resolveThemeAccent(appTheme);
+
   return (
     <>
+      <style>{`
+        :root {
+          --theme-accent: ${accent.light};
+          --theme-accent-soft: ${accent.softLight};
+          --theme-accent-contrast: ${accent.contrast};
+        }
+        html.dark {
+          --theme-accent: ${accent.dark};
+          --theme-accent-soft: ${accent.softDark};
+          --theme-accent-contrast: ${accent.contrast};
+        }
+
+        /* Keep Tailwind indigo utilities in sync with Appearance theme */
+        .text-indigo-600, .text-indigo-500, .text-indigo-400,
+        .dark .dark\\:text-indigo-400, .dark .dark\\:text-indigo-300,
+        .hover\\:text-indigo-600:hover, .hover\\:text-indigo-500:hover,
+        .dark .dark\\:hover\\:text-indigo-400:hover,
+        .group:hover .group-hover\\:text-indigo-600,
+        .group:hover .group-hover\\:text-indigo-400 {
+          color: var(--theme-accent) !important;
+        }
+        .bg-indigo-600, .bg-indigo-500, .bg-indigo-400,
+        .hover\\:bg-indigo-600:hover, .hover\\:bg-indigo-500:hover {
+          background-color: var(--theme-accent) !important;
+        }
+        .bg-indigo-50, .hover\\:bg-indigo-50:hover,
+        .dark .dark\\:bg-indigo-900\\/30, .dark .dark\\:hover\\:bg-indigo-900\\/30:hover,
+        .dark .dark\\:bg-indigo-950\\/40, .dark .dark\\:bg-indigo-500\\/20 {
+          background-color: var(--theme-accent-soft) !important;
+        }
+        .border-indigo-500, .border-indigo-200, .border-indigo-300,
+        .dark .dark\\:border-indigo-500\\/30, .dark .dark\\:border-indigo-800 {
+          border-color: var(--theme-accent) !important;
+        }
+        .focus\\:ring-indigo-500:focus, .focus\\:ring-indigo-400:focus,
+        .dark .dark\\:focus\\:ring-indigo-400:focus {
+          --tw-ring-color: var(--theme-accent) !important;
+        }
+        .ring-indigo-500, .ring-indigo-500\\/20, .ring-indigo-500\\/30, .ring-indigo-500\\/40 {
+          --tw-ring-color: var(--theme-accent) !important;
+        }
+
+        /* Opt-in interactive icons (hover / focus / active) */
+        .theme-interactive:hover,
+        .theme-interactive:focus-visible,
+        .theme-interactive:active,
+        .theme-interactive[aria-pressed="true"],
+        .theme-interactive.is-active {
+          color: var(--theme-accent) !important;
+        }
+        .theme-interactive:focus-visible {
+          outline: 2px solid var(--theme-accent);
+          outline-offset: 2px;
+        }
+        .theme-interactive:hover {
+          background-color: var(--theme-accent-soft);
+        }
+        .theme-tab-active {
+          background-color: var(--theme-accent) !important;
+          color: var(--theme-accent-contrast) !important;
+        }
+        .theme-tab-active svg {
+          color: var(--theme-accent-contrast) !important;
+        }
+      `}</style>
       {appTheme === 'gamer' && (
         <style>{`
           /* Gamer (Steam) Dark Mode Overrides */

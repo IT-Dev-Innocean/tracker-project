@@ -20,9 +20,16 @@ function getWeekDays(startOfWeek) {
 function getWeekString(dateObj) {
   const date = new Date(dateObj.getTime());
   date.setHours(0, 0, 0, 0);
-  date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+  date.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
   const week1 = new Date(date.getFullYear(), 0, 4);
-  const week = 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+  const week =
+    1 +
+    Math.round(
+      ((date.getTime() - week1.getTime()) / 86400000 -
+        3 +
+        ((week1.getDay() + 6) % 7)) /
+        7
+    );
   return `${date.getFullYear()}-W${week.toString().padStart(2, '0')}`;
 }
 
@@ -42,7 +49,11 @@ function parseWeekString(weekStr) {
 function parseLocalDate(dateStr) {
   if (!dateStr) return new Date();
   if (dateStr instanceof Date) return new Date(dateStr.getTime());
-  if (typeof dateStr === 'string' && dateStr.length === 10 && dateStr.includes('-')) {
+  if (
+    typeof dateStr === 'string' &&
+    dateStr.length === 10 &&
+    dateStr.includes('-')
+  ) {
     const [y, m, d] = dateStr.split('-').map(Number);
     return new Date(y, m - 1, d);
   }
@@ -75,15 +86,29 @@ function getRowId(bId, rId, customProject, customTask) {
   return `custom_${customProject || ''}_${customTask || ''}`;
 }
 
-export default function TimesheetView({ currentUser, tasks = [], boards = [] }) {
-  const { formatDateMMM, profileData, language, setShowTimesheets, leaves = [], fetchLeaves, fetchTimesheetUnsubmittedCount } = useAppContext();
+export default function TimesheetView({
+  currentUser,
+  tasks = [],
+  boards = [],
+}) {
+  const {
+    formatDateMMM,
+    profileData,
+    language,
+    setShowTimesheets,
+    leaves = [],
+    fetchLeaves,
+    fetchTimesheetUnsubmittedCount,
+  } = useAppContext();
   const tMsg = (en, id) => (language === 'id' ? id : en);
   const [entries, setEntries] = useState([]);
   const [approvals, setApprovals] = useState([]);
   const [approvalHistory, setApprovalHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [currentWeekStart, setCurrentWeekStart] = useState(getStartOfWeek(new Date()));
+  const [currentWeekStart, setCurrentWeekStart] = useState(
+    getStartOfWeek(new Date())
+  );
   const [manualRows, setManualRows] = useState([]); // Array of { id, board_id, request_id }
   const [selectedRowIds, setSelectedRowIds] = useState(new Set()); // row_ids selected for submission
 
@@ -110,7 +135,11 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   const [apprFilterDateTo, setApprFilterDateTo] = useState('');
 
   // Determine if current user is an approver
-  const isApprover = !!(profileData?.is_approver || approvals.length > 0 || approvalHistory.length > 0);
+  const isApprover = !!(
+    profileData?.is_approver ||
+    approvals.length > 0 ||
+    approvalHistory.length > 0
+  );
 
   // Collapsible States
   const [expandedHistoryWeeks, setExpandedHistoryWeeks] = useState(new Set());
@@ -119,9 +148,9 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   const [userWeeksDisplayLimits, setUserWeeksDisplayLimits] = useState({});
   const getUserWeekLimit = (username) => userWeeksDisplayLimits[username] || 5;
   const handleLoadMoreUserWeeks = (username) => {
-    setUserWeeksDisplayLimits(prev => ({
+    setUserWeeksDisplayLimits((prev) => ({
       ...prev,
-      [username]: (prev[username] || 5) + 5
+      [username]: (prev[username] || 5) + 5,
     }));
   };
 
@@ -144,7 +173,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   const groupedApprovals = useMemo(() => {
     const userMap = new Map();
 
-    approvals.forEach(entry => {
+    approvals.forEach((entry) => {
       const username = entry.user_username;
       const weekStartStr = getStartOfWeekStr(entry.date);
 
@@ -165,10 +194,15 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
         const weekDays = getWeekDays(new Date(weekStartStr));
         const rowsMap = new Map();
         let weekTotal = 0;
-        const entryIds = entriesInWeek.map(e => e.id);
+        const entryIds = entriesInWeek.map((e) => e.id);
 
-        entriesInWeek.forEach(entry => {
-          const rowId = getRowId(entry.board_id, entry.request_id, entry.project_name, entry.task_name);
+        entriesInWeek.forEach((entry) => {
+          const rowId = getRowId(
+            entry.board_id,
+            entry.request_id,
+            entry.project_name,
+            entry.task_name
+          );
           if (!rowsMap.has(rowId)) {
             rowsMap.set(rowId, {
               id: rowId,
@@ -184,10 +218,11 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
         });
 
         const rows = Array.from(rowsMap.values());
-        rows.forEach(row => {
+        rows.forEach((row) => {
           let rowTotal = 0;
-          weekDays.forEach(d => {
-            if (row.days[d]) rowTotal += parseFloat(row.days[d].hours_logged || 0);
+          weekDays.forEach((d) => {
+            if (row.days[d])
+              rowTotal += parseFloat(row.days[d].hours_logged || 0);
           });
           row.totalHours = rowTotal;
         });
@@ -214,28 +249,32 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   // Filtered pending approvals
   const filteredGroupedApprovals = useMemo(() => {
     return groupedApprovals
-      .filter(userGroup => !apprFilterUser || userGroup.username === apprFilterUser)
-      .map(userGroup => ({
+      .filter(
+        (userGroup) => !apprFilterUser || userGroup.username === apprFilterUser
+      )
+      .map((userGroup) => ({
         ...userGroup,
-        weeks: userGroup.weeks.filter(weekGroup => {
-          if (apprFilterDateFrom && weekGroup.weekStartStr < apprFilterDateFrom) return false;
-          if (apprFilterDateTo && weekGroup.weekStartStr > apprFilterDateTo) return false;
+        weeks: userGroup.weeks.filter((weekGroup) => {
+          if (apprFilterDateFrom && weekGroup.weekStartStr < apprFilterDateFrom)
+            return false;
+          if (apprFilterDateTo && weekGroup.weekStartStr > apprFilterDateTo)
+            return false;
           return true;
         }),
       }))
-      .filter(userGroup => userGroup.weeks.length > 0);
+      .filter((userGroup) => userGroup.weeks.length > 0);
   }, [groupedApprovals, apprFilterUser, apprFilterDateFrom, apprFilterDateTo]);
 
   // All pending approval usernames for filter dropdown
-  const pendingUsernames = useMemo(() =>
-    [...new Set(approvals.map(e => e.user_username))].sort(),
-  [approvals]);
-
+  const pendingUsernames = useMemo(
+    () => [...new Set(approvals.map((e) => e.user_username))].sort(),
+    [approvals]
+  );
 
   // Group Approval History by User & Week (same shape as groupedApprovals)
   const groupedApprovalHistory = useMemo(() => {
     const userMap = new Map();
-    approvalHistory.forEach(entry => {
+    approvalHistory.forEach((entry) => {
       const username = entry.user_username;
       const weekStartStr = getStartOfWeekStr(entry.date);
       if (!userMap.has(username)) userMap.set(username, new Map());
@@ -252,15 +291,22 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
         const rowsMap = new Map();
         let weekTotal = 0;
         // Determine dominant status for the week (Approved > Rejected)
-        const statuses = entriesInWeek.map(e => e.status);
-        const weekStatus = statuses.includes('Rejected') && statuses.every(s => s === 'Rejected')
-          ? 'Rejected'
-          : statuses.every(s => s === 'Approved')
-            ? 'Approved'
-            : 'Mixed';
+        const statuses = entriesInWeek.map((e) => e.status);
+        const weekStatus =
+          statuses.includes('Rejected') &&
+          statuses.every((s) => s === 'Rejected')
+            ? 'Rejected'
+            : statuses.every((s) => s === 'Approved')
+              ? 'Approved'
+              : 'Mixed';
 
-        entriesInWeek.forEach(entry => {
-          const rowId = getRowId(entry.board_id, entry.request_id, entry.project_name, entry.task_name);
+        entriesInWeek.forEach((entry) => {
+          const rowId = getRowId(
+            entry.board_id,
+            entry.request_id,
+            entry.project_name,
+            entry.task_name
+          );
           if (!rowsMap.has(rowId)) {
             rowsMap.set(rowId, {
               id: rowId,
@@ -276,15 +322,22 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
         });
 
         const rows = Array.from(rowsMap.values());
-        rows.forEach(row => {
+        rows.forEach((row) => {
           let rowTotal = 0;
-          weekDays.forEach(d => {
-            if (row.days[d]) rowTotal += parseFloat(row.days[d].hours_logged || 0);
+          weekDays.forEach((d) => {
+            if (row.days[d])
+              rowTotal += parseFloat(row.days[d].hours_logged || 0);
           });
           row.totalHours = rowTotal;
         });
 
-        weeks.push({ weekStartStr, weekDays, rows, totalHours: weekTotal, weekStatus });
+        weeks.push({
+          weekStartStr,
+          weekDays,
+          rows,
+          totalHours: weekTotal,
+          weekStatus,
+        });
       });
       weeks.sort((a, b) => b.weekStartStr.localeCompare(a.weekStartStr));
       result.push({ username, weeks });
@@ -296,23 +349,35 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   // Filtered & paginated approval history
   const filteredGroupedApprovalHistory = useMemo(() => {
     return groupedApprovalHistory
-      .filter(userGroup => !histFilterUser || userGroup.username === histFilterUser)
-      .map(userGroup => ({
+      .filter(
+        (userGroup) => !histFilterUser || userGroup.username === histFilterUser
+      )
+      .map((userGroup) => ({
         ...userGroup,
-        weeks: userGroup.weeks.filter(weekGroup => {
-          if (histFilterStatus && weekGroup.weekStatus !== histFilterStatus) return false;
-          if (histFilterDateFrom && weekGroup.weekStartStr < histFilterDateFrom) return false;
-          if (histFilterDateTo && weekGroup.weekStartStr > histFilterDateTo) return false;
+        weeks: userGroup.weeks.filter((weekGroup) => {
+          if (histFilterStatus && weekGroup.weekStatus !== histFilterStatus)
+            return false;
+          if (histFilterDateFrom && weekGroup.weekStartStr < histFilterDateFrom)
+            return false;
+          if (histFilterDateTo && weekGroup.weekStartStr > histFilterDateTo)
+            return false;
           return true;
         }),
       }))
-      .filter(userGroup => userGroup.weeks.length > 0);
-  }, [groupedApprovalHistory, histFilterUser, histFilterStatus, histFilterDateFrom, histFilterDateTo]);
+      .filter((userGroup) => userGroup.weeks.length > 0);
+  }, [
+    groupedApprovalHistory,
+    histFilterUser,
+    histFilterStatus,
+    histFilterDateFrom,
+    histFilterDateTo,
+  ]);
 
   // All usernames that have history (for filter dropdown)
-  const historyUsernames = useMemo(() =>
-    [...new Set(approvalHistory.map(e => e.user_username))].sort(),
-  [approvalHistory]);
+  const historyUsernames = useMemo(
+    () => [...new Set(approvalHistory.map((e) => e.user_username))].sort(),
+    [approvalHistory]
+  );
 
   const toggleHistoryUser = (username) => {
     const newSet = new Set(expandedHistoryUsers);
@@ -339,14 +404,24 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     setIsLoading(true);
     try {
       const [entriesRes, approvalsRes, historyRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entries`, { headers }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/approvals`, { headers }),
-        axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/approvals/history`, { headers }),
+        axios.get(
+          `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entries`,
+          { headers }
+        ),
+        axios.get(
+          `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/approvals`,
+          { headers }
+        ),
+        axios.get(
+          `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/approvals/history`,
+          { headers }
+        ),
       ]);
       setEntries(entriesRes.data.entries || []);
       setApprovals(approvalsRes.data.entries || []);
       setApprovalHistory(historyRes.data.entries || []);
-      if (fetchTimesheetUnsubmittedCount) fetchTimesheetUnsubmittedCount(profileData);
+      if (fetchTimesheetUnsubmittedCount)
+        fetchTimesheetUnsubmittedCount(profileData);
     } catch (err) {
       console.error(err);
     } finally {
@@ -354,7 +429,10 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     }
   };
 
-  const weekDays = useMemo(() => getWeekDays(currentWeekStart), [currentWeekStart]);
+  const weekDays = useMemo(
+    () => getWeekDays(currentWeekStart),
+    [currentWeekStart]
+  );
 
   // Aggregate entries into a weekly grid
   // Grid format: Array of rows
@@ -363,11 +441,16 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     const rowsMap = new Map();
 
     // Map backend entries for the current week
-    entries.forEach(entry => {
+    entries.forEach((entry) => {
       if (!weekDays.includes(entry.date)) return;
       if (entry.is_deleted) return;
 
-      const rowId = getRowId(entry.board_id, entry.request_id, entry.custom_project_name, entry.custom_task_name);
+      const rowId = getRowId(
+        entry.board_id,
+        entry.request_id,
+        entry.custom_project_name,
+        entry.custom_task_name
+      );
       if (!rowsMap.has(rowId)) {
         rowsMap.set(rowId, {
           id: rowId,
@@ -383,7 +466,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     });
 
     // Add manual rows
-    manualRows.forEach(mr => {
+    manualRows.forEach((mr) => {
       if (!rowsMap.has(mr.id)) {
         rowsMap.set(mr.id, {
           ...mr,
@@ -393,9 +476,9 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     });
 
     const arr = Array.from(rowsMap.values());
-    arr.forEach(row => {
+    arr.forEach((row) => {
       let total = 0;
-      weekDays.forEach(d => {
+      weekDays.forEach((d) => {
         if (row.days[d]) total += parseFloat(row.days[d].hours_logged || 0);
       });
       row.totalHours = total;
@@ -406,11 +489,12 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
   const dailyTotals = useMemo(() => {
     const totals = {};
-    weekDays.forEach(dateStr => {
+    weekDays.forEach((dateStr) => {
       let dayTotal = 0;
-      gridRows.forEach(r => {
+      gridRows.forEach((r) => {
         const d = r.days[dateStr];
-        if (d && !d.is_deleted && d.hours_logged) dayTotal += parseFloat(d.hours_logged);
+        if (d && !d.is_deleted && d.hours_logged)
+          dayTotal += parseFloat(d.hours_logged);
       });
       totals[dateStr] = dayTotal;
     });
@@ -422,13 +506,16 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   }, [gridRows]);
 
   const hasDailyOvertime = useMemo(() => {
-    return Object.values(dailyTotals).some(t => t > 8);
+    return Object.values(dailyTotals).some((t) => t > 8);
   }, [dailyTotals]);
 
   const hasWeeklyOvertime = weeklyTotal > 40;
 
   const isWeekSubmitted = useMemo(() => {
-    return entries.some(e => weekDays.includes(e.date) && ['Pending', 'Approved'].includes(e.status));
+    return entries.some(
+      (e) =>
+        weekDays.includes(e.date) && ['Pending', 'Approved'].includes(e.status)
+    );
   }, [entries, weekDays]);
 
   const todayStr = useMemo(() => {
@@ -439,15 +526,22 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     return `${year}-${month}-${day}`;
   }, []);
 
-  const currentWeekStartStr = useMemo(() => getStartOfWeekStr(todayStr), [todayStr]);
+  const currentWeekStartStr = useMemo(
+    () => getStartOfWeekStr(todayStr),
+    [todayStr]
+  );
 
   const isFutureWeek = useMemo(() => {
     return weekDays[0] > currentWeekStartStr;
   }, [weekDays, currentWeekStartStr]);
 
   const joinWeekStartStr = useMemo(() => {
-    const joinDate = profileData?.created_at ? parseLocalDate(profileData.created_at) : new Date('2026-01-01');
-    const start = getStartOfWeek(isNaN(joinDate.getTime()) ? new Date('2026-01-01') : joinDate);
+    const joinDate = profileData?.created_at
+      ? parseLocalDate(profileData.created_at)
+      : new Date('2026-01-01');
+    const start = getStartOfWeek(
+      isNaN(joinDate.getTime()) ? new Date('2026-01-01') : joinDate
+    );
     return getStartOfWeekStr(start);
   }, [profileData?.created_at]);
 
@@ -467,8 +561,12 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   // List of all relevant weeks starting from user registration date (profileData.created_at) up to current week
   const allWeeksOptions = useMemo(() => {
     const list = [];
-    const joinDate = profileData?.created_at ? parseLocalDate(profileData.created_at) : new Date('2026-01-01');
-    const start = getStartOfWeek(isNaN(joinDate.getTime()) ? new Date('2026-01-01') : joinDate);
+    const joinDate = profileData?.created_at
+      ? parseLocalDate(profileData.created_at)
+      : new Date('2026-01-01');
+    const start = getStartOfWeek(
+      isNaN(joinDate.getTime()) ? new Date('2026-01-01') : joinDate
+    );
 
     // Calculate 8 weeks ago cutoff for approved weeks to keep dropdown concise
     const eightWeeksAgo = new Date();
@@ -484,21 +582,35 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       const wStartStr = days[0];
       const wEndStr = days[6];
 
-      const isSubmitted = entries.some(e => days.includes(e.date) && ['Pending', 'Approved'].includes(e.status));
+      const isSubmitted = entries.some(
+        (e) =>
+          days.includes(e.date) && ['Pending', 'Approved'].includes(e.status)
+      );
       const isFuture = wStartStr > currentWeekStartStr;
       const isCurrent = wStartStr === currentWeekStartStr;
-      const isUnsubmittedPast = !isTimesheetExempt && wStartStr < currentWeekStartStr && wStartStr >= joinWeekStartStr && !isSubmitted;
+      const isUnsubmittedPast =
+        !isTimesheetExempt &&
+        wStartStr < currentWeekStartStr &&
+        wStartStr >= joinWeekStartStr &&
+        !isSubmitted;
 
       let statusLabel = 'Draft';
       if (isSubmitted) {
-        const weekEntries = entries.filter(e => days.includes(e.date));
-        if (weekEntries.every(e => e.status === 'Approved')) statusLabel = 'Approved';
-        else if (weekEntries.some(e => e.status === 'Pending')) statusLabel = 'Pending';
-        else if (weekEntries.every(e => e.status === 'Rejected')) statusLabel = 'Rejected';
+        const weekEntries = entries.filter((e) => days.includes(e.date));
+        if (weekEntries.every((e) => e.status === 'Approved'))
+          statusLabel = 'Approved';
+        else if (weekEntries.some((e) => e.status === 'Pending'))
+          statusLabel = 'Pending';
+        else if (weekEntries.every((e) => e.status === 'Rejected'))
+          statusLabel = 'Rejected';
       }
 
       // Keep dropdown concise: Always include unsubmitted past, current, future, OR approved within 8 weeks
-      const shouldInclude = isUnsubmittedPast || isCurrent || isFuture || wStartStr >= eightWeeksAgoStr;
+      const shouldInclude =
+        isUnsubmittedPast ||
+        isCurrent ||
+        isFuture ||
+        wStartStr >= eightWeeksAgoStr;
 
       if (shouldInclude) {
         list.push({
@@ -510,7 +622,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
           isFuture,
           isCurrent,
           isUnsubmittedPast,
-          statusLabel
+          statusLabel,
         });
       }
 
@@ -518,14 +630,20 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     }
 
     return list.reverse(); // Latest week first
-  }, [entries, currentWeekStartStr, joinWeekStartStr, currentWeekStart, formatDateMMM, profileData?.created_at, isTimesheetExempt]);
+  }, [
+    entries,
+    currentWeekStartStr,
+    joinWeekStartStr,
+    currentWeekStart,
+    formatDateMMM,
+    profileData?.created_at,
+    isTimesheetExempt,
+  ]);
 
   const unsubmittedWeeksCount = useMemo(() => {
     if (isTimesheetExempt) return 0;
-    return allWeeksOptions.filter(w => w.isUnsubmittedPast).length;
+    return allWeeksOptions.filter((w) => w.isUnsubmittedPast).length;
   }, [allWeeksOptions, isTimesheetExempt]);
-
-
 
   const toggleRowSelection = (rowId) => {
     const newSet = new Set(selectedRowIds);
@@ -535,42 +653,57 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   };
 
   const handleAddRow = () => {
-    if (manualRows.length >= 15) return setErrorModalMsg('You can only add up to 15 manual rows per week.');
+    if (manualRows.length >= 15)
+      return setErrorModalMsg(
+        'You can only add up to 15 manual rows per week.'
+      );
     const tempId = `manual_${Date.now()}_${Math.random()}`;
-    setManualRows([...manualRows, { id: tempId, board_id: '', request_id: '', isManual: true }]);
+    setManualRows([
+      ...manualRows,
+      { id: tempId, board_id: '', request_id: '', isManual: true },
+    ]);
   };
 
   const handleRowChange = (rowId, field, value) => {
-    setManualRows(manualRows.map(mr => {
-      if (mr.id === rowId) {
-        if (field === 'board_id') {
-          return {
-            ...mr,
-            board_id: value,
-            request_id: '',
-            custom_project_name: value === 'custom' ? '' : mr.custom_project_name
-          };
+    setManualRows(
+      manualRows.map((mr) => {
+        if (mr.id === rowId) {
+          if (field === 'board_id') {
+            return {
+              ...mr,
+              board_id: value,
+              request_id: '',
+              custom_project_name:
+                value === 'custom' ? '' : mr.custom_project_name,
+            };
+          }
+          if (field === 'request_id') {
+            return {
+              ...mr,
+              request_id: value,
+              custom_task_name: value === 'custom' ? '' : mr.custom_task_name,
+            };
+          }
+          return { ...mr, [field]: value };
         }
-        if (field === 'request_id') {
-          return {
-            ...mr,
-            request_id: value,
-            custom_task_name: value === 'custom' ? '' : mr.custom_task_name
-          };
-        }
-        return { ...mr, [field]: value };
-      }
-      return mr;
-    }));
+        return mr;
+      })
+    );
   };
 
   const handleDayHoursChange = (row, dateStr, val) => {
     const newValue = val === '' ? '' : parseFloat(val);
 
     let updatedEntries = [...entries];
-    const existingIndex = updatedEntries.findIndex(e =>
-      e.date === dateStr &&
-      getRowId(e.board_id, e.request_id, e.custom_project_name, e.custom_task_name) === row.id
+    const existingIndex = updatedEntries.findIndex(
+      (e) =>
+        e.date === dateStr &&
+        getRowId(
+          e.board_id,
+          e.request_id,
+          e.custom_project_name,
+          e.custom_task_name
+        ) === row.id
     );
 
     if (existingIndex >= 0) {
@@ -586,31 +719,51 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     } else {
       // Create new entry for any non-empty value (including 0 for cuti/leave days)
       if (newValue !== '') {
-        const b = boards.find(b => b.id === parseInt(row.board_id));
-        const t = tasks.find(t => t.id === parseInt(row.request_id));
+        const b = boards.find((b) => b.id === parseInt(row.board_id));
+        const t = tasks.find((t) => t.id === parseInt(row.request_id));
 
-        const isCustomProject = row.board_id === 'custom' || (!row.board_id && row.custom_project_name);
-        const isCustomTask = row.request_id === 'custom' || (!row.request_id && row.custom_task_name);
+        const isCustomProject =
+          row.board_id === 'custom' ||
+          (!row.board_id && row.custom_project_name);
+        const isCustomTask =
+          row.request_id === 'custom' ||
+          (!row.request_id && row.custom_task_name);
 
         updatedEntries.push({
           _frontendId: Date.now() + Math.random(), // flag as new
           date: dateStr,
           hours_logged: newValue,
-          board_id: isCustomProject ? null : (row.board_id ? parseInt(row.board_id) : null),
-          request_id: isCustomTask ? null : (row.request_id ? parseInt(row.request_id) : null),
-          project_name: isCustomProject ? row.custom_project_name : (b ? b.name : null),
-          task_name: isCustomTask ? row.custom_task_name : (t ? t.project_name : null),
+          board_id: isCustomProject
+            ? null
+            : row.board_id
+              ? parseInt(row.board_id)
+              : null,
+          request_id: isCustomTask
+            ? null
+            : row.request_id
+              ? parseInt(row.request_id)
+              : null,
+          project_name: isCustomProject
+            ? row.custom_project_name
+            : b
+              ? b.name
+              : null,
+          task_name: isCustomTask
+            ? row.custom_task_name
+            : t
+              ? t.task_name
+              : null,
           custom_project_name: isCustomProject ? row.custom_project_name : null,
           custom_task_name: isCustomTask ? row.custom_task_name : null,
           status: 'Draft',
-          description: '' // Optional for weekly grid
+          description: '', // Optional for weekly grid
         });
       }
     }
 
     // Promote manual row to a real row when any value (including 0) is entered
     if (row.isManual && newValue !== '') {
-      setManualRows(manualRows.filter(mr => mr.id !== row.id));
+      setManualRows(manualRows.filter((mr) => mr.id !== row.id));
     }
 
     setEntries(updatedEntries);
@@ -625,7 +778,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     if (!row) return;
 
     if (row.isManual) {
-      setManualRows(manualRows.filter(mr => mr.id !== row.id));
+      setManualRows(manualRows.filter((mr) => mr.id !== row.id));
       setDeleteRowModal(null);
       return;
     }
@@ -633,7 +786,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     const entryIdsToDelete = [];
     const localIdsToFilter = [];
 
-    weekDays.forEach(dateStr => {
+    weekDays.forEach((dateStr) => {
       const d = row.days[dateStr];
       if (d) {
         if (d.id) {
@@ -646,23 +799,32 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
     const previousEntries = [...entries];
     // Optimistic UI: remove deleted row entries locally immediately
-    setEntries(prev => prev.filter(e =>
-      !entryIdsToDelete.includes(e.id) && !localIdsToFilter.includes(e._frontendId)
-    ));
+    setEntries((prev) =>
+      prev.filter(
+        (e) =>
+          !entryIdsToDelete.includes(e.id) &&
+          !localIdsToFilter.includes(e._frontendId)
+      )
+    );
     setDeleteRowModal(null);
 
     if (entryIdsToDelete.length > 0) {
       setIsSaving(true);
       try {
         await Promise.all(
-          entryIdsToDelete.map(id =>
-            axios.delete(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry/${id}`, { headers })
+          entryIdsToDelete.map((id) =>
+            axios.delete(
+              `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry/${id}`,
+              { headers }
+            )
           )
         );
         fetchData();
       } catch (err) {
         setEntries(previousEntries); // Revert on failure
-        setErrorModalMsg(err.response?.data?.detail || 'Error deleting row entries');
+        setErrorModalMsg(
+          err.response?.data?.detail || 'Error deleting row entries'
+        );
       } finally {
         setIsSaving(false);
       }
@@ -674,32 +836,52 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     let newEntries = [...entries];
     try {
       const requests = [];
-      const currentWeekEntries = entries.filter(e => weekDays.includes(e.date));
+      const currentWeekEntries = entries.filter((e) =>
+        weekDays.includes(e.date)
+      );
 
       for (const entry of currentWeekEntries) {
-        if (entry.status && !['Draft', 'Rejected'].includes(entry.status)) continue;
+        if (entry.status && !['Draft', 'Rejected'].includes(entry.status))
+          continue;
 
         if (entry._frontendId) {
           // Save if hours >= 0 (allow 0 for leave/cuti days)
           if (entry.hours_logged >= 0) {
-            requests.push(axios.post(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry`, {
-              date: entry.date,
-              hours_logged: entry.hours_logged,
-              board_id: entry.board_id,
-              request_id: entry.request_id,
-              custom_project_name: entry.custom_project_name,
-              custom_task_name: entry.custom_task_name,
-              description: entry.description
-            }, { headers }));
+            requests.push(
+              axios.post(
+                `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry`,
+                {
+                  date: entry.date,
+                  hours_logged: entry.hours_logged,
+                  board_id: entry.board_id,
+                  request_id: entry.request_id,
+                  custom_project_name: entry.custom_project_name,
+                  custom_task_name: entry.custom_task_name,
+                  description: entry.description,
+                },
+                { headers }
+              )
+            );
           }
         } else if (entry.id) {
           if (entry.hours_logged === 0 || entry.is_deleted) {
-            requests.push(axios.delete(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry/${entry.id}`, { headers }));
+            requests.push(
+              axios.delete(
+                `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry/${entry.id}`,
+                { headers }
+              )
+            );
           } else {
-            requests.push(axios.put(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry/${entry.id}`, {
-              hours_logged: entry.hours_logged,
-              description: entry.description
-            }, { headers }));
+            requests.push(
+              axios.put(
+                `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry/${entry.id}`,
+                {
+                  hours_logged: entry.hours_logged,
+                  description: entry.description,
+                },
+                { headers }
+              )
+            );
           }
         }
       }
@@ -710,7 +892,10 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
       setManualRows([]);
       const [entriesRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entries`, { headers })
+        axios.get(
+          `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entries`,
+          { headers }
+        ),
       ]);
       newEntries = entriesRes.data.entries || [];
       setEntries(newEntries);
@@ -725,36 +910,51 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   const handleSaveDraftManual = async () => {
     const res = await handleSaveDraft();
     if (res) {
-      setSuccessModalMsg(tMsg('Draft saved successfully!', 'Draft berhasil disimpan!'));
+      setSuccessModalMsg(
+        tMsg('Draft saved successfully!', 'Draft berhasil disimpan!')
+      );
     }
   };
 
   const handleSubmitSelected = async () => {
     if (!profileData?.timesheet_approver) {
-      return setErrorModalMsg(tMsg(
-        'You do not have an assigned timesheet approver. Please contact your administrator.',
-        'Anda belum memiliki penyetuju timesheet yang ditunjuk. Silakan hubungi admin.'
-      ));
+      return setErrorModalMsg(
+        tMsg(
+          'You do not have an assigned timesheet approver. Please contact your administrator.',
+          'Anda belum memiliki penyetuju timesheet yang ditunjuk. Silakan hubungi admin.'
+        )
+      );
     }
-    if (selectedRowIds.size === 0) return setErrorModalMsg('Select at least one row to submit.');
+    if (selectedRowIds.size === 0)
+      return setErrorModalMsg('Select at least one row to submit.');
 
     if (isFutureWeek) {
-      return setErrorModalMsg(tMsg(
-        'Cannot submit timesheets for future weeks.',
-        'Tidak dapat mengirimkan timesheet untuk minggu yang belum terjadi.'
-      ));
+      return setErrorModalMsg(
+        tMsg(
+          'Cannot submit timesheets for future weeks.',
+          'Tidak dapat mengirimkan timesheet untuk minggu yang belum terjadi.'
+        )
+      );
     }
 
     // Check if user has logged hours on dates beyond today
-    const hasFutureHours = gridRows.some(row =>
-      Object.entries(row.days).some(([d, dayData]) => d > todayStr && dayData && !dayData.is_deleted && parseFloat(dayData.hours_logged || 0) > 0)
+    const hasFutureHours = gridRows.some((row) =>
+      Object.entries(row.days).some(
+        ([d, dayData]) =>
+          d > todayStr &&
+          dayData &&
+          !dayData.is_deleted &&
+          parseFloat(dayData.hours_logged || 0) > 0
+      )
     );
 
     if (hasFutureHours) {
-      return setErrorModalMsg(tMsg(
-        'Cannot submit hours logged for future dates.',
-        'Tidak dapat mengirimkan jam kerja yang dicatat pada tanggal di masa mendatang.'
-      ));
+      return setErrorModalMsg(
+        tMsg(
+          'Cannot submit hours logged for future dates.',
+          'Tidak dapat mengirimkan jam kerja yang dicatat pada tanggal di masa mendatang.'
+        )
+      );
     }
 
     // Auto-save first
@@ -763,11 +963,11 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     // We check daily totals across ALL entries of the current week.
     // Calculate total hours logged per day for this week (only including active/non-deleted entries)
     const dailyHours = {};
-    weekDays.forEach(dateStr => {
+    weekDays.forEach((dateStr) => {
       dailyHours[dateStr] = 0;
     });
 
-    latestEntries.forEach(entry => {
+    latestEntries.forEach((entry) => {
       if (weekDays.includes(entry.date) && !entry.is_deleted) {
         dailyHours[entry.date] += parseFloat(entry.hours_logged || 0);
       }
@@ -779,10 +979,15 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
     weekDays.forEach((dateStr, i) => {
       const isPublicHoliday = leaves.some(
-        l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+        (l) =>
+          l.leave_date === dateStr &&
+          (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
       );
       const isUserLeave = leaves.some(
-        l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username === currentUser
+        (l) =>
+          l.leave_date === dateStr &&
+          l.leave_type === 'personal' &&
+          l.username === currentUser
       );
       const isWeekend = i === 0 || i === 6;
 
@@ -790,27 +995,53 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
       if (isPublicHoliday || isUserLeave) {
         // If no hours are logged at all on a holiday/leave, we auto-save a 0-hour entry for the first selected row
-        if (totalForDay === 0 && gridRows.length > 0 && selectedRowIds.size > 0) {
+        if (
+          totalForDay === 0 &&
+          gridRows.length > 0 &&
+          selectedRowIds.size > 0
+        ) {
           const firstSelectedRowId = Array.from(selectedRowIds)[0];
-          const row = gridRows.find(r => r.id === firstSelectedRowId);
+          const row = gridRows.find((r) => r.id === firstSelectedRowId);
           if (row) {
-            const b = boards.find(b => b.id === parseInt(row.board_id));
-            const t = tasks.find(t => t.id === parseInt(row.request_id));
+            const b = boards.find((b) => b.id === parseInt(row.board_id));
+            const t = tasks.find((t) => t.id === parseInt(row.request_id));
 
-            const isCustomProject = row.board_id === 'custom' || (!row.board_id && row.custom_project_name);
-            const isCustomTask = row.request_id === 'custom' || (!row.request_id && row.custom_task_name);
+            const isCustomProject =
+              row.board_id === 'custom' ||
+              (!row.board_id && row.custom_project_name);
+            const isCustomTask =
+              row.request_id === 'custom' ||
+              (!row.request_id && row.custom_task_name);
 
             autoZeroEntries.push({
               date: dateStr,
               hours_logged: 0,
-              board_id: isCustomProject ? null : (row.board_id ? parseInt(row.board_id) : null),
-              request_id: isCustomTask ? null : (row.request_id ? parseInt(row.request_id) : null),
-              project_name: isCustomProject ? row.custom_project_name : (b ? b.name : null),
-              task_name: isCustomTask ? row.custom_task_name : (t ? t.project_name : null),
-              custom_project_name: isCustomProject ? row.custom_project_name : null,
+              board_id: isCustomProject
+                ? null
+                : row.board_id
+                  ? parseInt(row.board_id)
+                  : null,
+              request_id: isCustomTask
+                ? null
+                : row.request_id
+                  ? parseInt(row.request_id)
+                  : null,
+              project_name: isCustomProject
+                ? row.custom_project_name
+                : b
+                  ? b.name
+                  : null,
+              task_name: isCustomTask
+                ? row.custom_task_name
+                : t
+                  ? t.project_name
+                  : null,
+              custom_project_name: isCustomProject
+                ? row.custom_project_name
+                : null,
               custom_task_name: isCustomTask ? row.custom_task_name : null,
               status: 'Draft',
-              description: ''
+              description: '',
             });
           }
         }
@@ -836,11 +1067,20 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     if (autoZeroEntries.length > 0) {
       setIsSaving(true);
       try {
-        await Promise.all(autoZeroEntries.map(entry =>
-          axios.post(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry`, entry, { headers })
-        ));
+        await Promise.all(
+          autoZeroEntries.map((entry) =>
+            axios.post(
+              `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entry`,
+              entry,
+              { headers }
+            )
+          )
+        );
         // Refresh entries list
-        const entriesRes = await axios.get(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entries`, { headers });
+        const entriesRes = await axios.get(
+          `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entries`,
+          { headers }
+        );
         latestEntries = entriesRes.data.entries || [];
         setEntries(latestEntries);
       } catch (err) {
@@ -852,9 +1092,17 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
     // Collect all entry IDs that belong to the selected rows and are within this week
     const entryIdsToSubmit = [];
-    latestEntries.forEach(entry => {
-      if (weekDays.includes(entry.date) && ['Draft', 'Rejected'].includes(entry.status)) {
-        const rId = getRowId(entry.board_id, entry.request_id, entry.custom_project_name, entry.custom_task_name);
+    latestEntries.forEach((entry) => {
+      if (
+        weekDays.includes(entry.date) &&
+        ['Draft', 'Rejected'].includes(entry.status)
+      ) {
+        const rId = getRowId(
+          entry.board_id,
+          entry.request_id,
+          entry.custom_project_name,
+          entry.custom_task_name
+        );
         if (selectedRowIds.has(rId) && entry.id) {
           entryIdsToSubmit.push(entry.id);
         }
@@ -862,29 +1110,45 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     });
 
     if (entryIdsToSubmit.length === 0) {
-      return setErrorModalMsg('No saved drafts found in the selected rows for this week. Make sure to input hours first.');
+      return setErrorModalMsg(
+        'No saved drafts found in the selected rows for this week. Make sure to input hours first.'
+      );
     }
 
     setIsSaving(true);
     // Optimistic UI update: mark selected submitted entries as 'Pending' in UI
     const previousEntries = [...entries];
-    setEntries(prev => prev.map(e => {
-      if (entryIdsToSubmit.includes(e.id)) {
-        return { ...e, status: 'Pending' };
-      }
-      return e;
-    }));
+    setEntries((prev) =>
+      prev.map((e) => {
+        if (entryIdsToSubmit.includes(e.id)) {
+          return { ...e, status: 'Pending' };
+        }
+        return e;
+      })
+    );
 
     try {
-      const res = await axios.post(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/submit`, {
-        entry_ids: entryIdsToSubmit
-      }, { headers });
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/submit`,
+        {
+          entry_ids: entryIdsToSubmit,
+        },
+        { headers }
+      );
       setSelectedRowIds(new Set());
-      setSuccessModalMsg(res.data.message || tMsg('Timesheet submitted successfully!', 'Timesheet berhasil dikirimkan!'));
+      setSuccessModalMsg(
+        res.data.message ||
+          tMsg(
+            'Timesheet submitted successfully!',
+            'Timesheet berhasil dikirimkan!'
+          )
+      );
       fetchData();
     } catch (err) {
       setEntries(previousEntries); // Revert on failure
-      setErrorModalMsg(err.response?.data?.detail || 'Error submitting timesheets');
+      setErrorModalMsg(
+        err.response?.data?.detail || 'Error submitting timesheets'
+      );
     } finally {
       setIsSaving(false);
     }
@@ -895,58 +1159,81 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
     const previousHistory = [...approvalHistory];
 
     // Optimistically update approval queues & history
-    const affected = approvals.filter(e => entry_ids.includes(e.id));
-    const updatedAffected = affected.map(e => ({ ...e, status }));
+    const affected = approvals.filter((e) => entry_ids.includes(e.id));
+    const updatedAffected = affected.map((e) => ({ ...e, status }));
 
-    setApprovals(prev => prev.filter(e => !entry_ids.includes(e.id)));
+    setApprovals((prev) => prev.filter((e) => !entry_ids.includes(e.id)));
     if (updatedAffected.length > 0) {
-      setApprovalHistory(prev => [...updatedAffected, ...prev]);
+      setApprovalHistory((prev) => [...updatedAffected, ...prev]);
     }
 
     try {
-      const res = await axios.patch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/approve`, {
-        entry_ids,
-        status
-      }, { headers });
+      const res = await axios.patch(
+        `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/approve`,
+        {
+          entry_ids,
+          status,
+        },
+        { headers }
+      );
       setSuccessModalMsg(res.data.message);
       fetchData();
     } catch (err) {
       setApprovals(previousApprovals);
       setApprovalHistory(previousHistory);
-      setErrorModalMsg(err.response?.data?.detail || 'Error processing approval');
+      setErrorModalMsg(
+        err.response?.data?.detail || 'Error processing approval'
+      );
     }
   };
 
   const handleExportCSV = () => {
     const rows = [['Date', 'Project', 'Task', 'Hours', 'Status']];
-    submittedHistory.forEach(entry => {
+    submittedHistory.forEach((entry) => {
       rows.push([
         entry.date,
         entry.project_name || '-',
         entry.task_name || '-',
         entry.hours_logged,
-        entry.status
+        entry.status,
       ]);
     });
-    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+    const csvContent =
+      'data:text/csv;charset=utf-8,' + rows.map((e) => e.join(',')).join('\n');
     const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `timesheets_export_${new Date().toISOString().split('T')[0]}.csv`);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute(
+      'download',
+      `timesheets_export_${new Date().toISOString().split('T')[0]}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
   const handleExportApprovalHistoryCSV = () => {
-    const rows = [['User', 'Week Start', 'Date', 'Project', 'Task', 'Hours Logged', 'Status']];
-    filteredGroupedApprovalHistory.forEach(userGroup => {
-      userGroup.weeks.forEach(weekGroup => {
-        weekGroup.rows.forEach(row => {
-          weekGroup.weekDays.forEach(dateStr => {
+    const rows = [
+      [
+        'User',
+        'Week Start',
+        'Date',
+        'Project',
+        'Task',
+        'Hours Logged',
+        'Status',
+      ],
+    ];
+    filteredGroupedApprovalHistory.forEach((userGroup) => {
+      userGroup.weeks.forEach((weekGroup) => {
+        weekGroup.rows.forEach((row) => {
+          weekGroup.weekDays.forEach((dateStr) => {
             const d = row.days[dateStr];
             if (d && parseFloat(d.hours_logged) > 0) {
-              const projName = row.custom_project_name || (boards.find(b => b.id === parseInt(row.board_id))?.name || 'General / No Project');
+              const projName =
+                row.custom_project_name ||
+                boards.find((b) => b.id === parseInt(row.board_id))?.name ||
+                'General / No Project';
               const taskName = row.custom_task_name || d.task_name || 'No Task';
               rows.push([
                 userGroup.username,
@@ -955,23 +1242,26 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                 `"${projName.replace(/"/g, '""')}"`,
                 `"${taskName.replace(/"/g, '""')}"`,
                 d.hours_logged,
-                d.status || weekGroup.weekStatus
+                d.status || weekGroup.weekStatus,
               ]);
             }
           });
         });
       });
     });
-    const csvContent = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join("\n");
+    const csvContent =
+      'data:text/csv;charset=utf-8,' + rows.map((e) => e.join(',')).join('\n');
     const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `approval_history_export_${new Date().toISOString().split('T')[0]}.csv`);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute(
+      'download',
+      `approval_history_export_${new Date().toISOString().split('T')[0]}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
-
 
   const nextWeek = () => {
     const d = new Date(currentWeekStart);
@@ -996,16 +1286,27 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
   };
 
   // Submitted history
-  const submittedHistory = entries.filter(e => !['Draft'].includes(e.status)).sort((a, b) => new Date(b.date) - new Date(a.date));
+  const submittedHistory = entries
+    .filter((e) => !['Draft'].includes(e.status))
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const historyGridByWeek = useMemo(() => {
     const weeksMap = new Map();
-    submittedHistory.forEach(entry => {
+    submittedHistory.forEach((entry) => {
       const wStart = getStartOfWeek(entry.date).toISOString();
-      if (!weeksMap.has(wStart)) weeksMap.set(wStart, { weekStart: new Date(wStart), rowsMap: new Map() });
+      if (!weeksMap.has(wStart))
+        weeksMap.set(wStart, {
+          weekStart: new Date(wStart),
+          rowsMap: new Map(),
+        });
 
       const rowsMap = weeksMap.get(wStart).rowsMap;
-      const rowId = getRowId(entry.board_id, entry.request_id, entry.custom_project_name, entry.custom_task_name);
+      const rowId = getRowId(
+        entry.board_id,
+        entry.request_id,
+        entry.custom_project_name,
+        entry.custom_task_name
+      );
       if (!rowsMap.has(rowId)) {
         rowsMap.set(rowId, {
           id: rowId,
@@ -1014,7 +1315,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
           custom_project_name: entry.custom_project_name,
           custom_task_name: entry.custom_task_name,
           days: {},
-          totalHours: 0
+          totalHours: 0,
         });
       }
       rowsMap.get(rowId).days[entry.date] = entry;
@@ -1023,10 +1324,10 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
     return Array.from(weeksMap.values())
       .sort((a, b) => b.weekStart - a.weekStart)
-      .map(w => ({
+      .map((w) => ({
         weekStart: w.weekStart,
         weekDays: getWeekDays(w.weekStart),
-        rows: Array.from(w.rowsMap.values())
+        rows: Array.from(w.rowsMap.values()),
       }));
   }, [submittedHistory]);
 
@@ -1034,85 +1335,96 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
   if (isLoading && entries.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-white dark:bg-neutral-950">
+      <div className='flex-1 flex items-center justify-center bg-white dark:bg-neutral-950'>
         <LoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="flex-1 min-h-0 overflow-y-auto bg-transparent p-6 md:p-10 pb-32 w-full relative flex flex-col gap-8 text-sm mt-12 md:mt-4 z-10 custom-scrollbar">
-
+    <div className='flex-1 min-h-0 overflow-y-auto bg-transparent p-6 md:p-10 pb-32 w-full relative flex flex-col gap-8 text-sm mt-12 md:mt-4 z-10 custom-scrollbar'>
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-xs font-bold text-neutral-450 dark:text-neutral-500 uppercase tracking-widest shrink-0">
+      <div className='flex items-center gap-2 text-xs font-bold text-neutral-450 dark:text-neutral-500 uppercase tracking-widest shrink-0'>
         <button
           onClick={() => setShowTimesheets?.(false)}
-          className="hover:text-indigo-650 dark:hover:text-indigo-400 transition-colors flex items-center gap-1"
-        >
-          <Icon name="home" className="w-3.5 h-3.5 inline" /> {tMsg('Dashboard', 'Dasbor')}
+          className='hover:text-indigo-650 dark:hover:text-indigo-400 transition-colors flex items-center gap-1'>
+          <Icon name='home' className='w-3.5 h-3.5 inline' />{' '}
+          {tMsg('Dashboard', 'Dasbor')}
         </button>
-        <span className="opacity-50">/</span>
-        <span className="text-neutral-700 dark:text-slate-300 font-extrabold">
+        <span className='opacity-50'>/</span>
+        <span className='text-neutral-700 dark:text-slate-300 font-extrabold'>
           {tMsg('My Timesheets', 'Timesheet Saya')}
         </span>
       </div>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 pb-6 shrink-0">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-4xl md:text-5xl font-black text-black dark:text-white leading-none flex items-center gap-3">
-            <Icon name="timer" className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+      <div className='flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 pb-6 shrink-0'>
+        <div className='flex flex-col gap-2'>
+          <h1 className='text-4xl md:text-5xl font-black text-black dark:text-white leading-none flex items-center gap-3'>
+            <Icon
+              name='timer'
+              className='w-4 h-4 text-indigo-600 dark:text-indigo-400'
+            />
             My timesheets
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">Log and manage your hours across all projects on a weekly basis.</p>
+          <p className='text-slate-500 dark:text-slate-400 font-medium'>
+            Log and manage your hours across all projects on a weekly basis.
+          </p>
         </div>
 
         {/* Approver Status Badge */}
-        <div className="flex items-center gap-2 px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm text-xs font-bold w-max">
-          <span><Icon name="target" className="w-3.5 h-3.5 inline-block mr-1" /> {tMsg('Approver', 'Penyetuju')}:</span>
+        <div className='flex items-center gap-2 px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm text-xs font-bold w-max'>
+          <span>
+            <Icon name='target' className='w-3.5 h-3.5 inline-block mr-1' />{' '}
+            {tMsg('Approver', 'Penyetuju')}:
+          </span>
           {profileData?.timesheet_approver ? (
-            <span className="text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-lg">
+            <span className='text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-lg'>
               @{profileData.timesheet_approver}
             </span>
           ) : (
-            <span className="text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg">
-              <Icon name="alert-triangle" className="w-4 h-4 inline" /> {tMsg('No Approver (Contact Admin)', 'Belum Ditentukan (Hubungi Admin)')}
+            <span className='text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg'>
+              <Icon name='alert-triangle' className='w-4 h-4 inline' />{' '}
+              {tMsg(
+                'No Approver (Contact Admin)',
+                'Belum Ditentukan (Hubungi Admin)'
+              )}
             </span>
           )}
         </div>
       </div>
 
       {/* View Tabs */}
-      <div className="flex items-center gap-6 border-b border-neutral-200 dark:border-neutral-855 pb-px shrink-0">
+      <div className='flex items-center gap-6 border-b border-neutral-200 dark:border-neutral-855 pb-px shrink-0'>
         <button
           onClick={() => setActiveSubTab('my-timesheet')}
-          className={`pb-3 text-sm font-semibold transition-all relative ${activeSubTab === 'my-timesheet'
-            ? 'text-indigo-600 dark:text-indigo-400 font-bold border-b-2 border-indigo-500'
-            : 'text-neutral-400 hover:text-slate-700 dark:hover:text-neutral-200'
-            }`}
-        >
+          className={`pb-3 text-sm font-semibold transition-all relative ${
+            activeSubTab === 'my-timesheet'
+              ? 'text-indigo-600 dark:text-indigo-400 font-bold border-b-2 border-indigo-500'
+              : 'text-neutral-400 hover:text-slate-700 dark:hover:text-neutral-200'
+          }`}>
           {tMsg('My Timesheet', 'Timesheet Saya')}
         </button>
         <button
           onClick={() => setActiveSubTab('history')}
-          className={`pb-3 text-sm font-semibold transition-all relative ${activeSubTab === 'history'
-            ? 'text-indigo-600 dark:text-indigo-400 font-bold border-b-2 border-indigo-500'
-            : 'text-neutral-400 hover:text-slate-700 dark:hover:text-neutral-200'
-            }`}
-        >
+          className={`pb-3 text-sm font-semibold transition-all relative ${
+            activeSubTab === 'history'
+              ? 'text-indigo-600 dark:text-indigo-400 font-bold border-b-2 border-indigo-500'
+              : 'text-neutral-400 hover:text-slate-700 dark:hover:text-neutral-200'
+          }`}>
           {tMsg('History & Submitted', 'Riwayat & Terkirim')}
         </button>
         {isApprover && (
           <button
             onClick={() => setActiveSubTab('approvals')}
-            className={`pb-3 text-sm font-semibold transition-all relative flex items-center gap-1.5 ${activeSubTab === 'approvals'
-              ? 'text-indigo-600 dark:text-indigo-400 font-bold border-b-2 border-indigo-500'
-              : 'text-neutral-400 hover:text-slate-700 dark:hover:text-neutral-200'
-              }`}
-          >
+            className={`pb-3 text-sm font-semibold transition-all relative flex items-center gap-1.5 ${
+              activeSubTab === 'approvals'
+                ? 'text-indigo-600 dark:text-indigo-400 font-bold border-b-2 border-indigo-500'
+                : 'text-neutral-400 hover:text-slate-700 dark:hover:text-neutral-200'
+            }`}>
             {tMsg('Team Approvals', 'Persetujuan Tim')}
             {approvals.length > 0 && (
-              <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-black rounded-full shadow-sm">
+              <span className='px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-black rounded-full shadow-sm'>
                 {approvals.length}
               </span>
             )}
@@ -1121,14 +1433,14 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
         {isApprover && (
           <button
             onClick={() => setActiveSubTab('approval-history')}
-            className={`pb-3 text-sm font-semibold transition-all relative flex items-center gap-1.5 ${activeSubTab === 'approval-history'
-              ? 'text-indigo-600 dark:text-indigo-400 font-bold border-b-2 border-indigo-500'
-              : 'text-neutral-400 hover:text-slate-700 dark:hover:text-neutral-200'
-              }`}
-          >
+            className={`pb-3 text-sm font-semibold transition-all relative flex items-center gap-1.5 ${
+              activeSubTab === 'approval-history'
+                ? 'text-indigo-600 dark:text-indigo-400 font-bold border-b-2 border-indigo-500'
+                : 'text-neutral-400 hover:text-slate-700 dark:hover:text-neutral-200'
+            }`}>
             {tMsg('Approval History', 'Riwayat Persetujuan')}
             {approvalHistory.length > 0 && (
-              <span className="px-1.5 py-0.5 bg-slate-400 dark:bg-neutral-600 text-white text-[10px] font-black rounded-full shadow-sm">
+              <span className='px-1.5 py-0.5 bg-slate-400 dark:bg-neutral-600 text-white text-[10px] font-black rounded-full shadow-sm'>
                 {approvalHistory.length}
               </span>
             )}
@@ -1138,15 +1450,23 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
       {/* Weekly Grid */}
       {activeSubTab === 'my-timesheet' && (
-        <div className="flex flex-col gap-6">
+        <div className='flex flex-col gap-6'>
           {/* Unsubmitted Weeks Notice Banner */}
           {unsubmittedWeeksCount > 0 && (
-            <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between text-red-900 dark:text-red-200 shadow-sm mac-animate">
-              <div className="flex items-center gap-3">
-                <Icon name="alert-triangle" className="w-5 h-5 shrink-0 text-red-600 dark:text-red-400" />
+            <div className='bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between text-red-900 dark:text-red-200 shadow-sm mac-animate'>
+              <div className='flex items-center gap-3'>
+                <Icon
+                  name='alert-triangle'
+                  className='w-5 h-5 shrink-0 text-red-600 dark:text-red-400'
+                />
                 <div>
-                  <h4 className="font-bold text-sm text-red-900 dark:text-red-200">{tMsg('Unsubmitted Timesheets Warning', 'Peringatan Timesheet Belum Disubmit')}</h4>
-                  <p className="text-xs mt-0.5 opacity-90 font-medium text-red-800 dark:text-red-300">
+                  <h4 className='font-bold text-sm text-red-900 dark:text-red-200'>
+                    {tMsg(
+                      'Unsubmitted Timesheets Warning',
+                      'Peringatan Timesheet Belum Disubmit'
+                    )}
+                  </h4>
+                  <p className='text-xs mt-0.5 opacity-90 font-medium text-red-800 dark:text-red-300'>
                     {tMsg(
                       `You have ${unsubmittedWeeksCount} unsubmitted week(s) since joining. Please select the week from the dropdown to submit.`,
                       `Anda memiliki ${unsubmittedWeeksCount} minggu yang belum disubmit sejak terdaftar. Silakan pilih minggu dari dropdown untuk mengisi dan mengirimkan.`
@@ -1156,23 +1476,32 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
               </div>
               <button
                 onClick={() => {
-                  const firstOverdue = allWeeksOptions.find(w => w.isUnsubmittedPast);
+                  const firstOverdue = allWeeksOptions.find(
+                    (w) => w.isUnsubmittedPast
+                  );
                   if (firstOverdue) setCurrentWeekStart(firstOverdue.weekStart);
                 }}
-                className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs shadow-sm transition-all whitespace-nowrap self-end sm:self-auto shrink-0"
-              >
-                {tMsg('Jump to Unsubmitted Week →', 'Buka Minggu Belum Disubmit →')}
+                className='px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs shadow-sm transition-all whitespace-nowrap self-end sm:self-auto shrink-0'>
+                {tMsg(
+                  'Jump to Unsubmitted Week →',
+                  'Buka Minggu Belum Disubmit →'
+                )}
               </button>
             </div>
           )}
 
           {/* Overtime Warning (My Timesheets only) */}
           {(hasDailyOvertime || hasWeeklyOvertime) && !dismissedOvertime && (
-            <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-4 flex gap-3 items-start text-amber-900 dark:text-amber-200 shadow-sm mac-animate">
-              <Icon name="alert-triangle" className="w-5 h-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-              <div className="flex-1">
-                <h4 className="font-bold text-sm text-amber-900 dark:text-amber-200">Overtime Warning</h4>
-                <p className="text-xs mt-0.5 opacity-90 font-medium text-amber-800 dark:text-amber-300">
+            <div className='bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-2xl p-4 flex gap-3 items-start text-amber-900 dark:text-amber-200 shadow-sm mac-animate'>
+              <Icon
+                name='alert-triangle'
+                className='w-5 h-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400'
+              />
+              <div className='flex-1'>
+                <h4 className='font-bold text-sm text-amber-900 dark:text-amber-200'>
+                  Overtime Warning
+                </h4>
+                <p className='text-xs mt-0.5 opacity-90 font-medium text-amber-800 dark:text-amber-300'>
                   {hasDailyOvertime && hasWeeklyOvertime
                     ? 'You have logged more than 8 hours in a single day and more than 40 hours for this week.'
                     : hasDailyOvertime
@@ -1183,484 +1512,863 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
               </div>
               <button
                 onClick={() => setDismissedOvertime(true)}
-                className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors p-1 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30"
-                title="Dismiss"
-              >
-                <Icon name="x" className="w-4 h-4" />
+                className='text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 transition-colors p-1 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/30'
+                title='Dismiss'>
+                <Icon name='x' className='w-4 h-4' />
               </button>
             </div>
           )}
 
-          <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm">
+          <div className='bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm'>
+            {/* Toolbar */}
+            <div className='flex flex-col sm:flex-row gap-4 justify-between items-center bg-neutral-50 dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 p-4'>
+              <div className='flex items-center gap-2 bg-white dark:bg-neutral-950 p-1 border border-slate-200 dark:border-neutral-800 rounded-lg shadow-sm flex-wrap sm:flex-nowrap'>
+                <button
+                  onClick={prevWeek}
+                  disabled={isPrevDisabled}
+                  title={
+                    isPrevDisabled
+                      ? tMsg(
+                          'Cannot navigate prior to registration date',
+                          'Tidak dapat berpindah ke sebelum tanggal terdaftar'
+                        )
+                      : ''
+                  }
+                  className='px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed'>
+                  Prev
+                </button>
+                <button
+                  onClick={currentWeek}
+                  className='px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors'>
+                  Today
+                </button>
+                <button
+                  onClick={nextWeek}
+                  disabled={isNextDisabled}
+                  title={
+                    isNextDisabled
+                      ? tMsg(
+                          'Cannot navigate to future weeks',
+                          'Tidak dapat berpindah ke minggu di masa mendatang'
+                        )
+                      : ''
+                  }
+                  className='px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed'>
+                  Next
+                </button>
 
-          {/* Toolbar */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-neutral-50 dark:bg-neutral-950 border-b border-neutral-200 dark:border-neutral-800 p-4">
-            <div className="flex items-center gap-2 bg-white dark:bg-neutral-950 p-1 border border-slate-200 dark:border-neutral-800 rounded-lg shadow-sm flex-wrap sm:flex-nowrap">
-              <button
-                onClick={prevWeek}
-                disabled={isPrevDisabled}
-                title={isPrevDisabled ? tMsg('Cannot navigate prior to registration date', 'Tidak dapat berpindah ke sebelum tanggal terdaftar') : ''}
-                className="px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Prev
-              </button>
-              <button onClick={currentWeek} className="px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors">Today</button>
-              <button
-                onClick={nextWeek}
-                disabled={isNextDisabled}
-                title={isNextDisabled ? tMsg('Cannot navigate to future weeks', 'Tidak dapat berpindah ke minggu di masa mendatang') : ''}
-                className="px-3 py-1 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded text-slate-600 dark:text-slate-300 font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-
-              {/* Weekly Dropdown Selector */}
-              <div className="relative flex items-center gap-2 ml-1">
-                <select
-                  value={weekDays[0]}
-                  onChange={(e) => {
-                    const found = allWeeksOptions.find(w => w.weekStartStr === e.target.value);
-                    if (found) setCurrentWeekStart(found.weekStart);
-                  }}
-                  className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg py-1.5 px-3 text-xs font-bold text-slate-800 dark:text-neutral-100 outline-none focus:border-indigo-500 cursor-pointer max-w-[280px] sm:max-w-xs transition-colors shadow-sm"
-                >
-                  {allWeeksOptions.map(w => (
-                    <option
-                      key={w.weekStartStr}
-                      value={w.weekStartStr}
-                      className="bg-white dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 py-1 font-medium"
-                    >
-                      {w.isCurrent ? '📌 ' : ''}{w.isUnsubmittedPast ? '⚠️ ' : w.isSubmitted ? '✓ ' : ''}{w.label} {w.isUnsubmittedPast ? '(Belum Disubmit)' : w.isCurrent ? '(Minggu Ini)' : `(${w.statusLabel})`}
-                    </option>
-                  ))}
-                </select>
-                {unsubmittedWeeksCount > 0 && (
-                  <span
-                    className="px-2 py-0.5 bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/60 rounded-full text-[10px] font-black shrink-0 animate-pulse"
-                    title={`${unsubmittedWeeksCount} minggu belum disubmit sejak Jan 2026`}
-                  >
-                    ⚠️ {unsubmittedWeeksCount} belum disubmit
-                  </span>
-                )}
+                {/* Weekly Dropdown Selector */}
+                <div className='relative flex items-center gap-2 ml-1'>
+                  <select
+                    value={weekDays[0]}
+                    onChange={(e) => {
+                      const found = allWeeksOptions.find(
+                        (w) => w.weekStartStr === e.target.value
+                      );
+                      if (found) setCurrentWeekStart(found.weekStart);
+                    }}
+                    className='bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg py-1.5 px-3 text-xs font-bold text-slate-800 dark:text-neutral-100 outline-none focus:border-indigo-500 cursor-pointer max-w-[280px] sm:max-w-xs transition-colors shadow-sm'>
+                    {allWeeksOptions.map((w) => (
+                      <option
+                        key={w.weekStartStr}
+                        value={w.weekStartStr}
+                        className='bg-white dark:bg-neutral-900 text-slate-800 dark:text-neutral-100 py-1 font-medium'>
+                        {w.isCurrent ? '📌 ' : ''}
+                        {w.isUnsubmittedPast
+                          ? '⚠️ '
+                          : w.isSubmitted
+                            ? '✓ '
+                            : ''}
+                        {w.label}{' '}
+                        {w.isUnsubmittedPast
+                          ? '(Belum Disubmit)'
+                          : w.isCurrent
+                            ? '(Minggu Ini)'
+                            : `(${w.statusLabel})`}
+                      </option>
+                    ))}
+                  </select>
+                  {unsubmittedWeeksCount > 0 && (
+                    <span
+                      className='px-2 py-0.5 bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800/60 rounded-full text-[10px] font-black shrink-0 animate-pulse'
+                      title={`${unsubmittedWeeksCount} minggu belum disubmit sejak Jan 2026`}>
+                      ⚠️ {unsubmittedWeeksCount} belum disubmit
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className='flex gap-3'>
+                <button
+                  onClick={handleSaveDraftManual}
+                  disabled={isSaving || isWeekSubmitted}
+                  className='px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-200 rounded-lg font-medium transition-colors border border-slate-200 dark:border-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed'>
+                  {isSaving ? 'Saving...' : 'Save Draft'}
+                </button>
+                <button
+                  onClick={handleSubmitSelected}
+                  disabled={
+                    isSaving ||
+                    selectedRowIds.size === 0 ||
+                    isWeekSubmitted ||
+                    isFutureWeek
+                  }
+                  title={
+                    isFutureWeek
+                      ? tMsg(
+                          'Cannot submit timesheets for future weeks',
+                          'Tidak dapat mengirimkan timesheet untuk minggu di masa mendatang'
+                        )
+                      : ''
+                  }
+                  className='px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium shadow-sm transition-colors'>
+                  Submit Selected
+                </button>
               </div>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={handleSaveDraftManual}
-                disabled={isSaving || isWeekSubmitted}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-slate-200 rounded-lg font-medium transition-colors border border-slate-200 dark:border-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSaving ? 'Saving...' : 'Save Draft'}
-              </button>
-              <button
-                onClick={handleSubmitSelected}
-                disabled={isSaving || selectedRowIds.size === 0 || isWeekSubmitted || isFutureWeek}
-                title={isFutureWeek ? tMsg('Cannot submit timesheets for future weeks', 'Tidak dapat mengirimkan timesheet untuk minggu di masa mendatang') : ''}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium shadow-sm transition-colors"
-              >
-                Submit Selected
-              </button>
-            </div>
-          </div>
 
-          {/* Table */}
-          <div className="overflow-auto max-h-[500px] relative custom-scrollbar">
-            <table className="w-full text-left whitespace-nowrap">
-              <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-neutral-950 text-slate-500 dark:text-neutral-400 border-b border-slate-200 dark:border-neutral-800 text-xs shadow-sm">
-                <tr>
-                  <th className="py-3 px-4 font-medium text-center w-12">
-                    <input type="checkbox" disabled={isWeekSubmitted} onChange={e => {
-                      if (e.target.checked) setSelectedRowIds(new Set(gridRows.map(r => r.id)));
-                      else setSelectedRowIds(new Set());
-                    }} checked={selectedRowIds.size > 0 && selectedRowIds.size === gridRows.length} className="rounded border-slate-300 dark:border-neutral-700 cursor-pointer disabled:opacity-50" />
-                  </th>
-                  <th className="py-3 px-4 font-medium w-56">Project</th>
-                  <th className="py-3 px-4 font-medium w-auto min-w-[16rem]">Task</th>
-                  {weekDays.map((dateStr, i) => {
-                    const isPublicHoliday = leaves.some(
-                      l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
-                    );
-                    const isUserLeave = leaves.some(
-                      l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username === currentUser
-                    );
-                    const isWeekend = i === 0 || i === 6;
-
-                    let headerClass = '';
-                    if (isPublicHoliday) headerClass = 'bg-red-50 dark:bg-red-950/20';
-                    else if (isUserLeave || isWeekend) headerClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
-
-                    return (
-                      <th key={dateStr} className={`py-3 px-2 font-medium text-center w-20 relative ${headerClass}`}>
-                        <div className={isPublicHoliday ? 'text-red-600 dark:text-red-400 font-bold' : (isUserLeave ? 'text-indigo-650 dark:text-indigo-400 font-bold' : (isWeekend ? 'text-slate-500 dark:text-slate-400' : ''))}>{dayNames[i]}</div>
-                        <div className={`text-[10px] mt-0.5 ${isPublicHoliday ? 'text-red-500 dark:text-red-400 font-semibold' : (isUserLeave ? 'text-indigo-500 dark:text-indigo-400 font-semibold' : 'opacity-70')
-                          }`}>{formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '')}</div>
-                        {isPublicHoliday && (
-                          <div className="text-[9px] text-red-500 dark:text-red-400 font-semibold mt-0.5 truncate max-w-[72px] mx-auto" title={leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description}>
-                            {leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description || 'Holiday'}
-                          </div>
-                        )}
-                        {isUserLeave && (
-                          <div className="text-[9px] text-indigo-500 dark:text-indigo-400 font-semibold mt-0.5 truncate max-w-[72px] mx-auto">
-                            Cuti
-                          </div>
-                        )}
-                      </th>
-                    );
-                  })}
-                  <th className="py-3 px-4 font-medium text-center w-20">Total</th>
-                  <th className="w-12"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-neutral-800/50 text-slate-700 dark:text-neutral-200">
-                {gridRows.length === 0 ? (
+            {/* Table */}
+            <div className='overflow-auto max-h-[500px] relative custom-scrollbar'>
+              <table className='w-full text-left whitespace-nowrap'>
+                <thead className='sticky top-0 z-20 bg-slate-50 dark:bg-neutral-950 text-slate-500 dark:text-neutral-400 border-b border-slate-200 dark:border-neutral-800 text-xs shadow-sm'>
                   <tr>
-                    <td colSpan={12} className="py-8 text-center text-slate-400">No timesheet entries for this week. Add a row to begin logging time.</td>
+                    <th className='py-3 px-4 font-medium text-center w-12'>
+                      <input
+                        type='checkbox'
+                        disabled={isWeekSubmitted}
+                        onChange={(e) => {
+                          if (e.target.checked)
+                            setSelectedRowIds(
+                              new Set(gridRows.map((r) => r.id))
+                            );
+                          else setSelectedRowIds(new Set());
+                        }}
+                        checked={
+                          selectedRowIds.size > 0 &&
+                          selectedRowIds.size === gridRows.length
+                        }
+                        className='rounded border-slate-300 dark:border-neutral-700 cursor-pointer disabled:opacity-50'
+                      />
+                    </th>
+                    <th className='py-3 px-4 font-medium w-56'>Project</th>
+                    <th className='py-3 px-4 font-medium w-auto min-w-[16rem]'>
+                      Task
+                    </th>
+                    {weekDays.map((dateStr, i) => {
+                      const isPublicHoliday = leaves.some(
+                        (l) =>
+                          l.leave_date === dateStr &&
+                          (l.leave_type === 'public_holiday' ||
+                            l.leave_type === 'mass_leave')
+                      );
+                      const isUserLeave = leaves.some(
+                        (l) =>
+                          l.leave_date === dateStr &&
+                          l.leave_type === 'personal' &&
+                          l.username === currentUser
+                      );
+                      const isWeekend = i === 0 || i === 6;
+
+                      let headerClass = '';
+                      if (isPublicHoliday)
+                        headerClass = 'bg-red-50 dark:bg-red-950/20';
+                      else if (isUserLeave || isWeekend)
+                        headerClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
+
+                      return (
+                        <th
+                          key={dateStr}
+                          className={`py-3 px-2 font-medium text-center w-20 relative ${headerClass}`}>
+                          <div
+                            className={
+                              isPublicHoliday
+                                ? 'text-red-600 dark:text-red-400 font-bold'
+                                : isUserLeave
+                                  ? 'text-indigo-650 dark:text-indigo-400 font-bold'
+                                  : isWeekend
+                                    ? 'text-slate-500 dark:text-slate-400'
+                                    : ''
+                            }>
+                            {dayNames[i]}
+                          </div>
+                          <div
+                            className={`text-[10px] mt-0.5 ${
+                              isPublicHoliday
+                                ? 'text-red-500 dark:text-red-400 font-semibold'
+                                : isUserLeave
+                                  ? 'text-indigo-500 dark:text-indigo-400 font-semibold'
+                                  : 'opacity-70'
+                            }`}>
+                            {formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '')}
+                          </div>
+                          {isPublicHoliday && (
+                            <div
+                              className='text-[9px] text-red-500 dark:text-red-400 font-semibold mt-0.5 truncate max-w-[72px] mx-auto'
+                              title={
+                                leaves.find(
+                                  (l) =>
+                                    l.leave_date === dateStr &&
+                                    (l.leave_type === 'public_holiday' ||
+                                      l.leave_type === 'mass_leave')
+                                )?.description
+                              }>
+                              {leaves.find(
+                                (l) =>
+                                  l.leave_date === dateStr &&
+                                  (l.leave_type === 'public_holiday' ||
+                                    l.leave_type === 'mass_leave')
+                              )?.description || 'Holiday'}
+                            </div>
+                          )}
+                          {isUserLeave && (
+                            <div className='text-[9px] text-indigo-500 dark:text-indigo-400 font-semibold mt-0.5 truncate max-w-[72px] mx-auto'>
+                              Cuti
+                            </div>
+                          )}
+                        </th>
+                      );
+                    })}
+                    <th className='py-3 px-4 font-medium text-center w-20'>
+                      Total
+                    </th>
+                    <th className='w-12'></th>
                   </tr>
-                ) : gridRows.map((row) => {
-                  const isSelected = selectedRowIds.has(row.id);
-                  const isReadOnly = Object.values(row.days).some(d => d && ['Pending', 'Approved'].includes(d.status));
-
-                  let projectTasks = [];
-                  if (row.board_id) {
-                    projectTasks = tasks.filter(t => t.board_id === parseInt(row.board_id));
-                  } else if (!row.isManual) {
-                    projectTasks = tasks.filter(t => t.id === row.request_id);
-                  }
-
-                  return (
-                    <tr key={row.id} className={`${isSelected ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : 'hover:bg-slate-50/50 dark:hover:bg-neutral-900/50'} transition-colors`}>
-                      <td className="py-3 px-4 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          disabled={isWeekSubmitted}
-                          onChange={() => toggleRowSelection(row.id)}
-                          className="rounded border-slate-300 dark:border-neutral-700 cursor-pointer disabled:opacity-50"
-                        />
-                      </td>
-                      <td className="py-3 px-4">
-                        {row.isManual ? (
-                          <div className="flex flex-col gap-1.5 w-full">
-                            <select
-                              value={row.board_id || ''}
-                              onChange={(e) => handleRowChange(row.id, 'board_id', e.target.value)}
-                              className="w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 outline-none focus:border-indigo-500 text-xs text-slate-700 dark:text-slate-200"
-                            >
-                              <option value="">-- No Project --</option>
-                              {boards.filter(b => b.is_private !== 1).map(b => (
-                                <option key={b.id} value={b.id}>{b.name}</option>
-                              ))}
-                              <option value="custom">✍️ Custom Project...</option>
-                            </select>
-                            {row.board_id === 'custom' && (
-                              <input
-                                type="text"
-                                placeholder="Type project name..."
-                                value={row.custom_project_name || ''}
-                                onChange={(e) => handleRowChange(row.id, 'custom_project_name', e.target.value)}
-                                className="w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500"
-                              />
-                            )}
-                          </div>
-                        ) : (
-                          <span className="font-medium text-slate-700 dark:text-slate-300 break-words whitespace-normal">
-                            {(() => {
-                              if (row.custom_project_name) return row.custom_project_name;
-                              const b = boards.find(b => b.id === parseInt(row.board_id));
-                              return b ? b.name : <span className="text-slate-400 italic">General / No Project</span>;
-                            })()}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        {row.isManual && row.board_id ? (
-                          <div className="flex flex-col gap-1.5 w-full">
-                            <select
-                              value={row.request_id || ''}
-                              onChange={(e) => handleRowChange(row.id, 'request_id', e.target.value)}
-                              className="w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 outline-none focus:border-indigo-500 text-xs text-slate-700 dark:text-slate-200"
-                            >
-                              <option value="">-- Select Task --</option>
-                              {projectTasks.map(t => (
-                                <option key={t.id} value={t.id}>{t.project_name && t.project_name.length > 60 ? t.project_name.substring(0, 60) + '...' : t.project_name}</option>
-                              ))}
-                              <option value="custom">✍️ Custom Task...</option>
-                            </select>
-                            {row.request_id === 'custom' && (
-                              <input
-                                type="text"
-                                placeholder="Type task name..."
-                                value={row.custom_task_name || ''}
-                                onChange={(e) => handleRowChange(row.id, 'custom_task_name', e.target.value)}
-                                className="w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500"
-                              />
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-slate-600 dark:text-slate-400 break-words whitespace-normal block" title={row.custom_task_name || Object.values(row.days)[0]?.task_name}>
-                            {row.custom_task_name || Object.values(row.days)[0]?.task_name || <span className="italic text-slate-400">No Task</span>}
-                          </span>
-                        )}
-                      </td>
-                      {weekDays.map((dateStr, i) => {
-                        const dayData = row.days[dateStr];
-                        const isPublicHoliday = leaves.some(
-                          l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
-                        );
-                        const isUserLeave = leaves.some(
-                          l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username === currentUser
-                        );
-
-                        const val = dayData && !dayData.is_deleted ? dayData.hours_logged : ((isPublicHoliday || isUserLeave) ? 0 : '');
-                        const isDayReadOnly = isReadOnly || (dayData && ['Pending', 'Approved'].includes(dayData.status));
-                        const isWeekend = i === 0 || i === 6;
-
-                        let cellClass = '';
-                        if (isPublicHoliday) cellClass = 'bg-red-50/60 dark:bg-red-950/20';
-                        else if (isUserLeave || isWeekend) cellClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
-
-                        return (
-                          <td key={dateStr} className={`py-2 px-1 text-center relative group ${cellClass}`}>
-                            {isDayReadOnly ? (
-                              <div className="w-14 mx-auto py-1.5 text-center text-slate-500 font-medium">
-                                {val !== '' ? val : '-'}
-                              </div>
-                            ) : (
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.5"
-                                value={val}
-                                onChange={(e) => handleDayHoursChange(row, dateStr, e.target.value)}
-                                className={`w-14 text-center border rounded py-1.5 outline-none transition-all ${isPublicHoliday
-                                  ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 focus:border-red-400 text-slate-800 dark:text-slate-200'
-                                  : isUserLeave
-                                    ? 'bg-slate-100 dark:bg-neutral-800 border-indigo-200 dark:border-neutral-700 focus:border-indigo-400 text-slate-800 dark:text-slate-200'
-                                    : 'bg-white dark:bg-neutral-950 border-slate-300 dark:border-neutral-700 focus:border-indigo-500 text-slate-800 dark:text-slate-200'
-                                  }`}
-                                placeholder="-"
-                              />
-                            )}
-                            {dayData && dayData.status && (
-                              <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${dayData.status === 'Approved' ? 'bg-emerald-500' :
-                                dayData.status === 'Pending' ? 'bg-amber-500' :
-                                  dayData.status === 'Rejected' ? 'bg-red-500' : 'bg-slate-300'
-                                }`} title={dayData.status}></div>
-                            )}
-                          </td>
-                        );
-                      })}
-                      <td className="py-3 px-4 text-center font-bold text-indigo-600 dark:text-indigo-400">
-                        {row.totalHours > 0 ? `${row.totalHours}h` : '-'}
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <button
-                          onClick={() => handleDeleteRow(row)}
-                          disabled={isWeekSubmitted}
-                          className="text-slate-400 hover:text-red-500 transition-colors p-1 disabled:opacity-30 disabled:cursor-not-allowed"
-                          title="Remove Row"
-                        >
-                          <Icon name="trash" className="w-5 h-5" />
-                        </button>
+                </thead>
+                <tbody className='divide-y divide-slate-100 dark:divide-neutral-800/50 text-slate-700 dark:text-neutral-200'>
+                  {gridRows.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={12}
+                        className='py-8 text-center text-slate-400'>
+                        No timesheet entries for this week. Add a row to begin
+                        logging time.
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot className="sticky bottom-0 z-20 bg-slate-50 dark:bg-neutral-950 border-t border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-slate-300 font-bold shadow-[0_-1px_0_0_rgba(226,232,240,1)] dark:shadow-[0_-1px_0_0_rgba(38,38,38,1)]">
-                <tr>
-                  <td colSpan="2" className="py-2 px-4 text-left">
-                    <button
-                      onClick={handleAddRow}
-                      disabled={isWeekSubmitted}
-                      className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-800/30 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <Icon name="plus" className="w-3.5 h-3.5 inline-block mr-1" /> Add Row
-                    </button>
-                  </td>
-                  <td className="py-3 px-4 text-right font-medium text-slate-500 dark:text-neutral-400 text-xs">Daily Totals:</td>
-                  {weekDays.map((dateStr, i) => {
-                    let dayTotal = 0;
-                    gridRows.forEach(r => {
-                      const d = r.days[dateStr];
-                      if (d && !d.is_deleted && d.hours_logged != null) dayTotal += parseFloat(d.hours_logged);
-                    });
-                    const isPublicHoliday = leaves.some(
-                      l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
-                    );
-                    const isUserLeave = leaves.some(
-                      l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username === currentUser
-                    );
-                    const isWeekend = i === 0 || i === 6;
+                  ) : (
+                    gridRows.map((row) => {
+                      const isSelected = selectedRowIds.has(row.id);
+                      const isReadOnly = Object.values(row.days).some(
+                        (d) => d && ['Pending', 'Approved'].includes(d.status)
+                      );
 
-                    let footerClass = '';
-                    if (isPublicHoliday) footerClass = 'bg-red-50/60 dark:bg-red-950/20';
-                    else if (isUserLeave || isWeekend) footerClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
+                      let projectTasks = [];
+                      if (row.board_id) {
+                        projectTasks = tasks.filter(
+                          (t) => t.board_id === parseInt(row.board_id)
+                        );
+                      } else if (!row.isManual) {
+                        projectTasks = tasks.filter(
+                          (t) => t.id === row.request_id
+                        );
+                      }
 
-                    return (
-                      <td key={dateStr} className={`py-3 px-2 text-center font-bold ${footerClass} ${dayTotal > 8 ? 'text-amber-500' : (isUserLeave ? 'text-indigo-650 dark:text-indigo-400' : 'text-indigo-600 dark:text-indigo-400')
-                        }`} title={dayTotal > 8 ? 'Overtime warning: > 8 hours' : (isPublicHoliday ? 'Public Holiday' : (isUserLeave ? 'Cuti' : ''))}>
-                        {dayTotal > 0 ? `${dayTotal}h` : '-'}
-                      </td>
-                    );
-                  })}
-                  <td className={`py-3 px-4 text-center font-bold ${(() => {
-                    const weekTotal = gridRows.reduce((acc, r) => acc + (r.totalHours || 0), 0);
-                    return weekTotal > 40 ? 'text-amber-500' : 'text-indigo-600 dark:text-indigo-400';
-                  })()}`} title={gridRows.reduce((acc, r) => acc + (r.totalHours || 0), 0) > 40 ? 'Overtime warning: > 40 hours' : ''}>
-                    {gridRows.reduce((acc, r) => acc + (r.totalHours || 0), 0) > 0 ? `${gridRows.reduce((acc, r) => acc + (r.totalHours || 0), 0)}h` : '-'}
-                  </td>
-                  <td></td>
-                </tr>
-              </tfoot>
-            </table>
+                      return (
+                        <tr
+                          key={row.id}
+                          className={`${isSelected ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : 'hover:bg-slate-50/50 dark:hover:bg-neutral-900/50'} transition-colors`}>
+                          <td className='py-3 px-4 text-center'>
+                            <input
+                              type='checkbox'
+                              checked={isSelected}
+                              disabled={isWeekSubmitted}
+                              onChange={() => toggleRowSelection(row.id)}
+                              className='rounded border-slate-300 dark:border-neutral-700 cursor-pointer disabled:opacity-50'
+                            />
+                          </td>
+                          <td className='py-3 px-4'>
+                            {row.isManual ? (
+                              <div className='flex flex-col gap-1.5 w-full'>
+                                <select
+                                  value={row.board_id || ''}
+                                  onChange={(e) =>
+                                    handleRowChange(
+                                      row.id,
+                                      'board_id',
+                                      e.target.value
+                                    )
+                                  }
+                                  className='w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 outline-none focus:border-indigo-500 text-xs text-slate-700 dark:text-slate-200'>
+                                  <option value=''>-- No Project --</option>
+                                  {boards
+                                    .filter((b) => b.is_private !== 1)
+                                    .map((b) => (
+                                      <option key={b.id} value={b.id}>
+                                        {b.name}
+                                      </option>
+                                    ))}
+                                  <option value='custom'>
+                                    ✍️ Custom Project...
+                                  </option>
+                                </select>
+                                {row.board_id === 'custom' && (
+                                  <input
+                                    type='text'
+                                    placeholder='Type project name...'
+                                    value={row.custom_project_name || ''}
+                                    onChange={(e) =>
+                                      handleRowChange(
+                                        row.id,
+                                        'custom_project_name',
+                                        e.target.value
+                                      )
+                                    }
+                                    className='w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500'
+                                  />
+                                )}
+                              </div>
+                            ) : (
+                              <span className='font-medium text-slate-700 dark:text-slate-300 break-words whitespace-normal'>
+                                {(() => {
+                                  if (row.custom_project_name)
+                                    return row.custom_project_name;
+                                  const b = boards.find(
+                                    (b) => b.id === parseInt(row.board_id)
+                                  );
+                                  return b ? (
+                                    b.name
+                                  ) : (
+                                    <span className='text-slate-400 italic'>
+                                      General / No Project
+                                    </span>
+                                  );
+                                })()}
+                              </span>
+                            )}
+                          </td>
+                          <td className='py-3 px-4'>
+                            {row.isManual && row.board_id ? (
+                              <div className='flex flex-col gap-1.5 w-full'>
+                                <select
+                                  value={row.request_id || ''}
+                                  onChange={(e) =>
+                                    handleRowChange(
+                                      row.id,
+                                      'request_id',
+                                      e.target.value
+                                    )
+                                  }
+                                  className='w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 outline-none focus:border-indigo-500 text-xs text-slate-700 dark:text-slate-200'>
+                                  <option value=''>-- Select Task --</option>
+                                  {projectTasks.map((t) => (
+                                    <option key={t.id} value={t.id}>
+                                      {t.project_name &&
+                                      t.project_name.length > 60
+                                        ? t.project_name.substring(0, 60) +
+                                          '...'
+                                        : t.project_name}
+                                    </option>
+                                  ))}
+                                  <option value='custom'>
+                                    ✍️ Custom Task...
+                                  </option>
+                                </select>
+                                {row.request_id === 'custom' && (
+                                  <input
+                                    type='text'
+                                    placeholder='Type task name...'
+                                    value={row.custom_task_name || ''}
+                                    onChange={(e) =>
+                                      handleRowChange(
+                                        row.id,
+                                        'custom_task_name',
+                                        e.target.value
+                                      )
+                                    }
+                                    className='w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-indigo-500'
+                                  />
+                                )}
+                              </div>
+                            ) : (
+                              <span
+                                className='text-slate-600 dark:text-slate-400 break-words whitespace-normal block'
+                                title={
+                                  row.custom_task_name ||
+                                  Object.values(row.days)[0]?.task_name
+                                }>
+                                {row.custom_task_name ||
+                                  Object.values(row.days)[0]?.task_name || (
+                                    <span className='italic text-slate-400'>
+                                      No Task
+                                    </span>
+                                  )}
+                              </span>
+                            )}
+                          </td>
+                          {weekDays.map((dateStr, i) => {
+                            const dayData = row.days[dateStr];
+                            const isPublicHoliday = leaves.some(
+                              (l) =>
+                                l.leave_date === dateStr &&
+                                (l.leave_type === 'public_holiday' ||
+                                  l.leave_type === 'mass_leave')
+                            );
+                            const isUserLeave = leaves.some(
+                              (l) =>
+                                l.leave_date === dateStr &&
+                                l.leave_type === 'personal' &&
+                                l.username === currentUser
+                            );
+
+                            const val =
+                              dayData && !dayData.is_deleted
+                                ? dayData.hours_logged
+                                : isPublicHoliday || isUserLeave
+                                  ? 0
+                                  : '';
+                            const isDayReadOnly =
+                              isReadOnly ||
+                              (dayData &&
+                                ['Pending', 'Approved'].includes(
+                                  dayData.status
+                                ));
+                            const isWeekend = i === 0 || i === 6;
+
+                            let cellClass = '';
+                            if (isPublicHoliday)
+                              cellClass = 'bg-red-50/60 dark:bg-red-950/20';
+                            else if (isUserLeave || isWeekend)
+                              cellClass =
+                                'bg-slate-100/40 dark:bg-neutral-800/50';
+
+                            return (
+                              <td
+                                key={dateStr}
+                                className={`py-2 px-1 text-center relative group ${cellClass}`}>
+                                {isDayReadOnly ? (
+                                  <div className='w-14 mx-auto py-1.5 text-center text-slate-500 font-medium'>
+                                    {val !== '' ? val : '-'}
+                                  </div>
+                                ) : (
+                                  <input
+                                    type='number'
+                                    min='0'
+                                    step='0.5'
+                                    value={val}
+                                    onChange={(e) =>
+                                      handleDayHoursChange(
+                                        row,
+                                        dateStr,
+                                        e.target.value
+                                      )
+                                    }
+                                    className={`w-14 text-center border rounded py-1.5 outline-none transition-all ${
+                                      isPublicHoliday
+                                        ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 focus:border-red-400 text-slate-800 dark:text-slate-200'
+                                        : isUserLeave
+                                          ? 'bg-slate-100 dark:bg-neutral-800 border-indigo-200 dark:border-neutral-700 focus:border-indigo-400 text-slate-800 dark:text-slate-200'
+                                          : 'bg-white dark:bg-neutral-950 border-slate-300 dark:border-neutral-700 focus:border-indigo-500 text-slate-800 dark:text-slate-200'
+                                    }`}
+                                    placeholder='-'
+                                  />
+                                )}
+                                {dayData && dayData.status && (
+                                  <div
+                                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${
+                                      dayData.status === 'Approved'
+                                        ? 'bg-emerald-500'
+                                        : dayData.status === 'Pending'
+                                          ? 'bg-amber-500'
+                                          : dayData.status === 'Rejected'
+                                            ? 'bg-red-500'
+                                            : 'bg-slate-300'
+                                    }`}
+                                    title={dayData.status}></div>
+                                )}
+                              </td>
+                            );
+                          })}
+                          <td className='py-3 px-4 text-center font-bold text-indigo-600 dark:text-indigo-400'>
+                            {row.totalHours > 0 ? `${row.totalHours}h` : '-'}
+                          </td>
+                          <td className='py-3 px-4 text-center'>
+                            <button
+                              onClick={() => handleDeleteRow(row)}
+                              disabled={isWeekSubmitted}
+                              className='text-slate-400 hover:text-red-500 transition-colors p-1 disabled:opacity-30 disabled:cursor-not-allowed'
+                              title='Remove Row'>
+                              <Icon name='trash' className='w-5 h-5' />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+                <tfoot className='sticky bottom-0 z-20 bg-slate-50 dark:bg-neutral-950 border-t border-slate-200 dark:border-neutral-800 text-slate-700 dark:text-slate-300 font-bold shadow-[0_-1px_0_0_rgba(226,232,240,1)] dark:shadow-[0_-1px_0_0_rgba(38,38,38,1)]'>
+                  <tr>
+                    <td colSpan='2' className='py-2 px-4 text-left'>
+                      <button
+                        onClick={handleAddRow}
+                        disabled={isWeekSubmitted}
+                        className='text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-lg border border-indigo-100 dark:border-indigo-800/30 transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed'>
+                        <Icon
+                          name='plus'
+                          className='w-3.5 h-3.5 inline-block mr-1'
+                        />{' '}
+                        Add Row
+                      </button>
+                    </td>
+                    <td className='py-3 px-4 text-right font-medium text-slate-500 dark:text-neutral-400 text-xs'>
+                      Daily Totals:
+                    </td>
+                    {weekDays.map((dateStr, i) => {
+                      let dayTotal = 0;
+                      gridRows.forEach((r) => {
+                        const d = r.days[dateStr];
+                        if (d && !d.is_deleted && d.hours_logged != null)
+                          dayTotal += parseFloat(d.hours_logged);
+                      });
+                      const isPublicHoliday = leaves.some(
+                        (l) =>
+                          l.leave_date === dateStr &&
+                          (l.leave_type === 'public_holiday' ||
+                            l.leave_type === 'mass_leave')
+                      );
+                      const isUserLeave = leaves.some(
+                        (l) =>
+                          l.leave_date === dateStr &&
+                          l.leave_type === 'personal' &&
+                          l.username === currentUser
+                      );
+                      const isWeekend = i === 0 || i === 6;
+
+                      let footerClass = '';
+                      if (isPublicHoliday)
+                        footerClass = 'bg-red-50/60 dark:bg-red-950/20';
+                      else if (isUserLeave || isWeekend)
+                        footerClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
+
+                      return (
+                        <td
+                          key={dateStr}
+                          className={`py-3 px-2 text-center font-bold ${footerClass} ${
+                            dayTotal > 8
+                              ? 'text-amber-500'
+                              : isUserLeave
+                                ? 'text-indigo-650 dark:text-indigo-400'
+                                : 'text-indigo-600 dark:text-indigo-400'
+                          }`}
+                          title={
+                            dayTotal > 8
+                              ? 'Overtime warning: > 8 hours'
+                              : isPublicHoliday
+                                ? 'Public Holiday'
+                                : isUserLeave
+                                  ? 'Cuti'
+                                  : ''
+                          }>
+                          {dayTotal > 0 ? `${dayTotal}h` : '-'}
+                        </td>
+                      );
+                    })}
+                    <td
+                      className={`py-3 px-4 text-center font-bold ${(() => {
+                        const weekTotal = gridRows.reduce(
+                          (acc, r) => acc + (r.totalHours || 0),
+                          0
+                        );
+                        return weekTotal > 40
+                          ? 'text-amber-500'
+                          : 'text-indigo-600 dark:text-indigo-400';
+                      })()}`}
+                      title={
+                        gridRows.reduce(
+                          (acc, r) => acc + (r.totalHours || 0),
+                          0
+                        ) > 40
+                          ? 'Overtime warning: > 40 hours'
+                          : ''
+                      }>
+                      {gridRows.reduce(
+                        (acc, r) => acc + (r.totalHours || 0),
+                        0
+                      ) > 0
+                        ? `${gridRows.reduce((acc, r) => acc + (r.totalHours || 0), 0)}h`
+                        : '-'}
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
       {activeSubTab === 'history' && (
         /* History Section */
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-sm flex flex-col gap-8 animate-fade-in">
-          <div className="flex justify-between items-center border-b border-slate-200 dark:border-neutral-800 pb-2">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">History & Submitted</h2>
+        <div className='bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-sm flex flex-col gap-8 animate-fade-in'>
+          <div className='flex justify-between items-center border-b border-slate-200 dark:border-neutral-800 pb-2'>
+            <h2 className='text-lg font-bold text-slate-800 dark:text-slate-100'>
+              History & Submitted
+            </h2>
             {submittedHistory.length > 0 && (
               <button
                 onClick={handleExportCSV}
-                className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border border-indigo-100 dark:border-indigo-800/30 shadow-sm"
-              >
+                className='px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border border-indigo-100 dark:border-indigo-800/30 shadow-sm'>
                 📥 Export to CSV
               </button>
             )}
           </div>
 
           {historyGridByWeek.length === 0 ? (
-            <div className="text-center text-slate-400 italic py-6">No submitted history found.</div>
+            <div className='text-center text-slate-400 italic py-6'>
+              No submitted history found.
+            </div>
           ) : (
-            <div className="space-y-4">
-              {historyGridByWeek.slice(0, historyDisplayCount).map((weekGroup, idx) => {
-                const weekStartStr = weekGroup.weekDays[0];
-                const isExpanded = expandedHistoryWeeks.has(weekStartStr);
-                const totalHours = weekGroup.rows.reduce((sum, r) => sum + (r.totalHours || 0), 0);
-                // Determine dominant week status from entries
-                const allStatuses = weekGroup.rows.flatMap(r => Object.values(r.days).map(d => d?.status).filter(Boolean));
-                const weekApproved = allStatuses.length > 0 && allStatuses.every(s => s === 'Approved');
-                const weekRejected = allStatuses.length > 0 && allStatuses.every(s => s === 'Rejected');
-                const weekPending = allStatuses.some(s => s === 'Pending');
+            <div className='space-y-4'>
+              {historyGridByWeek
+                .slice(0, historyDisplayCount)
+                .map((weekGroup, idx) => {
+                  const weekStartStr = weekGroup.weekDays[0];
+                  const isExpanded = expandedHistoryWeeks.has(weekStartStr);
+                  const totalHours = weekGroup.rows.reduce(
+                    (sum, r) => sum + (r.totalHours || 0),
+                    0
+                  );
+                  // Determine dominant week status from entries
+                  const allStatuses = weekGroup.rows.flatMap((r) =>
+                    Object.values(r.days)
+                      .map((d) => d?.status)
+                      .filter(Boolean)
+                  );
+                  const weekApproved =
+                    allStatuses.length > 0 &&
+                    allStatuses.every((s) => s === 'Approved');
+                  const weekRejected =
+                    allStatuses.length > 0 &&
+                    allStatuses.every((s) => s === 'Rejected');
+                  const weekPending = allStatuses.some((s) => s === 'Pending');
 
-                return (
-                  <div key={idx} className={`flex flex-col border rounded-2xl bg-white dark:bg-neutral-900 overflow-hidden shadow-sm ${weekApproved ? 'border-emerald-200 dark:border-emerald-900/40' :
-                    weekRejected ? 'border-red-200 dark:border-red-900/40' :
-                      'border-slate-200 dark:border-neutral-800'
-                    }`}>
-                    <button
-                      onClick={() => toggleExpandHistoryWeek(weekStartStr)}
-                      className={`flex justify-between items-center px-6 py-4 hover:opacity-90 transition-colors w-full text-left font-bold ${weekApproved ? 'bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-200' :
-                        weekRejected ? 'bg-red-50/60 dark:bg-red-950/20 text-red-800 dark:text-red-200' :
-                          'bg-slate-50 dark:bg-neutral-950 text-slate-700 dark:text-neutral-200'
-                        }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <Icon name="calendar" className="w-3.5 h-3.5" />
-                        <span>
-                          Week of {formatDateMMM(weekGroup.weekDays[0]).replace(/,?\s*\d{4}/, '')} - {formatDateMMM(weekGroup.weekDays[6]).replace(/,?\s*\d{4}/, '')}
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex flex-col border rounded-2xl bg-white dark:bg-neutral-900 overflow-hidden shadow-sm ${
+                        weekApproved
+                          ? 'border-emerald-200 dark:border-emerald-900/40'
+                          : weekRejected
+                            ? 'border-red-200 dark:border-red-900/40'
+                            : 'border-slate-200 dark:border-neutral-800'
+                      }`}>
+                      <button
+                        onClick={() => toggleExpandHistoryWeek(weekStartStr)}
+                        className={`flex justify-between items-center px-6 py-4 hover:opacity-90 transition-colors w-full text-left font-bold ${
+                          weekApproved
+                            ? 'bg-emerald-50/60 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-200'
+                            : weekRejected
+                              ? 'bg-red-50/60 dark:bg-red-950/20 text-red-800 dark:text-red-200'
+                              : 'bg-slate-50 dark:bg-neutral-950 text-slate-700 dark:text-neutral-200'
+                        }`}>
+                        <span className='flex items-center gap-2'>
+                          <Icon name='calendar' className='w-3.5 h-3.5' />
+                          <span>
+                            Week of{' '}
+                            {formatDateMMM(weekGroup.weekDays[0]).replace(
+                              /,?\s*\d{4}/,
+                              ''
+                            )}{' '}
+                            -{' '}
+                            {formatDateMMM(weekGroup.weekDays[6]).replace(
+                              /,?\s*\d{4}/,
+                              ''
+                            )}
+                          </span>
+                          <span className='ml-1 px-2.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-full text-xs border border-indigo-100 dark:border-indigo-800/30'>
+                            {totalHours}h
+                          </span>
+                          {weekApproved && (
+                            <span className='px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-full text-[10px] font-black border border-emerald-200 dark:border-emerald-800/40'>
+                              ✓ Approved
+                            </span>
+                          )}
+                          {weekRejected && (
+                            <span className='px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-full text-[10px] font-black border border-red-200 dark:border-red-800/40'>
+                              ✕ Rejected
+                            </span>
+                          )}
+                          {weekPending && !weekApproved && !weekRejected && (
+                            <span className='px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-[10px] font-black border border-amber-200 dark:border-amber-800/40'>
+                              ⏳ Pending
+                            </span>
+                          )}
                         </span>
-                        <span className="ml-1 px-2.5 py-0.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-full text-xs border border-indigo-100 dark:border-indigo-800/30">
-                          {totalHours}h
+                        <span className='text-slate-400 dark:text-neutral-500 text-xs font-semibold'>
+                          {isExpanded ? '▼' : '▶'}
                         </span>
-                        {weekApproved && (
-                          <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-full text-[10px] font-black border border-emerald-200 dark:border-emerald-800/40">✓ Approved</span>
-                        )}
-                        {weekRejected && (
-                          <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-full text-[10px] font-black border border-red-200 dark:border-red-800/40">✕ Rejected</span>
-                        )}
-                        {weekPending && !weekApproved && !weekRejected && (
-                          <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-[10px] font-black border border-amber-200 dark:border-amber-800/40">⏳ Pending</span>
-                        )}
-                      </span>
-                      <span className="text-slate-400 dark:text-neutral-500 text-xs font-semibold">
-                        {isExpanded ? '▼' : '▶'}
-                      </span>
-                    </button>
+                      </button>
 
-                    {isExpanded && (
-                      <div className="p-4 overflow-x-auto border-t border-slate-200 dark:border-neutral-855 bg-white dark:bg-neutral-950">
-                        <table className="w-full text-left text-sm">
-                          <thead className="bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 text-slate-500 dark:text-neutral-300">
-                            <tr>
-                              <th className="py-3 px-4 font-medium w-64 min-w-[10rem]">{tMsg('Project', 'Proyek')}</th>
-                              <th className="py-3 px-4 font-medium w-auto min-w-[18rem]">{tMsg('Task', 'Tugas')}</th>
-                              {weekGroup.weekDays.map((dateStr, i) => (
-                                <th key={dateStr} className="py-3 px-2 font-medium text-center w-20 whitespace-nowrap">
-                                  <div>{dayNames[i]}</div>
-                                  <div className="text-[10px] opacity-70 mt-0.5">{formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '')}</div>
+                      {isExpanded && (
+                        <div className='p-4 overflow-x-auto border-t border-slate-200 dark:border-neutral-855 bg-white dark:bg-neutral-950'>
+                          <table className='w-full text-left text-sm'>
+                            <thead className='bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 text-slate-500 dark:text-neutral-300'>
+                              <tr>
+                                <th className='py-3 px-4 font-medium w-64 min-w-[10rem]'>
+                                  {tMsg('Project', 'Proyek')}
                                 </th>
-                              ))}
-                              <th className="py-3 px-4 font-medium text-center w-20">{tMsg('Total', 'Total')}</th>
-                              <th className="py-3 px-4 font-medium text-center w-24">{tMsg('Status', 'Status')}</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-100 dark:divide-neutral-800 text-slate-700 dark:text-neutral-200">
-                            {weekGroup.rows.map(row => {
-                              return (
-                                <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-neutral-900/30 transition-colors">
-                                  <td className="py-3 px-4 font-medium text-slate-800 dark:text-neutral-200 align-top">
-                                    <span className="break-words">{row.custom_project_name || boards.find(b => b.id === parseInt(row.board_id))?.name || <span className="text-slate-400 dark:text-neutral-500 italic">General / No Project</span>}</span>
-                                  </td>
-                                  <td className="py-3 px-4 text-slate-600 dark:text-neutral-300 align-top">
-                                    <span className="break-words block" title={row.custom_task_name || Object.values(row.days)[0]?.task_name}>
-                                      {row.custom_task_name || Object.values(row.days)[0]?.task_name || <span className="text-slate-400 dark:text-neutral-500 italic">No Task</span>}
-                                    </span>
-                                  </td>
-                                  {weekGroup.weekDays.map(dateStr => {
-                                    const d = row.days[dateStr];
-                                    return (
-                                      <td key={dateStr} className="py-3 px-2 text-center relative group align-top">
-                                        <div className="font-medium pr-1">
-                                          {d ? (
-                                            <span className={parseFloat(d.hours_logged) > 8 ? 'text-amber-500' : ''}>{d.hours_logged}</span>
-                                          ) : <span className="text-slate-300 dark:text-neutral-600">-</span>}
-                                        </div>
-                                        {d && d.status && (
-                                          <div className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${d.status === 'Approved' ? 'bg-emerald-500' :
-                                            d.status === 'Pending' ? 'bg-amber-500' :
-                                              d.status === 'Rejected' ? 'bg-red-500' : 'bg-slate-300'
-                                            }`} title={d.status}></div>
-                                        )}
-                                      </td>
-                                    );
-                                  })}
-                                  <td className="py-3 px-4 text-center font-bold text-indigo-600 dark:text-indigo-400 align-top">
-                                    {row.totalHours > 0 ? `${row.totalHours}h` : <span className="text-slate-300 dark:text-neutral-600">-</span>}
-                                  </td>
-                                  <td className="py-3 px-4 text-center align-top">
-                                    {(() => {
-                                      const rowStatuses = Object.values(row.days).map(d => d?.status).filter(Boolean);
-                                      if (rowStatuses.every(s => s === 'Approved')) return <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-full text-[10px] font-bold border border-emerald-200 dark:border-emerald-800/40 whitespace-nowrap">✓ Approved</span>;
-                                      if (rowStatuses.every(s => s === 'Rejected')) return <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-full text-[10px] font-bold border border-red-200 dark:border-red-800/40 whitespace-nowrap">✕ Rejected</span>;
-                                      if (rowStatuses.some(s => s === 'Pending')) return <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-[10px] font-bold border border-amber-200 dark:border-amber-800/40 whitespace-nowrap">⏳ Pending</span>;
-                                      return null;
-                                    })()}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                                <th className='py-3 px-4 font-medium w-auto min-w-[18rem]'>
+                                  {tMsg('Task', 'Tugas')}
+                                </th>
+                                {weekGroup.weekDays.map((dateStr, i) => (
+                                  <th
+                                    key={dateStr}
+                                    className='py-3 px-2 font-medium text-center w-20 whitespace-nowrap'>
+                                    <div>{dayNames[i]}</div>
+                                    <div className='text-[10px] opacity-70 mt-0.5'>
+                                      {formatDateMMM(dateStr).replace(
+                                        /,?\s*\d{4}/,
+                                        ''
+                                      )}
+                                    </div>
+                                  </th>
+                                ))}
+                                <th className='py-3 px-4 font-medium text-center w-20'>
+                                  {tMsg('Total', 'Total')}
+                                </th>
+                                <th className='py-3 px-4 font-medium text-center w-24'>
+                                  {tMsg('Status', 'Status')}
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className='divide-y divide-slate-100 dark:divide-neutral-800 text-slate-700 dark:text-neutral-200'>
+                              {weekGroup.rows.map((row) => {
+                                return (
+                                  <tr
+                                    key={row.id}
+                                    className='hover:bg-slate-50 dark:hover:bg-neutral-900/30 transition-colors'>
+                                    <td className='py-3 px-4 font-medium text-slate-800 dark:text-neutral-200 align-top'>
+                                      <span className='break-words'>
+                                        {row.custom_project_name ||
+                                          boards.find(
+                                            (b) =>
+                                              b.id === parseInt(row.board_id)
+                                          )?.name || (
+                                            <span className='text-slate-400 dark:text-neutral-500 italic'>
+                                              General / No Project
+                                            </span>
+                                          )}
+                                      </span>
+                                    </td>
+                                    <td className='py-3 px-4 text-slate-600 dark:text-neutral-300 align-top'>
+                                      <span
+                                        className='break-words block'
+                                        title={
+                                          row.custom_task_name ||
+                                          Object.values(row.days)[0]?.task_name
+                                        }>
+                                        {row.custom_task_name ||
+                                          Object.values(row.days)[0]
+                                            ?.task_name || (
+                                            <span className='text-slate-400 dark:text-neutral-500 italic'>
+                                              No Task
+                                            </span>
+                                          )}
+                                      </span>
+                                    </td>
+                                    {weekGroup.weekDays.map((dateStr) => {
+                                      const d = row.days[dateStr];
+                                      return (
+                                        <td
+                                          key={dateStr}
+                                          className='py-3 px-2 text-center relative group align-top'>
+                                          <div className='font-medium pr-1'>
+                                            {d ? (
+                                              <span
+                                                className={
+                                                  parseFloat(d.hours_logged) > 8
+                                                    ? 'text-amber-500'
+                                                    : ''
+                                                }>
+                                                {d.hours_logged}
+                                              </span>
+                                            ) : (
+                                              <span className='text-slate-300 dark:text-neutral-600'>
+                                                -
+                                              </span>
+                                            )}
+                                          </div>
+                                          {d && d.status && (
+                                            <div
+                                              className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${
+                                                d.status === 'Approved'
+                                                  ? 'bg-emerald-500'
+                                                  : d.status === 'Pending'
+                                                    ? 'bg-amber-500'
+                                                    : d.status === 'Rejected'
+                                                      ? 'bg-red-500'
+                                                      : 'bg-slate-300'
+                                              }`}
+                                              title={d.status}></div>
+                                          )}
+                                        </td>
+                                      );
+                                    })}
+                                    <td className='py-3 px-4 text-center font-bold text-indigo-600 dark:text-indigo-400 align-top'>
+                                      {row.totalHours > 0 ? (
+                                        `${row.totalHours}h`
+                                      ) : (
+                                        <span className='text-slate-300 dark:text-neutral-600'>
+                                          -
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className='py-3 px-4 text-center align-top'>
+                                      {(() => {
+                                        const rowStatuses = Object.values(
+                                          row.days
+                                        )
+                                          .map((d) => d?.status)
+                                          .filter(Boolean);
+                                        if (
+                                          rowStatuses.every(
+                                            (s) => s === 'Approved'
+                                          )
+                                        )
+                                          return (
+                                            <span className='px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-full text-[10px] font-bold border border-emerald-200 dark:border-emerald-800/40 whitespace-nowrap'>
+                                              ✓ Approved
+                                            </span>
+                                          );
+                                        if (
+                                          rowStatuses.every(
+                                            (s) => s === 'Rejected'
+                                          )
+                                        )
+                                          return (
+                                            <span className='px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-full text-[10px] font-bold border border-red-200 dark:border-red-800/40 whitespace-nowrap'>
+                                              ✕ Rejected
+                                            </span>
+                                          );
+                                        if (
+                                          rowStatuses.some(
+                                            (s) => s === 'Pending'
+                                          )
+                                        )
+                                          return (
+                                            <span className='px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 rounded-full text-[10px] font-bold border border-amber-200 dark:border-amber-800/40 whitespace-nowrap'>
+                                              ⏳ Pending
+                                            </span>
+                                          );
+                                        return null;
+                                      })()}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           )}
           {historyGridByWeek.length > historyDisplayCount && (
-            <div className="text-center pt-2">
+            <div className='text-center pt-2'>
               <button
-                onClick={() => setHistoryDisplayCount(c => c + 10)}
-                className="px-5 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/30 rounded-xl transition-all"
-              >
-                Load More ({historyGridByWeek.length - historyDisplayCount} remaining)
+                onClick={() => setHistoryDisplayCount((c) => c + 10)}
+                className='px-5 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/30 rounded-xl transition-all'>
+                Load More ({historyGridByWeek.length - historyDisplayCount}{' '}
+                remaining)
               </button>
             </div>
           )}
@@ -1668,48 +2376,53 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
       )}
 
       {activeSubTab === 'approvals' && (
-        <div className="bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-amber-200 dark:border-amber-800/50 pb-3">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-              <Icon name="shield" className="w-5 h-5 text-amber-500" /> {tMsg('Pending Approvals for Team', 'Persetujuan Tim Tertunda')}
+        <div className='bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-900/50 rounded-2xl p-6 shadow-sm flex flex-col gap-4'>
+          <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-amber-200 dark:border-amber-800/50 pb-3'>
+            <h2 className='text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2'>
+              <Icon name='shield' className='w-5 h-5 text-amber-500' />{' '}
+              {tMsg('Pending Approvals for Team', 'Persetujuan Tim Tertunda')}
             </h2>
             {selectedApprovalWeeks.size > 0 && (
-              <div className="flex items-center gap-2 animate-fade-in">
-                <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 px-3 py-1.5 rounded-full">
-                  {selectedApprovalWeeks.size} {tMsg('week(s) selected', 'minggu dipilih')}
+              <div className='flex items-center gap-2 animate-fade-in'>
+                <span className='text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 px-3 py-1.5 rounded-full'>
+                  {selectedApprovalWeeks.size}{' '}
+                  {tMsg('week(s) selected', 'minggu dipilih')}
                 </span>
                 <button
                   onClick={() => {
                     const allIds = [];
-                    filteredGroupedApprovals.forEach(ug => ug.weeks.forEach(wg => {
-                      const key = `${ug.username}_${wg.weekStartStr}`;
-                      if (selectedApprovalWeeks.has(key)) allIds.push(...wg.entryIds);
-                    }));
+                    filteredGroupedApprovals.forEach((ug) =>
+                      ug.weeks.forEach((wg) => {
+                        const key = `${ug.username}_${wg.weekStartStr}`;
+                        if (selectedApprovalWeeks.has(key))
+                          allIds.push(...wg.entryIds);
+                      })
+                    );
                     handleApprove(allIds, 'Approved');
                     setSelectedApprovalWeeks(new Set());
                   }}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[10px] transition-all uppercase tracking-wide"
-                >
+                  className='px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[10px] transition-all uppercase tracking-wide'>
                   {tMsg('Approve Selected', 'Setujui Terpilih')}
                 </button>
                 <button
                   onClick={() => {
                     const allIds = [];
-                    filteredGroupedApprovals.forEach(ug => ug.weeks.forEach(wg => {
-                      const key = `${ug.username}_${wg.weekStartStr}`;
-                      if (selectedApprovalWeeks.has(key)) allIds.push(...wg.entryIds);
-                    }));
+                    filteredGroupedApprovals.forEach((ug) =>
+                      ug.weeks.forEach((wg) => {
+                        const key = `${ug.username}_${wg.weekStartStr}`;
+                        if (selectedApprovalWeeks.has(key))
+                          allIds.push(...wg.entryIds);
+                      })
+                    );
                     setRejectConfirmation(allIds);
                     setSelectedApprovalWeeks(new Set());
                   }}
-                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-[10px] transition-all uppercase tracking-wide"
-                >
+                  className='px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-[10px] transition-all uppercase tracking-wide'>
                   {tMsg('Reject Selected', 'Tolak Terpilih')}
                 </button>
                 <button
                   onClick={() => setSelectedApprovalWeeks(new Set())}
-                  className="px-2 py-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-[10px] font-bold transition-all"
-                >
+                  className='px-2 py-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-[10px] font-bold transition-all'>
                   {tMsg('Clear', 'Batal')}
                 </button>
               </div>
@@ -1717,338 +2430,580 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
           </div>
 
           {/* Filter Bar */}
-          <div className="flex flex-wrap items-center gap-3 bg-amber-50/40 dark:bg-neutral-950 border border-amber-200/60 dark:border-amber-900/30 rounded-xl px-4 py-3">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300">
-              <Icon name="filter" className="w-3.5 h-3.5" />
+          <div className='flex flex-wrap items-center gap-3 bg-amber-50/40 dark:bg-neutral-950 border border-amber-200/60 dark:border-amber-900/30 rounded-xl px-4 py-3'>
+            <div className='flex items-center gap-1.5 text-xs font-bold text-amber-800 dark:text-amber-300'>
+              <Icon name='filter' className='w-3.5 h-3.5' />
               {tMsg('Filter:', 'Filter:')}
             </div>
 
             {/* Global Select All Pending Weeks */}
             {filteredGroupedApprovals.length > 0 && (
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50 rounded-lg px-2.5 py-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all shadow-sm">
+              <label className='flex items-center gap-2 cursor-pointer text-xs font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/50 rounded-lg px-2.5 py-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all shadow-sm'>
                 <input
-                  type="checkbox"
+                  type='checkbox'
                   checked={
                     filteredGroupedApprovals.length > 0 &&
-                    filteredGroupedApprovals.every(ug =>
-                      ug.weeks.every(wg => selectedApprovalWeeks.has(`${ug.username}_${wg.weekStartStr}`))
+                    filteredGroupedApprovals.every((ug) =>
+                      ug.weeks.every((wg) =>
+                        selectedApprovalWeeks.has(
+                          `${ug.username}_${wg.weekStartStr}`
+                        )
+                      )
                     )
                   }
                   onChange={(e) => {
                     if (e.target.checked) {
                       const allKeys = new Set();
-                      filteredGroupedApprovals.forEach(ug => {
-                        ug.weeks.forEach(wg => allKeys.add(`${ug.username}_${wg.weekStartStr}`));
+                      filteredGroupedApprovals.forEach((ug) => {
+                        ug.weeks.forEach((wg) =>
+                          allKeys.add(`${ug.username}_${wg.weekStartStr}`)
+                        );
                       });
                       setSelectedApprovalWeeks(allKeys);
                     } else {
                       setSelectedApprovalWeeks(new Set());
                     }
                   }}
-                  className="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer"
+                  className='rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer'
                 />
-                <span>{tMsg('Select All Pending Weeks', 'Pilih Semua Minggu Pending')}</span>
+                <span>
+                  {tMsg(
+                    'Select All Pending Weeks',
+                    'Pilih Semua Minggu Pending'
+                  )}
+                </span>
               </label>
             )}
 
             {/* User filter */}
             <select
               value={apprFilterUser}
-              onChange={e => setApprFilterUser(e.target.value)}
-              className="text-xs bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-900/50 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500 cursor-pointer"
-            >
-              <option value="">{tMsg('All Users', 'Semua User')}</option>
-              {pendingUsernames.map(u => (
-                <option key={u} value={u}>@{u}</option>
+              onChange={(e) => setApprFilterUser(e.target.value)}
+              className='text-xs bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-900/50 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500 cursor-pointer'>
+              <option value=''>{tMsg('All Users', 'Semua User')}</option>
+              {pendingUsernames.map((u) => (
+                <option key={u} value={u}>
+                  @{u}
+                </option>
               ))}
             </select>
             {/* Date from */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-500 dark:text-neutral-400">{tMsg('From', 'Dari')}</span>
+            <div className='flex items-center gap-1.5'>
+              <span className='text-xs text-slate-500 dark:text-neutral-400'>
+                {tMsg('From', 'Dari')}
+              </span>
               <input
-                type="date"
+                type='date'
                 value={apprFilterDateFrom}
-                onChange={e => setApprFilterDateFrom(e.target.value)}
-                className="text-xs bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-900/50 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500"
+                onChange={(e) => setApprFilterDateFrom(e.target.value)}
+                className='text-xs bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-900/50 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500'
               />
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-500 dark:text-neutral-400">{tMsg('To', 'Hingga')}</span>
+            <div className='flex items-center gap-1.5'>
+              <span className='text-xs text-slate-500 dark:text-neutral-400'>
+                {tMsg('To', 'Hingga')}
+              </span>
               <input
-                type="date"
+                type='date'
                 value={apprFilterDateTo}
-                onChange={e => setApprFilterDateTo(e.target.value)}
-                className="text-xs bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-900/50 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500"
+                onChange={(e) => setApprFilterDateTo(e.target.value)}
+                className='text-xs bg-white dark:bg-neutral-900 border border-amber-200 dark:border-amber-900/50 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500'
               />
             </div>
             {/* Clear */}
             {(apprFilterUser || apprFilterDateFrom || apprFilterDateTo) && (
               <button
-                onClick={() => { setApprFilterUser(''); setApprFilterDateFrom(''); setApprFilterDateTo(''); }}
-                className="text-xs font-bold text-red-500 hover:text-red-600 dark:text-red-400 px-2 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
-              >
+                onClick={() => {
+                  setApprFilterUser('');
+                  setApprFilterDateFrom('');
+                  setApprFilterDateTo('');
+                }}
+                className='text-xs font-bold text-red-500 hover:text-red-600 dark:text-red-400 px-2 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors'>
                 ✕ {tMsg('Clear', 'Hapus')}
               </button>
             )}
-            <span className="ml-auto text-xs text-slate-400 dark:text-neutral-500">
-              {filteredGroupedApprovals.reduce((sum, u) => sum + u.weeks.length, 0)} {tMsg('pending weeks', 'minggu tertunda')} · {filteredGroupedApprovals.length} {tMsg('users', 'user')}
+            <span className='ml-auto text-xs text-slate-400 dark:text-neutral-500'>
+              {filteredGroupedApprovals.reduce(
+                (sum, u) => sum + u.weeks.length,
+                0
+              )}{' '}
+              {tMsg('pending weeks', 'minggu tertunda')} ·{' '}
+              {filteredGroupedApprovals.length} {tMsg('users', 'user')}
             </span>
           </div>
 
           {filteredGroupedApprovals.length === 0 ? (
-            <div className="text-center text-slate-400 dark:text-neutral-500 italic py-6">{tMsg('No pending team approvals found.', 'Tidak ada persetujuan tim yang tertunda.')}</div>
+            <div className='text-center text-slate-400 dark:text-neutral-500 italic py-6'>
+              {tMsg(
+                'No pending team approvals found.',
+                'Tidak ada persetujuan tim yang tertunda.'
+              )}
+            </div>
           ) : (
-            <div className="space-y-6">
-              {filteredGroupedApprovals.map(userGroup => {
+            <div className='space-y-6'>
+              {filteredGroupedApprovals.map((userGroup) => {
                 const userWeekLimit = getUserWeekLimit(userGroup.username);
                 const visibleWeeks = userGroup.weeks.slice(0, userWeekLimit);
-                const isAllUserWeeksSelected = userGroup.weeks.every(wg => selectedApprovalWeeks.has(`${userGroup.username}_${wg.weekStartStr}`));
+                const isAllUserWeeksSelected = userGroup.weeks.every((wg) =>
+                  selectedApprovalWeeks.has(
+                    `${userGroup.username}_${wg.weekStartStr}`
+                  )
+                );
 
                 return (
-                  <div key={userGroup.username} className="flex flex-col gap-4 border border-amber-200/50 dark:border-amber-900/20 rounded-2xl p-4 bg-slate-50/50 dark:bg-neutral-900/40">
+                  <div
+                    key={userGroup.username}
+                    className='flex flex-col gap-4 border border-amber-200/50 dark:border-amber-900/20 rounded-2xl p-4 bg-slate-50/50 dark:bg-neutral-900/40'>
                     {/* User Card Header */}
-                    <div className="flex justify-between items-center text-sm font-bold text-slate-800 dark:text-white border-b border-amber-100 dark:border-amber-900/20 pb-2 flex-wrap gap-2">
-                      <div className="flex items-center gap-2">
-                        <Icon name="user" className="w-4 h-4 text-indigo-500" />
+                    <div className='flex justify-between items-center text-sm font-bold text-slate-800 dark:text-white border-b border-amber-100 dark:border-amber-900/20 pb-2 flex-wrap gap-2'>
+                      <div className='flex items-center gap-2'>
+                        <Icon name='user' className='w-4 h-4 text-indigo-500' />
                         <span>@{userGroup.username}</span>
-                        <span className="text-xs text-slate-400 dark:text-neutral-500 font-normal">
-                          ({userGroup.weeks.length} {tMsg('pending weeks', 'minggu pending')})
+                        <span className='text-xs text-slate-400 dark:text-neutral-500 font-normal'>
+                          ({userGroup.weeks.length}{' '}
+                          {tMsg('pending weeks', 'minggu pending')})
                         </span>
                       </div>
-                      <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-white dark:bg-neutral-900 border border-indigo-100 dark:border-indigo-900/50 px-2.5 py-1 rounded-lg transition-colors">
+                      <label className='flex items-center gap-2 cursor-pointer text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 bg-white dark:bg-neutral-900 border border-indigo-100 dark:border-indigo-900/50 px-2.5 py-1 rounded-lg transition-colors'>
                         <input
-                          type="checkbox"
+                          type='checkbox'
                           checked={isAllUserWeeksSelected}
                           onChange={(e) => {
                             const newSet = new Set(selectedApprovalWeeks);
-                            userGroup.weeks.forEach(wg => {
+                            userGroup.weeks.forEach((wg) => {
                               const key = `${userGroup.username}_${wg.weekStartStr}`;
                               if (e.target.checked) newSet.add(key);
                               else newSet.delete(key);
                             });
                             setSelectedApprovalWeeks(newSet);
                           }}
-                          className="rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer"
+                          className='rounded text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer'
                         />
-                        <span>{tMsg('Select all for', 'Pilih semua')} @{userGroup.username}</span>
+                        <span>
+                          {tMsg('Select all for', 'Pilih semua')} @
+                          {userGroup.username}
+                        </span>
                       </label>
                     </div>
 
                     {/* Weeks List */}
-                    <div className="space-y-4">
-                      {visibleWeeks.map(weekGroup => {
+                    <div className='space-y-4'>
+                      {visibleWeeks.map((weekGroup) => {
                         const weekStartStr = weekGroup.weekStartStr;
                         const key = `${userGroup.username}_${weekStartStr}`;
                         const isExpanded = expandedApprovalWeeks.has(key);
                         const isSelected = selectedApprovalWeeks.has(key);
 
                         return (
-                          <div key={weekStartStr} className={`border rounded-xl bg-white dark:bg-neutral-950 overflow-hidden shadow-sm transition-all ${isSelected ? 'border-indigo-400 dark:border-indigo-600 ring-1 ring-indigo-400/30' : 'border-slate-200 dark:border-neutral-800'
+                          <div
+                            key={weekStartStr}
+                            className={`border rounded-xl bg-white dark:bg-neutral-950 overflow-hidden shadow-sm transition-all ${
+                              isSelected
+                                ? 'border-indigo-400 dark:border-indigo-600 ring-1 ring-indigo-400/30'
+                                : 'border-slate-200 dark:border-neutral-800'
                             }`}>
-                            <div className="flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-neutral-900 w-full text-left font-bold text-slate-700 dark:text-slate-200 text-xs flex-wrap sm:flex-nowrap gap-2">
-                              <div className="flex items-center gap-3">
+                            <div className='flex justify-between items-center px-4 py-3 bg-slate-50 dark:bg-neutral-900 w-full text-left font-bold text-slate-700 dark:text-slate-200 text-xs flex-wrap sm:flex-nowrap gap-2'>
+                              <div className='flex items-center gap-3'>
                                 <input
-                                  type="checkbox"
+                                  type='checkbox'
                                   checked={isSelected}
                                   onChange={(e) => {
-                                    const newSet = new Set(selectedApprovalWeeks);
+                                    const newSet = new Set(
+                                      selectedApprovalWeeks
+                                    );
                                     if (e.target.checked) newSet.add(key);
                                     else newSet.delete(key);
                                     setSelectedApprovalWeeks(newSet);
                                   }}
-                                  className="w-3.5 h-3.5 rounded accent-indigo-600 cursor-pointer"
-                                  onClick={e => e.stopPropagation()}
+                                  className='w-3.5 h-3.5 rounded accent-indigo-600 cursor-pointer'
+                                  onClick={(e) => e.stopPropagation()}
                                 />
                                 <button
-                                  onClick={() => toggleExpandApprovalWeek(userGroup.username, weekStartStr)}
-                                  className="flex items-center gap-2 hover:opacity-80"
-                                >
-                                  <Icon name="calendar" className="w-3.5 h-3.5" />
+                                  onClick={() =>
+                                    toggleExpandApprovalWeek(
+                                      userGroup.username,
+                                      weekStartStr
+                                    )
+                                  }
+                                  className='flex items-center gap-2 hover:opacity-80'>
+                                  <Icon
+                                    name='calendar'
+                                    className='w-3.5 h-3.5'
+                                  />
                                   <span>
-                                    Week of {formatDateMMM(weekGroup.weekDays[0]).replace(/,?\s*\d{4}/, '')} - {formatDateMMM(weekGroup.weekDays[6]).replace(/,?\s*\d{4}/, '')}
+                                    Week of{' '}
+                                    {formatDateMMM(
+                                      weekGroup.weekDays[0]
+                                    ).replace(/,?\s*\d{4}/, '')}{' '}
+                                    -{' '}
+                                    {formatDateMMM(
+                                      weekGroup.weekDays[6]
+                                    ).replace(/,?\s*\d{4}/, '')}
                                   </span>
-                                  <span className="ml-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-400 rounded-full text-[10px] font-black border border-amber-200 dark:border-amber-800/50">
+                                  <span className='ml-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-400 rounded-full text-[10px] font-black border border-amber-200 dark:border-amber-800/50'>
                                     {weekGroup.totalHours}h
                                   </span>
-                                  <span className="text-slate-400 text-[10px] ml-1">
+                                  <span className='text-slate-400 text-[10px] ml-1'>
                                     {isExpanded ? '▼' : '▶'}
                                   </span>
                                 </button>
                               </div>
 
-                              <div className="flex items-center gap-2">
+                              <div className='flex items-center gap-2'>
                                 <button
-                                  onClick={() => handleApprove(weekGroup.entryIds, 'Approved')}
-                                  className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[10px] transition-all shadow-sm flex items-center gap-1"
-                                >
+                                  onClick={() =>
+                                    handleApprove(
+                                      weekGroup.entryIds,
+                                      'Approved'
+                                    )
+                                  }
+                                  className='px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[10px] transition-all shadow-sm flex items-center gap-1'>
                                   ✓ {tMsg('Approve', 'Setujui')}
                                 </button>
                                 <button
-                                  onClick={() => setRejectConfirmation(weekGroup.entryIds)}
-                                  className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-[10px] transition-all shadow-sm flex items-center gap-1"
-                                >
+                                  onClick={() =>
+                                    setRejectConfirmation(weekGroup.entryIds)
+                                  }
+                                  className='px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-[10px] transition-all shadow-sm flex items-center gap-1'>
                                   ✕ {tMsg('Reject', 'Tolak')}
                                 </button>
                               </div>
                             </div>
 
                             {isExpanded && (
-                              <div className="p-4 overflow-x-auto border-t border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-950">
-                                <table className="w-full text-left text-xs">
-                                  <thead className="bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800">
+                              <div className='p-4 overflow-x-auto border-t border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-950'>
+                                <table className='w-full text-left text-xs'>
+                                  <thead className='bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800'>
                                     <tr>
-                                      <th className="py-2.5 px-3 font-medium w-48 text-slate-500 dark:text-neutral-300">{tMsg('Project', 'Proyek')}</th>
-                                      <th className="py-2.5 px-3 font-medium w-64 text-slate-500 dark:text-neutral-300">{tMsg('Task', 'Tugas')}</th>
+                                      <th className='py-2.5 px-3 font-medium w-48 text-slate-500 dark:text-neutral-300'>
+                                        {tMsg('Project', 'Proyek')}
+                                      </th>
+                                      <th className='py-2.5 px-3 font-medium w-64 text-slate-500 dark:text-neutral-300'>
+                                        {tMsg('Task', 'Tugas')}
+                                      </th>
                                       {weekGroup.weekDays.map((dateStr, i) => {
                                         const isPublicHoliday = leaves.some(
-                                          l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+                                          (l) =>
+                                            l.leave_date === dateStr &&
+                                            (l.leave_type ===
+                                              'public_holiday' ||
+                                              l.leave_type === 'mass_leave')
                                         );
                                         const isUserLeave = leaves.some(
-                                          l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username && userGroup.username && (l.username.toLowerCase() === userGroup.username.toLowerCase())
+                                          (l) =>
+                                            l.leave_date === dateStr &&
+                                            l.leave_type === 'personal' &&
+                                            l.username &&
+                                            userGroup.username &&
+                                            l.username.toLowerCase() ===
+                                              userGroup.username.toLowerCase()
                                         );
                                         const isWeekend = i === 0 || i === 6;
 
                                         let headerClass = '';
-                                        if (isPublicHoliday) headerClass = 'bg-red-50 dark:bg-red-950/30';
-                                        else if (isUserLeave || isWeekend) headerClass = 'bg-slate-100 dark:bg-neutral-800/60';
+                                        if (isPublicHoliday)
+                                          headerClass =
+                                            'bg-red-50 dark:bg-red-950/30';
+                                        else if (isUserLeave || isWeekend)
+                                          headerClass =
+                                            'bg-slate-100 dark:bg-neutral-800/60';
 
                                         return (
-                                          <th key={dateStr} className={`py-2.5 px-2 font-medium text-center w-16 relative ${headerClass}`}>
-                                            <div className={isPublicHoliday ? 'text-red-600 dark:text-red-400 font-bold' : (isWeekend ? 'text-slate-400 dark:text-neutral-500' : (isUserLeave ? 'text-indigo-600 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-neutral-300'))}>{dayNames[i]}</div>
-                                            <div className={`text-[9px] mt-0.5 ${isPublicHoliday ? 'text-red-500 dark:text-red-400' : (isUserLeave ? 'text-indigo-500 dark:text-indigo-400' : 'text-slate-400 dark:text-neutral-500')}`}>{formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '')}</div>
+                                          <th
+                                            key={dateStr}
+                                            className={`py-2.5 px-2 font-medium text-center w-16 relative ${headerClass}`}>
+                                            <div
+                                              className={
+                                                isPublicHoliday
+                                                  ? 'text-red-600 dark:text-red-400 font-bold'
+                                                  : isWeekend
+                                                    ? 'text-slate-400 dark:text-neutral-500'
+                                                    : isUserLeave
+                                                      ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                                                      : 'text-slate-600 dark:text-neutral-300'
+                                              }>
+                                              {dayNames[i]}
+                                            </div>
+                                            <div
+                                              className={`text-[9px] mt-0.5 ${isPublicHoliday ? 'text-red-500 dark:text-red-400' : isUserLeave ? 'text-indigo-500 dark:text-indigo-400' : 'text-slate-400 dark:text-neutral-500'}`}>
+                                              {formatDateMMM(dateStr).replace(
+                                                /,?\s*\d{4}/,
+                                                ''
+                                              )}
+                                            </div>
                                             {isPublicHoliday && (
-                                              <div className="text-[9px] text-red-500 dark:text-red-400 font-semibold mt-0.5 truncate max-w-[64px] mx-auto" title={leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description}>
-                                                {leaves.find(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'))?.description || 'Holiday'}
+                                              <div
+                                                className='text-[9px] text-red-500 dark:text-red-400 font-semibold mt-0.5 truncate max-w-[64px] mx-auto'
+                                                title={
+                                                  leaves.find(
+                                                    (l) =>
+                                                      l.leave_date ===
+                                                        dateStr &&
+                                                      (l.leave_type ===
+                                                        'public_holiday' ||
+                                                        l.leave_type ===
+                                                          'mass_leave')
+                                                  )?.description
+                                                }>
+                                                {leaves.find(
+                                                  (l) =>
+                                                    l.leave_date === dateStr &&
+                                                    (l.leave_type ===
+                                                      'public_holiday' ||
+                                                      l.leave_type ===
+                                                        'mass_leave')
+                                                )?.description || 'Holiday'}
                                               </div>
                                             )}
                                             {isUserLeave && (
-                                              <div className="text-[9px] text-indigo-600 dark:text-indigo-400 font-semibold mt-0.5">
+                                              <div className='text-[9px] text-indigo-600 dark:text-indigo-400 font-semibold mt-0.5'>
                                                 {tMsg('Leave', 'Cuti')}
                                               </div>
                                             )}
                                           </th>
                                         );
                                       })}
-                                      <th className="py-2.5 px-3 font-medium text-center w-16 text-slate-500 dark:text-neutral-300">{tMsg('Total', 'Total')}</th>
+                                      <th className='py-2.5 px-3 font-medium text-center w-16 text-slate-500 dark:text-neutral-300'>
+                                        {tMsg('Total', 'Total')}
+                                      </th>
                                     </tr>
                                   </thead>
-                                  <tbody className="divide-y divide-slate-100 dark:divide-neutral-800 text-slate-700 dark:text-neutral-200">
-                                    {weekGroup.rows.map(row => {
+                                  <tbody className='divide-y divide-slate-100 dark:divide-neutral-800 text-slate-700 dark:text-neutral-200'>
+                                    {weekGroup.rows.map((row) => {
                                       let rowHoursTotal = 0;
                                       let rowHasAnyData = false;
-                                      weekGroup.weekDays.forEach((dateStr, i) => {
-                                        const d = row.days[dateStr];
-                                        const isPH = leaves.some(l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave'));
-                                        const isUL = leaves.some(l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username && userGroup.username && l.username.toLowerCase() === userGroup.username.toLowerCase());
-                                        if (d && !d.is_deleted) {
-                                          rowHoursTotal += parseFloat(d.hours_logged || 0);
-                                          rowHasAnyData = true;
-                                        } else if (isPH || isUL) {
-                                          rowHasAnyData = true;
+                                      weekGroup.weekDays.forEach(
+                                        (dateStr, i) => {
+                                          const d = row.days[dateStr];
+                                          const isPH = leaves.some(
+                                            (l) =>
+                                              l.leave_date === dateStr &&
+                                              (l.leave_type ===
+                                                'public_holiday' ||
+                                                l.leave_type === 'mass_leave')
+                                          );
+                                          const isUL = leaves.some(
+                                            (l) =>
+                                              l.leave_date === dateStr &&
+                                              l.leave_type === 'personal' &&
+                                              l.username &&
+                                              userGroup.username &&
+                                              l.username.toLowerCase() ===
+                                                userGroup.username.toLowerCase()
+                                          );
+                                          if (d && !d.is_deleted) {
+                                            rowHoursTotal += parseFloat(
+                                              d.hours_logged || 0
+                                            );
+                                            rowHasAnyData = true;
+                                          } else if (isPH || isUL) {
+                                            rowHasAnyData = true;
+                                          }
                                         }
-                                      });
+                                      );
 
                                       return (
-                                        <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-neutral-900/30">
-                                          <td className="py-2 px-3 font-medium text-slate-700 dark:text-neutral-200 align-top">
-                                            {row.custom_project_name || <span className="text-slate-400 dark:text-neutral-500 italic">—</span>}
+                                        <tr
+                                          key={row.id}
+                                          className='hover:bg-slate-50 dark:hover:bg-neutral-900/30'>
+                                          <td className='py-2 px-3 font-medium text-slate-700 dark:text-neutral-200 align-top'>
+                                            {row.custom_project_name || (
+                                              <span className='text-slate-400 dark:text-neutral-500 italic'>
+                                                —
+                                              </span>
+                                            )}
                                           </td>
-                                          <td className="py-2 px-3 text-slate-600 dark:text-neutral-300 align-top">
-                                            <span className="break-words whitespace-normal block" title={row.custom_task_name}>
-                                              {row.custom_task_name || <span className="text-slate-400 dark:text-neutral-500 italic">{tMsg('No Task', 'Tidak Ada Tugas')}</span>}
+                                          <td className='py-2 px-3 text-slate-600 dark:text-neutral-300 align-top'>
+                                            <span
+                                              className='break-words whitespace-normal block'
+                                              title={row.custom_task_name}>
+                                              {row.custom_task_name || (
+                                                <span className='text-slate-400 dark:text-neutral-500 italic'>
+                                                  {tMsg(
+                                                    'No Task',
+                                                    'Tidak Ada Tugas'
+                                                  )}
+                                                </span>
+                                              )}
                                             </span>
                                           </td>
-                                          {weekGroup.weekDays.map((dateStr, i) => {
-                                            const d = row.days[dateStr];
-                                            const isPublicHoliday = leaves.some(
-                                              l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
-                                            );
-                                            const isUserLeave = leaves.some(
-                                              l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username && userGroup.username && l.username.toLowerCase() === userGroup.username.toLowerCase()
-                                            );
-                                            const isWeekend = i === 0 || i === 6;
+                                          {weekGroup.weekDays.map(
+                                            (dateStr, i) => {
+                                              const d = row.days[dateStr];
+                                              const isPublicHoliday =
+                                                leaves.some(
+                                                  (l) =>
+                                                    l.leave_date === dateStr &&
+                                                    (l.leave_type ===
+                                                      'public_holiday' ||
+                                                      l.leave_type ===
+                                                        'mass_leave')
+                                                );
+                                              const isUserLeave = leaves.some(
+                                                (l) =>
+                                                  l.leave_date === dateStr &&
+                                                  l.leave_type === 'personal' &&
+                                                  l.username &&
+                                                  userGroup.username &&
+                                                  l.username.toLowerCase() ===
+                                                    userGroup.username.toLowerCase()
+                                              );
+                                              const isWeekend =
+                                                i === 0 || i === 6;
 
-                                            let cellClass = '';
-                                            if (isPublicHoliday) cellClass = 'bg-red-50/60 dark:bg-red-950/20';
-                                            else if (isUserLeave || isWeekend) cellClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
+                                              let cellClass = '';
+                                              if (isPublicHoliday)
+                                                cellClass =
+                                                  'bg-red-50/60 dark:bg-red-950/20';
+                                              else if (isUserLeave || isWeekend)
+                                                cellClass =
+                                                  'bg-slate-100/40 dark:bg-neutral-800/50';
 
-                                            let val;
-                                            let valClass = 'text-slate-700 dark:text-neutral-200';
-                                            if (d && !d.is_deleted) {
-                                              val = d.hours_logged;
-                                              if (parseFloat(d.hours_logged) === 0) valClass = 'text-slate-400 dark:text-neutral-500';
-                                              else if (parseFloat(d.hours_logged) > 8) valClass = 'text-amber-500 font-bold';
-                                              else valClass = 'text-slate-800 dark:text-white font-semibold';
-                                            } else if (isPublicHoliday || isUserLeave) {
-                                              val = '0';
-                                              valClass = 'text-slate-400 dark:text-neutral-500';
-                                            } else {
-                                              val = '-';
-                                              valClass = 'text-slate-300 dark:text-neutral-600';
+                                              let val;
+                                              let valClass =
+                                                'text-slate-700 dark:text-neutral-200';
+                                              if (d && !d.is_deleted) {
+                                                val = d.hours_logged;
+                                                if (
+                                                  parseFloat(d.hours_logged) ===
+                                                  0
+                                                )
+                                                  valClass =
+                                                    'text-slate-400 dark:text-neutral-500';
+                                                else if (
+                                                  parseFloat(d.hours_logged) > 8
+                                                )
+                                                  valClass =
+                                                    'text-amber-500 font-bold';
+                                                else
+                                                  valClass =
+                                                    'text-slate-800 dark:text-white font-semibold';
+                                              } else if (
+                                                isPublicHoliday ||
+                                                isUserLeave
+                                              ) {
+                                                val = '0';
+                                                valClass =
+                                                  'text-slate-400 dark:text-neutral-500';
+                                              } else {
+                                                val = '-';
+                                                valClass =
+                                                  'text-slate-300 dark:text-neutral-600';
+                                              }
+
+                                              return (
+                                                <td
+                                                  key={dateStr}
+                                                  className={`py-2 px-2 text-center relative ${cellClass}`}>
+                                                  <div
+                                                    className={`w-12 mx-auto text-center font-medium ${valClass}`}>
+                                                    {val}
+                                                  </div>
+                                                </td>
+                                              );
                                             }
-
-                                            return (
-                                              <td key={dateStr} className={`py-2 px-2 text-center relative ${cellClass}`}>
-                                                <div className={`w-12 mx-auto text-center font-medium ${valClass}`}>
-                                                  {val}
-                                                </div>
-                                              </td>
-                                            );
-                                          })}
-                                          <td className="py-2 px-3 text-center font-bold">
-                                            {rowHasAnyData
-                                              ? <span className="text-indigo-600 dark:text-indigo-400">{rowHoursTotal}h</span>
-                                              : <span className="text-slate-300 dark:text-neutral-600">-</span>
-                                            }
+                                          )}
+                                          <td className='py-2 px-3 text-center font-bold'>
+                                            {rowHasAnyData ? (
+                                              <span className='text-indigo-600 dark:text-indigo-400'>
+                                                {rowHoursTotal}h
+                                              </span>
+                                            ) : (
+                                              <span className='text-slate-300 dark:text-neutral-600'>
+                                                -
+                                              </span>
+                                            )}
                                           </td>
                                         </tr>
                                       );
                                     })}
                                   </tbody>
-                                  <tfoot className="bg-slate-50 dark:bg-neutral-900 border-t border-slate-200 dark:border-neutral-700 text-slate-700 dark:text-neutral-200 font-bold">
+                                  <tfoot className='bg-slate-50 dark:bg-neutral-900 border-t border-slate-200 dark:border-neutral-700 text-slate-700 dark:text-neutral-200 font-bold'>
                                     <tr>
-                                      <td colSpan="2" className="py-2 px-3 text-center text-slate-500 dark:text-neutral-400 text-[10px] uppercase tracking-wider">{tMsg('Daily Totals:', 'Total Harian:')}</td>
+                                      <td
+                                        colSpan='2'
+                                        className='py-2 px-3 text-center text-slate-500 dark:text-neutral-400 text-[10px] uppercase tracking-wider'>
+                                        {tMsg('Daily Totals:', 'Total Harian:')}
+                                      </td>
                                       {weekGroup.weekDays.map((dateStr, i) => {
                                         let dayTotal = 0;
                                         let dayHasData = false;
-                                        weekGroup.rows.forEach(r => {
+                                        weekGroup.rows.forEach((r) => {
                                           const d = r.days[dateStr];
-                                          if (d && !d.is_deleted && d.hours_logged != null) {
-                                            dayTotal += parseFloat(d.hours_logged);
+                                          if (
+                                            d &&
+                                            !d.is_deleted &&
+                                            d.hours_logged != null
+                                          ) {
+                                            dayTotal += parseFloat(
+                                              d.hours_logged
+                                            );
                                             dayHasData = true;
                                           }
                                         });
                                         const isPublicHoliday = leaves.some(
-                                          l => l.leave_date === dateStr && (l.leave_type === 'public_holiday' || l.leave_type === 'mass_leave')
+                                          (l) =>
+                                            l.leave_date === dateStr &&
+                                            (l.leave_type ===
+                                              'public_holiday' ||
+                                              l.leave_type === 'mass_leave')
                                         );
                                         const isUserLeave = leaves.some(
-                                          l => l.leave_date === dateStr && l.leave_type === 'personal' && l.username && userGroup.username && l.username.toLowerCase() === userGroup.username.toLowerCase()
+                                          (l) =>
+                                            l.leave_date === dateStr &&
+                                            l.leave_type === 'personal' &&
+                                            l.username &&
+                                            userGroup.username &&
+                                            l.username.toLowerCase() ===
+                                              userGroup.username.toLowerCase()
                                         );
                                         const isWeekend = i === 0 || i === 6;
 
                                         let footerClass = '';
-                                        if (isPublicHoliday) footerClass = 'bg-red-50/60 dark:bg-red-950/20';
-                                        else if (isUserLeave || isWeekend) footerClass = 'bg-slate-100/40 dark:bg-neutral-800/50';
+                                        if (isPublicHoliday)
+                                          footerClass =
+                                            'bg-red-50/60 dark:bg-red-950/20';
+                                        else if (isUserLeave || isWeekend)
+                                          footerClass =
+                                            'bg-slate-100/40 dark:bg-neutral-800/50';
 
-                                        let textClass = 'text-indigo-600 dark:text-indigo-400';
+                                        let textClass =
+                                          'text-indigo-600 dark:text-indigo-400';
                                         if (isPublicHoliday) {
-                                          textClass = 'text-red-600 dark:text-red-400';
+                                          textClass =
+                                            'text-red-600 dark:text-red-400';
                                         } else if (dayTotal > 8) {
                                           textClass = 'text-amber-500';
                                         } else if (isUserLeave) {
-                                          textClass = 'text-indigo-600 dark:text-indigo-400';
+                                          textClass =
+                                            'text-indigo-600 dark:text-indigo-400';
                                         } else {
-                                          textClass = 'text-indigo-600 dark:text-indigo-400';
+                                          textClass =
+                                            'text-indigo-600 dark:text-indigo-400';
                                         }
 
                                         return (
-                                          <td key={dateStr} className={`py-2 px-2 text-center font-bold ${footerClass} ${textClass}`}
-                                            title={dayTotal > 8 ? 'Overtime: >8h' : (isPublicHoliday ? 'Public Holiday' : (isUserLeave ? 'Leave' : ''))}>
-                                            {dayHasData ? `${dayTotal}h` : (isPublicHoliday || isUserLeave ? '0h' : '-')}
+                                          <td
+                                            key={dateStr}
+                                            className={`py-2 px-2 text-center font-bold ${footerClass} ${textClass}`}
+                                            title={
+                                              dayTotal > 8
+                                                ? 'Overtime: >8h'
+                                                : isPublicHoliday
+                                                  ? 'Public Holiday'
+                                                  : isUserLeave
+                                                    ? 'Leave'
+                                                    : ''
+                                            }>
+                                            {dayHasData
+                                              ? `${dayTotal}h`
+                                              : isPublicHoliday || isUserLeave
+                                                ? '0h'
+                                                : '-'}
                                           </td>
                                         );
                                       })}
-                                      <td className="py-2 px-3 text-center font-bold text-indigo-600 dark:text-indigo-400">
+                                      <td className='py-2 px-3 text-center font-bold text-indigo-600 dark:text-indigo-400'>
                                         {weekGroup.totalHours}h
                                       </td>
                                     </tr>
@@ -2064,11 +3019,20 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                     {/* Per-User Lazy Load Button */}
                     {userGroup.weeks.length > userWeekLimit && (
                       <button
-                        onClick={() => handleLoadMoreUserWeeks(userGroup.username)}
-                        className="w-full py-2.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-bold transition-all border border-amber-200/60 dark:border-amber-900/40 shadow-sm flex items-center justify-center gap-2 mt-1"
-                      >
-                        <Icon name="plus" className="w-3.5 h-3.5" />
-                        <span>{tMsg('Load More Weeks for', 'Tampilkan Minggu Lainnya untuk')} @{userGroup.username} (+{userGroup.weeks.length - userWeekLimit} {tMsg('remaining', 'tersisa')})</span>
+                        onClick={() =>
+                          handleLoadMoreUserWeeks(userGroup.username)
+                        }
+                        className='w-full py-2.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-bold transition-all border border-amber-200/60 dark:border-amber-900/40 shadow-sm flex items-center justify-center gap-2 mt-1'>
+                        <Icon name='plus' className='w-3.5 h-3.5' />
+                        <span>
+                          {tMsg(
+                            'Load More Weeks for',
+                            'Tampilkan Minggu Lainnya untuk'
+                          )}{' '}
+                          @{userGroup.username} (+
+                          {userGroup.weeks.length - userWeekLimit}{' '}
+                          {tMsg('remaining', 'tersisa')})
+                        </span>
                       </button>
                     )}
                   </div>
@@ -2081,262 +3045,446 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
       {/* Approval History Section */}
       {activeSubTab === 'approval-history' && (
-        <div className="bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+        <div className='bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 rounded-2xl p-6 shadow-sm flex flex-col gap-4'>
           {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 dark:border-neutral-700 pb-3">
+          <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 dark:border-neutral-700 pb-3'>
             <div>
-              <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                <Icon name="clock" className="w-5 h-5 text-slate-500 dark:text-neutral-400" />
+              <h2 className='text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2'>
+                <Icon
+                  name='clock'
+                  className='w-5 h-5 text-slate-500 dark:text-neutral-400'
+                />
                 {tMsg('Approval History', 'Riwayat Persetujuan')}
               </h2>
-              <p className="text-xs text-slate-400 dark:text-neutral-500 mt-0.5">
-                {tMsg('Timesheets you have approved or rejected', 'Timesheet yang sudah Anda setujui atau tolak')}
+              <p className='text-xs text-slate-400 dark:text-neutral-500 mt-0.5'>
+                {tMsg(
+                  'Timesheets you have approved or rejected',
+                  'Timesheet yang sudah Anda setujui atau tolak'
+                )}
               </p>
             </div>
             {filteredGroupedApprovalHistory.length > 0 && (
               <button
                 onClick={handleExportApprovalHistoryCSV}
-                className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border border-indigo-100 dark:border-indigo-800/30 shadow-sm"
-              >
+                className='px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 border border-indigo-100 dark:border-indigo-800/30 shadow-sm'>
                 📥 {tMsg('Export CSV', 'Ekspor CSV')}
               </button>
             )}
           </div>
 
           {/* Filter Bar */}
-          <div className="flex flex-wrap items-center gap-3 bg-slate-50 dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded-xl px-4 py-3">
-            <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-neutral-400">
-              <Icon name="filter" className="w-3.5 h-3.5" />
+          <div className='flex flex-wrap items-center gap-3 bg-slate-50 dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded-xl px-4 py-3'>
+            <div className='flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-neutral-400'>
+              <Icon name='filter' className='w-3.5 h-3.5' />
               {tMsg('Filter:', 'Filter:')}
             </div>
             {/* User filter */}
             <select
               value={histFilterUser}
-              onChange={e => { setHistFilterUser(e.target.value); setHistDisplayCount(15); }}
-              className="text-xs bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500 cursor-pointer"
-            >
-              <option value="">{tMsg('All Users', 'Semua User')}</option>
-              {historyUsernames.map(u => (
-                <option key={u} value={u}>@{u}</option>
+              onChange={(e) => {
+                setHistFilterUser(e.target.value);
+                setHistDisplayCount(15);
+              }}
+              className='text-xs bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500 cursor-pointer'>
+              <option value=''>{tMsg('All Users', 'Semua User')}</option>
+              {historyUsernames.map((u) => (
+                <option key={u} value={u}>
+                  @{u}
+                </option>
               ))}
             </select>
             {/* Status filter */}
             <select
               value={histFilterStatus}
-              onChange={e => { setHistFilterStatus(e.target.value); setHistDisplayCount(15); }}
-              className="text-xs bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500 cursor-pointer"
-            >
-              <option value="">{tMsg('All Status', 'Semua Status')}</option>
-              <option value="Approved">✓ Approved</option>
-              <option value="Rejected">✕ Rejected</option>
-              <option value="Mixed">~ Mixed</option>
+              onChange={(e) => {
+                setHistFilterStatus(e.target.value);
+                setHistDisplayCount(15);
+              }}
+              className='text-xs bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500 cursor-pointer'>
+              <option value=''>{tMsg('All Status', 'Semua Status')}</option>
+              <option value='Approved'>✓ Approved</option>
+              <option value='Rejected'>✕ Rejected</option>
+              <option value='Mixed'>~ Mixed</option>
             </select>
             {/* Date from */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-400 dark:text-neutral-500">{tMsg('From', 'Dari')}</span>
+            <div className='flex items-center gap-1.5'>
+              <span className='text-xs text-slate-400 dark:text-neutral-500'>
+                {tMsg('From', 'Dari')}
+              </span>
               <input
-                type="date"
+                type='date'
                 value={histFilterDateFrom}
-                onChange={e => { setHistFilterDateFrom(e.target.value); setHistDisplayCount(15); }}
-                className="text-xs bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500"
+                onChange={(e) => {
+                  setHistFilterDateFrom(e.target.value);
+                  setHistDisplayCount(15);
+                }}
+                className='text-xs bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500'
               />
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-slate-400 dark:text-neutral-500">{tMsg('To', 'Hingga')}</span>
+            <div className='flex items-center gap-1.5'>
+              <span className='text-xs text-slate-400 dark:text-neutral-500'>
+                {tMsg('To', 'Hingga')}
+              </span>
               <input
-                type="date"
+                type='date'
                 value={histFilterDateTo}
-                onChange={e => { setHistFilterDateTo(e.target.value); setHistDisplayCount(15); }}
-                className="text-xs bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500"
+                onChange={(e) => {
+                  setHistFilterDateTo(e.target.value);
+                  setHistDisplayCount(15);
+                }}
+                className='text-xs bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg px-2.5 py-1.5 text-slate-700 dark:text-neutral-200 outline-none focus:border-indigo-500'
               />
             </div>
             {/* Clear */}
-            {(histFilterUser || histFilterStatus || histFilterDateFrom || histFilterDateTo) && (
+            {(histFilterUser ||
+              histFilterStatus ||
+              histFilterDateFrom ||
+              histFilterDateTo) && (
               <button
-                onClick={() => { setHistFilterUser(''); setHistFilterStatus(''); setHistFilterDateFrom(''); setHistFilterDateTo(''); setHistDisplayCount(15); }}
-                className="text-xs font-bold text-red-500 hover:text-red-600 dark:text-red-400 px-2 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
-              >
+                onClick={() => {
+                  setHistFilterUser('');
+                  setHistFilterStatus('');
+                  setHistFilterDateFrom('');
+                  setHistFilterDateTo('');
+                  setHistDisplayCount(15);
+                }}
+                className='text-xs font-bold text-red-500 hover:text-red-600 dark:text-red-400 px-2 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors'>
                 ✕ {tMsg('Clear', 'Hapus')}
               </button>
             )}
-            <span className="ml-auto text-xs text-slate-400 dark:text-neutral-500">
-              {filteredGroupedApprovalHistory.reduce((sum, u) => sum + u.weeks.length, 0)} {tMsg('weeks', 'minggu')} · {filteredGroupedApprovalHistory.length} {tMsg('users', 'user')}
+            <span className='ml-auto text-xs text-slate-400 dark:text-neutral-500'>
+              {filteredGroupedApprovalHistory.reduce(
+                (sum, u) => sum + u.weeks.length,
+                0
+              )}{' '}
+              {tMsg('weeks', 'minggu')} ·{' '}
+              {filteredGroupedApprovalHistory.length} {tMsg('users', 'user')}
             </span>
           </div>
 
           {filteredGroupedApprovalHistory.length === 0 ? (
-            <div className="text-center text-slate-400 dark:text-neutral-500 italic py-10">
-              {tMsg('No approval history found.', 'Belum ada riwayat persetujuan.')}
+            <div className='text-center text-slate-400 dark:text-neutral-500 italic py-10'>
+              {tMsg(
+                'No approval history found.',
+                'Belum ada riwayat persetujuan.'
+              )}
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className='space-y-3'>
               {(() => {
                 // Flatten weeks across users for lazy load tracking
                 let displayedCount = 0;
                 const maxDisplay = histDisplayCount;
 
-                return filteredGroupedApprovalHistory.map(userGroup => {
-                  const isUserExpanded = expandedHistoryUsers.has(userGroup.username);
+                return filteredGroupedApprovalHistory.map((userGroup) => {
+                  const isUserExpanded = expandedHistoryUsers.has(
+                    userGroup.username
+                  );
                   const userWeekCount = userGroup.weeks.length;
 
                   // Count approved/rejected weeks
-                  const approvedCount = userGroup.weeks.filter(w => w.weekStatus === 'Approved').length;
-                  const rejectedCount = userGroup.weeks.filter(w => w.weekStatus === 'Rejected').length;
+                  const approvedCount = userGroup.weeks.filter(
+                    (w) => w.weekStatus === 'Approved'
+                  ).length;
+                  const rejectedCount = userGroup.weeks.filter(
+                    (w) => w.weekStatus === 'Rejected'
+                  ).length;
 
                   return (
-                    <div key={userGroup.username} className="border border-slate-200 dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm">
+                    <div
+                      key={userGroup.username}
+                      className='border border-slate-200 dark:border-neutral-800 rounded-2xl overflow-hidden shadow-sm'>
                       {/* User header — collapsible */}
                       <button
                         onClick={() => toggleHistoryUser(userGroup.username)}
-                        className="w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 dark:bg-neutral-950 hover:bg-slate-100 dark:hover:bg-neutral-900 transition-colors text-left"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                        className='w-full flex items-center justify-between px-5 py-3.5 bg-slate-50 dark:bg-neutral-950 hover:bg-slate-100 dark:hover:bg-neutral-900 transition-colors text-left'>
+                        <div className='flex items-center gap-3'>
+                          <div className='w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm'>
                             {userGroup.username.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div className="text-sm font-bold text-slate-800 dark:text-neutral-100">@{userGroup.username}</div>
-                            <div className="text-[10px] text-slate-400 dark:text-neutral-500 mt-0.5">
+                            <div className='text-sm font-bold text-slate-800 dark:text-neutral-100'>
+                              @{userGroup.username}
+                            </div>
+                            <div className='text-[10px] text-slate-400 dark:text-neutral-500 mt-0.5'>
                               {userWeekCount} {tMsg('week(s)', 'minggu')}
-                              {approvedCount > 0 && <span className="ml-2 text-emerald-600 dark:text-emerald-400">· ✓ {approvedCount} {tMsg('approved', 'disetujui')}</span>}
-                              {rejectedCount > 0 && <span className="ml-2 text-red-500 dark:text-red-400">· ✕ {rejectedCount} {tMsg('rejected', 'ditolak')}</span>}
+                              {approvedCount > 0 && (
+                                <span className='ml-2 text-emerald-600 dark:text-emerald-400'>
+                                  · ✓ {approvedCount}{' '}
+                                  {tMsg('approved', 'disetujui')}
+                                </span>
+                              )}
+                              {rejectedCount > 0 && (
+                                <span className='ml-2 text-red-500 dark:text-red-400'>
+                                  · ✕ {rejectedCount}{' '}
+                                  {tMsg('rejected', 'ditolak')}
+                                </span>
+                              )}
                             </div>
                           </div>
                         </div>
-                        <span className="text-slate-400 dark:text-neutral-500 text-xs font-semibold">
+                        <span className='text-slate-400 dark:text-neutral-500 text-xs font-semibold'>
                           {isUserExpanded ? '▼' : '▶'}
                         </span>
                       </button>
 
                       {/* Week list for this user */}
                       {isUserExpanded && (
-                        <div className="divide-y divide-slate-100 dark:divide-neutral-800">
-                          {userGroup.weeks.map(weekGroup => {
+                        <div className='divide-y divide-slate-100 dark:divide-neutral-800'>
+                          {userGroup.weeks.map((weekGroup) => {
                             if (displayedCount >= maxDisplay) return null;
                             displayedCount++;
 
                             const key = `hist_${userGroup.username}_${weekGroup.weekStartStr}`;
-                            const isWeekExpanded = expandedApprovalWeeks.has(key);
-                            const isApproved = weekGroup.weekStatus === 'Approved';
-                            const isRejected = weekGroup.weekStatus === 'Rejected';
+                            const isWeekExpanded =
+                              expandedApprovalWeeks.has(key);
+                            const isApproved =
+                              weekGroup.weekStatus === 'Approved';
+                            const isRejected =
+                              weekGroup.weekStatus === 'Rejected';
 
                             return (
-                              <div key={weekGroup.weekStartStr} className={`${isApproved ? 'bg-emerald-50/30 dark:bg-emerald-950/10' : isRejected ? 'bg-red-50/30 dark:bg-red-950/10' : ''}`}>
+                              <div
+                                key={weekGroup.weekStartStr}
+                                className={`${isApproved ? 'bg-emerald-50/30 dark:bg-emerald-950/10' : isRejected ? 'bg-red-50/30 dark:bg-red-950/10' : ''}`}>
                                 <button
                                   onClick={() => {
-                                    const newSet = new Set(expandedApprovalWeeks);
+                                    const newSet = new Set(
+                                      expandedApprovalWeeks
+                                    );
                                     if (newSet.has(key)) newSet.delete(key);
                                     else newSet.add(key);
                                     setExpandedApprovalWeeks(newSet);
                                   }}
-                                  className="w-full flex items-center justify-between px-5 py-3 text-left text-xs hover:bg-slate-50 dark:hover:bg-neutral-900/30 transition-colors"
-                                >
-                                  <div className="flex items-center gap-2.5">
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border ${isApproved
-                                      ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50'
-                                      : isRejected
-                                        ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/50'
-                                        : 'bg-slate-100 dark:bg-neutral-800 text-slate-600 dark:text-neutral-300 border-slate-200 dark:border-neutral-700'
+                                  className='w-full flex items-center justify-between px-5 py-3 text-left text-xs hover:bg-slate-50 dark:hover:bg-neutral-900/30 transition-colors'>
+                                  <div className='flex items-center gap-2.5'>
+                                    <span
+                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                                        isApproved
+                                          ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/50'
+                                          : isRejected
+                                            ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800/50'
+                                            : 'bg-slate-100 dark:bg-neutral-800 text-slate-600 dark:text-neutral-300 border-slate-200 dark:border-neutral-700'
                                       }`}>
-                                      {isApproved ? '✓' : isRejected ? '✕' : '~'} {weekGroup.weekStatus}
+                                      {isApproved
+                                        ? '✓'
+                                        : isRejected
+                                          ? '✕'
+                                          : '~'}{' '}
+                                      {weekGroup.weekStatus}
                                     </span>
-                                    <Icon name="calendar" className="w-3.5 h-3.5 text-slate-400 dark:text-neutral-500" />
-                                    <span className="font-semibold text-slate-700 dark:text-neutral-200">
-                                      Week of {formatDateMMM(weekGroup.weekDays[0]).replace(/,?\s*\d{4}/, '')} – {formatDateMMM(weekGroup.weekDays[6]).replace(/,?\s*\d{4}/, '')}
+                                    <Icon
+                                      name='calendar'
+                                      className='w-3.5 h-3.5 text-slate-400 dark:text-neutral-500'
+                                    />
+                                    <span className='font-semibold text-slate-700 dark:text-neutral-200'>
+                                      Week of{' '}
+                                      {formatDateMMM(
+                                        weekGroup.weekDays[0]
+                                      ).replace(/,?\s*\d{4}/, '')}{' '}
+                                      –{' '}
+                                      {formatDateMMM(
+                                        weekGroup.weekDays[6]
+                                      ).replace(/,?\s*\d{4}/, '')}
                                     </span>
-                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isApproved ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40' :
-                                      isRejected ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/40' :
-                                        'bg-slate-100 dark:bg-neutral-800 text-slate-500 border-slate-200 dark:border-neutral-700'
+                                    <span
+                                      className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                                        isApproved
+                                          ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/40'
+                                          : isRejected
+                                            ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800/40'
+                                            : 'bg-slate-100 dark:bg-neutral-800 text-slate-500 border-slate-200 dark:border-neutral-700'
                                       }`}>
                                       {weekGroup.totalHours}h
                                     </span>
                                   </div>
-                                  <span className="text-slate-400 dark:text-neutral-500 text-[10px]">
+                                  <span className='text-slate-400 dark:text-neutral-500 text-[10px]'>
                                     {isWeekExpanded ? '▼' : '▶'}
                                   </span>
                                 </button>
 
                                 {isWeekExpanded && (
-                                  <div className="px-4 pb-4 overflow-x-auto">
-                                    <table className="w-full text-left text-xs">
-                                      <thead className="bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 text-slate-500 dark:text-neutral-300">
+                                  <div className='px-4 pb-4 overflow-x-auto'>
+                                    <table className='w-full text-left text-xs'>
+                                      <thead className='bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 text-slate-500 dark:text-neutral-300'>
                                         <tr>
-                                          <th className="py-2.5 px-3 font-medium w-56 min-w-[9rem]">{tMsg('Project', 'Proyek')}</th>
-                                          <th className="py-2.5 px-3 font-medium min-w-[14rem]">{tMsg('Task', 'Tugas')}</th>
-                                          {weekGroup.weekDays.map((dateStr, i) => {
-                                            const isWeekend = i === 0 || i === 6;
-                                            const dayNames2 = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                                            return (
-                                              <th key={dateStr} className={`py-2.5 px-2 font-medium text-center w-14 whitespace-nowrap ${isWeekend ? 'bg-slate-100/40 dark:bg-neutral-800/50' : ''}`}>
-                                                <div className={isWeekend ? 'text-slate-400 dark:text-neutral-500' : 'text-slate-600 dark:text-neutral-300'}>{dayNames2[i]}</div>
-                                                <div className="text-[9px] mt-0.5 text-slate-400 dark:text-neutral-500">{formatDateMMM(dateStr).replace(/,?\s*\d{4}/, '')}</div>
-                                              </th>
-                                            );
-                                          })}
-                                          <th className="py-2.5 px-3 font-medium text-center text-slate-500 dark:text-neutral-300 whitespace-nowrap">{tMsg('Total', 'Total')}</th>
-                                          <th className="py-2.5 px-3 font-medium text-center text-slate-500 dark:text-neutral-300">{tMsg('Status', 'Status')}</th>
+                                          <th className='py-2.5 px-3 font-medium w-56 min-w-[9rem]'>
+                                            {tMsg('Project', 'Proyek')}
+                                          </th>
+                                          <th className='py-2.5 px-3 font-medium min-w-[14rem]'>
+                                            {tMsg('Task', 'Tugas')}
+                                          </th>
+                                          {weekGroup.weekDays.map(
+                                            (dateStr, i) => {
+                                              const isWeekend =
+                                                i === 0 || i === 6;
+                                              const dayNames2 = [
+                                                'Sun',
+                                                'Mon',
+                                                'Tue',
+                                                'Wed',
+                                                'Thu',
+                                                'Fri',
+                                                'Sat',
+                                              ];
+                                              return (
+                                                <th
+                                                  key={dateStr}
+                                                  className={`py-2.5 px-2 font-medium text-center w-14 whitespace-nowrap ${isWeekend ? 'bg-slate-100/40 dark:bg-neutral-800/50' : ''}`}>
+                                                  <div
+                                                    className={
+                                                      isWeekend
+                                                        ? 'text-slate-400 dark:text-neutral-500'
+                                                        : 'text-slate-600 dark:text-neutral-300'
+                                                    }>
+                                                    {dayNames2[i]}
+                                                  </div>
+                                                  <div className='text-[9px] mt-0.5 text-slate-400 dark:text-neutral-500'>
+                                                    {formatDateMMM(
+                                                      dateStr
+                                                    ).replace(/,?\s*\d{4}/, '')}
+                                                  </div>
+                                                </th>
+                                              );
+                                            }
+                                          )}
+                                          <th className='py-2.5 px-3 font-medium text-center text-slate-500 dark:text-neutral-300 whitespace-nowrap'>
+                                            {tMsg('Total', 'Total')}
+                                          </th>
+                                          <th className='py-2.5 px-3 font-medium text-center text-slate-500 dark:text-neutral-300'>
+                                            {tMsg('Status', 'Status')}
+                                          </th>
                                         </tr>
                                       </thead>
-                                      <tbody className="divide-y divide-slate-100 dark:divide-neutral-800 text-slate-700 dark:text-neutral-200">
-                                        {weekGroup.rows.map(row => (
-                                          <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-neutral-900/20">
-                                            <td className="py-2 px-3 font-medium text-slate-800 dark:text-neutral-200 align-top">
-                                              <span className="break-words whitespace-normal">{row.custom_project_name || boards.find(b => b.id === parseInt(row.board_id))?.name || <span className="text-slate-400 dark:text-neutral-500 italic">—</span>}</span>
-                                            </td>
-                                            <td className="py-2 px-3 text-slate-600 dark:text-neutral-300 align-top">
-                                              <span className="break-words whitespace-normal block" title={row.custom_task_name}>
-                                                {row.custom_task_name || <span className="text-slate-400 dark:text-neutral-500 italic">{tMsg('No Task', 'Tidak Ada Tugas')}</span>}
+                                      <tbody className='divide-y divide-slate-100 dark:divide-neutral-800 text-slate-700 dark:text-neutral-200'>
+                                        {weekGroup.rows.map((row) => (
+                                          <tr
+                                            key={row.id}
+                                            className='hover:bg-slate-50 dark:hover:bg-neutral-900/20'>
+                                            <td className='py-2 px-3 font-medium text-slate-800 dark:text-neutral-200 align-top'>
+                                              <span className='break-words whitespace-normal'>
+                                                {row.custom_project_name ||
+                                                  boards.find(
+                                                    (b) =>
+                                                      b.id ===
+                                                      parseInt(row.board_id)
+                                                  )?.name || (
+                                                    <span className='text-slate-400 dark:text-neutral-500 italic'>
+                                                      —
+                                                    </span>
+                                                  )}
                                               </span>
                                             </td>
-                                            {weekGroup.weekDays.map((dateStr, i) => {
-                                              const d = row.days[dateStr];
-                                              const isWeekend = i === 0 || i === 6;
-                                              return (
-                                                <td key={dateStr} className={`py-2 px-2 text-center align-top ${isWeekend ? 'bg-slate-100/40 dark:bg-neutral-800/50' : ''}`}>
-                                                  {d ? (
-                                                    <span className={`font-semibold ${parseFloat(d.hours_logged) > 8 ? 'text-amber-500' : 'text-slate-800 dark:text-white'}`}>
-                                                      {d.hours_logged}
-                                                    </span>
-                                                  ) : (
-                                                    <span className="text-slate-300 dark:text-neutral-600">-</span>
-                                                  )}
-                                                </td>
-                                              );
-                                            })}
-                                            <td className="py-2 px-3 text-center font-bold text-indigo-600 dark:text-indigo-400 align-top">
-                                              {row.totalHours > 0 ? `${row.totalHours}h` : <span className="text-slate-300 dark:text-neutral-600">-</span>}
+                                            <td className='py-2 px-3 text-slate-600 dark:text-neutral-300 align-top'>
+                                              <span
+                                                className='break-words whitespace-normal block'
+                                                title={row.custom_task_name}>
+                                                {row.custom_task_name || (
+                                                  <span className='text-slate-400 dark:text-neutral-500 italic'>
+                                                    {tMsg(
+                                                      'No Task',
+                                                      'Tidak Ada Tugas'
+                                                    )}
+                                                  </span>
+                                                )}
+                                              </span>
                                             </td>
-                                            <td className="py-2 px-3 text-center align-top">
+                                            {weekGroup.weekDays.map(
+                                              (dateStr, i) => {
+                                                const d = row.days[dateStr];
+                                                const isWeekend =
+                                                  i === 0 || i === 6;
+                                                return (
+                                                  <td
+                                                    key={dateStr}
+                                                    className={`py-2 px-2 text-center align-top ${isWeekend ? 'bg-slate-100/40 dark:bg-neutral-800/50' : ''}`}>
+                                                    {d ? (
+                                                      <span
+                                                        className={`font-semibold ${parseFloat(d.hours_logged) > 8 ? 'text-amber-500' : 'text-slate-800 dark:text-white'}`}>
+                                                        {d.hours_logged}
+                                                      </span>
+                                                    ) : (
+                                                      <span className='text-slate-300 dark:text-neutral-600'>
+                                                        -
+                                                      </span>
+                                                    )}
+                                                  </td>
+                                                );
+                                              }
+                                            )}
+                                            <td className='py-2 px-3 text-center font-bold text-indigo-600 dark:text-indigo-400 align-top'>
+                                              {row.totalHours > 0 ? (
+                                                `${row.totalHours}h`
+                                              ) : (
+                                                <span className='text-slate-300 dark:text-neutral-600'>
+                                                  -
+                                                </span>
+                                              )}
+                                            </td>
+                                            <td className='py-2 px-3 text-center align-top'>
                                               {(() => {
-                                                const anyEntry = Object.values(row.days)[0];
+                                                const anyEntry = Object.values(
+                                                  row.days
+                                                )[0];
                                                 const st = anyEntry?.status;
-                                                if (st === 'Approved') return <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-full text-[10px] font-bold border border-emerald-200 dark:border-emerald-800/40">✓ Approved</span>;
-                                                if (st === 'Rejected') return <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-full text-[10px] font-bold border border-red-200 dark:border-red-800/40">✕ Rejected</span>;
+                                                if (st === 'Approved')
+                                                  return (
+                                                    <span className='px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 rounded-full text-[10px] font-bold border border-emerald-200 dark:border-emerald-800/40'>
+                                                      ✓ Approved
+                                                    </span>
+                                                  );
+                                                if (st === 'Rejected')
+                                                  return (
+                                                    <span className='px-2 py-0.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-full text-[10px] font-bold border border-red-200 dark:border-red-800/40'>
+                                                      ✕ Rejected
+                                                    </span>
+                                                  );
                                                 return null;
                                               })()}
                                             </td>
                                           </tr>
                                         ))}
                                       </tbody>
-                                      <tfoot className="bg-slate-50 dark:bg-neutral-900 border-t border-slate-200 dark:border-neutral-700 text-slate-600 dark:text-neutral-300 font-bold">
+                                      <tfoot className='bg-slate-50 dark:bg-neutral-900 border-t border-slate-200 dark:border-neutral-700 text-slate-600 dark:text-neutral-300 font-bold'>
                                         <tr>
-                                          <td colSpan="2" className="py-2 px-3 text-center text-[10px] uppercase tracking-wider text-slate-400 dark:text-neutral-500">
-                                            {tMsg('Daily Totals:', 'Total Harian:')}
+                                          <td
+                                            colSpan='2'
+                                            className='py-2 px-3 text-center text-[10px] uppercase tracking-wider text-slate-400 dark:text-neutral-500'>
+                                            {tMsg(
+                                              'Daily Totals:',
+                                              'Total Harian:'
+                                            )}
                                           </td>
-                                          {weekGroup.weekDays.map((dateStr, i) => {
-                                            let dayTotal = 0;
-                                            weekGroup.rows.forEach(r => {
-                                              const d = r.days[dateStr];
-                                              if (d && d.hours_logged != null) dayTotal += parseFloat(d.hours_logged);
-                                            });
-                                            const isWeekend = i === 0 || i === 6;
-                                            return (
-                                              <td key={dateStr} className={`py-2 px-2 text-center ${isWeekend ? 'bg-slate-100/40 dark:bg-neutral-800/50' : ''} ${dayTotal > 8 ? 'text-amber-500' : 'text-indigo-600 dark:text-indigo-400'}`}>
-                                                {dayTotal > 0 ? `${dayTotal}h` : <span className="text-slate-300 dark:text-neutral-600">-</span>}
-                                              </td>
-                                            );
-                                          })}
-                                          <td className="py-2 px-3 text-center text-indigo-600 dark:text-indigo-400">{weekGroup.totalHours}h</td>
+                                          {weekGroup.weekDays.map(
+                                            (dateStr, i) => {
+                                              let dayTotal = 0;
+                                              weekGroup.rows.forEach((r) => {
+                                                const d = r.days[dateStr];
+                                                if (d && d.hours_logged != null)
+                                                  dayTotal += parseFloat(
+                                                    d.hours_logged
+                                                  );
+                                              });
+                                              const isWeekend =
+                                                i === 0 || i === 6;
+                                              return (
+                                                <td
+                                                  key={dateStr}
+                                                  className={`py-2 px-2 text-center ${isWeekend ? 'bg-slate-100/40 dark:bg-neutral-800/50' : ''} ${dayTotal > 8 ? 'text-amber-500' : 'text-indigo-600 dark:text-indigo-400'}`}>
+                                                  {dayTotal > 0 ? (
+                                                    `${dayTotal}h`
+                                                  ) : (
+                                                    <span className='text-slate-300 dark:text-neutral-600'>
+                                                      -
+                                                    </span>
+                                                  )}
+                                                </td>
+                                              );
+                                            }
+                                          )}
+                                          <td className='py-2 px-3 text-center text-indigo-600 dark:text-indigo-400'>
+                                            {weekGroup.totalHours}h
+                                          </td>
                                           <td />
                                         </tr>
                                       </tfoot>
@@ -2356,12 +3504,14 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
           )}
 
           {/* Lazy load — load more weeks */}
-          {filteredGroupedApprovalHistory.reduce((sum, u) => sum + u.weeks.length, 0) > histDisplayCount && (
-            <div className="text-center pt-2">
+          {filteredGroupedApprovalHistory.reduce(
+            (sum, u) => sum + u.weeks.length,
+            0
+          ) > histDisplayCount && (
+            <div className='text-center pt-2'>
               <button
-                onClick={() => setHistDisplayCount(c => c + 15)}
-                className="px-5 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/30 rounded-xl transition-all"
-              >
+                onClick={() => setHistDisplayCount((c) => c + 15)}
+                className='px-5 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/30 rounded-xl transition-all'>
                 Load More
               </button>
             </div>
@@ -2371,63 +3521,96 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
 
       {/* Modals */}
       {deleteRowModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-200 dark:border-neutral-800">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Delete Row</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">Are you sure you want to remove this row? Any drafted hours will be deleted on Save.</p>
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => setDeleteRowModal(null)} className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded-lg transition-colors">Cancel</button>
-              <button onClick={confirmDeleteRow} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm">Delete</button>
+        <div className='fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4'>
+          <div className='bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-200 dark:border-neutral-800'>
+            <h3 className='text-lg font-bold text-slate-900 dark:text-white mb-2'>
+              Delete Row
+            </h3>
+            <p className='text-slate-500 dark:text-slate-400 text-sm mb-6'>
+              Are you sure you want to remove this row? Any drafted hours will
+              be deleted on Save.
+            </p>
+            <div className='flex gap-3 justify-end'>
+              <button
+                onClick={() => setDeleteRowModal(null)}
+                className='px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-neutral-800 rounded-lg transition-colors'>
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteRow}
+                className='px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm'>
+                Delete
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {errorModalMsg && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-200 dark:border-neutral-800">
-            <div className="flex items-center gap-3 text-red-600 mb-2">
-              <Icon name="alert-triangle" className="w-6 h-6" />
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Submission Error</h3>
+        <div className='fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4'>
+          <div className='bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-200 dark:border-neutral-800'>
+            <div className='flex items-center gap-3 text-red-600 mb-2'>
+              <Icon name='alert-triangle' className='w-6 h-6' />
+              <h3 className='text-lg font-bold text-slate-900 dark:text-white'>
+                Submission Error
+              </h3>
             </div>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">{errorModalMsg}</p>
-            <div className="flex justify-end">
-              <button onClick={() => setErrorModalMsg(null)} className="px-4 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-900 dark:bg-indigo-600 dark:hover:bg-indigo-700 rounded-lg transition-colors shadow-sm">Got it</button>
+            <p className='text-slate-500 dark:text-slate-400 text-sm mb-6'>
+              {errorModalMsg}
+            </p>
+            <div className='flex justify-end'>
+              <button
+                onClick={() => setErrorModalMsg(null)}
+                className='px-4 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-900 dark:bg-indigo-600 dark:hover:bg-indigo-700 rounded-lg transition-colors shadow-sm'>
+                Got it
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {successModalMsg && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-200 dark:border-neutral-800 text-center">
-            <div className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-4">
-              <Icon name="check" className="w-6 h-6" />
+        <div className='fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4'>
+          <div className='bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-200 dark:border-neutral-800 text-center'>
+            <div className='w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-4'>
+              <Icon name='check' className='w-6 h-6' />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{tMsg('Success', 'Sukses')}</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">{successModalMsg}</p>
-            <div className="flex justify-center">
-              <button onClick={() => setSuccessModalMsg(null)} className="px-5 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-sm">{tMsg('OK', 'OK')}</button>
+            <h3 className='text-lg font-bold text-slate-900 dark:text-white mb-2'>
+              {tMsg('Success', 'Sukses')}
+            </h3>
+            <p className='text-slate-500 dark:text-slate-400 text-sm mb-6'>
+              {successModalMsg}
+            </p>
+            <div className='flex justify-center'>
+              <button
+                onClick={() => setSuccessModalMsg(null)}
+                className='px-5 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-sm'>
+                {tMsg('OK', 'OK')}
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {rejectConfirmation && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-200 dark:border-neutral-800 text-center">
-            <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-950/30 text-red-650 dark:text-red-400 flex items-center justify-center mx-auto mb-4 text-xl">
-              <Icon name="alert-triangle" className="w-6 h-6" />
+        <div className='fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4'>
+          <div className='bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-200 dark:border-neutral-800 text-center'>
+            <div className='w-12 h-12 rounded-full bg-red-50 dark:bg-red-950/30 text-red-650 dark:text-red-400 flex items-center justify-center mx-auto mb-4 text-xl'>
+              <Icon name='alert-triangle' className='w-6 h-6' />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{tMsg('Reject Timesheet?', 'Tolak Timesheet?')}</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-xs mb-6">
-              {tMsg('Are you sure you want to reject this team member\'s timesheet for this week?', 'Apakah Anda yakin ingin menolak timesheet anggota tim untuk minggu ini?')}
+            <h3 className='text-lg font-bold text-slate-900 dark:text-white mb-2'>
+              {tMsg('Reject Timesheet?', 'Tolak Timesheet?')}
+            </h3>
+            <p className='text-slate-500 dark:text-slate-400 text-xs mb-6'>
+              {tMsg(
+                "Are you sure you want to reject this team member's timesheet for this week?",
+                'Apakah Anda yakin ingin menolak timesheet anggota tim untuk minggu ini?'
+              )}
             </p>
-            <div className="flex gap-3 justify-center">
+            <div className='flex gap-3 justify-center'>
               <button
                 onClick={() => setRejectConfirmation(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-350 bg-slate-100 dark:bg-neutral-800 hover:bg-slate-200 rounded-xl transition-all"
-              >
+                className='px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-350 bg-slate-100 dark:bg-neutral-800 hover:bg-slate-200 rounded-xl transition-all'>
                 {tMsg('Cancel', 'Batal')}
               </button>
               <button
@@ -2435,8 +3618,7 @@ export default function TimesheetView({ currentUser, tasks = [], boards = [] }) 
                   handleApprove(rejectConfirmation, 'Rejected');
                   setRejectConfirmation(null);
                 }}
-                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all shadow-sm"
-              >
+                className='px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all shadow-sm'>
                 {tMsg('Reject', 'Tolak')}
               </button>
             </div>

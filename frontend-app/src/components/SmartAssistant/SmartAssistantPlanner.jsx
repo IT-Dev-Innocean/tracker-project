@@ -206,7 +206,7 @@ export default function SmartAssistantPlanner({
                   />
                   <div className="flex-1 min-w-0">
                     <h4 className="font-bold text-black dark:text-white text-sm leading-tight mb-2">
-                      {t.project_name}
+                      {t.task_name}
                     </h4>
                     <div className="flex flex-wrap gap-1.5 mb-2 mt-1 items-center">
                       <select

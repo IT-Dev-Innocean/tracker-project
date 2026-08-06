@@ -1,10 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, load_only
 from sqlalchemy import or_, and_, func, text
 import re
 import json
 from datetime import datetime, timedelta
 import os
+from collections import defaultdict
 
 from database import get_db, User, Request, Subtask, Board, BoardMember, LeaveDay, LeaveRecord, Comment, Notification, DirectMessage
 from schemas import *
@@ -23,19 +24,42 @@ def get_all_global_tasks(
         BoardMember.member_username == current_user, BoardMember.status == "accepted"
     )
 
+    # Defer heavy TEXT columns so Neon does not transfer full descriptions on every list fetch.
+    # Preview is loaded separately via SQL left().
     tasks = (
         db.query(Request)
+        .options(load_only(
+            Request.id,
+            Request.board_id,
+            Request.timestamp,
+            Request.task_name,
+            Request.requester,
+            Request.category,
+            Request.start_date,
+            Request.deadline,
+            Request.impact,
+            Request.etc,
+            Request.auto_nudge,
+            Request.recurring,
+            Request.status,
+            Request.completed_time,
+            Request.owner_username,
+            Request.supporting_access,
+        ))
         .filter(
             or_(Request.board_id.in_(owned_subq), Request.board_id.in_(shared_subq)),
             or_(Request.requester == None, Request.requester != "System"),
             or_(
-                Request.project_name == None,
-                Request.project_name != "[SYSTEM] PROJECT CHAT",
+                Request.task_name == None,
+                Request.task_name != "[SYSTEM] PROJECT CHAT",
             ),
         )
         .all()
     )
-    boards_dict = {b.id: b.name for b in db.query(Board).all()}
+    boards_dict = {
+        b.id: b.name
+        for b in db.query(Board).options(load_only(Board.id, Board.name)).all()
+    }
     leave_dates = get_leave_dates(db)
 
     personal_leaves_db = (
@@ -52,20 +76,38 @@ def get_all_global_tasks(
             personal_leaves[uname].add(date_str)
 
     global_queues = get_all_queues(db, leave_dates)
+    task_ids = [t.id for t in tasks]
+    subs_by_task = batch_subtasks_by_request(db, task_ids)
+
+    desc_meta = {}
+    if task_ids:
+        for tid, preview, full_len in (
+            db.query(
+                Request.id,
+                func.left(Request.description, 280),
+                func.length(Request.description),
+            )
+            .filter(Request.id.in_(task_ids))
+            .all()
+        ):
+            desc_meta[tid] = (preview or "", int(full_len or 0))
 
     tasks_list = []
     for task in tasks:
         q_info = global_queues.get(task.id, {})
+        desc_preview, full_len = desc_meta.get(task.id, ("", 0))
         t_dict = {
             "id": task.id,
             "board_id": task.board_id,
             "board_name": boards_dict.get(task.board_id, "Unknown"),
             "timestamp": task.timestamp,
-            "project_name": task.project_name,
+            "task_name": task.task_name,
             "requester": task.requester,
+            "head_of_project": getattr(task, "head_of_project", "") or "",
+            "rc_team": getattr(task, "rc_team", "") or "",
             "category": task.category,
-            "description": task.description,
-            "supporting_access": task.supporting_access,
+            "description": desc_preview,
+            "supporting_access": task.supporting_access or "",
             "start_date": format_dt(task.start_date) or (format_dt(task.timestamp).split(" ")[0] if task.timestamp else None),
             "deadline": format_dt(task.deadline),
             "impact": getattr(task, "impact", "Medium"),
@@ -80,13 +122,9 @@ def get_all_global_tasks(
             "queue_project_number": q_info.get("project_q"),
             "total_project_queue": q_info.get("project_t"),
             "main_assignee": q_info.get("main_assignee"),
+            "description_truncated": full_len > 280,
         }
-        subtasks = (
-            db.query(Subtask)
-            .filter(Subtask.request_id == task.id)
-            .order_by(Subtask.position.asc(), Subtask.id.asc())
-            .all()
-        )
+        subtasks = subs_by_task.get(task.id, [])
         t_dict["subtask_total"] = len(subtasks)
         t_dict["subtask_done"] = sum(1 for s in subtasks if s.is_done == 1)
         t_dict["subtask_assignees"] = ", ".join(
@@ -131,8 +169,8 @@ def get_global_export(
             or_(Request.board_id.in_(owned_subq), Request.board_id.in_(shared_subq)),
             or_(Request.requester == None, Request.requester != "System"),
             or_(
-                Request.project_name == None,
-                Request.project_name != "[SYSTEM] PROJECT CHAT",
+                Request.task_name == None,
+                Request.task_name != "[SYSTEM] PROJECT CHAT",
             ),
         )
         .all()
@@ -158,7 +196,7 @@ def get_global_export(
             {
                 "id": t.id,
                 "board_name": boards_dict.get(t.board_id, "Unknown"),
-                "project_name": t.project_name,
+                "task_name": t.task_name,
                 "description": t.description,
                 "requester": t.requester,
                 "category": t.category,
@@ -211,7 +249,7 @@ def global_search_tasks(
             or_(Subtask.assignee.ilike(search_term), Subtask.task_name.ilike(search_term))
         )
         kw_cond = or_(
-            Request.project_name.ilike(search_term),
+            Request.task_name.ilike(search_term),
             Request.requester.ilike(search_term),
             Request.category.ilike(search_term),
             Request.owner_username.ilike(search_term),
@@ -228,8 +266,8 @@ def global_search_tasks(
             or_(Request.board_id.in_(owned_subq), Request.board_id.in_(shared_subq)),
             or_(Request.requester == None, Request.requester != "System"),
             or_(
-                Request.project_name == None,
-                Request.project_name != "[SYSTEM] PROJECT CHAT",
+                Request.task_name == None,
+                Request.task_name != "[SYSTEM] PROJECT CHAT",
             ),
             recent_condition,
             final_search_condition,
@@ -262,8 +300,10 @@ def global_search_tasks(
             "board_id": task.board_id,
             "board_name": boards_dict.get(task.board_id, "Unknown"),
             "timestamp": task.timestamp,
-            "project_name": task.project_name,
+            "task_name": task.task_name,
             "requester": task.requester,
+            "head_of_project": getattr(task, "head_of_project", "") or "",
+            "rc_team": getattr(task, "rc_team", "") or "",
             "category": task.category,
             "description": task.description,
             "supporting_access": task.supporting_access,
@@ -316,8 +356,10 @@ def get_single_task(
         "board_id": task.board_id,
         "board_name": board.name if board else "Unknown",
         "timestamp": task.timestamp,
-        "project_name": task.project_name,
+        "task_name": task.task_name,
         "requester": task.requester,
+        "head_of_project": getattr(task, "head_of_project", "") or "",
+        "rc_team": getattr(task, "rc_team", "") or "",
         "category": task.category,
         "description": task.description,
         "supporting_access": task.supporting_access,
@@ -365,8 +407,10 @@ def get_task_preview(task_id: int, db: Session = Depends(get_db)):
     t_dict = {
         "id": task.id,
         "board_id": task.board_id,
-        "project_name": task.project_name,
+        "task_name": task.task_name,
         "requester": task.requester,
+        "head_of_project": getattr(task, "head_of_project", "") or "",
+        "rc_team": getattr(task, "rc_team", "") or "",
         "category": task.category,
         "start_date": format_dt(task.start_date),
         "deadline": format_dt(task.deadline),
@@ -461,7 +505,7 @@ def update_task_status(
             create_notification(
                 db,
                 task.owner_username,
-                f"@{current_user} changed task status to {update.status}: {task.project_name or 'Untitled'}",
+                f"@{current_user} changed task status to {update.status}: {task.task_name or 'Untitled'}",
                 notif_type,
                 task.id,
             )
@@ -477,7 +521,7 @@ def update_task_status(
                     create_notification(
                         db,
                         a,
-                        f"@{current_user} changed task status to {update.status}: {task.project_name or 'Untitled'}",
+                        f"@{current_user} changed task status to {update.status}: {task.task_name or 'Untitled'}",
                         notif_type,
                         task.id,
                     )
@@ -493,7 +537,7 @@ def edit_task_details(
     current_user: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if len(update.project_name) > 255 or len(update.description) > 10000:
+    if len(update.task_name) > 255 or len(update.description) > 10000:
         raise HTTPException(
             status_code=400, detail="Payload size exceeds maximum allowed limit."
         )
@@ -532,8 +576,8 @@ def edit_task_details(
     old_status = task.status
 
     changes = []
-    if task.project_name != update.project_name:
-        changes.append(f"**Title**: `{task.project_name}` ➔ `{update.project_name}`")
+    if task.task_name != update.task_name:
+        changes.append(f"**Title**: `{task.task_name}` ➔ `{update.task_name}`")
     if task.requester != update.requester:
         changes.append(f"**Assignee**: `{task.requester}` ➔ `{update.requester}`")
     if task.category != update.category:
@@ -567,15 +611,30 @@ def edit_task_details(
     if old_auto != new_auto:
         changes.append(f"**Auto Nudge**: `{'ON' if new_auto else 'OFF'}`")
         
-    if task.description != update.description:
+    # Guard: list endpoints return truncated descriptions (280 chars). Never overwrite
+    # a longer stored description with a truncated list payload.
+    incoming_desc = update.description if update.description is not None else ""
+    stored_desc = task.description or ""
+    skip_desc_update = (
+        bool(stored_desc)
+        and bool(incoming_desc)
+        and len(incoming_desc) <= 280
+        and len(stored_desc) > len(incoming_desc)
+        and stored_desc.startswith(incoming_desc)
+    )
+    effective_description = stored_desc if skip_desc_update else incoming_desc
+
+    if task.description != effective_description:
         changes.append("**Description** was modified")
     if task.supporting_access != update.supporting_access:
         changes.append("**Links** were modified")
 
-    task.project_name = update.project_name
+    task.task_name = update.task_name
     task.requester = update.requester
+    task.head_of_project = update.head_of_project or ""
+    task.rc_team = update.rc_team or ""
     task.category = update.category
-    task.description = update.description
+    task.description = effective_description
     task.supporting_access = update.supporting_access
     task.start_date = update.start_date if update.start_date and update.start_date.strip() else None
     task.deadline = update.deadline if update.deadline and update.deadline.strip() else None
@@ -629,7 +688,7 @@ def edit_task_details(
                 create_notification(
                     db,
                     m,
-                    f"@{current_user} assigned you to the task: {update.project_name or 'Untitled'}",
+                    f"@{current_user} assigned you to the task: {update.task_name or 'Untitled'}",
                     "task_assigned",
                     task.id,
                 )
@@ -642,7 +701,7 @@ def edit_task_details(
             create_notification(
                 db,
                 task.owner_username,
-                f"@{current_user} changed task status to {update.status}: {task.project_name or 'Untitled'}",
+                f"@{current_user} changed task status to {update.status}: {task.task_name or 'Untitled'}",
                 notif_type,
                 task.id,
             )
@@ -658,7 +717,7 @@ def edit_task_details(
                     create_notification(
                         db,
                         a,
-                        f"@{current_user} changed task status to {update.status}: {update.project_name or 'Untitled'}",
+                        f"@{current_user} changed task status to {update.status}: {update.task_name or 'Untitled'}",
                         notif_type,
                         task.id,
                     )
@@ -803,7 +862,7 @@ def create_subtask(
             create_notification(
                 db,
                 payload.assignee,
-                f"@{current_user} assigned you to a sub-task in: {task.project_name or 'Untitled'}",
+                f"@{current_user} assigned you to a sub-task in: {task.task_name or 'Untitled'}",
                 "task_assigned",
                 task_id,
             )
@@ -887,7 +946,7 @@ def toggle_subtask(
                 create_notification(
                     db,
                     payload.assignee,
-                    f"@{current_user} assigned you to a sub-task in: {task.project_name or 'Untitled'}",
+                    f"@{current_user} assigned you to a sub-task in: {task.task_name or 'Untitled'}",
                     "task_assigned",
                     sub.request_id,
                 )
@@ -988,7 +1047,7 @@ def add_comment(
 
     if (
         task
-        and task.project_name != "[SYSTEM] PROJECT CHAT"
+        and task.task_name != "[SYSTEM] PROJECT CHAT"
         and not is_user_involved_in_task(db, task, current_user)
     ):
         raise HTTPException(
@@ -1019,7 +1078,7 @@ def add_comment(
                     create_notification(
                         db,
                         m,
-                        f"@{current_user} mentioned you in a comment on: {task.project_name or 'Untitled'}",
+                        f"@{current_user} mentioned you in a comment on: {task.task_name or 'Untitled'}",
                         "mention",
                         task.id,
                     )
@@ -1030,7 +1089,7 @@ def add_comment(
                 create_notification(
                     db,
                     task.owner_username,
-                    f"@{current_user} commented on your task: {task.project_name or 'Untitled'}",
+                    f"@{current_user} commented on your task: {task.task_name or 'Untitled'}",
                     "comment",
                     task.id,
                 )
@@ -1044,7 +1103,7 @@ def add_comment(
                         create_notification(
                             db,
                             a,
-                            f"@{current_user} commented on a task assigned to you: {task.project_name or 'Untitled'}",
+                            f"@{current_user} commented on a task assigned to you: {task.task_name or 'Untitled'}",
                             "comment",
                             task.id,
                         )
@@ -1095,7 +1154,7 @@ def ai_task_reply(
     if not has_task_read_access(db, task, current_user):
         raise HTTPException(status_code=403, detail="Access denied")
 
-    if task.project_name != "[SYSTEM] PROJECT CHAT" and not is_user_involved_in_task(
+    if task.task_name != "[SYSTEM] PROJECT CHAT" and not is_user_involved_in_task(
         db, task, current_user
     ):
         raise HTTPException(
@@ -1136,7 +1195,7 @@ def ai_task_reply(
 You are assisting the team within a specific task.
 
 ### TASK CONTEXT ###
-Title: {task.project_name}
+Title: {task.task_name}
 Category: {task.category}
 Status: {task.status}
 Deadline: {task.deadline}
@@ -1200,7 +1259,7 @@ Use markdown for formatting. Do not wrap your response in JSON. Respond in the s
             create_notification(
                 db,
                 m,
-                f"Smart Assistant 🤖 replied to a task you are involved in: {task.project_name}",
+                f"Smart Assistant 🤖 replied to a task you are involved in: {task.task_name}",
                 "info",
                 task_id,
             )
@@ -1245,7 +1304,7 @@ def toggle_reaction(
         # Notif cerdas tanpa email spam dikirim hanya jika itu emotikon baru
         if comment.username != current_user:
             task = db.query(Request).filter(Request.id == comment.request_id).first()
-            if task and task.project_name == "[SYSTEM] PROJECT CHAT":
+            if task and task.task_name == "[SYSTEM] PROJECT CHAT":
                 board = db.query(Board).filter(Board.id == task.board_id).first()
                 create_notification(
                     db,
