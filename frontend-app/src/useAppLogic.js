@@ -6,6 +6,7 @@ import { useTask } from './hooks/useTask';
 import { useBoard } from './hooks/useBoard';
 import { useUISettings } from './hooks/useUISettings';
 import {
+  BOARD_HIGHLIGHTS_TOUR_ENABLED,
   MASTER_VIEW_UI_ENABLED,
   MY_CAPACITY_UI_ENABLED,
   TIMESHEETS_UI_ENABLED,
@@ -1267,6 +1268,7 @@ export default function useAppLogic() {
   };
 
   useEffect(() => {
+    if (!BOARD_HIGHLIGHTS_TOUR_ENABLED) return;
     if (selectedBoard && selectedBoard.id !== 'global' && !isProactiveAIOpen && !isProjectChatOpen) {
       const hasSeenBoardTour = localStorage.getItem(`innocean_board_tour_done_v2_${currentUser}`);
       const isAIOffering = localStorage.getItem('innocean_ai_offer_docs') === 'true';

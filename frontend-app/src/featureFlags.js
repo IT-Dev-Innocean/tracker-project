@@ -17,6 +17,9 @@ export const REPLAY_TOUR_UI_ENABLED = false;
 /** Welcome modal tour CTAs (Skip Tour / Start Tour) — set true to show again */
 export const WELCOME_TOUR_BUTTONS_ENABLED = false;
 
+/** Auto Highlights Tour when opening a project board — set true to show again */
+export const BOARD_HIGHLIGHTS_TOUR_ENABLED = false;
+
 /** Board toolbar utility icons — set true to show again */
 export const TEAM_CHAT_UI_ENABLED = false;
 export const EXPORT_CSV_UI_ENABLED = false;
