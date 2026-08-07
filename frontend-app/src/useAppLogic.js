@@ -19,7 +19,7 @@ import {
   setStatusLabelColor,
   STATUS_COLOR_PALETTE,
 } from './utils/statusColors';
-import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import axios from 'axios'; 
 import { useGoogleLogin, useGoogleOneTapLogin, googleLogout } from '@react-oauth/google';
 import { driver } from 'driver.js';
@@ -444,8 +444,24 @@ export default function useAppLogic() {
 
   const [newBoardName, setNewBoardName] = useState('');
   const [newBoardNumber, setNewBoardNumber] = useState('');
+  const [newBoardClient, setNewBoardClient] = useState('');
+  const [clients, setClients] = useState([]);
   const [isPrivateBoard, setIsPrivateBoard] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState(null);
+
+  const fetchClients = useCallback(() => {
+    if (!isAuthenticated) return;
+    axios
+      .get('/api/clients')
+      .then((res) => {
+        setClients(res.data?.clients || []);
+      })
+      .catch(() => {});
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]);
 
   // PWA (Progressive Web App) Install Logic
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -4612,6 +4628,7 @@ export default function useAppLogic() {
       name: newBoardName.trim(),
       is_private: 0,
       project_number: newBoardNumber.trim() || null,
+      client_name: newBoardClient.trim() || null,
     };
     axios
       .post('/api/boards', payload)
@@ -4627,6 +4644,7 @@ export default function useAppLogic() {
                 id: created.board_id,
                 name: created.board_name || payload.name,
                 project_number: created.project_number ?? payload.project_number,
+                client_name: created.client_name ?? payload.client_name,
                 owner_username: currentUser,
                 role: 'owner',
                 total_tasks: 0,
@@ -4644,6 +4662,7 @@ export default function useAppLogic() {
         setIsCreateBoardOpen(false);
         setNewBoardName('');
         setNewBoardNumber('');
+        setNewBoardClient('');
         setIsPrivateBoard(false);
         fetchBoards();
         showNotification('Project created successfully!', 'success');
@@ -4935,6 +4954,9 @@ export default function useAppLogic() {
     isCreateBoardOpen,
     newBoardName,
     newBoardNumber,
+    newBoardClient,
+    setNewBoardClient,
+    clients,
     boardToDelete,
     deleteBoardConfirmText,
     isExportModalOpen,

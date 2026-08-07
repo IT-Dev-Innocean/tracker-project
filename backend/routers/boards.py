@@ -221,6 +221,7 @@ def get_boards(
             "health_alert": alert_msg,
             "is_private": getattr(b, "is_private", 0),
             "project_number": getattr(b, "project_number", None),
+            "client_name": getattr(b, "client_name", None),
             "access_requests_count": requests_count,
         }
 
@@ -280,6 +281,7 @@ def create_board(
     
     is_private = 1 if payload.name.lower() == "to-do list" else 0
     project_number = (payload.project_number or "").strip() or None
+    client_name = (payload.client_name or "").strip() or None
     new_board = Board(
         name=payload.name,
         owner_username=current_user,
@@ -288,6 +290,7 @@ def create_board(
         categories=default_categories,
         is_private=is_private,
         project_number=project_number,
+        client_name=client_name,
     )
     db.add(new_board)
     db.commit()
@@ -297,6 +300,7 @@ def create_board(
         "board_id": new_board.id,
         "board_name": new_board.name,
         "project_number": new_board.project_number,
+        "client_name": new_board.client_name,
         "owner_username": new_board.owner_username,
     }
 
@@ -344,6 +348,7 @@ def update_board(
 
     board.name = name
     board.project_number = (payload.project_number or "").strip() or None
+    board.client_name = (payload.client_name or "").strip() or None
     db.commit()
     db.refresh(board)
     update_board_activity(db, board_id)
@@ -353,6 +358,7 @@ def update_board(
         "board_id": board.id,
         "board_name": board.name,
         "project_number": board.project_number,
+        "client_name": board.client_name,
     }
 
 

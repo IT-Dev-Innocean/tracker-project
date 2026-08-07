@@ -123,6 +123,7 @@ class Board(Base):
     deletion_date = Column(DateTime, nullable=True)
     is_private = Column(Integer, default=0)
     project_number = Column(String(100), nullable=True)
+    client_name = Column(String(200), nullable=True)
 
 
 class Client(Base):
@@ -271,6 +272,9 @@ def setup_db():
                 )
                 conn.execute(
                     text("ALTER TABLE requests ADD COLUMN IF NOT EXISTS rc_team TEXT")
+                )
+                conn.execute(
+                    text("ALTER TABLE boards ADD COLUMN IF NOT EXISTS client_name TEXT")
                 )
         except Exception:
             pass

@@ -624,6 +624,9 @@ export function CreateBoardModal({
   setNewBoardName,
   newBoardNumber,
   setNewBoardNumber,
+  newBoardClient,
+  setNewBoardClient,
+  clients = [],
   language,
   isSubmitting,
 }) {
@@ -631,6 +634,7 @@ export function CreateBoardModal({
     setIsCreateBoardOpen(false);
     setNewBoardName('');
     if (setNewBoardNumber) setNewBoardNumber('');
+    if (setNewBoardClient) setNewBoardClient('');
   });
   const tMsg = (en, id) => (language === 'id' ? id : en);
   return (
@@ -654,6 +658,23 @@ export function CreateBoardModal({
         <form onSubmit={handleCreateBoard}>
           <div className='mb-6'>
             <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
+              {tMsg('Client Name', 'Nama Klien')}
+            </label>
+            <select
+              value={newBoardClient || ''}
+              onChange={(e) => setNewBoardClient?.(e.target.value)}
+              className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold transition-all cursor-pointer'
+              autoFocus>
+              <option value=''>-- {tMsg('Select Client', 'Pilih Klien')} --</option>
+              {clients.map((c) => (
+                <option key={c.id || c.client_code} value={c.client_name}>
+                  {c.client_name} ({c.client_code})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className='mb-6'>
+            <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
               {tMsg('Project Number', 'Nomor Proyek')}
             </label>
             <input
@@ -662,7 +683,6 @@ export function CreateBoardModal({
               onChange={(e) => setNewBoardNumber?.(e.target.value)}
               placeholder={tMsg('E.g. PRJ-001', 'Contoh: PRJ-001')}
               className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all'
-              autoFocus
             />
           </div>
           <div className='mb-8'>

@@ -151,6 +151,9 @@ export default function AppModals() {
     setNewBoardName,
     newBoardNumber,
     setNewBoardNumber,
+    newBoardClient,
+    setNewBoardClient,
+    clients,
     isPrivateBoard,
     setIsPrivateBoard,
     isTeamModalOpen,
@@ -559,6 +562,9 @@ export default function AppModals() {
           setNewBoardName={setNewBoardName}
           newBoardNumber={newBoardNumber}
           setNewBoardNumber={setNewBoardNumber}
+          newBoardClient={newBoardClient}
+          setNewBoardClient={setNewBoardClient}
+          clients={clients}
           language={language}
           isSubmitting={isSubmitting}
         />
