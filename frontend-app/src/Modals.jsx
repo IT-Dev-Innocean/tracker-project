@@ -1594,6 +1594,7 @@ export function NotificationModal({
   notifPosition = 'bottom-right',
   notifSound = true,
   notifPrivacy = false,
+  formatDateMMM,
 }) {
   const [isClosing, close] = useCloseAnimation(() => setNotification(null));
   const tMsg = (en, id) => (language === 'id' ? id : en);
@@ -1640,15 +1641,18 @@ export function NotificationModal({
   const animationClass = isClosing
     ? 'opacity-0 scale-95'
     : 'opacity-100 scale-100';
+  let rawMsg = notification.message ? notification.message.replace(/(?:<!--|&lt;!--)\s*TASK_ID:\d+\s*(?:-->|--&gt;)/gi, '') : '';
+  if (formatDateMMM && rawMsg.includes('Your timesheet for period')) {
+    rawMsg = rawMsg.replace(/period (\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/, (_, d1, d2) => {
+      return `period ${formatDateMMM(d1)} to ${formatDateMMM(d2)}`;
+    });
+  }
   const displayMessage =
     notifPrivacy &&
     notification.type !== 'error' &&
     notification.type !== 'success'
       ? tMsg('You have a new notification.', 'Anda memiliki notifikasi baru.')
-      : notification.message.replace(
-          /(?:<!--|&lt;!--)\s*TASK_ID:\d+\s*(?:-->|--&gt;)/gi,
-          ''
-        );
+      : rawMsg;
 
   return (
     <div

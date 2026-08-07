@@ -740,6 +740,7 @@ function App() {
             notifPosition={notifPosition}
             notifSound={notifSound}
             notifPrivacy={notifPrivacy}
+            formatDateMMM={formatDateMMM}
           />
         )}
         <LandingPage
@@ -1320,6 +1321,7 @@ function App() {
             notifPosition={notifPosition}
             notifSound={notifSound}
             notifPrivacy={notifPrivacy}
+            formatDateMMM={formatDateMMM}
           />
         )}
         {showTosUpdate && (

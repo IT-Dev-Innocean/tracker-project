@@ -317,7 +317,15 @@ export default function TopHeaderBar() {
                                 ? 'font-bold text-black dark:text-white'
                                 : 'text-neutral-600 dark:text-neutral-400'
                             }`}>
-                            {n.message?.replace(/<!--TASK_ID:\d+-->/g, '')}
+                            {(() => {
+                              let msgText = n.message ? n.message.replace(/<!--TASK_ID:\d+-->/g, '') : '';
+                              if (formatDateMMM && msgText.includes('Your timesheet for period')) {
+                                msgText = msgText.replace(/period (\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/, (_, d1, d2) => {
+                                  return `period ${formatDateMMM(d1)} to ${formatDateMMM(d2)}`;
+                                });
+                              }
+                              return msgText;
+                            })()}
                           </p>
                           <p className='text-[10px] text-neutral-400 mt-0.5'>
                             {formatDateMMM(n.timestamp)}
