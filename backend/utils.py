@@ -573,8 +573,8 @@ def can_modify_tasks(db: Session, username: str) -> bool:
 
 
 def can_write_comments(db: Session, username: str) -> bool:
-    """Staff may view comments but not write them."""
-    return get_user_role(db, username) != ROLE_STAFF
+    """All roles (including Staff if involved) may write comments."""
+    return True
 
 
 def is_task_admin(db: Session, task: Request, username: str):
@@ -598,11 +598,8 @@ def is_user_involved_in_task(db: Session, task: Request, username: str) -> bool:
     board = db.query(Board).filter(Board.id == task.board_id).first()
     if board and board.owner_username and board.owner_username.lower() == username.lower():
         return True
-    if task.requester:
-        req_clean = task.requester.replace("@", "").strip().lower()
-        if req_clean == username.lower():
-            return True
-    assignees = {a.lower() for a in get_assignees(task.requester)}
+    all_assignees_text = f"{task.requester or ''} {getattr(task, 'head_of_project', '') or ''} {getattr(task, 'rc_team', '') or ''}"
+    assignees = {a.lower() for a in get_assignees(all_assignees_text)}
     if username.lower() in assignees:
         return True
     subtasks = db.query(Subtask).filter(Subtask.request_id == task.id).all()

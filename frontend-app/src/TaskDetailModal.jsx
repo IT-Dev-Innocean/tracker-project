@@ -418,11 +418,19 @@ export default function TaskDetailModal({
         currentUser &&
         st.assignee.toLowerCase() === currentUser.toLowerCase()
     );
+
+  const currentUserLower = currentUser ? currentUser.toLowerCase() : '';
+  const isDirectlyTagged = currentUser && (
+    (selectedTask.requester && new RegExp(`@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(selectedTask.requester)) ||
+    (selectedTask.head_of_project && new RegExp(`@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(selectedTask.head_of_project)) ||
+    (selectedTask.rc_team && new RegExp(`@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(selectedTask.rc_team))
+  );
+
   const isInvolved =
     !isPreviewMode &&
-    canComment &&
     (isTaskAdmin ||
       isSubtaskAssignee ||
+      isDirectlyTagged ||
       (isSystemTicket &&
         selectedTask.requester &&
         currentUser &&
