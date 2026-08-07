@@ -6,6 +6,7 @@ export default function QuickFiltersPopover({
   language,
   accountStatus,
   viewMode,
+  selectedBoard,
   showMyTasks,
   setShowMyTasks,
   showOverdueOnly,
@@ -150,12 +151,13 @@ export default function QuickFiltersPopover({
                 <button
                   type='button'
                   onClick={() => {
+                    if (selectedBoard?.id === 'global') return;
                     setShowMyTasks(!showMyTasks);
                     if (!showMyTasks) setShowOverdueOnly(false);
                   }}
-                  disabled={accountStatus === 'suspended'}
+                  disabled={accountStatus === 'suspended' || selectedBoard?.id === 'global'}
                   className={chipClass(
-                    showMyTasks,
+                    showMyTasks || selectedBoard?.id === 'global',
                     'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-500/20 dark:border-indigo-500/30 dark:text-indigo-300'
                   )}>
                   <Icon name='user' className='w-3.5 h-3.5' />

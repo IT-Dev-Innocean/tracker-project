@@ -423,12 +423,7 @@ export default function useAppLogic() {
     return null;
   });
 
-  useEffect(() => {
-    if (!MASTER_VIEW_UI_ENABLED && selectedBoard?.id === 'global') {
-      setSelectedBoard(null);
-      setSidebarNav('home');
-    }
-  }, [selectedBoard]);
+
 
   useEffect(() => {
     if (
@@ -599,6 +594,11 @@ export default function useAppLogic() {
   const [accountStatus, setAccountStatus] = useState('active');
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [workspaceRole, setWorkspaceRole] = useState('project_owner'); // admin | project_owner | manager | staff
+  useEffect(() => {
+    if (workspaceRole === 'staff' && viewMode === 'analytics') {
+      setViewMode('kanban');
+    }
+  }, [workspaceRole, viewMode, setViewMode]);
   const [feedbackText, setFeedbackText] = useState('');
   const [supportText, setSupportText] = useState('');
   useEffect(() => {
@@ -3811,7 +3811,8 @@ export default function useAppLogic() {
       const matchStatus = filterStatus === 'All' || task.status === filterStatus;
       const matchCategory = filterCategory === 'All' || task.category === filterCategory;
       const matchAssignee = filterAssignee === 'All' || getTaskAssignee(task) === filterAssignee;
-      const matchMyTasks = !showMyTasks || isUserAssigned(task, currentUser);
+      const isGlobalMyTasksView = selectedBoard?.id === 'global';
+      const matchMyTasks = !(showMyTasks || isGlobalMyTasksView) || isUserAssigned(task, currentUser);
       const matchUnread =
         !showUnreadOnly ||
         (notifications || []).some(

@@ -1378,6 +1378,8 @@ function App() {
         <Sidebar
           showTimesheets={showTimesheets}
           setShowTimesheets={setShowTimesheets}
+          showMyTasks={showMyTasks}
+          setShowMyTasks={setShowMyTasks}
         />
         <div className='flex-1 flex flex-col min-w-0 overflow-hidden relative'>
           <MobileTopBar />
@@ -1501,7 +1503,7 @@ function App() {
                       />
                     )}
 
-                    {viewMode === 'analytics' && (
+                    {viewMode === 'analytics' && workspaceRole !== 'staff' && (
                       <div className='instagram-solid-cards contents'>
                         <AnalyticsView
                           filteredTasks={filteredTasks}
