@@ -152,14 +152,25 @@ def auto_add_to_board(db: Session, board_id: int, username: str, inviter: str):
     if is_system_feedback_board(db, board_id):
         return False
     target = db.query(User).filter(User.username == username).first()
-    if not target or check_board_access(db, board_id, username):
+    if not target:
+        return False
+
+    board = db.query(Board).filter(Board.id == board_id).first()
+    if not board or board.owner_username == username:
+        return False
+
+    existing_member = (
+        db.query(BoardMember)
+        .filter(BoardMember.board_id == board_id, BoardMember.member_username == username)
+        .first()
+    )
+    if existing_member:
         return False
     
     new_member = BoardMember(board_id=board_id, member_username=username, status="accepted")
     db.add(new_member)
     db.commit() # Commit agar langsung bisa mendapat notifikasi task di baris kode selanjutnya
     
-    board = db.query(Board).filter(Board.id == board_id).first()
     board_name = board.name if board else 'Unknown'
     create_notification(db, username, f"@{inviter} automatically added you to project '{board_name}' by tagging you.", "info", board_id)
     return True
@@ -413,7 +424,12 @@ def build_comment_text(clean_text, reactions):
 def get_assignees(text: str) -> set:
     if not text:
         return set()
-    return set(re.findall(r"@([\w.-]+)", text))
+    # Support both @username mentions and comma/space separated plain usernames (e.g. from head_of_project / rc_team)
+    mentions = set(re.findall(r"@([\w.-]+)", text))
+    # Remove mentions from text to parse any remaining plain usernames/comma-separated strings
+    plain_text = re.sub(r"@[\w.-]+", "", text)
+    plain_users = set(u.strip() for u in re.split(r"[\s,]+", plain_text) if u.strip() and re.match(r"^[\w.-]+$", u.strip()))
+    return mentions.union(plain_users)
 
 
 def update_env_var(key: str, value: str):
@@ -564,7 +580,7 @@ def can_write_comments(db: Session, username: str) -> bool:
 def is_task_admin(db: Session, task: Request, username: str):
     if not can_modify_tasks(db, username):
         return False
-    if is_user_superadmin(db, username):
+    if is_user_superadmin(db, username) or get_user_role(db, username) in (ROLE_ADMIN, ROLE_PROJECT_OWNER):
         return True
     if task.owner_username and task.owner_username.lower() == username.lower():
         return True

@@ -572,7 +572,7 @@ def edit_task_details(
         if any(s.assignee and s.assignee.lower() != current_user.lower() for s in subs):
             raise HTTPException(status_code=400, detail="Please remove other users from subtasks before moving to a private workspace.")
 
-    old_requester = task.requester
+    old_requester = f"{task.requester or ''} {getattr(task, 'head_of_project', '') or ''} {getattr(task, 'rc_team', '') or ''}"
     old_status = task.status
 
     changes = []
@@ -679,7 +679,7 @@ def edit_task_details(
         log_activity(db, task.id, f"**@{current_user}** updated the task details.")
 
     old_mentions = get_assignees(old_requester)
-    new_mentions = get_assignees(update.requester)
+    new_mentions = get_assignees(f"{update.requester or ''} {update.head_of_project or ''} {update.rc_team or ''}")
     added_mentions = new_mentions - old_mentions
     for m in added_mentions:
         if m != current_user and db.query(User).filter(User.username == m).first():

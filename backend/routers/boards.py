@@ -687,7 +687,7 @@ def create_task(
         db.commit()
         log_activity(db, new_task.id, f"**@{current_user}** created this task.")
 
-        assignees = get_assignees(task.requester)
+        assignees = get_assignees(f"{task.requester or ''} {task.head_of_project or ''} {task.rc_team or ''}")
         all_involved = assignees.union(subtask_assignees)
         for m in all_involved:
             if m != current_user:

@@ -394,6 +394,8 @@ export default function TaskDetailModal({
   if (!isPreviewMode && currentUser && canModify) {
     isTaskAdmin =
       isSuperAdmin ||
+      workspaceRole === 'project_owner' ||
+      workspaceRole === 'admin' ||
       selectedTask.owner_username === currentUser ||
       (selectedBoard && selectedBoard.owner_username === currentUser) ||
       (selectedTask.requester &&
@@ -799,6 +801,7 @@ export default function TaskDetailModal({
                           'Pilih Head PIC Proyek...'
                         )}
                         tMsg={tMsg}
+                        teamMembers={teamMembers}
                       />
 
                       <MultiUserSelect
@@ -814,6 +817,7 @@ export default function TaskDetailModal({
                           'Pilih Tim R&C...'
                         )}
                         tMsg={tMsg}
+                        teamMembers={teamMembers}
                       />
                     </div>
 

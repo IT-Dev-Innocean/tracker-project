@@ -10,6 +10,7 @@ export default function MultiUserSelect({
   employees,
   placeholder,
   tMsg,
+  teamMembers = [],
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState({});
@@ -76,19 +77,27 @@ export default function MultiUserSelect({
         style={dropdownStyle}
         className='bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl max-h-48 overflow-y-auto py-2 mac-animate'>
         {employees.length > 0 ? (
-          employees.map((emp) => (
-            <label
-              key={emp.username}
-              className='flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs font-normal text-black dark:text-white'>
-              <input
-                type='checkbox'
-                checked={selected.includes(emp.username)}
-                onChange={() => toggleUser(emp.username)}
-                className='rounded border-neutral-300 dark:border-neutral-600 text-indigo-600 focus:ring-indigo-500'
-              />
-              <span>{emp.full_name || emp.username}</span>
-            </label>
-          ))
+          employees.map((emp) => {
+            const isAutoInvite = teamMembers.length > 0 && !teamMembers.includes(emp.username);
+            return (
+              <label
+                key={emp.username}
+                className='flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-neutral-100 dark:hover:bg-neutral-800 text-xs font-normal text-black dark:text-white'>
+                <input
+                  type='checkbox'
+                  checked={selected.includes(emp.username)}
+                  onChange={() => toggleUser(emp.username)}
+                  className='rounded border-neutral-300 dark:border-neutral-600 text-indigo-600 focus:ring-indigo-500'
+                />
+                <span>{emp.full_name || emp.username}</span>
+                {isAutoInvite && (
+                  <span className='text-[8px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest ml-auto'>
+                    + Auto-Invite
+                  </span>
+                )}
+              </label>
+            );
+          })
         ) : (
           <div className='px-4 py-3 text-xs text-neutral-400 uppercase tracking-widest font-normal'>
             {tMsg('NO EMPLOYEES FOUND', 'TIDAK ADA KARYAWAN')}
