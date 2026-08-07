@@ -25,6 +25,7 @@ export default function ChatWorkspaceModal({
   isAiReplying,
   setSelectedTask,
   isSuperAdmin,
+  workspaceRole,
   notifications,
   handleNotificationTaskClick,
   handleReadNotification,
@@ -1090,6 +1091,7 @@ export default function ChatWorkspaceModal({
                   <ChatInputArea
                     activeChat={activeChat}
                     isSuperAdmin={isSuperAdmin}
+                    workspaceRole={workspaceRole}
                     accountStatus={accountStatus}
                     chatBg={chatBg}
                     replyingTo={replyingTo}

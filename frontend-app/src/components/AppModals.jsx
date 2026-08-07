@@ -686,6 +686,7 @@ export default function AppModals() {
           isAiReplying={isAiReplying}
           setSelectedTask={setSelectedTask}
           isSuperAdmin={isSuperAdmin}
+          workspaceRole={workspaceRole}
           notifications={notifications}
           handleNotificationTaskClick={handleNotificationTaskClick}
           handleReadNotification={handleReadNotification}

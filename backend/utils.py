@@ -151,6 +151,9 @@ def auto_add_to_board(db: Session, board_id: int, username: str, inviter: str):
         return False
     if is_system_feedback_board(db, board_id):
         return False
+    # Staff users are not allowed to auto-invite users to a board/project
+    if get_user_role(db, inviter) == ROLE_STAFF:
+        return False
     target = db.query(User).filter(User.username == username).first()
     if not target:
         return False

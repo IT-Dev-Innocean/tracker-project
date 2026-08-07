@@ -27,11 +27,11 @@ export const TASK_FORM_AI_ASSISTANT_ENABLED = false;
 export const TASK_COMMENT_AI_MENTION_ENABLED = false;
 
 /** Task detail sidebar action buttons — set true to show again */
-export const TASK_SCHEDULE_MEETING_UI_ENABLED = false;
+export const TASK_SCHEDULE_MEETING_UI_ENABLED = true;
 export const TASK_ADD_TO_CALENDAR_UI_ENABLED = false;
-export const TASK_SMART_NUDGE_UI_ENABLED = false;
-export const TASK_AUTO_NUDGE_UI_ENABLED = false;
-export const TASK_MEET_NOW_UI_ENABLED = false;
+export const TASK_SMART_NUDGE_UI_ENABLED = true;
+export const TASK_AUTO_NUDGE_UI_ENABLED = true;
+export const TASK_MEET_NOW_UI_ENABLED = true;
 
 /** Board toolbar utility icons — set true to show again */
 export const TEAM_CHAT_UI_ENABLED = false;

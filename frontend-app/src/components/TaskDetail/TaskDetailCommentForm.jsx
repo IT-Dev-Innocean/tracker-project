@@ -39,6 +39,7 @@ export default function TaskDetailCommentForm({
   setCommentMentionIndex,
   insertCommentMention,
   teamMembers,
+  workspaceRole,
   tMsg,
 }) {
   return (
@@ -207,9 +208,10 @@ export default function TaskDetailCommentForm({
             {isCommentMentioning && accountStatus !== 'suspended' && (
               <div className='absolute left-0 bottom-full mb-2 w-full bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl z-50 max-h-40 overflow-y-auto py-2'>
                 {(() => {
+                  const effectiveGlobalOptions = workspaceRole === 'staff' ? (teamMembers || []) : globalMentionOptions;
                   const allOptions = getCommentMentionOptions(
                     selectedBoard,
-                    globalMentionOptions
+                    effectiveGlobalOptions
                   );
                   const filteredOptions = allOptions.filter((m) =>
                     m.toLowerCase().includes(commentMentionQuery)

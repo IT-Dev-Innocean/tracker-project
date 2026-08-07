@@ -4,6 +4,7 @@ import { Icon } from '../icons/Icon';
 export default function ChatInputArea({
   activeChat,
   isSuperAdmin,
+  workspaceRole,
   accountStatus,
   chatBg,
   replyingTo,
