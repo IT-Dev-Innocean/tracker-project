@@ -4175,6 +4175,23 @@ export default function useAppLogic() {
       });
   };
 
+  const handleJoinProject = () => {
+    if (!selectedBoard?.id) return;
+    setIsLoading(true);
+    axios
+      .post(`/api/boards/${selectedBoard.id}/join`)
+      .then((res) => {
+        setIsLoading(false);
+        showNotification(res.data.message, 'success');
+        fetchMyTeam();
+        fetchBoards();
+      })
+      .catch((err) => {
+        setIsLoading(false);
+        showNotification(err.response?.data?.detail || 'Failed to join project.', 'error');
+      });
+  };
+
   const handleInviteInputChange = (e) => {
     const val = e.target.value;
     setInviteInput(val);
@@ -5153,6 +5170,7 @@ export default function useAppLogic() {
     handleLogin,
     openTeamModal,
     handleInviteTeam,
+    handleJoinProject,
     handleInviteInputChange,
     applyInviteSuggestion,
     handleRevokeMember,

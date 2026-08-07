@@ -163,6 +163,7 @@ export default function AppModals() {
     inviteIndex,
     setInviteIndex,
     handleSendInvite,
+    handleJoinProject,
     isInvitationsModalOpen,
     setIsInvitationsModalOpen,
     invitations,
@@ -589,6 +590,8 @@ export default function AppModals() {
           language={language}
           selectedBoard={selectedBoard}
           isSuperAdmin={isSuperAdmin}
+          workspaceRole={workspaceRole}
+          handleJoinProject={handleJoinProject}
         />
       )}
       {isInvitesModalOpen && (

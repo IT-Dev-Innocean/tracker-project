@@ -747,11 +747,21 @@ export function TeamModal({
   language,
   selectedBoard,
   isSuperAdmin,
+  workspaceRole,
+  handleJoinProject,
 }) {
   const [isClosing, close] = useCloseAnimation(() => setIsTeamModalOpen(false));
   const tMsg = (en, id) => (language === 'id' ? id : en);
-  const isOwner = selectedBoard?.owner_username === currentUser || isSuperAdmin;
+  const isOwner =
+    selectedBoard?.owner_username === currentUser ||
+    isSuperAdmin ||
+    workspaceRole === 'admin' ||
+    workspaceRole === 'project_owner';
   const isRealOwner = selectedBoard?.owner_username === currentUser;
+  const isAlreadyMember =
+    selectedBoard?.owner_username === currentUser ||
+    myTeam.some((m) => m.username === currentUser && m.status === 'accepted');
+
   return (
     <div
       className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
@@ -761,10 +771,20 @@ export function TeamModal({
         className={`bg-white dark:bg-neutral-950 p-6 sm:p-10 border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] w-full max-w-2xl flex flex-col max-h-[90vh] ${
           isClosing ? 'mac-exit' : 'mac-animate'
         }`}>
-        <h2 className='text-3xl font-black text-black dark:text-white mb-2 flex items-center gap-3'>
-          <Icon name='handshake' className='w-9 h-9 shrink-0' />{' '}
-          {tMsg('Project Members', 'Anggota Proyek')}
-        </h2>
+        <div className='flex justify-between items-center mb-2'>
+          <h2 className='text-3xl font-black text-black dark:text-white flex items-center gap-3'>
+            <Icon name='handshake' className='w-9 h-9 shrink-0' />{' '}
+            {tMsg('Project Members', 'Anggota Proyek')}
+          </h2>
+          {!isAlreadyMember && handleJoinProject && (
+            <button
+              onClick={handleJoinProject}
+              className='px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 shrink-0'>
+              <Icon name='user-plus' className='w-4 h-4' />
+              {tMsg('Join Project', 'Gabung Proyek')}
+            </button>
+          )}
+        </div>
 
         {isOwner && (
           <form onSubmit={handleInviteTeam} className='shrink-0 mt-4'>
