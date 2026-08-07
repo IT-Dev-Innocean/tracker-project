@@ -1035,7 +1035,7 @@ export default function TimesheetView({
               task_name: isCustomTask
                 ? row.custom_task_name
                 : t
-                  ? t.project_name
+                  ? (t.task_name || t.project_name)
                   : null,
               custom_project_name: isCustomProject
                 ? row.custom_project_name
@@ -1568,7 +1568,7 @@ export default function TimesheetView({
                       );
                       if (found) setCurrentWeekStart(found.weekStart);
                     }}
-                    className='bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg py-1.5 px-3 text-xs font-bold text-slate-800 dark:text-neutral-100 outline-none focus:border-indigo-500 cursor-pointer max-w-[280px] sm:max-w-xs transition-colors shadow-sm'>
+                    className='bg-white dark:bg-neutral-900 border border-slate-200 dark:border-neutral-700 rounded-lg py-1.5 px-3 text-xs font-bold text-slate-800 dark:text-neutral-100 outline-none focus:border-indigo-500 cursor-pointer max-w-70 sm:max-w-xs transition-colors shadow-sm'>
                     {allWeeksOptions.map((w) => (
                       <option
                         key={w.weekStartStr}
@@ -1628,7 +1628,7 @@ export default function TimesheetView({
             </div>
 
             {/* Table */}
-            <div className='overflow-auto max-h-[500px] relative custom-scrollbar'>
+            <div className='overflow-auto max-h-125 relative custom-scrollbar'>
               <table className='w-full text-left whitespace-nowrap'>
                 <thead className='sticky top-0 z-20 bg-slate-50 dark:bg-neutral-950 text-slate-500 dark:text-neutral-400 border-b border-slate-200 dark:border-neutral-800 text-xs shadow-sm'>
                   <tr>
@@ -1703,7 +1703,7 @@ export default function TimesheetView({
                           </div>
                           {isPublicHoliday && (
                             <div
-                              className='text-[9px] text-red-500 dark:text-red-400 font-semibold mt-0.5 truncate max-w-[72px] mx-auto'
+                              className='text-[9px] text-red-500 dark:text-red-400 font-semibold mt-0.5 truncate max-w-18 mx-auto'
                               title={
                                 leaves.find(
                                   (l) =>
@@ -1721,7 +1721,7 @@ export default function TimesheetView({
                             </div>
                           )}
                           {isUserLeave && (
-                            <div className='text-[9px] text-indigo-500 dark:text-indigo-400 font-semibold mt-0.5 truncate max-w-[72px] mx-auto'>
+                            <div className='text-[9px] text-indigo-500 dark:text-indigo-400 font-semibold mt-0.5 truncate max-w-18 mx-auto'>
                               Cuti
                             </div>
                           )}
@@ -1752,13 +1752,15 @@ export default function TimesheetView({
                       );
 
                       let projectTasks = [];
-                      if (row.board_id) {
+                      if (row.board_id && row.board_id !== 'custom') {
                         projectTasks = tasks.filter(
-                          (t) => t.board_id === parseInt(row.board_id)
+                          (t) => String(t.board_id) === String(row.board_id)
                         );
-                      } else if (!row.isManual) {
+                      } else if (row.isManual) {
+                        projectTasks = tasks;
+                      } else if (row.request_id) {
                         projectTasks = tasks.filter(
-                          (t) => t.id === row.request_id
+                          (t) => String(t.id) === String(row.request_id)
                         );
                       }
 
@@ -1817,7 +1819,7 @@ export default function TimesheetView({
                                 )}
                               </div>
                             ) : (
-                              <span className='font-medium text-slate-700 dark:text-slate-300 break-words whitespace-normal'>
+                              <span className='font-medium text-slate-700 dark:text-slate-300 wrap-break-word whitespace-normal'>
                                 {(() => {
                                   if (row.custom_project_name)
                                     return row.custom_project_name;
@@ -1836,7 +1838,7 @@ export default function TimesheetView({
                             )}
                           </td>
                           <td className='py-3 px-4'>
-                            {row.isManual && row.board_id ? (
+                            {row.isManual ? (
                               <div className='flex flex-col gap-1.5 w-full'>
                                 <select
                                   value={row.request_id || ''}
@@ -1849,15 +1851,16 @@ export default function TimesheetView({
                                   }
                                   className='w-full bg-white dark:bg-neutral-950 border border-slate-200 dark:border-neutral-800 rounded p-1.5 outline-none focus:border-indigo-500 text-xs text-slate-700 dark:text-slate-200'>
                                   <option value=''>-- Select Task --</option>
-                                  {projectTasks.map((t) => (
-                                    <option key={t.id} value={t.id}>
-                                      {t.project_name &&
-                                      t.project_name.length > 60
-                                        ? t.project_name.substring(0, 60) +
-                                          '...'
-                                        : t.project_name}
-                                    </option>
-                                  ))}
+                                  {projectTasks.map((t) => {
+                                    const taskLabel = t.task_name || t.project_name || '';
+                                    return (
+                                      <option key={t.id} value={t.id}>
+                                        {taskLabel.length > 60
+                                          ? taskLabel.substring(0, 60) + '...'
+                                          : taskLabel}
+                                      </option>
+                                    );
+                                  })}
                                   <option value='custom'>
                                     ✍️ Custom Task...
                                   </option>
@@ -1880,7 +1883,7 @@ export default function TimesheetView({
                               </div>
                             ) : (
                               <span
-                                className='text-slate-600 dark:text-slate-400 break-words whitespace-normal block'
+                                className='text-slate-600 dark:text-slate-400 wrap-break-word whitespace-normal block'
                                 title={
                                   row.custom_task_name ||
                                   Object.values(row.days)[0]?.task_name
@@ -2202,10 +2205,10 @@ export default function TimesheetView({
                           <table className='w-full text-left text-sm'>
                             <thead className='bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 text-slate-500 dark:text-neutral-300'>
                               <tr>
-                                <th className='py-3 px-4 font-medium w-64 min-w-[10rem]'>
+                                <th className='py-3 px-4 font-medium w-64 min-w-40'>
                                   {tMsg('Project', 'Proyek')}
                                 </th>
-                                <th className='py-3 px-4 font-medium w-auto min-w-[18rem]'>
+                                <th className='py-3 px-4 font-medium w-auto min-w-72'>
                                   {tMsg('Task', 'Tugas')}
                                 </th>
                                 {weekGroup.weekDays.map((dateStr, i) => (
@@ -2236,7 +2239,7 @@ export default function TimesheetView({
                                     key={row.id}
                                     className='hover:bg-slate-50 dark:hover:bg-neutral-900/30 transition-colors'>
                                     <td className='py-3 px-4 font-medium text-slate-800 dark:text-neutral-200 align-top'>
-                                      <span className='break-words'>
+                                      <span className='wrap-break-word'>
                                         {row.custom_project_name ||
                                           boards.find(
                                             (b) =>
@@ -2250,7 +2253,7 @@ export default function TimesheetView({
                                     </td>
                                     <td className='py-3 px-4 text-slate-600 dark:text-neutral-300 align-top'>
                                       <span
-                                        className='break-words block'
+                                        className='wrap-break-word block'
                                         title={
                                           row.custom_task_name ||
                                           Object.values(row.days)[0]?.task_name
@@ -2734,7 +2737,7 @@ export default function TimesheetView({
                                             </div>
                                             {isPublicHoliday && (
                                               <div
-                                                className='text-[9px] text-red-500 dark:text-red-400 font-semibold mt-0.5 truncate max-w-[64px] mx-auto'
+                                                className='text-[9px] text-red-500 dark:text-red-400 font-semibold mt-0.5 truncate max-w-16 mx-auto'
                                                 title={
                                                   leaves.find(
                                                     (l) =>
@@ -2816,7 +2819,7 @@ export default function TimesheetView({
                                           </td>
                                           <td className='py-2 px-3 text-slate-600 dark:text-neutral-300 align-top'>
                                             <span
-                                              className='break-words whitespace-normal block'
+                                              className='wrap-break-word whitespace-normal block'
                                               title={row.custom_task_name}>
                                               {row.custom_task_name || (
                                                 <span className='text-slate-400 dark:text-neutral-500 italic'>
@@ -3309,10 +3312,10 @@ export default function TimesheetView({
                                     <table className='w-full text-left text-xs'>
                                       <thead className='bg-slate-50 dark:bg-neutral-900 border-b border-slate-200 dark:border-neutral-800 text-slate-500 dark:text-neutral-300'>
                                         <tr>
-                                          <th className='py-2.5 px-3 font-medium w-56 min-w-[9rem]'>
+                                          <th className='py-2.5 px-3 font-medium w-56 min-w-36'>
                                             {tMsg('Project', 'Proyek')}
                                           </th>
-                                          <th className='py-2.5 px-3 font-medium min-w-[14rem]'>
+                                          <th className='py-2.5 px-3 font-medium min-w-56'>
                                             {tMsg('Task', 'Tugas')}
                                           </th>
                                           {weekGroup.weekDays.map(
@@ -3522,7 +3525,7 @@ export default function TimesheetView({
 
       {/* Modals */}
       {deleteRowModal && (
-        <div className='fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4'>
+        <div className='fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-200 flex items-center justify-center p-4'>
           <div className='bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-200 dark:border-neutral-800'>
             <h3 className='text-lg font-bold text-slate-900 dark:text-white mb-2'>
               Delete Row
@@ -3548,7 +3551,7 @@ export default function TimesheetView({
       )}
 
       {errorModalMsg && (
-        <div className='fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4'>
+        <div className='fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-200 flex items-center justify-center p-4'>
           <div className='bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-200 dark:border-neutral-800'>
             <div className='flex items-center gap-3 text-red-600 mb-2'>
               <Icon name='alert-triangle' className='w-6 h-6' />
@@ -3571,7 +3574,7 @@ export default function TimesheetView({
       )}
 
       {successModalMsg && (
-        <div className='fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4'>
+        <div className='fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-200 flex items-center justify-center p-4'>
           <div className='bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-200 dark:border-neutral-800 text-center'>
             <div className='w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-4'>
               <Icon name='check' className='w-6 h-6' />
@@ -3594,7 +3597,7 @@ export default function TimesheetView({
       )}
 
       {rejectConfirmation && (
-        <div className='fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[200] flex items-center justify-center p-4'>
+        <div className='fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-200 flex items-center justify-center p-4'>
           <div className='bg-white dark:bg-neutral-900 rounded-2xl shadow-xl w-full max-w-sm p-6 border border-slate-200 dark:border-neutral-800 text-center'>
             <div className='w-12 h-12 rounded-full bg-red-50 dark:bg-red-950/30 text-red-650 dark:text-red-400 flex items-center justify-center mx-auto mb-4 text-xl'>
               <Icon name='alert-triangle' className='w-6 h-6' />
