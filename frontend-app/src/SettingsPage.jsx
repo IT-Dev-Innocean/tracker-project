@@ -202,7 +202,7 @@ export default function SettingsPage({
 
   return (
     <div
-      className={`fixed inset-0 bg-neutral-50 dark:bg-[#0e1116] overflow-y-auto z-[100] ${
+      className={`fixed inset-0 bg-neutral-50 dark:bg-[#0e1116] overflow-y-auto z-100 ${
         isClosing ? 'mac-exit' : 'mac-animate'
       }`}
     >
@@ -219,6 +219,21 @@ export default function SettingsPage({
             <span className="sm:hidden"><Icon name="x" className="w-6 h-6" /></span>
           </button>
         </div>
+
+        {(!profileData.job_position || !profileData.division_name) && (
+          <div className="mb-8 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 flex items-start gap-3 shadow-sm mac-animate">
+            <Icon name="alert-triangle" className="w-5 h-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+            <div className="text-xs font-medium leading-relaxed">
+              <p className="font-bold text-amber-900 dark:text-amber-200 text-sm mb-0.5">
+                {tMsg('Complete Your Profile Information', 'Lengkapi Informasi Profil Anda')}
+              </p>
+              {tMsg(
+                'Please ensure your Job Position and Division Name are filled in. This information is required for task details and official reports.',
+                'Pastikan Posisi Pekerjaan dan Nama Divisi Anda terisi. Informasi ini diperlukan untuk detail tugas dan laporan resmi.'
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-col md:flex-row gap-8 lg:gap-16 mac-animate" style={{ animationDelay: '100ms' }}>
           {/* Left Navigation */}
@@ -312,6 +327,51 @@ export default function SettingsPage({
                       className={InputClass}
                       required
                     />
+                  </SettingItem>
+
+                  <SettingItem
+                    title={tMsg('Job Position', 'Posisi Pekerjaan')}
+                    description={tMsg(
+                      'Your role or title in the company (e.g. Senior Designer, Account Manager).',
+                      'Peran atau jabatan Anda di perusahaan (contoh: Senior Designer, Account Manager).'
+                    )}
+                  >
+                    <input
+                      type="text"
+                      value={profileData.job_position || ''}
+                      onChange={(e) => setProfileData({ ...profileData, job_position: e.target.value })}
+                      className={InputClass}
+                      placeholder={tMsg('e.g. Senior Software Engineer', 'contoh: Senior Designer')}
+                      required
+                    />
+                  </SettingItem>
+
+                  <SettingItem
+                    title={tMsg('Division Name', 'Nama Divisi')}
+                    description={tMsg(
+                      'Select your department or division name.',
+                      'Pilih nama departemen atau divisi Anda.'
+                    )}
+                  >
+                    <select
+                      value={profileData.division_name || ''}
+                      onChange={(e) => setProfileData({ ...profileData, division_name: e.target.value })}
+                      className={`${InputClass} cursor-pointer`}
+                      required
+                    >
+                      <option value="" disabled>
+                        {tMsg('-- Select Division --', '-- Pilih Divisi --')}
+                      </option>
+                      <option value="Account">Account</option>
+                      <option value="BTL">BTL</option>
+                      <option value="Creative">Creative</option>
+                      <option value="CRM">CRM</option>
+                      <option value="Digital & Technology">Digital & Technology</option>
+                      <option value="Media">Media</option>
+                      <option value="Planning">Planning</option>
+                      <option value="Resources & Coordination">Resources & Coordination</option>
+                      <option value="RSD">RSD</option>
+                    </select>
                   </SettingItem>
 
                   <SettingItem

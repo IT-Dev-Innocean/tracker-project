@@ -109,6 +109,8 @@ class User(Base):
     role = Column(String(50), default="project_owner")
     timesheet_approver = Column(String(50), nullable=True)
     timesheet_required = Column(Boolean, default=True)
+    job_position = Column(String(100), nullable=True)
+    division_name = Column(String(100), nullable=True)
 
 
 class Board(Base):
@@ -275,6 +277,12 @@ def setup_db():
                 )
                 conn.execute(
                     text("ALTER TABLE boards ADD COLUMN IF NOT EXISTS client_name TEXT")
+                )
+                conn.execute(
+                    text("ALTER TABLE users ADD COLUMN IF NOT EXISTS job_position TEXT")
+                )
+                conn.execute(
+                    text("ALTER TABLE users ADD COLUMN IF NOT EXISTS division_name TEXT")
                 )
         except Exception:
             pass

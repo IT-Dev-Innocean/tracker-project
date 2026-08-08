@@ -154,6 +154,8 @@ function App() {
     closeNotif,
     showTimesheets,
     setShowTimesheets,
+    isProfileBannerDismissed,
+    setIsProfileBannerDismissed,
     showTeams,
     setShowTeams,
     showAdmin,
@@ -1382,6 +1384,32 @@ function App() {
           setShowMyTasks={setShowMyTasks}
         />
         <div className='flex-1 flex flex-col min-w-0 overflow-hidden relative'>
+          {accountStatus !== 'suspended' &&
+            !isProfileBannerDismissed &&
+            (!profileData.job_position || !profileData.division_name) && (
+              <div className='bg-amber-500 text-white text-center py-2.5 px-4 font-bold text-xs sm:text-sm shrink-0 flex items-center justify-between gap-2 shadow-md z-40 relative'>
+                <div className='flex items-center justify-center gap-2 flex-1'>
+                  <Icon name='alert-triangle' className='w-4 h-4 shrink-0' />
+                  <span>
+                    {tMsg(
+                      'Action Required: Please complete your Job Position and Division Name in Profile Settings.',
+                      'Tindakan Diperlukan: Harap lengkapi Posisi Pekerjaan dan Nama Divisi Anda di Pengaturan Profil.'
+                    )}
+                  </span>
+                  <button
+                    onClick={openSettings}
+                    className='ml-2 underline hover:text-amber-100 font-extrabold uppercase text-xs cursor-pointer'>
+                    {tMsg('Update Now', 'Perbarui Sekarang')}
+                  </button>
+                </div>
+                <button
+                  onClick={() => setIsProfileBannerDismissed(true)}
+                  className='p-1 hover:bg-amber-600 rounded-lg transition-colors cursor-pointer text-white shrink-0'
+                  title={tMsg('Close', 'Tutup')}>
+                  <Icon name='x' className='w-4 h-4' />
+                </button>
+              </div>
+            )}
           <MobileTopBar />
           <TopHeaderBar />
           {!selectedBoard ? (

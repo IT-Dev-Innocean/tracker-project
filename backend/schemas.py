@@ -147,6 +147,8 @@ class FeedbackModel(BaseModel):
 class ProfileUpdateModel(BaseModel):
     full_name: str
     email: str
+    job_position: Optional[str] = None
+    division_name: Optional[str] = None
     avatar: Optional[str] = None
     current_password: Optional[str] = None
     new_password: Optional[str] = None

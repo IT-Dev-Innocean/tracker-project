@@ -360,7 +360,7 @@ export default function useAppLogic() {
   const [inviteIndex, setInviteIndex] = useState(0);
   const [userDirectory, setUserDirectory] = useState([]);
   const [invitations, setInvitations] = useState([]);
-  const [profileData, setProfileData] = useState({ username: '', email: '', full_name: '' });
+  const [profileData, setProfileData] = useState({ username: '', email: '', full_name: '', job_position: '', division_name: '' });
   const [isMentioning, setIsMentioning] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionIndex, setMentionIndex] = useState(0);
@@ -601,6 +601,7 @@ export default function useAppLogic() {
   }, [workspaceRole, viewMode, setViewMode]);
   const [feedbackText, setFeedbackText] = useState('');
   const [supportText, setSupportText] = useState('');
+  const [isProfileBannerDismissed, setIsProfileBannerDismissed] = useState(false);
   useEffect(() => {
     if (typeof window !== 'undefined') localStorage.setItem('innocean_docs_open', isDocsOpen);
   }, [isDocsOpen]);
@@ -4364,6 +4365,8 @@ export default function useAppLogic() {
     setIsLoading(true);
     const payload = {
       full_name: profileData.full_name,
+      job_position: profileData.job_position,
+      division_name: profileData.division_name,
       email: profileData.email,
       avatar: profileData.avatar,
       current_password: profileData.current_password,
@@ -5058,6 +5061,8 @@ export default function useAppLogic() {
     setInvitations,
     setIsSettingsOpen,
     setProfileData,
+    isProfileBannerDismissed,
+    setIsProfileBannerDismissed,
     setIsMentioning,
     setMentionQuery,
     isCommentMentioning,
