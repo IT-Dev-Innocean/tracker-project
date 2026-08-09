@@ -45,6 +45,11 @@ export function canWriteComments(role) {
   return role !== ROLE_STAFF;
 }
 
+/** My Tasks sidebar menu is Staff-only. */
+export function canAccessMyTasksMenu(role) {
+  return role === ROLE_STAFF;
+}
+
 export function roleLabel(role, language = 'en') {
   const entry = ROLE_LABELS[role] || ROLE_LABELS[ROLE_PROJECT_OWNER];
   return language === 'id' ? entry.id : entry.en;

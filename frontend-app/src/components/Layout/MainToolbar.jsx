@@ -246,7 +246,7 @@ export default function MainToolbar() {
         <div className='flex flex-wrap items-center gap-2 sm:gap-3 min-w-0'>
           <h2 className='text-2xl sm:text-xl lg:text-3xl font-extrabold text-slate-800 dark:text-white capitalize shrink-0'>
             {selectedBoard.id === 'global'
-              ? tMsg('Master View', 'Tampilan Utama')
+              ? tMsg('My Tasks', 'Tugas Saya')
               : selectedBoard.name}
           </h2>
           {renderUtilityActions()}
@@ -270,28 +270,28 @@ export default function MainToolbar() {
           {['kanban', 'list', 'timeline', 'calendar', 'analytics']
             .filter((v) => v !== 'analytics' || workspaceRole !== 'staff')
             .map((v) => {
-            const isActive = viewMode === v;
-            return (
-              <button
-                key={v}
-                type='button'
-                onClick={() => {
-                  if (v === 'timeline' && groupBy === 'Status')
-                    setGroupBy('Project');
-                  else if (v === 'kanban' && groupBy === 'Project')
-                    setGroupBy('Status');
-                  setViewMode(v);
-                }}
-                className={`relative flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition-all capitalize whitespace-nowrap shrink-0 rounded-lg ${
-                  isActive
-                    ? 'theme-tab-active shadow-sm'
-                    : 'theme-interactive text-slate-500 dark:text-slate-400'
-                }`}>
-                {viewTabIcons[v]}
-                {viewTabLabels[v]}
-              </button>
-            );
-          })}
+              const isActive = viewMode === v;
+              return (
+                <button
+                  key={v}
+                  type='button'
+                  onClick={() => {
+                    if (v === 'timeline' && groupBy === 'Status')
+                      setGroupBy('Project');
+                    else if (v === 'kanban' && groupBy === 'Project')
+                      setGroupBy('Status');
+                    setViewMode(v);
+                  }}
+                  className={`relative flex items-center gap-1.5 px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold transition-all capitalize whitespace-nowrap shrink-0 rounded-lg ${
+                    isActive
+                      ? 'theme-tab-active shadow-sm'
+                      : 'theme-interactive text-slate-500 dark:text-slate-400'
+                  }`}>
+                  {viewTabIcons[v]}
+                  {viewTabLabels[v]}
+                </button>
+              );
+            })}
         </div>
       </div>
 

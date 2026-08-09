@@ -19,14 +19,33 @@ import {
   setStatusLabelColor,
   STATUS_COLOR_PALETTE,
 } from './utils/statusColors';
-import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
-import axios from 'axios'; 
-import { useGoogleLogin, useGoogleOneTapLogin, googleLogout } from '@react-oauth/google';
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from 'react';
+import axios from 'axios';
+import {
+  useGoogleLogin,
+  useGoogleOneTapLogin,
+  googleLogout,
+} from '@react-oauth/google';
 import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 
 const DEFAULT_COLUMNS = DEFAULT_STATUS_COLUMNS;
-const DEFAULT_CATEGORIES = ['Development', 'Design', 'Marketing', 'Research', 'Maintenance', 'Consulting', 'Other'];
+const DEFAULT_CATEGORIES = [
+  'Development',
+  'Design',
+  'Marketing',
+  'Research',
+  'Maintenance',
+  'Consulting',
+  'Other',
+];
 const DAY_WIDTH = 45;
 let cachedGlobalTasks = null;
 let cachedGlobalTasksTime = 0;
@@ -36,10 +55,13 @@ export const isUserAssigned = (task, username) => {
   const uname = username.toLowerCase();
   const reqLower = (task.requester || '').toLowerCase();
   const escapedUname = uname.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const isMentionedExact = new RegExp(`@${escapedUname}(?![\\w.-])`, 'i').test(reqLower);
+  const isMentionedExact = new RegExp(`@${escapedUname}(?![\\w.-])`, 'i').test(
+    reqLower
+  );
   const isAssignedSubtask =
     (task.subtask_assignees || '').toLowerCase().split(', ').includes(uname) ||
-    (Array.isArray(task.subtasks) && task.subtasks.some((st) => (st.assignee || '').toLowerCase() === uname));
+    (Array.isArray(task.subtasks) &&
+      task.subtasks.some((st) => (st.assignee || '').toLowerCase() === uname));
   const isOwner = (task.owner_username || '').toLowerCase() === uname;
   const hasAnyMention = reqLower.includes('@');
 
@@ -62,10 +84,11 @@ const translations = {
     Admin: 'Admin',
     'Search across all projects...': 'Search across all projects...',
     'Your Projects': 'Your Projects',
-    'Select a workspace to start managing tasks.': 'Select a workspace to start managing tasks.',
+    'Select a workspace to start managing tasks.':
+      'Select a workspace to start managing tasks.',
     'New Project': 'New Project',
     'Global Export': 'Get All My Data',
-    'Master View': 'Master View',
+    'My Tasks': 'My Tasks',
     'Global Workload': 'See the Big Picture',
     'All tasks across your projects': 'All tasks across your projects',
     'Click to View Everything': 'Click to View Everything',
@@ -99,10 +122,11 @@ const translations = {
     Admin: 'Admin',
     'Search across all projects...': 'Cari di semua proyek...',
     'Your Projects': 'Proyek Anda',
-    'Select a workspace to start managing tasks.': 'Pilih ruang kerja untuk mulai mengelola tugas.',
+    'Select a workspace to start managing tasks.':
+      'Pilih ruang kerja untuk mulai mengelola tugas.',
     'New Project': 'Proyek Baru',
     'Global Export': 'Dapatkan Semua Data',
-    'Master View': 'Tampilan Utama',
+    'My Tasks': 'Tugas Saya',
     'Global Workload': 'Lihat Gambaran Besar',
     'All tasks across your projects': 'Semua tugas di seluruh proyek Anda',
     'Click to View Everything': 'Klik untuk Melihat Semua',
@@ -141,14 +165,20 @@ const parseLocalZero = (dateStr) => {
 
 const getLocalToday = () => {
   const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(
-    2,
-    '0'
-  )}`;
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+    now.getDate()
+  ).padStart(2, '0')}`;
 };
 
 export default function useAppLogic() {
-  const { searchQuery, setSearchQuery, groupBy, setGroupBy, sortBy, setSortBy } = useFilters();
+  const {
+    searchQuery,
+    setSearchQuery,
+    groupBy,
+    setGroupBy,
+    sortBy,
+    setSortBy,
+  } = useFilters();
 
   // Set default sort on initial load
   useEffect(() => {
@@ -238,7 +268,10 @@ export default function useAppLogic() {
   } = useModals();
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('token')) {
+    if (
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('token')
+    ) {
       localStorage.removeItem('innocean_auth');
       localStorage.removeItem('innocean_token');
       localStorage.removeItem('innocean_username');
@@ -253,7 +286,11 @@ export default function useAppLogic() {
   }, [isAuthenticated]);
 
   const [currentUser, setCurrentUser] = useState(() => {
-    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('token')) return '';
+    if (
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).get('token')
+    )
+      return '';
     return localStorage.getItem('innocean_username') || '';
   });
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -280,7 +317,8 @@ export default function useAppLogic() {
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
 
   const [resetToken, setResetToken] = useState(() => {
-    if (typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('token');
+    if (typeof window !== 'undefined')
+      return new URLSearchParams(window.location.search).get('token');
     return null;
   });
   const [isResetMode, setIsResetMode] = useState(!!resetToken);
@@ -315,7 +353,8 @@ export default function useAppLogic() {
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [showHasSubtasks, setShowHasSubtasks] = useState(false);
   const [hideCompleted, setHideCompleted] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('innocean_hide_completed') === 'true';
+    if (typeof window !== 'undefined')
+      return localStorage.getItem('innocean_hide_completed') === 'true';
     return false;
   });
   const [calDate, setCalDate] = useState(new Date());
@@ -360,7 +399,13 @@ export default function useAppLogic() {
   const [inviteIndex, setInviteIndex] = useState(0);
   const [userDirectory, setUserDirectory] = useState([]);
   const [invitations, setInvitations] = useState([]);
-  const [profileData, setProfileData] = useState({ username: '', email: '', full_name: '', job_position: '', division_name: '' });
+  const [profileData, setProfileData] = useState({
+    username: '',
+    email: '',
+    full_name: '',
+    job_position: '',
+    division_name: '',
+  });
   const [isMentioning, setIsMentioning] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionIndex, setMentionIndex] = useState(0);
@@ -376,7 +421,8 @@ export default function useAppLogic() {
   const [showTimesheets, setShowTimesheets] = useState(() => {
     // Feature hidden from UI; keep state/API wiring for a quick re-enable later.
     if (!TIMESHEETS_UI_ENABLED) return false;
-    if (typeof window !== 'undefined') return localStorage.getItem('innocean_show_timesheets') === 'true';
+    if (typeof window !== 'undefined')
+      return localStorage.getItem('innocean_show_timesheets') === 'true';
     return false;
   });
   const [showTeams, setShowTeams] = useState(false);
@@ -423,8 +469,6 @@ export default function useAppLogic() {
     return null;
   });
 
-
-
   useEffect(() => {
     if (
       !TODO_LIST_UI_ENABLED &&
@@ -469,7 +513,11 @@ export default function useAppLogic() {
       setIsInstallable(true);
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () =>
+      window.removeEventListener(
+        'beforeinstallprompt',
+        handleBeforeInstallPrompt
+      );
   }, []);
 
   const handleInstallClick = async () => {
@@ -486,8 +534,15 @@ export default function useAppLogic() {
   // ToS & Privacy Policy Update Consent Logic
   const prevProactiveAIOpen = useRef(isProactiveAIOpen);
   useEffect(() => {
-    if (prevProactiveAIOpen.current === true && !isProactiveAIOpen && isAuthenticated && currentUser) {
-      const hasAccepted = localStorage.getItem(`innocean_tos_accepted_${currentUser}`);
+    if (
+      prevProactiveAIOpen.current === true &&
+      !isProactiveAIOpen &&
+      isAuthenticated &&
+      currentUser
+    ) {
+      const hasAccepted = localStorage.getItem(
+        `innocean_tos_accepted_${currentUser}`
+      );
       if (hasAccepted !== 'true') {
         const timer = setTimeout(() => {
           setShowTosUpdate(true);
@@ -502,7 +557,9 @@ export default function useAppLogic() {
     localStorage.setItem(`innocean_tos_accepted_${currentUser}`, 'true');
     setShowTosUpdate(false);
     showNotification(
-      language === 'id' ? 'Terima kasih telah menyetujui persyaratan!' : 'Thank you for accepting the terms!',
+      language === 'id'
+        ? 'Terima kasih telah menyetujui persyaratan!'
+        : 'Thank you for accepting the terms!',
       'success'
     );
   };
@@ -511,7 +568,12 @@ export default function useAppLogic() {
   const [exportStartDate, setExportStartDate] = useState('');
   const [exportEndDate, setExportEndDate] = useState('');
   const [leaves, setLeaves] = useState([]);
-  const [leaveForm, setLeaveForm] = useState({ start_date: '', end_date: '', desc: '', type: 'personal' });
+  const [leaveForm, setLeaveForm] = useState({
+    start_date: '',
+    end_date: '',
+    desc: '',
+    type: 'personal',
+  });
   const [timelineDrag, setTimelineDrag] = useState(null);
   const [hoveredTimelineRow, setHoveredTimelineRow] = useState(null);
   const [pendingStatusChange, setPendingStatusChange] = useState(null);
@@ -550,21 +612,40 @@ export default function useAppLogic() {
 
   // NEW: Project Boards Preferences
   const [boardViewMode, setBoardViewMode] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('innocean_board_view') || 'grid';
+    if (typeof window !== 'undefined')
+      return localStorage.getItem('innocean_board_view') || 'grid';
     return 'grid';
   });
   const [boardSortBy, setBoardSortBy] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('innocean_board_sort') || 'active';
+    if (typeof window !== 'undefined')
+      return localStorage.getItem('innocean_board_sort') || 'active';
     return 'active';
   });
   const [favoriteBoards, setFavoriteBoards] = useState(() => {
-    if (typeof window !== 'undefined') return JSON.parse(localStorage.getItem('innocean_fav_boards') || '[]');
+    if (typeof window !== 'undefined')
+      return JSON.parse(localStorage.getItem('innocean_fav_boards') || '[]');
     return [];
   });
-  useEffect(() => localStorage.setItem('innocean_board_view', boardViewMode), [boardViewMode]);
-  useEffect(() => localStorage.setItem('innocean_board_sort', boardSortBy), [boardSortBy]);
-  useEffect(() => localStorage.setItem('innocean_fav_boards', JSON.stringify(favoriteBoards)), [favoriteBoards]);
-  useEffect(() => localStorage.setItem('innocean_hide_completed', hideCompleted), [hideCompleted]);
+  useEffect(
+    () => localStorage.setItem('innocean_board_view', boardViewMode),
+    [boardViewMode]
+  );
+  useEffect(
+    () => localStorage.setItem('innocean_board_sort', boardSortBy),
+    [boardSortBy]
+  );
+  useEffect(
+    () =>
+      localStorage.setItem(
+        'innocean_fav_boards',
+        JSON.stringify(favoriteBoards)
+      ),
+    [favoriteBoards]
+  );
+  useEffect(
+    () => localStorage.setItem('innocean_hide_completed', hideCompleted),
+    [hideCompleted]
+  );
 
   const confirmPendingStatusChange = () => {
     if (!pendingStatusChange) return;
@@ -601,25 +682,31 @@ export default function useAppLogic() {
   }, [workspaceRole, viewMode, setViewMode]);
   const [feedbackText, setFeedbackText] = useState('');
   const [supportText, setSupportText] = useState('');
-  const [isProfileBannerDismissed, setIsProfileBannerDismissed] = useState(false);
+  const [isProfileBannerDismissed, setIsProfileBannerDismissed] =
+    useState(false);
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('innocean_docs_open', isDocsOpen);
+    if (typeof window !== 'undefined')
+      localStorage.setItem('innocean_docs_open', isDocsOpen);
   }, [isDocsOpen]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('innocean_mom_notepad_open', isMomNotepadOpen);
+    if (typeof window !== 'undefined')
+      localStorage.setItem('innocean_mom_notepad_open', isMomNotepadOpen);
   }, [isMomNotepadOpen]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('innocean_chat_ws_open', isChatWorkspaceOpen);
+    if (typeof window !== 'undefined')
+      localStorage.setItem('innocean_chat_ws_open', isChatWorkspaceOpen);
   }, [isChatWorkspaceOpen]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('innocean_changelog_open', isChangelogOpen);
+    if (typeof window !== 'undefined')
+      localStorage.setItem('innocean_changelog_open', isChangelogOpen);
   }, [isChangelogOpen]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') localStorage.setItem('innocean_proactive_ai_open', isProactiveAIOpen);
+    if (typeof window !== 'undefined')
+      localStorage.setItem('innocean_proactive_ai_open', isProactiveAIOpen);
   }, [isProactiveAIOpen]);
 
   const [chatBg, setChatBg] = useState('');
@@ -644,41 +731,50 @@ export default function useAppLogic() {
   const tMsg = (en, id) => (language === 'id' ? id : en);
 
   const [dateFormat, setDateFormat] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('innocean_date_format') || 'DD MMM YYYY';
+    if (typeof window !== 'undefined')
+      return localStorage.getItem('innocean_date_format') || 'DD MMM YYYY';
     return 'DD MMM YYYY';
   });
 
   const [showLiveClock, setShowLiveClock] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('innocean_show_clock') === 'true';
+    if (typeof window !== 'undefined')
+      return localStorage.getItem('innocean_show_clock') === 'true';
     return false;
   });
   const [showLiveClockDate, setShowLiveClockDate] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('innocean_show_clock_date') !== 'false';
+    if (typeof window !== 'undefined')
+      return localStorage.getItem('innocean_show_clock_date') !== 'false';
     return true;
   });
   const [pomodoroEnabled, setPomodoroEnabled] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('innocean_pomodoro') === 'true';
+    if (typeof window !== 'undefined')
+      return localStorage.getItem('innocean_pomodoro') === 'true';
     return false;
   });
   const [showAssistantButton, setShowAssistantButton] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('innocean_show_assistant_btn') !== 'false';
+    if (typeof window !== 'undefined')
+      return localStorage.getItem('innocean_show_assistant_btn') !== 'false';
     return true;
   });
   const [notifPosition, setNotifPosition] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('innocean_notif_pos') || 'bottom-right';
+    if (typeof window !== 'undefined')
+      return localStorage.getItem('innocean_notif_pos') || 'bottom-right';
     return 'bottom-right';
   });
   const [notifSound, setNotifSound] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('innocean_notif_sound') !== 'false';
+    if (typeof window !== 'undefined')
+      return localStorage.getItem('innocean_notif_sound') !== 'false';
     return true;
   });
   const [notifPrivacy, setNotifPrivacy] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('innocean_notif_privacy') === 'true';
+    if (typeof window !== 'undefined')
+      return localStorage.getItem('innocean_notif_privacy') === 'true';
     return false;
   });
 
   const [browserNotifEnabled, setBrowserNotifEnabled] = useState(() => {
-    if (typeof window !== 'undefined') return localStorage.getItem('innocean_browser_notif') === 'true';
+    if (typeof window !== 'undefined')
+      return localStorage.getItem('innocean_browser_notif') === 'true';
     return false;
   });
 
@@ -690,9 +786,14 @@ export default function useAppLogic() {
       if (lastNotifIdRef.current === null) {
         lastNotifIdRef.current = maxId;
       } else if (maxId > lastNotifIdRef.current) {
-        const newNotifs = notifications.filter((n) => n.id > lastNotifIdRef.current && !n.is_read);
+        const newNotifs = notifications.filter(
+          (n) => n.id > lastNotifIdRef.current && !n.is_read
+        );
         if (newNotifs.length > 0) {
-          const singleMsg = newNotifs[0].message.replace(/(?:<!--|&lt;!--)\s*TASK_ID:\d+\s*(?:-->|--&gt;)/gi, '');
+          const singleMsg = newNotifs[0].message.replace(
+            /(?:<!--|&lt;!--)\s*TASK_ID:\d+\s*(?:-->|--&gt;)/gi,
+            ''
+          );
           const multiMsg =
             language === 'id'
               ? `Anda memiliki ${newNotifs.length} notifikasi aktivitas baru.`
@@ -700,12 +801,20 @@ export default function useAppLogic() {
           const displayMsg = newNotifs.length === 1 ? singleMsg : multiMsg;
 
           // Tampilkan Desktop Notif jika diizinkan
-          if (browserNotifEnabled && 'Notification' in window && Notification.permission === 'granted') {
+          if (
+            browserNotifEnabled &&
+            'Notification' in window &&
+            Notification.permission === 'granted'
+          ) {
             new Notification('INNOCEAN Tracker', { body: displayMsg });
           }
 
           // Tampilkan Toast In-App Notif
-          setNotification({ message: displayMsg, type: 'info', id: Date.now() });
+          setNotification({
+            message: displayMsg,
+            type: 'info',
+            id: Date.now(),
+          });
 
           // Auto-refresh papan Kanban agar task yang baru masuk langsung muncul tanpa perlu refresh halaman
           if (selectedBoard) fetchTasks();
@@ -720,7 +829,20 @@ export default function useAppLogic() {
     if (!dateString) return '-';
     const d = new Date(dateString.replace(/-/g, '/'));
     if (isNaN(d)) return dateString.split(' ')[0];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
 
     if (dateFormat === 'DD/MM/YYYY') {
       return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
@@ -791,7 +913,10 @@ export default function useAppLogic() {
       reader.onloadend = () => {
         setChatBg(reader.result);
         if (currentUser) {
-          localStorage.setItem(`innocean_chat_bg_${currentUser}`, reader.result);
+          localStorage.setItem(
+            `innocean_chat_bg_${currentUser}`,
+            reader.result
+          );
         }
         showNotification('Chat background updated!', 'success');
       };
@@ -817,7 +942,8 @@ export default function useAppLogic() {
 
   const handleSelectAppTheme = (themeStr) => {
     setAppTheme(themeStr);
-    if (typeof window !== 'undefined') localStorage.setItem('innocean_app_theme', themeStr);
+    if (typeof window !== 'undefined')
+      localStorage.setItem('innocean_app_theme', themeStr);
     showNotification('App background updated!', 'success');
   };
 
@@ -831,7 +957,8 @@ export default function useAppLogic() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setAppBgImage(reader.result);
-        if (typeof window !== 'undefined') localStorage.setItem('innocean_app_bg_image', reader.result);
+        if (typeof window !== 'undefined')
+          localStorage.setItem('innocean_app_bg_image', reader.result);
         showNotification('Custom background updated!', 'success');
       };
       reader.readAsDataURL(file);
@@ -840,19 +967,22 @@ export default function useAppLogic() {
 
   const removeAppBgImage = () => {
     setAppBgImage('');
-    if (typeof window !== 'undefined') localStorage.removeItem('innocean_app_bg_image');
+    if (typeof window !== 'undefined')
+      localStorage.removeItem('innocean_app_bg_image');
     showNotification('Custom background removed!', 'success');
   };
 
   const handleSelectAppTexture = (textureStr) => {
     setAppTexture(textureStr);
-    if (typeof window !== 'undefined') localStorage.setItem('innocean_app_texture', textureStr);
+    if (typeof window !== 'undefined')
+      localStorage.setItem('innocean_app_texture', textureStr);
     showNotification('Texture overlay updated!', 'success');
   };
 
   const handleSelectCardTheme = (themeStr) => {
     setCardTheme(themeStr);
-    if (typeof window !== 'undefined') localStorage.setItem('innocean_card_theme', themeStr);
+    if (typeof window !== 'undefined')
+      localStorage.setItem('innocean_card_theme', themeStr);
     showNotification('Task card theme updated!', 'success');
   };
 
@@ -902,7 +1032,10 @@ export default function useAppLogic() {
         if (!selectedBoard || selectedBoard.id === 'global') {
           localStorage.setItem(`innocean_tour_done_v2_${currentUser}`, 'true');
         } else {
-          localStorage.setItem(`innocean_board_tour_done_v2_${currentUser}`, 'true');
+          localStorage.setItem(
+            `innocean_board_tour_done_v2_${currentUser}`,
+            'true'
+          );
         }
         setIsFormOpen(false);
         setIsMobileMenuOpen(false);
@@ -913,7 +1046,10 @@ export default function useAppLogic() {
           ? [
               {
                 popover: {
-                  title: tMsg('Welcome to INNOCEAN Tracker! 🚀', 'Selamat datang di INNOCEAN Tracker! 🚀'),
+                  title: tMsg(
+                    'Welcome to INNOCEAN Tracker! 🚀',
+                    'Selamat datang di INNOCEAN Tracker! 🚀'
+                  ),
                   description: tMsg(
                     'This is your main dashboard. Let us give you a quick tour! Click the logo anytime to return here.',
                     'Ini adalah dasbor utama Anda. Mari kita mulai tur singkat! Klik logo kapan saja untuk kembali ke sini.'
@@ -939,7 +1075,10 @@ export default function useAppLogic() {
                     {
                       element: '.tour-my-capacity',
                       popover: {
-                        title: tMsg('Your Capacity Meter', 'Pengukur Kapasitas Anda'),
+                        title: tMsg(
+                          'Your Capacity Meter',
+                          'Pengukur Kapasitas Anda'
+                        ),
                         description: tMsg(
                           "This meter shows your remaining active workload in hours. It also warns you if you're approaching a weekly or monthly overload, helping you manage your bandwidth.",
                           'Pengukur ini menunjukkan sisa beban kerja aktif Anda dalam jam. Ini juga akan memberi peringatan jika Anda mendekati kelebihan beban mingguan atau bulanan, membantu Anda mengelola kapasitas kerja.'
@@ -1067,7 +1206,10 @@ export default function useAppLogic() {
                 },
               },
               {
-                element: window.innerWidth >= 768 ? '.tour-account-menu' : '.tour-account-menu-mobile',
+                element:
+                  window.innerWidth >= 768
+                    ? '.tour-account-menu'
+                    : '.tour-account-menu-mobile',
                 popover: {
                   title: tMsg('Account Options', 'Opsi Akun'),
                   description: tMsg(
@@ -1096,7 +1238,10 @@ export default function useAppLogic() {
             ]
           : [
               {
-                element: window.innerWidth >= 768 ? '.tour-board-title' : '.tour-board-title-mobile',
+                element:
+                  window.innerWidth >= 768
+                    ? '.tour-board-title'
+                    : '.tour-board-title-mobile',
                 popover: {
                   title: tMsg('Home Dashboard', 'Beranda Utama'),
                   description: tMsg(
@@ -1207,7 +1352,8 @@ export default function useAppLogic() {
                   if (driverRef.current) driverRef.current.isAtManualBtn = true;
                 },
                 onDeselected: () => {
-                  if (driverRef.current) driverRef.current.isAtManualBtn = false;
+                  if (driverRef.current)
+                    driverRef.current.isAtManualBtn = false;
                 },
               },
               {
@@ -1288,9 +1434,17 @@ export default function useAppLogic() {
 
   useEffect(() => {
     if (!BOARD_HIGHLIGHTS_TOUR_ENABLED) return;
-    if (selectedBoard && selectedBoard.id !== 'global' && !isProactiveAIOpen && !isProjectChatOpen) {
-      const hasSeenBoardTour = localStorage.getItem(`innocean_board_tour_done_v2_${currentUser}`);
-      const isAIOffering = localStorage.getItem('innocean_ai_offer_docs') === 'true';
+    if (
+      selectedBoard &&
+      selectedBoard.id !== 'global' &&
+      !isProactiveAIOpen &&
+      !isProjectChatOpen
+    ) {
+      const hasSeenBoardTour = localStorage.getItem(
+        `innocean_board_tour_done_v2_${currentUser}`
+      );
+      const isAIOffering =
+        localStorage.getItem('innocean_ai_offer_docs') === 'true';
       if (!hasSeenBoardTour && !isAIOffering) {
         const timer = setTimeout(() => {
           startDriverTour();
@@ -1310,7 +1464,9 @@ export default function useAppLogic() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      const hasSeenTour = localStorage.getItem(`innocean_tour_done_v2_${currentUser}`);
+      const hasSeenTour = localStorage.getItem(
+        `innocean_tour_done_v2_${currentUser}`
+      );
       const legacyTour = localStorage.getItem('innocean_tour_done_v2');
 
       if (!hasSeenTour && !legacyTour) {
@@ -1343,7 +1499,11 @@ export default function useAppLogic() {
             setShowAuthForm(true);
           })
           .catch((err) => {
-            showNotification(err.response?.data?.detail || 'Verification failed or token expired.', 'error');
+            showNotification(
+              err.response?.data?.detail ||
+                'Verification failed or token expired.',
+              'error'
+            );
           })
           .finally(() => {
             const url = new URL(window.location);
@@ -1385,7 +1545,10 @@ export default function useAppLogic() {
       .catch((err) => {
         clearTimeout(wakeTimer);
         setIsLoading(false);
-        showNotification(err.response?.data?.detail || 'Google Login failed', 'error');
+        showNotification(
+          err.response?.data?.detail || 'Google Login failed',
+          'error'
+        );
       });
   };
 
@@ -1407,7 +1570,8 @@ export default function useAppLogic() {
     onSuccess: (tokenResponse) => {
       completeGoogleLogin(tokenResponse?.access_token);
     },
-    onError: () => showNotification('Google Login failed or cancelled', 'error'),
+    onError: () =>
+      showNotification('Google Login failed or cancelled', 'error'),
   });
 
   // Prefer One Tap account chooser; fallback ke OAuth popup jika One Tap tidak tersedia
@@ -1417,7 +1581,10 @@ export default function useAppLogic() {
         window.google.accounts.id.prompt((notification) => {
           // Fallback OAuth hanya jika One Tap gagal tampil / di-skip Google,
           // bukan saat user menutup prompt dengan sengaja.
-          if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
+          if (
+            notification?.isNotDisplayed?.() ||
+            notification?.isSkippedMoment?.()
+          ) {
             loginWithGoogleOAuth();
           }
         });
@@ -1453,7 +1620,8 @@ export default function useAppLogic() {
       return;
     }
 
-    const scrollable = e.target.closest('.overflow-auto, .overflow-x-auto') || scrollRef.current;
+    const scrollable =
+      e.target.closest('.overflow-auto, .overflow-x-auto') || scrollRef.current;
     if (scrollable) {
       const rect = scrollable.getBoundingClientRect();
       const scrollbarHeight = scrollable.offsetHeight - scrollable.clientHeight;
@@ -1509,8 +1677,12 @@ export default function useAppLogic() {
       return;
     }
 
-    const currentDrag = forceDropPayload ? forceDropPayload.dragged : timelineDrag;
-    const currentRow = forceDropPayload ? forceDropPayload.hoveredRow : hoveredTimelineRow;
+    const currentDrag = forceDropPayload
+      ? forceDropPayload.dragged
+      : timelineDrag;
+    const currentRow = forceDropPayload
+      ? forceDropPayload.hoveredRow
+      : hoveredTimelineRow;
 
     if (currentDrag) {
       let requiresUpdate = false;
@@ -1532,13 +1704,21 @@ export default function useAppLogic() {
       };
       const updatedTask = { ...t };
 
-      if (currentDrag.mode === 'both' && currentRow && currentRow !== 'unknown') {
+      if (
+        currentDrag.mode === 'both' &&
+        currentRow &&
+        currentRow !== 'unknown'
+      ) {
         if (groupBy === 'Assignee' && currentRow !== getTaskAssignee(t)) {
           updatedTask.requester = currentRow === 'Unassigned' ? '' : currentRow;
           payload.requester = updatedTask.requester;
           requiresUpdate = true;
         } else if (groupBy === 'Status' && currentRow !== t.status) {
-          if (!forceDropPayload && currentRow === 'Done' && t.subtask_done < t.subtask_total) {
+          if (
+            !forceDropPayload &&
+            currentRow === 'Done' &&
+            t.subtask_done < t.subtask_total
+          ) {
             setPendingStatusChange({
               type: 'timeline',
               payload: { dragged: currentDrag, hoveredRow: currentRow },
@@ -1550,11 +1730,18 @@ export default function useAppLogic() {
           updatedTask.status = currentRow;
           payload.status = updatedTask.status;
           requiresUpdate = true;
-        } else if (groupBy === 'Category' && currentRow !== (t.category || 'Uncategorized')) {
-          updatedTask.category = currentRow === 'Uncategorized' ? '' : currentRow;
+        } else if (
+          groupBy === 'Category' &&
+          currentRow !== (t.category || 'Uncategorized')
+        ) {
+          updatedTask.category =
+            currentRow === 'Uncategorized' ? '' : currentRow;
           payload.category = updatedTask.category;
           requiresUpdate = true;
-        } else if (groupBy === 'Project' && String(currentRow) !== String(t.board_id || 'unknown')) {
+        } else if (
+          groupBy === 'Project' &&
+          String(currentRow) !== String(t.board_id || 'unknown')
+        ) {
           const newBoardId = parseInt(currentRow);
           if (!isNaN(newBoardId)) {
             updatedTask.board_id = newBoardId;
@@ -1570,9 +1757,16 @@ export default function useAppLogic() {
           t.owner_username === currentUser ||
           (selectedBoard && selectedBoard.owner_username === currentUser) ||
           (t.requester &&
-            new RegExp(`@${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(t.requester));
+            new RegExp(
+              `@${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
+              'i'
+            ).test(t.requester));
         if (isTaskAdmin) {
-          setTasks((prev) => prev.map((task) => (task.id === updatedTask.id ? updatedTask : task)));
+          setTasks((prev) =>
+            prev.map((task) =>
+              task.id === updatedTask.id ? updatedTask : task
+            )
+          );
           axios
             .put(`/api/tasks/${updatedTask.id}/details`, payload)
             .then(() => {
@@ -1580,16 +1774,26 @@ export default function useAppLogic() {
               fetchTasks();
             })
             .catch((err) => {
-              showNotification(err.response?.data?.detail || 'Failed to update task', 'error');
+              showNotification(
+                err.response?.data?.detail || 'Failed to update task',
+                'error'
+              );
               fetchTasks();
             });
         } else {
-          showNotification('Permission Denied: You cannot modify this task.', 'error');
+          showNotification(
+            'Permission Denied: You cannot modify this task.',
+            'error'
+          );
         }
       }
 
       if (currentDrag.startOffsetDays !== 0) {
-        updateTaskDates(currentDrag.task, currentDrag.startOffsetDays, currentDrag.mode);
+        updateTaskDates(
+          currentDrag.task,
+          currentDrag.startOffsetDays,
+          currentDrag.mode
+        );
         setTimeout(() => setTimelineDrag(null), 100);
       } else {
         setTimelineDrag(null);
@@ -1630,7 +1834,9 @@ export default function useAppLogic() {
       }
 
       if (deltaDays !== timelineDrag.startOffsetDays) {
-        setTimelineDrag((prev) => (prev ? { ...prev, startOffsetDays: deltaDays } : null));
+        setTimelineDrag((prev) =>
+          prev ? { ...prev, startOffsetDays: deltaDays } : null
+        );
       }
       return;
     }
@@ -1652,7 +1858,9 @@ export default function useAppLogic() {
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
     let sDate = parseDateStr(task.start_date || task.timestamp.split(' ')[0]);
-    let eDate = task.deadline ? parseDateStr(task.deadline.split(' ')[0]) : parseDateStr();
+    let eDate = task.deadline
+      ? parseDateStr(task.deadline.split(' ')[0])
+      : parseDateStr();
 
     const snapToValidDay = (date, direction = 1) => {
       let d = new Date(date);
@@ -1660,7 +1868,9 @@ export default function useAppLogic() {
         const dStr = formatDStr(d);
         const isWeekend = d.getDay() === 0 || d.getDay() === 6;
         const isHoliday = leaves.some(
-          (l) => l.leave_date === dStr && (l.leave_type !== 'personal' || isUserAssigned(task, l.username))
+          (l) =>
+            l.leave_date === dStr &&
+            (l.leave_type !== 'personal' || isUserAssigned(task, l.username))
         );
         if (isWeekend || isHoliday) {
           d.setDate(d.getDate() + direction);
@@ -1735,7 +1945,10 @@ export default function useAppLogic() {
         fetchTasks();
       })
       .catch((err) => {
-        showNotification(err.response?.data?.detail || 'Failed to update dates', 'error');
+        showNotification(
+          err.response?.data?.detail || 'Failed to update dates',
+          'error'
+        );
         fetchTasks();
       });
   };
@@ -1786,7 +1999,7 @@ export default function useAppLogic() {
   useEffect(() => {
     const handleAuthError = () => {
       if (window.isLoggingOut) return;
-      
+
       // Clear storage
       localStorage.removeItem('innocean_auth');
       localStorage.removeItem('innocean_token');
@@ -1796,7 +2009,7 @@ export default function useAppLogic() {
       localStorage.removeItem('innocean_docs_open');
       localStorage.removeItem('innocean_chat_ws_open');
       localStorage.removeItem('innocean_changelog_open');
-      
+
       // Set session expired indicator in sessionStorage to show notification on fresh load
       sessionStorage.setItem('innocean_session_expired', 'true');
 
@@ -1808,7 +2021,11 @@ export default function useAppLogic() {
     const interceptor = axios.interceptors.request.use((config) => {
       const method = (config.method || '').toLowerCase();
       if (method === 'post' || method === 'put' || method === 'delete') {
-        if (config.url && (config.url.includes('/api/tasks') || config.url.includes('/api/boards'))) {
+        if (
+          config.url &&
+          (config.url.includes('/api/tasks') ||
+            config.url.includes('/api/boards'))
+        ) {
           cachedGlobalTasks = null;
           cachedGlobalTasksTime = 0;
         }
@@ -1882,14 +2099,17 @@ export default function useAppLogic() {
           );
           handleNewTasks(migrated);
           pendingTasks.forEach((t) =>
-            axios.put(`/api/tasks/${t.id}`, { status: 'To Do' }).catch(console.error)
+            axios
+              .put(`/api/tasks/${t.id}`, { status: 'To Do' })
+              .catch(console.error)
           );
         } else {
           handleNewTasks(incoming);
         }
       })
       .catch((err) => {
-        if (err.response?.status === 403 || err.response?.status === 404) setSelectedBoard(null);
+        if (err.response?.status === 403 || err.response?.status === 404)
+          setSelectedBoard(null);
         if (err.response?.status !== 401) console.error(err);
       })
       .finally(() => setIsTasksLoading(false));
@@ -1908,7 +2128,11 @@ export default function useAppLogic() {
 
     if (!selectedBoard || selectedBoard.id === 'global') {
       setTeamMembers(
-        userDirectory.filter((u) => isSuperAdmin || u.is_connected || u.username === currentUser).map((u) => u.username)
+        userDirectory
+          .filter(
+            (u) => isSuperAdmin || u.is_connected || u.username === currentUser
+          )
+          .map((u) => u.username)
       );
       return;
     }
@@ -1986,12 +2210,18 @@ export default function useAppLogic() {
       });
   };
 
-  const [unsubmittedTimesheetsCount, setUnsubmittedTimesheetsCount] = useState(0);
+  const [unsubmittedTimesheetsCount, setUnsubmittedTimesheetsCount] =
+    useState(0);
 
   const fetchTimesheetUnsubmittedCount = async (profArg) => {
     if (!isAuthenticated) return;
     try {
-      const prof = (profArg && profArg.username) ? profArg : (profileData && profileData.username ? profileData : null);
+      const prof =
+        profArg && profArg.username
+          ? profArg
+          : profileData && profileData.username
+            ? profileData
+            : null;
       if (!prof) return;
 
       // Role exemption: Admin & Superadmin do not have compulsory timesheet submission
@@ -2012,7 +2242,9 @@ export default function useAppLogic() {
 
       const joinDateStr = prof?.created_at || '2026-01-01';
       const [y, m, d] = joinDateStr.substring(0, 10).split('-').map(Number);
-      const joinDate = isNaN(y) ? new Date('2026-01-01') : new Date(y, m - 1, d);
+      const joinDate = isNaN(y)
+        ? new Date('2026-01-01')
+        : new Date(y, m - 1, d);
 
       const dNow = new Date();
       const getStart = (dateObj) => {
@@ -2038,7 +2270,10 @@ export default function useAppLogic() {
           days.push(`${dy}-${dm}-${dd}`);
         }
 
-        const isSubmitted = entries.some(e => days.includes(e.date) && ['Pending', 'Approved'].includes(e.status));
+        const isSubmitted = entries.some(
+          (e) =>
+            days.includes(e.date) && ['Pending', 'Approved'].includes(e.status)
+        );
         if (!isSubmitted) {
           count++;
         }
@@ -2057,9 +2292,12 @@ export default function useAppLogic() {
       .get('/api/profile')
       .then((res) => {
         setAccountStatus(res.data.account_status || 'active');
-        setIsSuperAdmin(res.data.is_superadmin === 1 || res.data.role === 'admin');
+        setIsSuperAdmin(
+          res.data.is_superadmin === 1 || res.data.role === 'admin'
+        );
         setWorkspaceRole(
-          res.data.role || (res.data.is_superadmin === 1 ? 'admin' : 'project_owner')
+          res.data.role ||
+            (res.data.is_superadmin === 1 ? 'admin' : 'project_owner')
         );
         setProfileData({ ...res.data, current_password: '', new_password: '' });
         fetchTimesheetUnsubmittedCount(res.data);
@@ -2129,14 +2367,20 @@ export default function useAppLogic() {
 
       return () => {
         clearInterval(interval);
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        document.removeEventListener(
+          'visibilitychange',
+          handleVisibilityChange
+        );
       };
     }
   }, [isAuthenticated]);
 
   useEffect(() => {
     if (selectedBoard) {
-      localStorage.setItem('innocean_selected_board', JSON.stringify(selectedBoard));
+      localStorage.setItem(
+        'innocean_selected_board',
+        JSON.stringify(selectedBoard)
+      );
     } else {
       localStorage.removeItem('innocean_selected_board');
     }
@@ -2151,12 +2395,22 @@ export default function useAppLogic() {
       })
       .then(() => {
         setSelectedBoard((prev) =>
-          prev ? { ...prev, statuses: JSON.stringify(newCols), categories: JSON.stringify(newCats) } : null
+          prev
+            ? {
+                ...prev,
+                statuses: JSON.stringify(newCols),
+                categories: JSON.stringify(newCats),
+              }
+            : null
         );
         setBoards((prev) =>
           prev.map((b) =>
             b.id === selectedBoard.id
-              ? { ...b, statuses: JSON.stringify(newCols), categories: JSON.stringify(newCats) }
+              ? {
+                  ...b,
+                  statuses: JSON.stringify(newCols),
+                  categories: JSON.stringify(newCats),
+                }
               : b
           )
         );
@@ -2184,8 +2438,12 @@ export default function useAppLogic() {
           if (dbCols.length === 0) dbCols = DEFAULT_COLUMNS;
           if (dbCats.length === 0) dbCats = DEFAULT_CATEGORIES;
 
-          const savedCols = localStorage.getItem(`innocean_columns_${selectedBoard.id}`);
-          const savedCats = localStorage.getItem(`innocean_categories_${selectedBoard.id}`);
+          const savedCols = localStorage.getItem(
+            `innocean_columns_${selectedBoard.id}`
+          );
+          const savedCats = localStorage.getItem(
+            `innocean_categories_${selectedBoard.id}`
+          );
           let localCols =
             savedCols && savedCols !== 'null' && savedCols !== 'undefined'
               ? JSON.parse(savedCols)
@@ -2218,15 +2476,18 @@ export default function useAppLogic() {
             ...dbCats.filter((c) => !localCats.includes(c)),
           ];
 
-          const finalCols = mergedCols.length > 0 ? mergedCols : DEFAULT_COLUMNS;
-          const finalCats = mergedCats.length > 0 ? mergedCats : DEFAULT_CATEGORIES;
+          const finalCols =
+            mergedCols.length > 0 ? mergedCols : DEFAULT_COLUMNS;
+          const finalCats =
+            mergedCats.length > 0 ? mergedCats : DEFAULT_CATEGORIES;
           setColumns(finalCols);
           setCategories(finalCats);
 
           const migratedFromLegacy =
             rawDbCols.length === legacyDefaults.length &&
             rawDbCols.every((c, i) => c === legacyDefaults[i]);
-          const renamedPending = rawDbCols.includes('Pending') && finalCols.includes('To Do');
+          const renamedPending =
+            rawDbCols.includes('Pending') && finalCols.includes('To Do');
           if (migratedFromLegacy || renamedPending) {
             try {
               localStorage.setItem(
@@ -2291,10 +2552,16 @@ export default function useAppLogic() {
   }, [unreadCount]);
 
   const handleReadNotification = (id) => {
-    axios.put(`/api/notifications/${id}/read`).then(fetchNotifications).catch(console.error);
+    axios
+      .put(`/api/notifications/${id}/read`)
+      .then(fetchNotifications)
+      .catch(console.error);
   };
   const handleReadAllNotifications = () => {
-    axios.put('/api/notifications/read_all').then(fetchNotifications).catch(console.error);
+    axios
+      .put('/api/notifications/read_all')
+      .then(fetchNotifications)
+      .catch(console.error);
   };
 
   const handleMarkAllInboxAsRead = async () => {
@@ -2306,7 +2573,6 @@ export default function useAppLogic() {
       // 2. Mark all DMs as read in backend
       await axios.put('/api/dm/read-all');
       fetchDmConversations();
-
 
       // 3. Mark all board/task comments as read in local storage
       (inboxChats || []).forEach((chat) => {
@@ -2328,7 +2594,7 @@ export default function useAppLogic() {
       // 4. Refresh my chats list
       fetchInboxChats();
     } catch (err) {
-      console.error("Error marking all inbox chats as read:", err);
+      console.error('Error marking all inbox chats as read:', err);
     }
   };
 
@@ -2350,10 +2616,17 @@ export default function useAppLogic() {
               setPreviewTask(res.data.task);
             })
             .catch((err2) => {
-              showNotification(err2.response?.data?.detail || 'Task not found or access denied', 'error');
+              showNotification(
+                err2.response?.data?.detail ||
+                  'Task not found or access denied',
+                'error'
+              );
             });
         } else {
-          showNotification(err.response?.data?.detail || 'Task not found or access denied', 'error');
+          showNotification(
+            err.response?.data?.detail || 'Task not found or access denied',
+            'error'
+          );
         }
       });
   };
@@ -2361,7 +2634,11 @@ export default function useAppLogic() {
   useEffect(() => {
     if (tasks.length > 0 && selectedBoard) {
       // Mencegah pencocokan saat task baru saja dimuat tapi project belum tersinkronisasi
-      if (selectedBoard.id !== 'global' && tasks[0].board_id !== selectedBoard.id) return;
+      if (
+        selectedBoard.id !== 'global' &&
+        tasks[0].board_id !== selectedBoard.id
+      )
+        return;
 
       let colsChanged = false;
       let catsChanged = false;
@@ -2386,14 +2663,20 @@ export default function useAppLogic() {
       let newCats = deduplicate(categories);
 
       // Auto-remove empty categories after 7 days (Keep defaults + currently used + recently empty)
-      const usedCatsLower = new Set(tasks.map((t) => (t.category || '').toLowerCase()).filter(Boolean));
-      const defaultCatsLower = new Set(DEFAULT_CATEGORIES.map((c) => c.toLowerCase()));
+      const usedCatsLower = new Set(
+        tasks.map((t) => (t.category || '').toLowerCase()).filter(Boolean)
+      );
+      const defaultCatsLower = new Set(
+        DEFAULT_CATEGORIES.map((c) => c.toLowerCase())
+      );
       const preFilterLen = newCats.length;
-      
+
       const emptyCatsKey = `innocean_empty_cats_${selectedBoard.id}`;
       let emptyCatsTimestamps = {};
       try {
-        emptyCatsTimestamps = JSON.parse(localStorage.getItem(emptyCatsKey) || '{}');
+        emptyCatsTimestamps = JSON.parse(
+          localStorage.getItem(emptyCatsKey) || '{}'
+        );
       } catch (e) {}
 
       let timestampsChanged = false;
@@ -2429,17 +2712,27 @@ export default function useAppLogic() {
         localStorage.setItem(emptyCatsKey, JSON.stringify(emptyCatsTimestamps));
       }
 
-      if (newCats.length !== preFilterLen || newCats.length !== categories.length) catsChanged = true;
+      if (
+        newCats.length !== preFilterLen ||
+        newCats.length !== categories.length
+      )
+        catsChanged = true;
 
       const taskStatuses = [...new Set(tasks.map((t) => t.status))];
-      const missingCols = taskStatuses.filter((s) => !newCols.some((c) => c.toLowerCase() === s.toLowerCase()));
+      const missingCols = taskStatuses.filter(
+        (s) => !newCols.some((c) => c.toLowerCase() === s.toLowerCase())
+      );
       if (missingCols.length > 0) {
         newCols = [...newCols, ...missingCols];
         colsChanged = true;
       }
 
-      const taskCats = [...new Set(tasks.map((t) => t.category))].filter(Boolean);
-      const missingCats = taskCats.filter((c) => !newCats.some((nc) => nc.toLowerCase() === c.toLowerCase()));
+      const taskCats = [...new Set(tasks.map((t) => t.category))].filter(
+        Boolean
+      );
+      const missingCats = taskCats.filter(
+        (c) => !newCats.some((nc) => nc.toLowerCase() === c.toLowerCase())
+      );
       if (missingCats.length > 0) {
         newCats = [...newCats, ...missingCats];
         catsChanged = true;
@@ -2452,14 +2745,18 @@ export default function useAppLogic() {
         let tStatus = t.status;
         let tCat = t.category;
 
-        const matchedCol = newCols.find((c) => c.toLowerCase() === t.status.toLowerCase());
+        const matchedCol = newCols.find(
+          (c) => c.toLowerCase() === t.status.toLowerCase()
+        );
         if (matchedCol && matchedCol !== t.status) {
           tStatus = matchedCol;
           updated = true;
         }
 
         if (t.category) {
-          const matchedCat = newCats.find((c) => c.toLowerCase() === t.category.toLowerCase());
+          const matchedCat = newCats.find(
+            (c) => c.toLowerCase() === t.category.toLowerCase()
+          );
           if (matchedCat && matchedCat !== t.category) {
             tCat = matchedCat;
             updated = true;
@@ -2497,11 +2794,17 @@ export default function useAppLogic() {
 
       if (selectedBoard.id !== 'global') {
         if (colsChanged) {
-          localStorage.setItem(`innocean_columns_${selectedBoard.id}`, JSON.stringify(newCols));
+          localStorage.setItem(
+            `innocean_columns_${selectedBoard.id}`,
+            JSON.stringify(newCols)
+          );
           setColumns(newCols);
         }
         if (catsChanged) {
-          localStorage.setItem(`innocean_categories_${selectedBoard.id}`, JSON.stringify(newCats));
+          localStorage.setItem(
+            `innocean_categories_${selectedBoard.id}`,
+            JSON.stringify(newCats)
+          );
           setCategories(newCats);
         }
         if (colsChanged || catsChanged) {
@@ -2525,7 +2828,10 @@ export default function useAppLogic() {
     const currentLen = target === 'Status' ? columns.length : categories.length;
     const limitName = target === 'Status' ? 'columns' : 'categories';
     if (currentLen >= maxLimit) {
-      showNotification(`System limit reached. Maximum ${maxLimit} ${limitName} allowed.`, 'error');
+      showNotification(
+        `System limit reached. Maximum ${maxLimit} ${limitName} allowed.`,
+        'error'
+      );
       return;
     }
     setColModal({
@@ -2569,12 +2875,24 @@ export default function useAppLogic() {
       return;
     }
     const hasTasks =
-      target === 'Status' ? tasks.some((t) => t.status === oldName) : tasks.some((t) => t.category === oldName);
+      target === 'Status'
+        ? tasks.some((t) => t.status === oldName)
+        : tasks.some((t) => t.category === oldName);
     if (hasTasks) {
-      showNotification(`Cannot remove "${oldName}" because it currently contains tasks.`, 'error');
+      showNotification(
+        `Cannot remove "${oldName}" because it currently contains tasks.`,
+        'error'
+      );
       return;
     }
-    setColModal({ isOpen: true, target, mode: 'delete', oldName, newName: '', color: '' });
+    setColModal({
+      isOpen: true,
+      target,
+      mode: 'delete',
+      oldName,
+      newName: '',
+      color: '',
+    });
   };
 
   const handleColSubmit = (e) => {
@@ -2583,7 +2901,9 @@ export default function useAppLogic() {
     const list = target === 'Status' ? columns : categories;
     const setList = target === 'Status' ? setColumns : setCategories;
     const storageKey =
-      target === 'Status' ? `innocean_columns_${selectedBoard?.id}` : `innocean_categories_${selectedBoard?.id}`;
+      target === 'Status'
+        ? `innocean_columns_${selectedBoard?.id}`
+        : `innocean_categories_${selectedBoard?.id}`;
 
     if (mode === 'add') {
       const name = newName.trim();
@@ -2642,12 +2962,18 @@ export default function useAppLogic() {
 
       if (target === 'Status') {
         bindStatusColorAlias(oldName, name, color);
-        const updatedTasks = tasks.map((t) => (t.status === oldName ? { ...t, status: name } : t));
+        const updatedTasks = tasks.map((t) =>
+          t.status === oldName ? { ...t, status: name } : t
+        );
         setTasks(updatedTasks);
         const tasksToUpdate = tasks.filter((t) => t.status === oldName);
-        tasksToUpdate.forEach((t) => axios.put(`/api/tasks/${t.id}`, { status: name }).catch(console.error));
+        tasksToUpdate.forEach((t) =>
+          axios.put(`/api/tasks/${t.id}`, { status: name }).catch(console.error)
+        );
       } else {
-        const updatedTasks = tasks.map((t) => (t.category === oldName ? { ...t, category: name } : t));
+        const updatedTasks = tasks.map((t) =>
+          t.category === oldName ? { ...t, category: name } : t
+        );
         setTasks(updatedTasks);
         const tasksToUpdate = tasks.filter((t) => t.category === oldName);
         tasksToUpdate.forEach((t) => {
@@ -2720,13 +3046,19 @@ export default function useAppLogic() {
               setSelectedTask(res.data.task);
             }
           })
-          .catch((err) => console.error('Failed to load full task details:', err));
+          .catch((err) =>
+            console.error('Failed to load full task details:', err)
+          );
       }
 
       // Auto-read notifications for this task when opened
-      const unreadForTask = notifications.filter((n) => !n.is_read && n.related_task_id === selectedTask?.id);
+      const unreadForTask = notifications.filter(
+        (n) => !n.is_read && n.related_task_id === selectedTask?.id
+      );
       if (unreadForTask.length > 0) {
-        Promise.all(unreadForTask.map((n) => axios.put(`/api/notifications/${n.id}/read`)))
+        Promise.all(
+          unreadForTask.map((n) => axios.put(`/api/notifications/${n.id}/read`))
+        )
           .then(() => fetchNotifications())
           .catch(console.error);
       }
@@ -2735,9 +3067,14 @@ export default function useAppLogic() {
       // ChatSidebar and HomeDashboard disappear immediately regardless of how the task was opened.
       // We use the current timestamp as a "read up to now" marker; if the task later
       // gets a new comment it will correctly show as unread again.
-      const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
-      localStorage.setItem(`innocean_last_read_task_${selectedTask.id}_${currentUser}`, nowStr);
-
+      const nowStr = new Date()
+        .toISOString()
+        .replace('T', ' ')
+        .substring(0, 19);
+      localStorage.setItem(
+        `innocean_last_read_task_${selectedTask.id}_${currentUser}`,
+        nowStr
+      );
     } else {
       setSubtasks([]);
       setComments([]);
@@ -2746,7 +3083,8 @@ export default function useAppLogic() {
     let interval;
     if (selectedTask?.id) {
       interval = setInterval(() => {
-        if (document.visibilityState === 'visible') fetchComments(selectedTask.id);
+        if (document.visibilityState === 'visible')
+          fetchComments(selectedTask.id);
       }, 30000);
     }
     return () => clearInterval(interval);
@@ -2776,7 +3114,12 @@ export default function useAppLogic() {
         fetchComments(selectedTask.id);
         fetchTasks();
       })
-      .catch((err) => showNotification(err.response?.data?.detail || 'Failed to add sub-task!', 'error'));
+      .catch((err) =>
+        showNotification(
+          err.response?.data?.detail || 'Failed to add sub-task!',
+          'error'
+        )
+      );
   };
 
   const handleToggleSubtask = (subtaskId, currentStatus, currentAssignee) => {
@@ -2784,10 +3127,15 @@ export default function useAppLogic() {
     // Optimistic update — ubah UI langsung tanpa tunggu server
     const prevSubtasks = subtasks;
     setSubtasks((prev) =>
-      prev.map((st) => (st.id === subtaskId ? { ...st, is_done: newStatus } : st))
+      prev.map((st) =>
+        st.id === subtaskId ? { ...st, is_done: newStatus } : st
+      )
     );
     axios
-      .put(`/api/subtasks/${subtaskId}`, { is_done: newStatus, assignee: currentAssignee })
+      .put(`/api/subtasks/${subtaskId}`, {
+        is_done: newStatus,
+        assignee: currentAssignee,
+      })
       .then(() => {
         fetchSubtasks(selectedTask.id);
         fetchComments(selectedTask.id);
@@ -2796,19 +3144,31 @@ export default function useAppLogic() {
       .catch((err) => {
         // Rollback jika gagal
         setSubtasks(prevSubtasks);
-        showNotification(err.response?.data?.detail || 'Failed to update sub-task!', 'error');
+        showNotification(
+          err.response?.data?.detail || 'Failed to update sub-task!',
+          'error'
+        );
       });
   };
 
-  const handleUpdateSubtaskAssignee = (subtaskId, currentIsDone, newAssignee) => {
+  const handleUpdateSubtaskAssignee = (
+    subtaskId,
+    currentIsDone,
+    newAssignee
+  ) => {
     const keepStatus = currentIsDone === 1 ? 1 : 0;
     // Optimistic update — ubah assignee langsung di UI
     const prevSubtasks = subtasks;
     setSubtasks((prev) =>
-      prev.map((st) => (st.id === subtaskId ? { ...st, assignee: newAssignee } : st))
+      prev.map((st) =>
+        st.id === subtaskId ? { ...st, assignee: newAssignee } : st
+      )
     );
     axios
-      .put(`/api/subtasks/${subtaskId}`, { is_done: keepStatus, assignee: newAssignee })
+      .put(`/api/subtasks/${subtaskId}`, {
+        is_done: keepStatus,
+        assignee: newAssignee,
+      })
       .then(() => {
         fetchSubtasks(selectedTask.id);
         fetchComments(selectedTask.id);
@@ -2817,7 +3177,10 @@ export default function useAppLogic() {
       .catch((err) => {
         // Rollback jika gagal
         setSubtasks(prevSubtasks);
-        showNotification(err.response?.data?.detail || 'Failed to update sub-task assignee!', 'error');
+        showNotification(
+          err.response?.data?.detail || 'Failed to update sub-task assignee!',
+          'error'
+        );
       });
   };
 
@@ -2829,7 +3192,12 @@ export default function useAppLogic() {
         fetchComments(selectedTask.id);
         fetchTasks();
       })
-      .catch((err) => showNotification(err.response?.data?.detail || 'Failed to delete sub-task!', 'error'));
+      .catch((err) =>
+        showNotification(
+          err.response?.data?.detail || 'Failed to delete sub-task!',
+          'error'
+        )
+      );
   };
 
   const fetchComments = (taskId, loadMore = false) => {
@@ -2896,19 +3264,35 @@ export default function useAppLogic() {
 
   const handleAddComment = (e, textOverride = null) => {
     if (e) e.preventDefault();
-    const textToSubmit = typeof textOverride === 'string' ? textOverride : newComment;
+    const textToSubmit =
+      typeof textOverride === 'string' ? textOverride : newComment;
     if (!textToSubmit.trim()) return;
     axios
-      .post(`/api/tasks/${selectedTask.id}/comments`, { text: textToSubmit.trim() })
+      .post(`/api/tasks/${selectedTask.id}/comments`, {
+        text: textToSubmit.trim(),
+      })
       .then(() => {
         setNewComment('');
         fetchComments(selectedTask.id);
-        setSelectedBoard((prev) => (prev ? { ...prev, deletion_date: null } : null));
+        setSelectedBoard((prev) =>
+          prev ? { ...prev, deletion_date: null } : null
+        );
       })
-      .catch((err) => showNotification(err.response?.data?.detail || 'Failed to add comment!', 'error'));
+      .catch((err) =>
+        showNotification(
+          err.response?.data?.detail || 'Failed to add comment!',
+          'error'
+        )
+      );
   };
 
-  const handleAskAITaskChat = (taskId, finalComment, userText, onSuccess, isPrivateAI = false) => {
+  const handleAskAITaskChat = (
+    taskId,
+    finalComment,
+    userText,
+    onSuccess,
+    isPrivateAI = false
+  ) => {
     setIsAiReplying(true);
 
     const pad = (n) => String(n).padStart(2, '0');
@@ -2929,7 +3313,9 @@ export default function useAppLogic() {
     setComments((prev) => [...prev, optimisticComment]);
     if (onSuccess) onSuccess(); // Langsung mengosongkan input
 
-    const commentText = isPrivateAI ? `<!--PRIVATE:${currentUser}-->${finalComment}` : finalComment;
+    const commentText = isPrivateAI
+      ? `<!--PRIVATE:${currentUser}-->${finalComment}`
+      : finalComment;
     const aiPromptText = isPrivateAI
       ? `${userText}\n\nIMPORTANT INSTRUCTION: You MUST start your entire response exactly with this string: <!--PRIVATE:${currentUser}-->`
       : userText;
@@ -2938,14 +3324,19 @@ export default function useAppLogic() {
       .post(`/api/tasks/${taskId}/comments`, { text: commentText })
       .then(() => {
         fetchComments(taskId);
-        return axios.post(`/api/tasks/${taskId}/ai-reply`, { text: aiPromptText });
+        return axios.post(`/api/tasks/${taskId}/ai-reply`, {
+          text: aiPromptText,
+        });
       })
       .then(() => {
         fetchComments(taskId);
       })
       .catch((err) => {
         console.error('AI Task Chat Error:', err);
-        showNotification(err.response?.data?.detail || err.message || 'AI failed to reply', 'error');
+        showNotification(
+          err.response?.data?.detail || err.message || 'AI failed to reply',
+          'error'
+        );
       })
       .finally(() => setIsAiReplying(false));
   };
@@ -2972,7 +3363,8 @@ export default function useAppLogic() {
       prev.map((c) => {
         if (c.id === commentId) {
           const newRx = { ...(c.reactions || {}) };
-          const isAlreadySelected = newRx[emoji] && newRx[emoji].includes(currentUser);
+          const isAlreadySelected =
+            newRx[emoji] && newRx[emoji].includes(currentUser);
 
           // Hapus user dari semua emoji terlebih dahulu (hanya boleh 1 emot per user)
           Object.keys(newRx).forEach((key) => {
@@ -3002,7 +3394,9 @@ export default function useAppLogic() {
     let offset = loadMore ? projectChatLengthRef.current : 0;
     let limit = 50;
     axios
-      .get(`/api/boards/${selectedBoard.id}/chat?offset=${offset}&limit=${limit}`)
+      .get(
+        `/api/boards/${selectedBoard.id}/chat?offset=${offset}&limit=${limit}`
+      )
       .then((res) => {
         let msgs = res.data.messages || [];
         msgs = msgs
@@ -3032,8 +3426,12 @@ export default function useAppLogic() {
               msgs.forEach((c) => byId.set(c.id, c));
               next = Array.from(byId.values()).sort((a, b) => a.id - b.id);
             }
-            if (prevChatLenRef.current !== 0 && next.length > prevChatLenRef.current) {
-              if (!isProjectChatOpen || drawerTab !== 'team') setHasNewProjectChat(true);
+            if (
+              prevChatLenRef.current !== 0 &&
+              next.length > prevChatLenRef.current
+            ) {
+              if (!isProjectChatOpen || drawerTab !== 'team')
+                setHasNewProjectChat(true);
             }
             prevChatLenRef.current = next.length;
             return next;
@@ -3049,15 +3447,29 @@ export default function useAppLogic() {
 
   const sendProjectChatMessage = (e) => {
     e.preventDefault();
-    if (!newProjectChatMessage.trim() || !selectedBoard || selectedBoard.id === 'global') return;
+    if (
+      !newProjectChatMessage.trim() ||
+      !selectedBoard ||
+      selectedBoard.id === 'global'
+    )
+      return;
     axios
-      .post(`/api/boards/${selectedBoard.id}/chat`, { text: newProjectChatMessage.trim() })
+      .post(`/api/boards/${selectedBoard.id}/chat`, {
+        text: newProjectChatMessage.trim(),
+      })
       .then(() => {
         setNewProjectChatMessage('');
         fetchProjectChat();
-        setSelectedBoard((prev) => (prev ? { ...prev, deletion_date: null } : null));
+        setSelectedBoard((prev) =>
+          prev ? { ...prev, deletion_date: null } : null
+        );
       })
-      .catch((err) => showNotification(err.response?.data?.detail || 'Failed to send message', 'error'));
+      .catch((err) =>
+        showNotification(
+          err.response?.data?.detail || 'Failed to send message',
+          'error'
+        )
+      );
   };
 
   const handleStartMeet = (boardId) => {
@@ -3100,7 +3512,9 @@ export default function useAppLogic() {
       const mention = [...projectChatMessages]
         .reverse()
         .find(
-          (m) => (m.text.includes(`@${currentUser}`) || m.text.includes('@team')) && !dismissedMentionIds.has(m.id)
+          (m) =>
+            (m.text.includes(`@${currentUser}`) || m.text.includes('@team')) &&
+            !dismissedMentionIds.has(m.id)
         );
       if (mention) setLatestMentionId(mention.id);
       else setLatestMentionId(null);
@@ -3122,7 +3536,10 @@ export default function useAppLogic() {
   };
 
   const insertProjectMention = (username) => {
-    const newVal = newProjectChatMessage.replace(/(?:^|\s)@([\w.-]*)$/, ` @${username} `);
+    const newVal = newProjectChatMessage.replace(
+      /(?:^|\s)@([\w.-]*)$/,
+      ` @${username} `
+    );
     setNewProjectChatMessage(newVal);
     setIsProjectMentioning(false);
   };
@@ -3164,7 +3581,10 @@ export default function useAppLogic() {
         newCols.splice(destination.index, 0, removed);
         setColumns(newCols);
         if (selectedBoard && selectedBoard.id !== 'global') {
-          localStorage.setItem(`innocean_columns_${selectedBoard.id}`, JSON.stringify(newCols));
+          localStorage.setItem(
+            `innocean_columns_${selectedBoard.id}`,
+            JSON.stringify(newCols)
+          );
         }
       } else if (groupBy === 'Category') {
         const newCats = Array.from(categories);
@@ -3172,7 +3592,10 @@ export default function useAppLogic() {
         newCats.splice(destination.index, 0, removed);
         setCategories(newCats);
         if (selectedBoard && selectedBoard.id !== 'global') {
-          localStorage.setItem(`innocean_categories_${selectedBoard.id}`, JSON.stringify(newCats));
+          localStorage.setItem(
+            `innocean_categories_${selectedBoard.id}`,
+            JSON.stringify(newCats)
+          );
         }
       }
       return;
@@ -3187,9 +3610,10 @@ export default function useAppLogic() {
           draggedTask.owner_username === currentUser ||
           (selectedBoard && selectedBoard.owner_username === currentUser) ||
           (draggedTask.requester &&
-            new RegExp(`@${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(
-              draggedTask.requester
-            ));
+            new RegExp(
+              `@${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
+              'i'
+            ).test(draggedTask.requester));
         if (isTaskAdmin) {
           setSelectedTask(draggedTask);
           setIsDeleteConfirmOpen(true);
@@ -3217,9 +3641,10 @@ export default function useAppLogic() {
       draggedTask.owner_username === currentUser ||
       (selectedBoard && selectedBoard.owner_username === currentUser) ||
       (draggedTask.requester &&
-        new RegExp(`@${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(
-          draggedTask.requester
-        ));
+        new RegExp(
+          `@${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
+          'i'
+        ).test(draggedTask.requester));
 
     if (!isTaskAdmin) {
       showNotification(
@@ -3236,14 +3661,19 @@ export default function useAppLogic() {
       if (t.id.toString() === draggableId) {
         if (groupBy === 'Status') {
           let compTime = t.completed_time;
-          if (destination.droppableId === 'Done' || destination.droppableId === 'Rejected') {
+          if (
+            destination.droppableId === 'Done' ||
+            destination.droppableId === 'Rejected'
+          ) {
             const now = new Date();
             compTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
               now.getDate()
-            ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(
+            ).padStart(
               2,
               '0'
-            )}:${String(now.getSeconds()).padStart(2, '0')}`;
+            )} ${String(now.getHours()).padStart(2, '0')}:${String(
+              now.getMinutes()
+            ).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
           } else {
             compTime = null;
           }
@@ -3251,13 +3681,27 @@ export default function useAppLogic() {
           if (destination.droppableId === 'Done' && t.status !== 'Done') {
             newRecurring = 'none';
           }
-          return { ...t, status: destination.droppableId, completed_time: compTime, recurring: newRecurring };
+          return {
+            ...t,
+            status: destination.droppableId,
+            completed_time: compTime,
+            recurring: newRecurring,
+          };
         }
-        if (groupBy === 'Category') return { ...t, category: destination.droppableId };
+        if (groupBy === 'Category')
+          return { ...t, category: destination.droppableId };
         if (groupBy === 'Assignee')
-          return { ...t, requester: destination.droppableId === 'Unassigned' ? '' : destination.droppableId };
+          return {
+            ...t,
+            requester:
+              destination.droppableId === 'Unassigned'
+                ? ''
+                : destination.droppableId,
+          };
         if (groupBy === 'Project') {
-          const targetBoard = boards.find((b) => b.name === destination.droppableId);
+          const targetBoard = boards.find(
+            (b) => b.name === destination.droppableId
+          );
           return {
             ...t,
             board_name: destination.droppableId,
@@ -3271,7 +3715,11 @@ export default function useAppLogic() {
     if (!force && groupBy === 'Status' && destination.droppableId === 'Done') {
       if (draggedTask.subtask_done < draggedTask.subtask_total) {
         setTasks(updatedTasks);
-        setPendingStatusChange({ type: 'drag', payload: result, previousTasks: tasks });
+        setPendingStatusChange({
+          type: 'drag',
+          payload: result,
+          previousTasks: tasks,
+        });
         return;
       }
     }
@@ -3283,15 +3731,24 @@ export default function useAppLogic() {
         .put(`/api/tasks/${draggableId}`, { status: destination.droppableId })
         .then((res) => {
           if (res.data?.cloned_task_id) {
-            setClonedTaskIds((prev) => new Set(prev).add(Number(res.data.cloned_task_id)));
+            setClonedTaskIds((prev) =>
+              new Set(prev).add(Number(res.data.cloned_task_id))
+            );
           }
           fetchTasks();
-          if (destination.droppableId === 'Done' && draggedTask.recurring && draggedTask.recurring !== 'none') {
+          if (
+            destination.droppableId === 'Done' &&
+            draggedTask.recurring &&
+            draggedTask.recurring !== 'none'
+          ) {
             // Already called fetchTasks above
           }
         })
         .catch((err) => {
-          showNotification(err.response?.data?.detail || 'Failed to save status to database!', 'error');
+          showNotification(
+            err.response?.data?.detail || 'Failed to save status to database!',
+            'error'
+          );
           fetchTasks();
         });
     } else {
@@ -3303,11 +3760,16 @@ export default function useAppLogic() {
               ? ''
               : destination.droppableId
             : draggedTask.requester,
-        category: groupBy === 'Category' ? destination.droppableId : draggedTask.category,
+        category:
+          groupBy === 'Category'
+            ? destination.droppableId
+            : draggedTask.category,
         description: draggedTask.description || '',
         supporting_access: draggedTask.supporting_access || '',
         start_date: draggedTask.start_date || '',
-        deadline: draggedTask.deadline ? draggedTask.deadline.split(' ')[0] + ' 17:00:00' : '',
+        deadline: draggedTask.deadline
+          ? draggedTask.deadline.split(' ')[0] + ' 17:00:00'
+          : '',
         impact: draggedTask.impact || 'Medium',
         etc: draggedTask.etc || 2,
         auto_nudge: draggedTask.auto_nudge || false,
@@ -3315,7 +3777,9 @@ export default function useAppLogic() {
         status: draggedTask.status,
       };
       if (groupBy === 'Project') {
-        const targetBoard = boards.find((b) => b.name === destination.droppableId);
+        const targetBoard = boards.find(
+          (b) => b.name === destination.droppableId
+        );
         if (targetBoard) {
           payload.board_id = targetBoard.id;
         }
@@ -3333,7 +3797,10 @@ export default function useAppLogic() {
           }
         })
         .catch((err) => {
-          showNotification(err.response?.data?.detail || 'Failed to update task details!', 'error');
+          showNotification(
+            err.response?.data?.detail || 'Failed to update task details!',
+            'error'
+          );
           fetchTasks();
         });
     }
@@ -3351,10 +3818,14 @@ export default function useAppLogic() {
     setSubtasks(newSubtasks); // Optimistic UI Update
 
     const orderedIds = newSubtasks.map((s) => s.id);
-    axios.put(`/api/tasks/${selectedTask.id}/subtasks/reorder`, { ordered_ids: orderedIds }).catch(() => {
-      showNotification('Failed to save subtask order!', 'error');
-      fetchSubtasks(selectedTask.id); // Revert jika gagal
-    });
+    axios
+      .put(`/api/tasks/${selectedTask.id}/subtasks/reorder`, {
+        ordered_ids: orderedIds,
+      })
+      .catch(() => {
+        showNotification('Failed to save subtask order!', 'error');
+        fetchSubtasks(selectedTask.id); // Revert jika gagal
+      });
   };
 
   const handleRequesterChange = (value, setFormFn, formDataState) => {
@@ -3370,14 +3841,22 @@ export default function useAppLogic() {
   };
 
   const insertMention = (username, setFormFn, formDataState) => {
-    const newVal = formDataState.requester.replace(/(?:^|\s)@([\w.-]*)$/, ` @${username} `);
+    const newVal = formDataState.requester.replace(
+      /(?:^|\s)@([\w.-]*)$/,
+      ` @${username} `
+    );
     setFormFn({ ...formDataState, requester: newVal });
     setIsMentioning(false);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.task_name || !formData.requester || !formData.start_date || !formData.deadline) {
+    if (
+      !formData.task_name ||
+      !formData.requester ||
+      !formData.start_date ||
+      !formData.deadline
+    ) {
       showNotification(
         language === 'id'
           ? 'Nama Tugas, Project Owner/Requester, Tanggal Mulai, dan Tenggat Waktu wajib diisi!'
@@ -3449,17 +3928,27 @@ export default function useAppLogic() {
         setFormSubtaskAssignee('');
         fetchTasks();
         showNotification('New task added successfully!', 'success');
-        setSelectedBoard((prev) => (prev ? { ...prev, deletion_date: null } : null));
+        setSelectedBoard((prev) =>
+          prev ? { ...prev, deletion_date: null } : null
+        );
       })
       .catch((err) => {
         console.error('Failed to create task:', err);
-        showNotification(err.response?.data?.detail || 'Failed to save task to database!', 'error');
+        showNotification(
+          err.response?.data?.detail || 'Failed to save task to database!',
+          'error'
+        );
       })
       .finally(() => setIsSubmitting(false));
   };
 
   const handleQuickAddTask = (taskData) => {
-    if (!taskData.task_name.trim() || !selectedBoard || selectedBoard.id === 'global') return;
+    if (
+      !taskData.task_name.trim() ||
+      !selectedBoard ||
+      selectedBoard.id === 'global'
+    )
+      return;
     const nowStr = getLocalToday();
     const deadlineStr = taskData.deadline;
 
@@ -3499,7 +3988,9 @@ export default function useAppLogic() {
   const handleQuickLinkAdd = (taskId, newLink) => {
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
-    const currentLinks = task.supporting_access ? task.supporting_access.split('\n').filter((l) => l.trim()) : [];
+    const currentLinks = task.supporting_access
+      ? task.supporting_access.split('\n').filter((l) => l.trim())
+      : [];
     currentLinks.push(newLink.trim());
     const updatedLinks = currentLinks.join('\n');
 
@@ -3533,8 +4024,12 @@ export default function useAppLogic() {
   const handleQuickLinkRemove = (taskId, linkToRemove) => {
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
-    const currentLinks = task.supporting_access ? task.supporting_access.split('\n').filter((l) => l.trim()) : [];
-    const updatedLinks = currentLinks.filter((l) => l !== linkToRemove).join('\n');
+    const currentLinks = task.supporting_access
+      ? task.supporting_access.split('\n').filter((l) => l.trim())
+      : [];
+    const updatedLinks = currentLinks
+      .filter((l) => l !== linkToRemove)
+      .join('\n');
 
     const payload = {
       task_name: task.task_name,
@@ -3566,7 +4061,13 @@ export default function useAppLogic() {
   const handleAddFormSubtask = (e) => {
     e.preventDefault();
     if (!formSubtaskInput.trim()) return;
-    setFormSubtasks([...formSubtasks, { task_name: formSubtaskInput.trim(), assignee: formSubtaskAssignee || null }]);
+    setFormSubtasks([
+      ...formSubtasks,
+      {
+        task_name: formSubtaskInput.trim(),
+        assignee: formSubtaskAssignee || null,
+      },
+    ]);
     setFormSubtaskInput('');
     setFormSubtaskAssignee('');
   };
@@ -3587,7 +4088,10 @@ export default function useAppLogic() {
       })
       .catch((err) => {
         console.error('Failed to delete task:', err);
-        showNotification(err.response?.data?.detail || 'Failed to delete task from database!', 'error');
+        showNotification(
+          err.response?.data?.detail || 'Failed to delete task from database!',
+          'error'
+        );
       })
       .finally(() => setIsSubmitting(false));
   };
@@ -3610,8 +4114,12 @@ export default function useAppLogic() {
       category: selectedTask.category,
       description: selectedTask.description || '',
       supporting_access: selectedTask.supporting_access || '',
-      start_date: (selectedTask.start_date || selectedTask.timestamp).split(' ')[0],
-      deadline: selectedTask.deadline ? selectedTask.deadline.split(' ')[0] : '',
+      start_date: (selectedTask.start_date || selectedTask.timestamp).split(
+        ' '
+      )[0],
+      deadline: selectedTask.deadline
+        ? selectedTask.deadline.split(' ')[0]
+        : '',
       impact: selectedTask.impact || 'Medium',
       etc: selectedTask.etc || 2,
       auto_nudge: selectedTask.auto_nudge || false,
@@ -3626,18 +4134,35 @@ export default function useAppLogic() {
     const isEnabled = !!newValue;
 
     // Optimistic UI Update: Ubah status di UI seketika tanpa menunggu respon backend
-    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, auto_nudge: isEnabled } : t)));
-    setSelectedTask((prev) => (prev && prev.id === taskId ? { ...prev, auto_nudge: isEnabled } : prev));
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, auto_nudge: isEnabled } : t))
+    );
+    setSelectedTask((prev) =>
+      prev && prev.id === taskId ? { ...prev, auto_nudge: isEnabled } : prev
+    );
 
     axios
       .put(`/api/tasks/${taskId}/auto-nudge`, { auto_nudge: isEnabled })
       .then(() => {
-        showNotification(isEnabled ? 'Auto Nudge enabled for this task' : 'Auto Nudge disabled', 'success');
+        showNotification(
+          isEnabled
+            ? 'Auto Nudge enabled for this task'
+            : 'Auto Nudge disabled',
+          'success'
+        );
       })
       .catch(() => {
         // Revert (Kembalikan ke awal) jika backend ternyata gagal menyimpannya
-        setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, auto_nudge: !isEnabled } : t)));
-        setSelectedTask((prev) => (prev && prev.id === taskId ? { ...prev, auto_nudge: !isEnabled } : prev));
+        setTasks((prev) =>
+          prev.map((t) =>
+            t.id === taskId ? { ...t, auto_nudge: !isEnabled } : t
+          )
+        );
+        setSelectedTask((prev) =>
+          prev && prev.id === taskId
+            ? { ...prev, auto_nudge: !isEnabled }
+            : prev
+        );
         showNotification('Failed to toggle Auto Nudge', 'error');
       });
   };
@@ -3670,7 +4195,8 @@ export default function useAppLogic() {
     }
 
     if (!force && editFormData.status === 'Done') {
-      const freshTask = tasks.find((t) => t.id === selectedTask?.id) || selectedTask;
+      const freshTask =
+        tasks.find((t) => t.id === selectedTask?.id) || selectedTask;
       const hasIncomplete = isSubtasksLoading
         ? freshTask.subtask_done < freshTask.subtask_total
         : subtasks.some((st) => st.is_done === 0);
@@ -3707,23 +4233,32 @@ export default function useAppLogic() {
       const targetBoard = boards.find((b) => b.id === payload.board_id);
       if (targetBoard) updatedTask.board_name = targetBoard.name;
     }
-    setTasks((prev) => prev.map((t) => (t.id === selectedTask.id ? updatedTask : t)));
+    setTasks((prev) =>
+      prev.map((t) => (t.id === selectedTask.id ? updatedTask : t))
+    );
 
     axios
       .put(`/api/tasks/${selectedTask.id}/details`, payload)
       .then((res) => {
         if (res.data?.cloned_task_id) {
-          setClonedTaskIds((prev) => new Set(prev).add(res.data.cloned_task_id));
+          setClonedTaskIds((prev) =>
+            new Set(prev).add(res.data.cloned_task_id)
+          );
         }
         setIsEditing(false);
         setSelectedTask(updatedTask);
         fetchTasks();
         fetchComments(selectedTask.id);
         showNotification('Task details updated successfully!', 'success');
-        setSelectedBoard((prev) => (prev ? { ...prev, deletion_date: null } : null));
+        setSelectedBoard((prev) =>
+          prev ? { ...prev, deletion_date: null } : null
+        );
       })
       .catch((err) => {
-        showNotification(err.response?.data?.detail || 'Failed to update task!', 'error');
+        showNotification(
+          err.response?.data?.detail || 'Failed to update task!',
+          'error'
+        );
         fetchTasks(); // Revert on error
       })
       .finally(() => setIsSubmitting(false));
@@ -3731,7 +4266,8 @@ export default function useAppLogic() {
 
   const handleDirectStatusChange = (newStatus, force = false) => {
     if (!force && newStatus === 'Done') {
-      const freshTask = tasks.find((t) => t.id === selectedTask?.id) || selectedTask;
+      const freshTask =
+        tasks.find((t) => t.id === selectedTask?.id) || selectedTask;
       const hasIncomplete = isSubtasksLoading
         ? freshTask.subtask_done < freshTask.subtask_total
         : subtasks.some((st) => st.is_done === 0);
@@ -3747,10 +4283,9 @@ export default function useAppLogic() {
       const now = new Date();
       updatedTask.completed_time = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
         now.getDate()
-      ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(
-        2,
-        '0'
-      )}:${String(now.getSeconds()).padStart(2, '0')}`;
+      ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(
+        now.getMinutes()
+      ).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
     } else {
       updatedTask.completed_time = null;
     }
@@ -3765,17 +4300,26 @@ export default function useAppLogic() {
       .put(`/api/tasks/${selectedTask.id}`, { status: newStatus })
       .then((res) => {
         if (res.data?.cloned_task_id) {
-          setClonedTaskIds((prev) => new Set(prev).add(Number(res.data.cloned_task_id)));
+          setClonedTaskIds((prev) =>
+            new Set(prev).add(Number(res.data.cloned_task_id))
+          );
         }
         fetchTasks();
         fetchComments(selectedTask.id);
         showNotification(`Task marked as ${newStatus}`, 'success');
-        setSelectedBoard((prev) => (prev ? { ...prev, deletion_date: null } : null));
+        setSelectedBoard((prev) =>
+          prev ? { ...prev, deletion_date: null } : null
+        );
       })
       .catch((err) => {
-        showNotification(err.response?.data?.detail || 'Failed to update status!', 'error');
+        showNotification(
+          err.response?.data?.detail || 'Failed to update status!',
+          'error'
+        );
         fetchTasks();
-        setSelectedTask(tasks.find((t) => t.id === selectedTask.id) || selectedTask);
+        setSelectedTask(
+          tasks.find((t) => t.id === selectedTask.id) || selectedTask
+        );
       });
   };
 
@@ -3797,11 +4341,19 @@ export default function useAppLogic() {
       ]
         .join(' ')
         .toLowerCase();
-      let matchSearch = keywords.length === 0 || keywords.every((kw) => combinedSearchText.includes(kw));
+      let matchSearch =
+        keywords.length === 0 ||
+        keywords.every((kw) => combinedSearchText.includes(kw));
 
       // Batasi pencarian local untuk task Done/Rejected hanya 90 hari terakhir
-      if (searchQuery && matchSearch && (task.status === 'Done' || task.status === 'Rejected')) {
-        const completedTime = task.completed_time ? new Date(task.completed_time.replace(/-/g, '/')) : new Date(0);
+      if (
+        searchQuery &&
+        matchSearch &&
+        (task.status === 'Done' || task.status === 'Rejected')
+      ) {
+        const completedTime = task.completed_time
+          ? new Date(task.completed_time.replace(/-/g, '/'))
+          : new Date(0);
         const ninetyDaysAgo = new Date();
         ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
         if (completedTime < ninetyDaysAgo) {
@@ -3809,24 +4361,35 @@ export default function useAppLogic() {
         }
       }
 
-      const matchStatus = filterStatus === 'All' || task.status === filterStatus;
-      const matchCategory = filterCategory === 'All' || task.category === filterCategory;
-      const matchAssignee = filterAssignee === 'All' || getTaskAssignee(task) === filterAssignee;
+      const matchStatus =
+        filterStatus === 'All' || task.status === filterStatus;
+      const matchCategory =
+        filterCategory === 'All' || task.category === filterCategory;
+      const matchAssignee =
+        filterAssignee === 'All' || getTaskAssignee(task) === filterAssignee;
       const isGlobalMyTasksView = selectedBoard?.id === 'global';
-      const matchMyTasks = !(showMyTasks || isGlobalMyTasksView) || isUserAssigned(task, currentUser);
+      const matchMyTasks =
+        !(showMyTasks || isGlobalMyTasksView) ||
+        isUserAssigned(task, currentUser);
       const matchUnread =
         !showUnreadOnly ||
         (notifications || []).some(
           (n) =>
             !n.is_read &&
             n.related_task_id === task.id &&
-            (n.type === 'comment' || n.type === 'mention' || n.type === 'mention_no_email')
+            (n.type === 'comment' ||
+              n.type === 'mention' ||
+              n.type === 'mention_no_email')
         );
-      const matchHasSubtasks = !showHasSubtasks || (task.subtask_total && task.subtask_total > 0);
+      const matchHasSubtasks =
+        !showHasSubtasks || (task.subtask_total && task.subtask_total > 0);
       const matchHideCompleted =
         !(
           hideCompleted &&
-          (viewMode === 'kanban' || viewMode === 'list' || viewMode === 'timeline' || viewMode === 'calendar')
+          (viewMode === 'kanban' ||
+            viewMode === 'list' ||
+            viewMode === 'timeline' ||
+            viewMode === 'calendar')
         ) ||
         (task.status !== 'Done' && task.status !== 'Rejected');
       const matchOverdue =
@@ -3883,8 +4446,12 @@ export default function useAppLogic() {
         const wb = impactWeight[b.impact || 'Medium'] || 0;
         if (wa !== wb) return wb - wa;
         if (a.etc !== b.etc) return (b.etc || 2) - (a.etc || 2);
-        const da = a.deadline ? new Date(a.deadline.replace(/-/g, '/')).getTime() : Infinity;
-        const db = b.deadline ? new Date(b.deadline.replace(/-/g, '/')).getTime() : Infinity;
+        const da = a.deadline
+          ? new Date(a.deadline.replace(/-/g, '/')).getTime()
+          : Infinity;
+        const db = b.deadline
+          ? new Date(b.deadline.replace(/-/g, '/')).getTime()
+          : Infinity;
         if (da !== db) return da - db;
         return a.id - b.id;
       }
@@ -3927,16 +4494,27 @@ export default function useAppLogic() {
   const activeColumns = useMemo(() => {
     if (groupBy === 'Status') return columns;
     if (groupBy === 'Category') return categories;
-    if (groupBy === 'Assignee') return [...new Set(tasks.map((t) => getTaskAssignee(t)))];
+    if (groupBy === 'Assignee')
+      return [...new Set(tasks.map((t) => getTaskAssignee(t)))];
     if (groupBy === 'Project') {
-      const todoListBoard = boards.find((b) => b.name.toLowerCase() === 'to-do list' && b.is_private);
+      const todoListBoard = boards.find(
+        (b) => b.name.toLowerCase() === 'to-do list' && b.is_private
+      );
       const todoListName =
-        todoListBoard && (!selectedBoard || selectedBoard.id === 'global' || selectedBoard.id === todoListBoard.id)
+        todoListBoard &&
+        (!selectedBoard ||
+          selectedBoard.id === 'global' ||
+          selectedBoard.id === todoListBoard.id)
           ? todoListBoard.name
           : null;
 
-      const projCols = [...new Set(tasks.map((t) => t.board_name || 'Unknown Project'))];
-      const allCols = todoListName && !projCols.includes(todoListName) ? [todoListName, ...projCols] : projCols;
+      const projCols = [
+        ...new Set(tasks.map((t) => t.board_name || 'Unknown Project')),
+      ];
+      const allCols =
+        todoListName && !projCols.includes(todoListName)
+          ? [todoListName, ...projCols]
+          : projCols;
 
       return allCols.sort((a, b) => {
         const isTodoA = a.toLowerCase() === 'to-do list';
@@ -3949,7 +4527,10 @@ export default function useAppLogic() {
     return [];
   }, [groupBy, columns, categories, tasks, boards]);
 
-  const assigneeOptions = useMemo(() => [...new Set(tasks.map((t) => getTaskAssignee(t)))], [tasks]);
+  const assigneeOptions = useMemo(
+    () => [...new Set(tasks.map((t) => getTaskAssignee(t)))],
+    [tasks]
+  );
 
   const handleOpenNewTaskForm = () => {
     setIsFormOpen(true);
@@ -3982,10 +4563,12 @@ export default function useAppLogic() {
         tasksToExport = tasksToExport.filter((task) => {
           const uname = currentUser.toLowerCase();
           if (isUserAssigned(task, currentUser)) return true;
-          if ((task.requester || '').toLowerCase().trim() === uname) return true;
+          if ((task.requester || '').toLowerCase().trim() === uname)
+            return true;
 
           const isCreator = (task.owner_username || '').toLowerCase() === uname;
-          const hasOtherAssignees = (task.requester || '').includes('@') || task.subtask_assignees;
+          const hasOtherAssignees =
+            (task.requester || '').includes('@') || task.subtask_assignees;
 
           return isCreator && !hasOtherAssignees;
         });
@@ -3997,17 +4580,26 @@ export default function useAppLogic() {
     }
 
     if (exportStartDate || exportEndDate) {
-      const start = exportStartDate ? new Date(exportStartDate) : new Date('2000-01-01');
-      const end = exportEndDate ? new Date(exportEndDate) : new Date('2100-01-01');
+      const start = exportStartDate
+        ? new Date(exportStartDate)
+        : new Date('2000-01-01');
+      const end = exportEndDate
+        ? new Date(exportEndDate)
+        : new Date('2100-01-01');
       start.setHours(0, 0, 0, 0);
       end.setHours(23, 59, 59, 999); // Pastikan mencakup hingga pukul 23:59 di hari terakhir
 
       tasksToExport = tasksToExport.filter((t) => {
         const createdDate = new Date(t.timestamp.split(' ')[0]);
-        const deadlineDate = t.deadline ? new Date(t.deadline.split(' ')[0]) : new Date('1970-01-01');
-        const completedDate = t.completed_time ? new Date(t.completed_time.split(' ')[0]) : new Date('1970-01-01');
+        const deadlineDate = t.deadline
+          ? new Date(t.deadline.split(' ')[0])
+          : new Date('1970-01-01');
+        const completedDate = t.completed_time
+          ? new Date(t.completed_time.split(' ')[0])
+          : new Date('1970-01-01');
 
-        const isCompletedInRange = completedDate >= start && completedDate <= end;
+        const isCompletedInRange =
+          completedDate >= start && completedDate <= end;
         const isDeadlineInRange = deadlineDate >= start && deadlineDate <= end;
         const isCreatedInRange = createdDate >= start && createdDate <= end;
 
@@ -4067,7 +4659,10 @@ export default function useAppLogic() {
 
         // Smart Filter untuk memisahkan Sub-task
         const escapedUname = currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const exactMentionRegex = new RegExp(`@${escapedUname}(?![\\w.-])`, 'i');
+        const exactMentionRegex = new RegExp(
+          `@${escapedUname}(?![\\w.-])`,
+          'i'
+        );
 
         if (
           isGlobal &&
@@ -4089,7 +4684,9 @@ export default function useAppLogic() {
           escapeCSV(displayedSubtasks),
           escapeCSV(t.category),
           escapeCSV(t.status),
-          escapeCSV(t.start_date || (t.timestamp ? t.timestamp.split(' ')[0] : '')),
+          escapeCSV(
+            t.start_date || (t.timestamp ? t.timestamp.split(' ')[0] : '')
+          ),
           escapeCSV(t.deadline),
           escapeCSV(t.completed_time),
           escapeCSV(t.impact || 'Medium'),
@@ -4098,7 +4695,9 @@ export default function useAppLogic() {
         ].join(',');
       }),
     ];
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvRows.join('\n')], {
+      type: 'text/csv;charset=utf-8;',
+    });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `INNOCEAN_Export_${new Date().toISOString().split('T')[0]}.csv`;
@@ -4126,7 +4725,11 @@ export default function useAppLogic() {
     }, 5000);
 
     axios
-      .post('/api/login', { username: loginUsername.trim(), password: loginPassword }, { timeout: 75000 })
+      .post(
+        '/api/login',
+        { username: loginUsername.trim(), password: loginPassword },
+        { timeout: 75000 }
+      )
       .then((res) => {
         clearTimeout(wakeTimer);
         localStorage.setItem('innocean_auth', 'true');
@@ -4142,9 +4745,15 @@ export default function useAppLogic() {
         setIsLoading(false);
         let errorMsg = 'Invalid username or password!';
         if (err.response?.data?.detail) {
-          errorMsg = typeof err.response.data.detail === 'string' ? err.response.data.detail : errorMsg;
+          errorMsg =
+            typeof err.response.data.detail === 'string'
+              ? err.response.data.detail
+              : errorMsg;
         } else if (err.response?.data) {
-          errorMsg = typeof err.response.data === 'string' ? `Server Error: ${err.response.data}` : 'Server Error';
+          errorMsg =
+            typeof err.response.data === 'string'
+              ? `Server Error: ${err.response.data}`
+              : 'Server Error';
         } else if (err.message) {
           errorMsg = `Connection Error: ${err.message}. Is the backend running?`;
         }
@@ -4163,7 +4772,9 @@ export default function useAppLogic() {
     setIsLoading(true);
 
     axios
-      .post(`/api/boards/${selectedBoard.id}/invite`, { members_input: inviteInput.trim() })
+      .post(`/api/boards/${selectedBoard.id}/invite`, {
+        members_input: inviteInput.trim(),
+      })
       .then((res) => {
         setIsLoading(false);
         showNotification(res.data.message, 'success');
@@ -4173,7 +4784,10 @@ export default function useAppLogic() {
       })
       .catch((err) => {
         setIsLoading(false);
-        showNotification(err.response?.data?.detail || 'Failed to invite user.', 'error');
+        showNotification(
+          err.response?.data?.detail || 'Failed to invite user.',
+          'error'
+        );
       });
   };
 
@@ -4190,7 +4804,10 @@ export default function useAppLogic() {
       })
       .catch((err) => {
         setIsLoading(false);
-        showNotification(err.response?.data?.detail || 'Failed to join project.', 'error');
+        showNotification(
+          err.response?.data?.detail || 'Failed to join project.',
+          'error'
+        );
       });
   };
 
@@ -4226,7 +4843,10 @@ export default function useAppLogic() {
           }
         })
         .filter(
-          (u) => u.username !== currentUser && u.username !== 'admin' && !myTeam.some((m) => m.username === u.username)
+          (u) =>
+            u.username !== currentUser &&
+            u.username !== 'admin' &&
+            !myTeam.some((m) => m.username === u.username)
         );
       setInviteSuggestions(suggestions);
       setInviteIndex(0);
@@ -4263,12 +4883,26 @@ export default function useAppLogic() {
           fetchTeamMembers();
           if (revokedMember && revokedMember.status === 'requesting') {
             setSelectedBoard((prev) =>
-              prev ? { ...prev, access_requests_count: Math.max(0, (prev.access_requests_count || 1) - 1) } : prev
+              prev
+                ? {
+                    ...prev,
+                    access_requests_count: Math.max(
+                      0,
+                      (prev.access_requests_count || 1) - 1
+                    ),
+                  }
+                : prev
             );
             setBoards((prev) =>
               prev.map((b) =>
                 b.id === selectedBoard.id
-                  ? { ...b, access_requests_count: Math.max(0, (b.access_requests_count || 1) - 1) }
+                  ? {
+                      ...b,
+                      access_requests_count: Math.max(
+                        0,
+                        (b.access_requests_count || 1) - 1
+                      ),
+                    }
                   : b
               )
             );
@@ -4289,18 +4923,37 @@ export default function useAppLogic() {
         fetchMyTeam();
         fetchTeamMembers();
         setSelectedBoard((prev) =>
-          prev ? { ...prev, access_requests_count: Math.max(0, (prev.access_requests_count || 1) - 1) } : prev
+          prev
+            ? {
+                ...prev,
+                access_requests_count: Math.max(
+                  0,
+                  (prev.access_requests_count || 1) - 1
+                ),
+              }
+            : prev
         );
         setBoards((prev) =>
           prev.map((b) =>
             b.id === selectedBoard.id
-              ? { ...b, access_requests_count: Math.max(0, (b.access_requests_count || 1) - 1) }
+              ? {
+                  ...b,
+                  access_requests_count: Math.max(
+                    0,
+                    (b.access_requests_count || 1) - 1
+                  ),
+                }
               : b
           )
         );
         fetchBoards(); // Update badge count
       })
-      .catch((err) => showNotification(err.response?.data?.detail || 'Failed to accept request', 'error'));
+      .catch((err) =>
+        showNotification(
+          err.response?.data?.detail || 'Failed to accept request',
+          'error'
+        )
+      );
   };
 
   const handleAcceptInvite = (id) => {
@@ -4334,7 +4987,9 @@ export default function useAppLogic() {
     if (!transferTargetUsername) return;
     setIsLoading(true);
     axios
-      .put(`/api/boards/${selectedBoard.id}/transfer-member`, { new_owner: transferTargetUsername })
+      .put(`/api/boards/${selectedBoard.id}/transfer-member`, {
+        new_owner: transferTargetUsername,
+      })
       .then((res) => {
         setIsLoading(false);
         if (showNotification) showNotification(res.data.message, 'success');
@@ -4345,21 +5000,32 @@ export default function useAppLogic() {
       })
       .catch((err) => {
         setIsLoading(false);
-        if (showNotification) showNotification(err.response?.data?.detail || 'Failed to transfer', 'error');
+        if (showNotification)
+          showNotification(
+            err.response?.data?.detail || 'Failed to transfer',
+            'error'
+          );
         setTransferTargetUsername(null);
       });
   };
 
   const openSettings = () => {
     // Bersihkan form sandi dan buka modal murni dari cache lokal (0 hit API, Mencegah Re-render Blink)
-    setProfileData((prev) => ({ ...prev, current_password: '', new_password: '' }));
+    setProfileData((prev) => ({
+      ...prev,
+      current_password: '',
+      new_password: '',
+    }));
     setIsSettingsOpen(true);
   };
 
   const handleUpdateProfile = (e) => {
     e.preventDefault();
     if (profileData.new_password && !profileData.current_password) {
-      showNotification('Please enter your current password to change it.', 'error');
+      showNotification(
+        'Please enter your current password to change it.',
+        'error'
+      );
       return;
     }
     setIsLoading(true);
@@ -4376,19 +5042,28 @@ export default function useAppLogic() {
       .put('/api/profile', payload)
       .then((res) => {
         setIsLoading(false);
-        showNotification(res.data.message || 'Profile updated successfully!', 'success');
+        showNotification(
+          res.data.message || 'Profile updated successfully!',
+          'success'
+        );
         fetchAvatars();
 
         if (res.data.email_changed) {
           setTimeout(() => {
             handleLogout();
-            showNotification('Session expired. Please verify your new email to login.', 'info');
+            showNotification(
+              'Session expired. Please verify your new email to login.',
+              'info'
+            );
           }, 2500);
         }
       })
       .catch((err) => {
         setIsLoading(false);
-        showNotification(err.response?.data?.detail || 'Failed to update profile', 'error');
+        showNotification(
+          err.response?.data?.detail || 'Failed to update profile',
+          'error'
+        );
       });
   };
 
@@ -4408,12 +5083,10 @@ export default function useAppLogic() {
   };
 
   const refreshAdminUsers = () => {
-    return axios
-      .get('/api/admin/users')
-      .then((res) => {
-        setAdminUsers(res.data.users || []);
-        return res.data.users || [];
-      });
+    return axios.get('/api/admin/users').then((res) => {
+      setAdminUsers(res.data.users || []);
+      return res.data.users || [];
+    });
   };
 
   const openAdminModal = () => {
@@ -4427,7 +5100,9 @@ export default function useAppLogic() {
         setShowClientManage(false);
         setSidebarNav('admin');
       })
-      .catch((err) => showNotification('Failed to load users or unauthorized', 'error'));
+      .catch((err) =>
+        showNotification('Failed to load users or unauthorized', 'error')
+      );
   };
 
   const handleToggleSuperAdmin = (username) => {
@@ -4437,7 +5112,12 @@ export default function useAppLogic() {
         showNotification(res.data.message, 'success');
         refreshAdminUsers();
       })
-      .catch((err) => showNotification(err.response?.data?.detail || 'Failed to update role', 'error'));
+      .catch((err) =>
+        showNotification(
+          err.response?.data?.detail || 'Failed to update role',
+          'error'
+        )
+      );
   };
 
   const handleSetUserRole = (username, role) => {
@@ -4447,7 +5127,12 @@ export default function useAppLogic() {
         showNotification(res.data.message, 'success');
         refreshAdminUsers();
       })
-      .catch((err) => showNotification(err.response?.data?.detail || 'Failed to update role', 'error'));
+      .catch((err) =>
+        showNotification(
+          err.response?.data?.detail || 'Failed to update role',
+          'error'
+        )
+      );
   };
 
   const handleManualVerify = (username) => {
@@ -4457,17 +5142,31 @@ export default function useAppLogic() {
         showNotification(res.data.message, 'success');
         refreshAdminUsers();
       })
-      .catch((err) => showNotification(err.response?.data?.detail || 'Failed to verify user', 'error'));
+      .catch((err) =>
+        showNotification(
+          err.response?.data?.detail || 'Failed to verify user',
+          'error'
+        )
+      );
   };
 
   const handleUpdateUserStatus = (username, status, offboardDate = null) => {
     axios
-      .put(`/api/admin/users/status`, { username, status, offboard_date: offboardDate })
+      .put(`/api/admin/users/status`, {
+        username,
+        status,
+        offboard_date: offboardDate,
+      })
       .then((res) => {
         showNotification(res.data.message, 'success');
         refreshAdminUsers();
       })
-      .catch((err) => showNotification(err.response?.data?.detail || 'Failed to update status', 'error'));
+      .catch((err) =>
+        showNotification(
+          err.response?.data?.detail || 'Failed to update status',
+          'error'
+        )
+      );
   };
 
   const handleAddLeave = (e) => {
@@ -4481,11 +5180,21 @@ export default function useAppLogic() {
       })
       .then(() => {
         showNotification('Leave added successfully!', 'success');
-        setLeaveForm({ start_date: '', end_date: '', desc: '', type: 'personal' });
+        setLeaveForm({
+          start_date: '',
+          end_date: '',
+          desc: '',
+          type: 'personal',
+        });
         fetchLeaves();
         fetchTasks();
       })
-      .catch((err) => showNotification(err.response?.data?.detail || 'Error adding leave', 'error'));
+      .catch((err) =>
+        showNotification(
+          err.response?.data?.detail || 'Error adding leave',
+          'error'
+        )
+      );
   };
 
   const handleDeleteLeave = (id) => {
@@ -4505,12 +5214,22 @@ export default function useAppLogic() {
         showNotification(`User @${username} deleted`, 'success');
         refreshAdminUsers();
       })
-      .catch((err) => showNotification(err.response?.data?.detail || 'Failed to delete user', 'error'));
+      .catch((err) =>
+        showNotification(
+          err.response?.data?.detail || 'Failed to delete user',
+          'error'
+        )
+      );
   };
 
   const handleRegister = (e) => {
     e.preventDefault();
-    if (!loginUsername.trim() || !loginPassword.trim() || !regFullName.trim() || !regEmail.trim()) {
+    if (
+      !loginUsername.trim() ||
+      !loginPassword.trim() ||
+      !regFullName.trim() ||
+      !regEmail.trim()
+    ) {
       showNotification('All form fields are required!', 'error');
       return;
     }
@@ -4564,7 +5283,10 @@ export default function useAppLogic() {
                 ? err.response.data.detail
                 : 'Validation error, please check your input.';
           } else if (err.response?.data) {
-            errorMsg = typeof err.response.data === 'string' ? `Server Error: ${err.response.data}` : 'Server Error';
+            errorMsg =
+              typeof err.response.data === 'string'
+                ? `Server Error: ${err.response.data}`
+                : 'Server Error';
           } else if (err.message) {
             errorMsg = `Connection Error: ${err.message}. Is the backend running?`;
           }
@@ -4575,7 +5297,8 @@ export default function useAppLogic() {
 
   const handleForgotPassword = (e) => {
     e.preventDefault();
-    if (!forgotEmail.trim()) return showNotification('Please enter your email', 'error');
+    if (!forgotEmail.trim())
+      return showNotification('Please enter your email', 'error');
     setIsLoading(true);
 
     const wakeTimer = setTimeout(() => {
@@ -4588,11 +5311,18 @@ export default function useAppLogic() {
     }, 5000);
 
     axios
-      .post('/api/forgot-password', { email: forgotEmail.trim(), origin: window.location.origin }, { timeout: 75000 })
+      .post(
+        '/api/forgot-password',
+        { email: forgotEmail.trim(), origin: window.location.origin },
+        { timeout: 75000 }
+      )
       .then((res) => {
         clearTimeout(wakeTimer);
         setIsLoading(false);
-        showNotification('If your email is registered, a reset link has been sent.', 'success');
+        showNotification(
+          'If your email is registered, a reset link has been sent.',
+          'success'
+        );
         setIsForgotMode(false);
         setForgotEmail('');
       })
@@ -4620,11 +5350,18 @@ export default function useAppLogic() {
     }, 5000);
 
     axios
-      .post('/api/reset-password', { token: resetToken, new_password: loginPassword }, { timeout: 75000 })
+      .post(
+        '/api/reset-password',
+        { token: resetToken, new_password: loginPassword },
+        { timeout: 75000 }
+      )
       .then((res) => {
         clearTimeout(wakeTimer);
         setIsLoading(false);
-        showNotification('Password successfully reset! You can now login.', 'success');
+        showNotification(
+          'Password successfully reset! You can now login.',
+          'success'
+        );
         setIsResetMode(false);
         setResetToken(null);
         setLoginPassword('');
@@ -4637,7 +5374,10 @@ export default function useAppLogic() {
       .catch((err) => {
         clearTimeout(wakeTimer);
         setIsLoading(false);
-        showNotification(err.response?.data?.detail || 'Invalid or expired token', 'error');
+        showNotification(
+          err.response?.data?.detail || 'Invalid or expired token',
+          'error'
+        );
       });
   };
 
@@ -4664,7 +5404,8 @@ export default function useAppLogic() {
               {
                 id: created.board_id,
                 name: created.board_name || payload.name,
-                project_number: created.project_number ?? payload.project_number,
+                project_number:
+                  created.project_number ?? payload.project_number,
                 client_name: created.client_name ?? payload.client_name,
                 owner_username: currentUser,
                 role: 'owner',
@@ -4690,7 +5431,10 @@ export default function useAppLogic() {
         showNotification('Project created successfully!', 'success');
       })
       .catch((err) => {
-        showNotification(err.response?.data?.detail || 'Failed to create project', 'error');
+        showNotification(
+          err.response?.data?.detail || 'Failed to create project',
+          'error'
+        );
       })
       .finally(() => setIsSubmitting(false));
   };
@@ -4707,7 +5451,12 @@ export default function useAppLogic() {
         setDeleteBoardConfirmText('');
         if (selectedBoard?.id === boardToDelete.id) setSelectedBoard(null);
       })
-      .catch((err) => showNotification(err.response?.data?.detail || 'Failed to delete project', 'error'))
+      .catch((err) =>
+        showNotification(
+          err.response?.data?.detail || 'Failed to delete project',
+          'error'
+        )
+      )
       .finally(() => setIsSubmitting(false));
   };
 
@@ -4734,13 +5483,17 @@ export default function useAppLogic() {
       .post('/api/feedback', { text: `[SUPPORT TICKET] ${supportText}` })
       .then((res) => {
         showNotification(
-          language === 'id' ? 'Tiket dukungan berhasil dikirim ke tim IT!' : 'Support ticket sent to IT successfully!',
+          language === 'id'
+            ? 'Tiket dukungan berhasil dikirim ke tim IT!'
+            : 'Support ticket sent to IT successfully!',
           'success'
         );
         setIsSupportOpen(false);
         setSupportText('');
       })
-      .catch((err) => showNotification('Failed to submit support ticket', 'error'))
+      .catch((err) =>
+        showNotification('Failed to submit support ticket', 'error')
+      )
       .finally(() => setIsSubmitting(false));
   };
 
@@ -4831,12 +5584,19 @@ export default function useAppLogic() {
   }, [isAuthenticated]);
 
   const teamWorkloadStats = useMemo(() => {
-    if (!tasks || tasks.length === 0 || !userDirectory || userDirectory.length === 0) {
+    if (
+      !tasks ||
+      tasks.length === 0 ||
+      !userDirectory ||
+      userDirectory.length === 0
+    ) {
       return {};
     }
 
     const memberDetailedStats = {};
-    const currentMembersLookup = new Set((userDirectory || []).map((m) => m.username.toLowerCase()));
+    const currentMembersLookup = new Set(
+      (userDirectory || []).map((m) => m.username.toLowerCase())
+    );
 
     tasks.forEach((t) => {
       if (t.status === 'Rejected') return;
@@ -4860,7 +5620,10 @@ export default function useAppLogic() {
       }
 
       const validUsers = Array.from(involvedUsers).filter(
-        (p) => p && p.toLowerCase() !== 'unassigned' && currentMembersLookup.has(p.toLowerCase())
+        (p) =>
+          p &&
+          p.toLowerCase() !== 'unassigned' &&
+          currentMembersLookup.has(p.toLowerCase())
       );
       const divisor = validUsers.length > 0 ? validUsers.length : 1;
       const splitEtc = (t.etc || 2) / divisor;
@@ -4882,7 +5645,8 @@ export default function useAppLogic() {
         } else {
           if (t.status !== 'Pending' && t.status !== 'To Do')
             memberDetailedStats[person].active_etc += splitEtc;
-          if (t.priority_lvl === 'critical') memberDetailedStats[person].critical += 1;
+          if (t.priority_lvl === 'critical')
+            memberDetailedStats[person].critical += 1;
         }
       });
     });
