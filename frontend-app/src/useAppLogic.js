@@ -2854,15 +2854,17 @@ export default function useAppLogic() {
   };
 
   const handleOpenRenameBoard = (target, oldName) => {
-    if (workspaceRole === 'staff') {
+    // Rename & Change Color column title — Administrator only
+    if (workspaceRole !== 'admin' && !isSuperAdmin) {
       showNotification(
         language === 'id'
-          ? 'Staff tidak dapat mengubah nama board.'
-          : 'Staff cannot rename boards.',
+          ? 'Hanya Administrator yang dapat mengubah nama & warna kolom.'
+          : 'Only Administrators can rename & change column color.',
         'error'
       );
       return;
     }
+    if (accountStatus === 'suspended') return;
     setColModal({
       isOpen: true,
       target,
@@ -2935,6 +2937,15 @@ export default function useAppLogic() {
       }
       showNotification(`${target} added!`, 'success');
     } else if (mode === 'rename') {
+      if (workspaceRole !== 'admin' && !isSuperAdmin) {
+        showNotification(
+          language === 'id'
+            ? 'Hanya Administrator yang dapat mengubah nama & warna kolom.'
+            : 'Only Administrators can rename & change column color.',
+          'error'
+        );
+        return;
+      }
       const name = newName.trim();
       if (target === 'Status' && color) {
         if (!name || name.toLowerCase() === oldName.toLowerCase()) {

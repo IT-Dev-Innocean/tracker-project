@@ -5,6 +5,7 @@ import { Icon } from './components/icons/Icon';
 import { getTaskAssignee } from './useAppLogic';
 import { HighlightText } from './Utils';
 import RoleUsersTrigger from './components/RoleUsersTrigger';
+import { canAccessAdmin } from './permissions';
 import {
   getStatusLabelClass,
   getStatusLabelStyle,
@@ -101,6 +102,10 @@ export default function KanbanBoard({
   };
   const canManageColumns =
     workspaceRole !== 'staff' && accountStatus !== 'suspended';
+  // Rename & Change Color title label — Administrator only
+  const canRenameColumns =
+    (canAccessAdmin(workspaceRole) || isSuperAdmin) &&
+    accountStatus !== 'suspended';
   const isProtectedStatus = (colName) =>
     groupBy === 'Status' &&
     (DEFAULT_COLUMNS.includes(colName) ||
@@ -540,7 +545,7 @@ export default function KanbanBoard({
                         <div
                           className='flex items-center gap-2 flex-1 truncate min-w-0'
                           onDoubleClick={() =>
-                            canManageColumns &&
+                            canRenameColumns &&
                             (groupBy === 'Status' || groupBy === 'Category') &&
                             handleOpenRenameBoard(groupBy, colName)
                           }>
@@ -560,15 +565,20 @@ export default function KanbanBoard({
                         {canManageColumns &&
                           (groupBy === 'Status' || groupBy === 'Category') && (
                             <div className='flex items-center gap-1.5 shrink-0'>
-                              <button
-                                type='button'
-                                onClick={() =>
-                                  handleOpenRenameBoard(groupBy, colName)
-                                }
-                                className='theme-interactive p-1 rounded-md text-neutral-400 transition-colors'
-                                title={`Rename ${groupBy}`}>
-                                <Icon name='pencil' className='w-4 h-4' />
-                              </button>
+                              {canRenameColumns && (
+                                <button
+                                  type='button'
+                                  onClick={() =>
+                                    handleOpenRenameBoard(groupBy, colName)
+                                  }
+                                  className='theme-interactive p-1 rounded-md text-neutral-400 transition-colors'
+                                  title={tMsg(
+                                    `Rename & Change Color ${groupBy}`,
+                                    `Ubah Nama & Warna ${groupBy}`
+                                  )}>
+                                  <Icon name='pencil' className='w-4 h-4' />
+                                </button>
+                              )}
                               <button
                                 type='button'
                                 onClick={() => {
