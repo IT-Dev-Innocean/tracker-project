@@ -1482,6 +1482,7 @@ function App() {
                         DEFAULT_COLUMNS={DEFAULT_COLUMNS}
                         avatarsMap={avatarsMap}
                         currentUser={currentUser}
+                        userDirectory={userDirectory}
                         onDragEnd={onDragEnd}
                         handleOpenRenameBoard={handleOpenRenameBoard}
                         handleOpenDeleteBoard={handleOpenDeleteBoard}

@@ -1,15 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
-import { IconPlus, Avatar } from './SharedUI';
+import { IconPlus } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import { getTaskAssignee } from './useAppLogic';
 import { HighlightText } from './Utils';
+import RoleUsersTrigger from './components/RoleUsersTrigger';
 import {
   getStatusLabelClass,
   getStatusLabelStyle,
   getStatusColorKey,
   PROTECTED_STATUS_COLOR_KEYS,
 } from './utils/statusColors';
+
+const addInvolvedUsername = (set, value) => {
+  if (!value) return;
+  String(value)
+    .split(/[\s,]+/)
+    .forEach((part) => {
+      const cleaned = part.replace(/^@/, '').trim();
+      if (!cleaned || cleaned.toLowerCase() === 'unassigned') return;
+      if (!/^[\w.-]+$/.test(cleaned)) return;
+      const key = cleaned.toLowerCase();
+      if (![...set].some((u) => u.toLowerCase() === key)) {
+        set.add(cleaned);
+      }
+    });
+};
+
+/** Collect unique involved users: requester, supervisor, R&C, subtask assignees */
+export const getTaskInvolvedUsers = (task) => {
+  const users = new Set();
+  if (!task) return [];
+
+  if (task.requester) {
+    const mentions = String(task.requester).match(/@([\w.-]+)/g);
+    if (mentions) {
+      mentions.forEach((m) => addInvolvedUsername(users, m));
+    } else {
+      addInvolvedUsername(users, task.requester);
+    }
+  }
+
+  addInvolvedUsername(users, task.head_of_project);
+  addInvolvedUsername(users, task.rc_team);
+  addInvolvedUsername(users, task.subtask_assignees);
+
+  if (task.subtask_details) {
+    String(task.subtask_details)
+      .split('\n')
+      .forEach((line) => {
+        const match = line.match(/\(@([\w.-]+)\)$/);
+        if (match) addInvolvedUsername(users, match[1]);
+      });
+  }
+
+  return Array.from(users);
+};
 
 export default function KanbanBoard({
   activeColumns,
@@ -37,6 +83,7 @@ export default function KanbanBoard({
   clonedTaskIds,
   isKanbanDragging,
   workspaceRole,
+  userDirectory = [],
 }) {
   const [expandedArchives, setExpandedArchives] = useState({});
 
@@ -257,7 +304,7 @@ export default function KanbanBoard({
                                     name='zap'
                                     className='w-3 h-3 inline-block'
                                   />{' '}
-                                  Med
+                                  Medium
                                 </>
                               )}
                             </span>
@@ -268,7 +315,7 @@ export default function KanbanBoard({
                                 NEW CLONE
                               </span>
                             )}
-                            {(() => {
+                            {/* {(() => {
                               const isGlobal =
                                 !selectedBoard || selectedBoard.id === 'global';
                               const queuePos = isGlobal
@@ -306,18 +353,18 @@ export default function KanbanBoard({
                                 );
                               }
                               return null;
-                            })()}
+                            })()} */}
                           </div>
                         )}
                     </div>
-                    <div className='text-[10px] text-neutral-500 dark:text-neutral-400 mb-3 line-clamp-2 break-normal font-medium leading-relaxed'>
+                    <div className='text-xs text-neutral-500 dark:text-neutral-400 mb-3 line-clamp-2 break-normal font-medium leading-relaxed'>
                       {task.description
                         ? String(task.description)
                             .replace(/<[^>]+>/g, '')
                             .replace(/[*_~`]/g, '')
                         : 'No description provided.'}
                     </div>
-                    {task.owner_username !== currentUser && (
+                    {/* {task.owner_username !== currentUser && (
                       <div className='mb-3 text-[9px] font-bold text-white bg-black dark:bg-white dark:text-black px-2 py-1 rounded-full uppercase tracking-widest w-max shadow-sm'>
                         <Icon
                           name='handshake'
@@ -325,25 +372,41 @@ export default function KanbanBoard({
                         />{' '}
                         SHARED BY {task.owner_username}
                       </div>
-                    )}
+                    )} */}
                     <div className='flex flex-col gap-2 mt-2.5 pt-2.5 border-t border-neutral-100 dark:border-neutral-800/50 text-[9px] font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest min-w-0'>
                       <div className='flex justify-between items-center gap-2 min-w-0'>
-                        <span
-                          className='flex items-center gap-1.5 truncate text-black dark:text-white min-w-0'
-                          title={tMsg(
-                            'Project Owner / Requester',
-                            'Project Owner / Peminta'
-                          )}>
-                          <Avatar
-                            name={task.requester}
-                            url={
-                              avatarsMap[task.requester.replace('@', '').trim()]
-                            }
-                            size='w-6 h-6'
-                            textClass='text-[10px]'
-                          />{' '}
-                          <span className='truncate'>{task.requester}</span>
-                        </span>
+                        {(() => {
+                          const involvedUsers = getTaskInvolvedUsers(task);
+                          const employees =
+                            userDirectory?.length > 0
+                              ? userDirectory
+                              : involvedUsers.map((username) => ({
+                                  username,
+                                  full_name: username,
+                                }));
+                          return (
+                            <span
+                              className='flex items-center gap-1.5 truncate text-black dark:text-white min-w-0'
+                              title={tMsg(
+                                'People involved',
+                                'Orang yang terlibat'
+                              )}>
+                              <RoleUsersTrigger
+                                selected={involvedUsers}
+                                employees={employees}
+                                avatarsMap={avatarsMap}
+                                placeholder='-'
+                                singleMode='avatar-name'
+                                avatarSize='w-6 h-6'
+                                avatarTextClass='text-[10px]'
+                                maxVisible={4}
+                                withRing
+                                nameClassName='truncate text-[10px] font-bold text-black dark:text-white normal-case tracking-normal'
+                                emptyClassName='text-[10px] font-bold text-neutral-400'
+                              />
+                            </span>
+                          );
+                        })()}
                         <div className='flex items-center gap-2'>
                           {(() => {
                             const unreadComments = (notifications || []).filter(
@@ -386,7 +449,7 @@ export default function KanbanBoard({
                           )}
                         </div>
                       </div>
-                      {(formatUserList(task.head_of_project) ||
+                      {/* {(formatUserList(task.head_of_project) ||
                         formatUserList(task.rc_team)) && (
                         <div className='flex flex-col gap-1 text-[9px] font-bold text-neutral-500 dark:text-neutral-400 normal-case tracking-normal mb-1'>
                           {formatUserList(task.head_of_project) && (
@@ -406,7 +469,7 @@ export default function KanbanBoard({
                             </span>
                           )}
                         </div>
-                      )}
+                      )} */}
                       <div className='flex justify-between items-center flex-wrap gap-1.5 mt-2'>
                         <span
                           className='text-[9px] font-bold text-neutral-600 bg-neutral-100 dark:bg-neutral-800 dark:text-neutral-300 px-2 py-1 rounded-md truncate border border-neutral-200 dark:border-neutral-700 flex items-center gap-1 shrink-0'
