@@ -393,7 +393,7 @@ export default function KanbanBoard({
                             <span
                               className='truncate'
                               title={formatUserList(task.head_of_project)}>
-                              {tMsg('Head of Project', 'Head of Project')}:{' '}
+                              {tMsg('Supervisor', 'Supervisor')}:{' '}
                               {formatUserList(task.head_of_project)}
                             </span>
                           )}
