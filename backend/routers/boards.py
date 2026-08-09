@@ -221,6 +221,7 @@ def get_boards(
             "health_alert": alert_msg,
             "is_private": getattr(b, "is_private", 0),
             "project_number": getattr(b, "project_number", None),
+            "client_name": getattr(b, "client_name", None),
             "access_requests_count": requests_count,
         }
 
@@ -280,6 +281,7 @@ def create_board(
     
     is_private = 1 if payload.name.lower() == "to-do list" else 0
     project_number = (payload.project_number or "").strip() or None
+    client_name = (payload.client_name or "").strip() or None
     new_board = Board(
         name=payload.name,
         owner_username=current_user,
@@ -288,6 +290,7 @@ def create_board(
         categories=default_categories,
         is_private=is_private,
         project_number=project_number,
+        client_name=client_name,
     )
     db.add(new_board)
     db.commit()
@@ -297,6 +300,7 @@ def create_board(
         "board_id": new_board.id,
         "board_name": new_board.name,
         "project_number": new_board.project_number,
+        "client_name": new_board.client_name,
         "owner_username": new_board.owner_username,
     }
 
@@ -344,6 +348,7 @@ def update_board(
 
     board.name = name
     board.project_number = (payload.project_number or "").strip() or None
+    board.client_name = (payload.client_name or "").strip() or None
     db.commit()
     db.refresh(board)
     update_board_activity(db, board_id)
@@ -353,6 +358,7 @@ def update_board(
         "board_id": board.id,
         "board_name": board.name,
         "project_number": board.project_number,
+        "client_name": board.client_name,
     }
 
 
@@ -687,7 +693,7 @@ def create_task(
         db.commit()
         log_activity(db, new_task.id, f"**@{current_user}** created this task.")
 
-        assignees = get_assignees(task.requester)
+        assignees = get_assignees(f"{task.requester or ''} {task.head_of_project or ''} {task.rc_team or ''}")
         all_involved = assignees.union(subtask_assignees)
         for m in all_involved:
             if m != current_user:
@@ -799,8 +805,37 @@ def accept_access_request(board_id: int, member_id: int, current_user: str = Dep
         f"Your request to join project '{board.name}' has been accepted. You are now a member!{task_info}",
         "access_accepted", board.id
     )
-    return {"message": "Access request accepted"}
+@router.post("/api/boards/{board_id}/join")
+def join_board(
+    board_id: int,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    board = db.query(Board).filter(Board.id == board_id).first()
+    if not board:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if getattr(board, "is_private", 0) == 1:
+        raise HTTPException(status_code=403, detail="Cannot join a private workspace.")
 
+    if board.owner_username == current_user:
+        return {"message": "You are the project owner."}
+
+    existing = (
+        db.query(BoardMember)
+        .filter(BoardMember.board_id == board_id, BoardMember.member_username == current_user)
+        .first()
+    )
+    if existing:
+        if existing.status == "accepted":
+            return {"message": "You are already a member of this project."}
+        existing.status = "accepted"
+        db.commit()
+        return {"message": "Successfully joined project!"}
+
+    new_member = BoardMember(board_id=board_id, member_username=current_user, status="accepted")
+    db.add(new_member)
+    db.commit()
+    return {"message": "Successfully joined project!"}
 
 @router.post("/api/boards/{board_id}/invite")
 def invite_board_member(
@@ -810,9 +845,11 @@ def invite_board_member(
     db: Session = Depends(get_db),
 ):
     board = db.query(Board).filter(Board.id == board_id).first()
-    if not board or board.owner_username != current_user:
+    if not board:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if not can_manage_projects(db, current_user) and board.owner_username != current_user:
         raise HTTPException(
-            status_code=403, detail="Only the project owner can invite members."
+            status_code=403, detail="Only Project Owners or Admins can invite members."
         )
     if getattr(board, "is_private", 0) == 1:
         raise HTTPException(status_code=403, detail="Cannot invite members to a private workspace.")

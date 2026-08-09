@@ -624,6 +624,9 @@ export function CreateBoardModal({
   setNewBoardName,
   newBoardNumber,
   setNewBoardNumber,
+  newBoardClient,
+  setNewBoardClient,
+  clients = [],
   language,
   isSubmitting,
 }) {
@@ -631,6 +634,7 @@ export function CreateBoardModal({
     setIsCreateBoardOpen(false);
     setNewBoardName('');
     if (setNewBoardNumber) setNewBoardNumber('');
+    if (setNewBoardClient) setNewBoardClient('');
   });
   const tMsg = (en, id) => (language === 'id' ? id : en);
   return (
@@ -654,6 +658,23 @@ export function CreateBoardModal({
         <form onSubmit={handleCreateBoard}>
           <div className='mb-6'>
             <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
+              {tMsg('Client Name', 'Nama Klien')}
+            </label>
+            <select
+              value={newBoardClient || ''}
+              onChange={(e) => setNewBoardClient?.(e.target.value)}
+              className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold transition-all cursor-pointer'
+              autoFocus>
+              <option value=''>-- {tMsg('Select Client', 'Pilih Klien')} --</option>
+              {clients.map((c) => (
+                <option key={c.id || c.client_code} value={c.client_name}>
+                  {c.client_name} ({c.client_code})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className='mb-6'>
+            <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
               {tMsg('Project Number', 'Nomor Proyek')}
             </label>
             <input
@@ -662,7 +683,6 @@ export function CreateBoardModal({
               onChange={(e) => setNewBoardNumber?.(e.target.value)}
               placeholder={tMsg('E.g. PRJ-001', 'Contoh: PRJ-001')}
               className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all'
-              autoFocus
             />
           </div>
           <div className='mb-8'>
@@ -727,11 +747,21 @@ export function TeamModal({
   language,
   selectedBoard,
   isSuperAdmin,
+  workspaceRole,
+  handleJoinProject,
 }) {
   const [isClosing, close] = useCloseAnimation(() => setIsTeamModalOpen(false));
   const tMsg = (en, id) => (language === 'id' ? id : en);
-  const isOwner = selectedBoard?.owner_username === currentUser || isSuperAdmin;
+  const isOwner =
+    selectedBoard?.owner_username === currentUser ||
+    isSuperAdmin ||
+    workspaceRole === 'admin' ||
+    workspaceRole === 'project_owner';
   const isRealOwner = selectedBoard?.owner_username === currentUser;
+  const isAlreadyMember =
+    selectedBoard?.owner_username === currentUser ||
+    myTeam.some((m) => m.username === currentUser && m.status === 'accepted');
+
   return (
     <div
       className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
@@ -741,10 +771,20 @@ export function TeamModal({
         className={`bg-white dark:bg-neutral-950 p-6 sm:p-10 border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] w-full max-w-2xl flex flex-col max-h-[90vh] ${
           isClosing ? 'mac-exit' : 'mac-animate'
         }`}>
-        <h2 className='text-3xl font-black text-black dark:text-white mb-2 flex items-center gap-3'>
-          <Icon name='handshake' className='w-9 h-9 shrink-0' />{' '}
-          {tMsg('Project Members', 'Anggota Proyek')}
-        </h2>
+        <div className='flex justify-between items-center mb-2'>
+          <h2 className='text-3xl font-black text-black dark:text-white flex items-center gap-3'>
+            <Icon name='handshake' className='w-9 h-9 shrink-0' />{' '}
+            {tMsg('Project Members', 'Anggota Proyek')}
+          </h2>
+          {!isAlreadyMember && handleJoinProject && (
+            <button
+              onClick={handleJoinProject}
+              className='px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 shrink-0'>
+              <Icon name='user-plus' className='w-4 h-4' />
+              {tMsg('Join Project', 'Gabung Proyek')}
+            </button>
+          )}
+        </div>
 
         {isOwner && (
           <form onSubmit={handleInviteTeam} className='shrink-0 mt-4'>
@@ -1594,6 +1634,7 @@ export function NotificationModal({
   notifPosition = 'bottom-right',
   notifSound = true,
   notifPrivacy = false,
+  formatDateMMM,
 }) {
   const [isClosing, close] = useCloseAnimation(() => setNotification(null));
   const tMsg = (en, id) => (language === 'id' ? id : en);
@@ -1640,15 +1681,18 @@ export function NotificationModal({
   const animationClass = isClosing
     ? 'opacity-0 scale-95'
     : 'opacity-100 scale-100';
+  let rawMsg = notification.message ? notification.message.replace(/(?:<!--|&lt;!--)\s*TASK_ID:\d+\s*(?:-->|--&gt;)/gi, '') : '';
+  if (formatDateMMM && rawMsg.includes('Your timesheet for period')) {
+    rawMsg = rawMsg.replace(/period (\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/, (_, d1, d2) => {
+      return `period ${formatDateMMM(d1)} to ${formatDateMMM(d2)}`;
+    });
+  }
   const displayMessage =
     notifPrivacy &&
     notification.type !== 'error' &&
     notification.type !== 'success'
       ? tMsg('You have a new notification.', 'Anda memiliki notifikasi baru.')
-      : notification.message.replace(
-          /(?:<!--|&lt;!--)\s*TASK_ID:\d+\s*(?:-->|--&gt;)/gi,
-          ''
-        );
+      : rawMsg;
 
   return (
     <div

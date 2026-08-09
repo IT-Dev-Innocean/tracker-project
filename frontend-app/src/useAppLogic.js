@@ -19,7 +19,7 @@ import {
   setStatusLabelColor,
   STATUS_COLOR_PALETTE,
 } from './utils/statusColors';
-import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback } from 'react';
 import axios from 'axios'; 
 import { useGoogleLogin, useGoogleOneTapLogin, googleLogout } from '@react-oauth/google';
 import { driver } from 'driver.js';
@@ -360,7 +360,7 @@ export default function useAppLogic() {
   const [inviteIndex, setInviteIndex] = useState(0);
   const [userDirectory, setUserDirectory] = useState([]);
   const [invitations, setInvitations] = useState([]);
-  const [profileData, setProfileData] = useState({ username: '', email: '', full_name: '' });
+  const [profileData, setProfileData] = useState({ username: '', email: '', full_name: '', job_position: '', division_name: '' });
   const [isMentioning, setIsMentioning] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionIndex, setMentionIndex] = useState(0);
@@ -423,12 +423,7 @@ export default function useAppLogic() {
     return null;
   });
 
-  useEffect(() => {
-    if (!MASTER_VIEW_UI_ENABLED && selectedBoard?.id === 'global') {
-      setSelectedBoard(null);
-      setSidebarNav('home');
-    }
-  }, [selectedBoard]);
+
 
   useEffect(() => {
     if (
@@ -444,8 +439,24 @@ export default function useAppLogic() {
 
   const [newBoardName, setNewBoardName] = useState('');
   const [newBoardNumber, setNewBoardNumber] = useState('');
+  const [newBoardClient, setNewBoardClient] = useState('');
+  const [clients, setClients] = useState([]);
   const [isPrivateBoard, setIsPrivateBoard] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState(null);
+
+  const fetchClients = useCallback(() => {
+    if (!isAuthenticated) return;
+    axios
+      .get('/api/clients')
+      .then((res) => {
+        setClients(res.data?.clients || []);
+      })
+      .catch(() => {});
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]);
 
   // PWA (Progressive Web App) Install Logic
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -583,8 +594,14 @@ export default function useAppLogic() {
   const [accountStatus, setAccountStatus] = useState('active');
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [workspaceRole, setWorkspaceRole] = useState('project_owner'); // admin | project_owner | manager | staff
+  useEffect(() => {
+    if (workspaceRole === 'staff' && viewMode === 'analytics') {
+      setViewMode('kanban');
+    }
+  }, [workspaceRole, viewMode, setViewMode]);
   const [feedbackText, setFeedbackText] = useState('');
   const [supportText, setSupportText] = useState('');
+  const [isProfileBannerDismissed, setIsProfileBannerDismissed] = useState(false);
   useEffect(() => {
     if (typeof window !== 'undefined') localStorage.setItem('innocean_docs_open', isDocsOpen);
   }, [isDocsOpen]);
@@ -3795,7 +3812,8 @@ export default function useAppLogic() {
       const matchStatus = filterStatus === 'All' || task.status === filterStatus;
       const matchCategory = filterCategory === 'All' || task.category === filterCategory;
       const matchAssignee = filterAssignee === 'All' || getTaskAssignee(task) === filterAssignee;
-      const matchMyTasks = !showMyTasks || isUserAssigned(task, currentUser);
+      const isGlobalMyTasksView = selectedBoard?.id === 'global';
+      const matchMyTasks = !(showMyTasks || isGlobalMyTasksView) || isUserAssigned(task, currentUser);
       const matchUnread =
         !showUnreadOnly ||
         (notifications || []).some(
@@ -4159,6 +4177,23 @@ export default function useAppLogic() {
       });
   };
 
+  const handleJoinProject = () => {
+    if (!selectedBoard?.id) return;
+    setIsLoading(true);
+    axios
+      .post(`/api/boards/${selectedBoard.id}/join`)
+      .then((res) => {
+        setIsLoading(false);
+        showNotification(res.data.message, 'success');
+        fetchMyTeam();
+        fetchBoards();
+      })
+      .catch((err) => {
+        setIsLoading(false);
+        showNotification(err.response?.data?.detail || 'Failed to join project.', 'error');
+      });
+  };
+
   const handleInviteInputChange = (e) => {
     const val = e.target.value;
     setInviteInput(val);
@@ -4330,6 +4365,8 @@ export default function useAppLogic() {
     setIsLoading(true);
     const payload = {
       full_name: profileData.full_name,
+      job_position: profileData.job_position,
+      division_name: profileData.division_name,
       email: profileData.email,
       avatar: profileData.avatar,
       current_password: profileData.current_password,
@@ -4612,6 +4649,7 @@ export default function useAppLogic() {
       name: newBoardName.trim(),
       is_private: 0,
       project_number: newBoardNumber.trim() || null,
+      client_name: newBoardClient.trim() || null,
     };
     axios
       .post('/api/boards', payload)
@@ -4627,6 +4665,7 @@ export default function useAppLogic() {
                 id: created.board_id,
                 name: created.board_name || payload.name,
                 project_number: created.project_number ?? payload.project_number,
+                client_name: created.client_name ?? payload.client_name,
                 owner_username: currentUser,
                 role: 'owner',
                 total_tasks: 0,
@@ -4644,6 +4683,7 @@ export default function useAppLogic() {
         setIsCreateBoardOpen(false);
         setNewBoardName('');
         setNewBoardNumber('');
+        setNewBoardClient('');
         setIsPrivateBoard(false);
         fetchBoards();
         showNotification('Project created successfully!', 'success');
@@ -4935,6 +4975,9 @@ export default function useAppLogic() {
     isCreateBoardOpen,
     newBoardName,
     newBoardNumber,
+    newBoardClient,
+    setNewBoardClient,
+    clients,
     boardToDelete,
     deleteBoardConfirmText,
     isExportModalOpen,
@@ -5018,6 +5061,8 @@ export default function useAppLogic() {
     setInvitations,
     setIsSettingsOpen,
     setProfileData,
+    isProfileBannerDismissed,
+    setIsProfileBannerDismissed,
     setIsMentioning,
     setMentionQuery,
     isCommentMentioning,
@@ -5131,6 +5176,7 @@ export default function useAppLogic() {
     handleLogin,
     openTeamModal,
     handleInviteTeam,
+    handleJoinProject,
     handleInviteInputChange,
     applyInviteSuggestion,
     handleRevokeMember,

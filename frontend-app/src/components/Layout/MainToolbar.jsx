@@ -225,12 +225,10 @@ export default function MainToolbar() {
   );
 
   const renderNewTaskButton = ({ fullWidth = false } = {}) =>
-    canCreateTasks ? (
+    canCreateTasks && selectedBoard?.id !== 'global' ? (
       <button
         onClick={handleOpenNewTaskForm}
-        disabled={
-          accountStatus === 'suspended' || selectedBoard.id === 'global'
-        }
+        disabled={accountStatus === 'suspended'}
         className={`bg-black dark:bg-white dark:text-slate-900 text-white font-bold py-2 px-3 sm:px-4 rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 text-sm tour-new-task disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 ${
           fullWidth ? 'w-full' : 'shrink-0'
         }`}>
@@ -269,7 +267,9 @@ export default function MainToolbar() {
       {/* View tabs — pill segmented control (theme-aware active bg) */}
       <div className='w-full overflow-x-auto custom-scrollbar tour-views'>
         <div className='inline-flex items-center gap-1 p-1 rounded-none bg-transparent w-full border-t md:border-t-0 border-b border-neutral-200 dark:border-neutral-700'>
-          {['kanban', 'list', 'timeline', 'calendar', 'analytics'].map((v) => {
+          {['kanban', 'list', 'timeline', 'calendar', 'analytics']
+            .filter((v) => v !== 'analytics' || workspaceRole !== 'staff')
+            .map((v) => {
             const isActive = viewMode === v;
             return (
               <button
@@ -325,6 +325,7 @@ export default function MainToolbar() {
             language={language}
             accountStatus={accountStatus}
             viewMode={viewMode}
+            selectedBoard={selectedBoard}
             showMyTasks={showMyTasks}
             setShowMyTasks={setShowMyTasks}
             showOverdueOnly={showOverdueOnly}

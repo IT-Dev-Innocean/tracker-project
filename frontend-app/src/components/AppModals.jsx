@@ -151,6 +151,9 @@ export default function AppModals() {
     setNewBoardName,
     newBoardNumber,
     setNewBoardNumber,
+    newBoardClient,
+    setNewBoardClient,
+    clients,
     isPrivateBoard,
     setIsPrivateBoard,
     isTeamModalOpen,
@@ -160,6 +163,7 @@ export default function AppModals() {
     inviteIndex,
     setInviteIndex,
     handleSendInvite,
+    handleJoinProject,
     isInvitationsModalOpen,
     setIsInvitationsModalOpen,
     invitations,
@@ -559,6 +563,9 @@ export default function AppModals() {
           setNewBoardName={setNewBoardName}
           newBoardNumber={newBoardNumber}
           setNewBoardNumber={setNewBoardNumber}
+          newBoardClient={newBoardClient}
+          setNewBoardClient={setNewBoardClient}
+          clients={clients}
           language={language}
           isSubmitting={isSubmitting}
         />
@@ -583,6 +590,8 @@ export default function AppModals() {
           language={language}
           selectedBoard={selectedBoard}
           isSuperAdmin={isSuperAdmin}
+          workspaceRole={workspaceRole}
+          handleJoinProject={handleJoinProject}
         />
       )}
       {isInvitesModalOpen && (
@@ -686,6 +695,7 @@ export default function AppModals() {
           isAiReplying={isAiReplying}
           setSelectedTask={setSelectedTask}
           isSuperAdmin={isSuperAdmin}
+          workspaceRole={workspaceRole}
           notifications={notifications}
           handleNotificationTaskClick={handleNotificationTaskClick}
           handleReadNotification={handleReadNotification}

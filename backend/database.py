@@ -109,6 +109,8 @@ class User(Base):
     role = Column(String(50), default="project_owner")
     timesheet_approver = Column(String(50), nullable=True)
     timesheet_required = Column(Boolean, default=True)
+    job_position = Column(String(100), nullable=True)
+    division_name = Column(String(100), nullable=True)
 
 
 class Board(Base):
@@ -123,6 +125,7 @@ class Board(Base):
     deletion_date = Column(DateTime, nullable=True)
     is_private = Column(Integer, default=0)
     project_number = Column(String(100), nullable=True)
+    client_name = Column(String(200), nullable=True)
 
 
 class Client(Base):
@@ -271,6 +274,15 @@ def setup_db():
                 )
                 conn.execute(
                     text("ALTER TABLE requests ADD COLUMN IF NOT EXISTS rc_team TEXT")
+                )
+                conn.execute(
+                    text("ALTER TABLE boards ADD COLUMN IF NOT EXISTS client_name TEXT")
+                )
+                conn.execute(
+                    text("ALTER TABLE users ADD COLUMN IF NOT EXISTS job_position TEXT")
+                )
+                conn.execute(
+                    text("ALTER TABLE users ADD COLUMN IF NOT EXISTS division_name TEXT")
                 )
         except Exception:
             pass

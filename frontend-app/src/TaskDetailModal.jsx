@@ -394,6 +394,8 @@ export default function TaskDetailModal({
   if (!isPreviewMode && currentUser && canModify) {
     isTaskAdmin =
       isSuperAdmin ||
+      workspaceRole === 'project_owner' ||
+      workspaceRole === 'admin' ||
       selectedTask.owner_username === currentUser ||
       (selectedBoard && selectedBoard.owner_username === currentUser) ||
       (selectedTask.requester &&
@@ -416,11 +418,19 @@ export default function TaskDetailModal({
         currentUser &&
         st.assignee.toLowerCase() === currentUser.toLowerCase()
     );
+
+  const currentUserLower = currentUser ? currentUser.toLowerCase() : '';
+  const isDirectlyTagged = currentUser && (
+    (selectedTask.requester && new RegExp(`@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(selectedTask.requester)) ||
+    (selectedTask.head_of_project && new RegExp(`@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(selectedTask.head_of_project)) ||
+    (selectedTask.rc_team && new RegExp(`@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(selectedTask.rc_team))
+  );
+
   const isInvolved =
     !isPreviewMode &&
-    canComment &&
     (isTaskAdmin ||
       isSubtaskAssignee ||
+      isDirectlyTagged ||
       (isSystemTicket &&
         selectedTask.requester &&
         currentUser &&
@@ -799,6 +809,7 @@ export default function TaskDetailModal({
                           'Pilih Head PIC Proyek...'
                         )}
                         tMsg={tMsg}
+                        teamMembers={teamMembers}
                       />
 
                       <MultiUserSelect
@@ -814,6 +825,7 @@ export default function TaskDetailModal({
                           'Pilih Tim R&C...'
                         )}
                         tMsg={tMsg}
+                        teamMembers={teamMembers}
                       />
                     </div>
 
@@ -1249,6 +1261,8 @@ export default function TaskDetailModal({
                     isGeneratingNudge={isGeneratingNudge}
                     hasAnyAssignee={hasAnyAssignee}
                     isTaskAdmin={isTaskAdmin}
+                    isInvolved={isInvolved}
+                    workspaceRole={workspaceRole}
                     accountStatus={accountStatus}
                     handleToggleAutoNudge={handleToggleAutoNudge}
                     setSelectedTask={setSelectedTask}
@@ -1664,19 +1678,24 @@ export default function TaskDetailModal({
                             strokeWidth={2.5}
                           />
                         </button>
-                        {TASK_MEET_NOW_UI_ENABLED && (
-                          <button
-                            type='button'
-                            onClick={handleStartTaskMeet}
-                            className='text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors uppercase tracking-widest'>
-                            <Icon
-                              name='video'
-                              className='w-4 h-4'
-                              strokeWidth={2.5}
-                            />
-                            <span className='hidden sm:inline'>Meet Now</span>
-                          </button>
-                        )}
+                        {TASK_MEET_NOW_UI_ENABLED && (() => {
+                          const canMeet = isInvolved || isTaskAdmin || workspaceRole === 'project_owner' || workspaceRole === 'admin';
+                          return (
+                            <button
+                              type='button'
+                              disabled={!canMeet}
+                              onClick={handleStartTaskMeet}
+                              className={`text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors uppercase tracking-widest disabled:opacity-50 ${!canMeet ? 'cursor-not-allowed' : ''}`}
+                              title={!canMeet ? tMsg('Only involved members or Project Owners can start Meet Now', 'Hanya anggota terlibat atau Project Owner yang bisa melakukan Meet Now') : ''}>
+                              <Icon
+                                name='video'
+                                className='w-4 h-4'
+                                strokeWidth={2.5}
+                              />
+                              <span className='hidden sm:inline'>Meet Now</span>
+                            </button>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>
@@ -1861,6 +1880,7 @@ export default function TaskDetailModal({
                       setCommentMentionIndex={setCommentMentionIndex}
                       insertCommentMention={insertCommentMention}
                       teamMembers={teamMembers}
+                      workspaceRole={workspaceRole}
                       tMsg={tMsg}
                     />
                   </div>

@@ -28,6 +28,8 @@ def get_profile(
         "username": user.username,
         "email": user.email,
         "full_name": user.full_name,
+        "job_position": getattr(user, 'job_position', None),
+        "division_name": getattr(user, 'division_name', None),
         "avatar": user.avatar,
         "account_status": user.account_status,
         "is_superadmin": user.is_superadmin,
@@ -95,6 +97,8 @@ def update_profile(
             user.password = get_password_hash(payload.new_password)
 
         user.full_name = payload.full_name
+        user.job_position = payload.job_position
+        user.division_name = payload.division_name
 
         email_changed = False
         if user.email != payload.email:
@@ -225,6 +229,8 @@ def get_all_avatars(
             {
                 "username": u.username,
                 "full_name": u.full_name,
+                "job_position": getattr(u, 'job_position', None),
+                "division_name": getattr(u, 'division_name', None),
                 "email": email_display,
                 "avatar": avatar_val,
                 "is_connected": is_connected,

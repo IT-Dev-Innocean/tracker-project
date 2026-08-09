@@ -35,8 +35,7 @@ def list_clients(
     current_user: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _require_client_manager(db, current_user)
-    clients = db.query(Client).order_by(Client.client_name.asc()).all()
+    clients = db.query(Client).filter(Client.status == "active").order_by(Client.client_name.asc()).all()
     return {"clients": [_serialize_client(c) for c in clients]}
 
 

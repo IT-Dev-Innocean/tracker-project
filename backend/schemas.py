@@ -87,11 +87,13 @@ class BoardModel(BaseModel):
     name: str
     is_private: Optional[int] = 0
     project_number: Optional[str] = None
+    client_name: Optional[str] = None
 
 
 class BoardUpdateModel(BaseModel):
     name: str
     project_number: Optional[str] = None
+    client_name: Optional[str] = None
 
 
 class ClientCreateModel(BaseModel):
@@ -145,6 +147,8 @@ class FeedbackModel(BaseModel):
 class ProfileUpdateModel(BaseModel):
     full_name: str
     email: str
+    job_position: Optional[str] = None
+    division_name: Optional[str] = None
     avatar: Optional[str] = None
     current_password: Optional[str] = None
     new_password: Optional[str] = None

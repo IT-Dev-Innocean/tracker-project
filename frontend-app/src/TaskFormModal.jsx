@@ -479,6 +479,7 @@ Format:
                       'Pilih Head PIC Proyek...'
                     )}
                     tMsg={tMsg}
+                    teamMembers={teamMembers}
                   />
 
                   <MultiUserSelect
@@ -491,6 +492,7 @@ Format:
                     employees={allEmployees}
                     placeholder={tMsg('Select R&C Team...', 'Pilih Tim R&C...')}
                     tMsg={tMsg}
+                    teamMembers={teamMembers}
                   />
                 </div>
 
