@@ -188,10 +188,30 @@ export default function TaskDetailModal({
 
   const allEmployees =
     userDirectory && userDirectory.length > 0
-      ? userDirectory.filter((u) => u.username !== 'admin')
-      : teamMembers
-          .filter((m) => m !== 'admin')
-          .map((username) => ({ username, full_name: username }));
+      ? userDirectory
+          .filter(
+            (u) =>
+              u?.username &&
+              u.username !== 'admin' &&
+              (u.account_status == null || u.account_status === 'active')
+          )
+          .map((u) => ({
+            username: u.username,
+            full_name: u.full_name || u.name || u.username,
+            name: u.name || u.full_name || u.username,
+          }))
+          .sort((a, b) =>
+            String(a.full_name || a.username).localeCompare(
+              String(b.full_name || b.username)
+            )
+          )
+      : (teamMembers || [])
+          .filter((m) => m && m !== 'admin')
+          .map((username) => ({
+            username,
+            full_name: username,
+            name: username,
+          }));
 
   const headOfProject = editFormData.head_of_project || [];
   const rcTeam = editFormData.rc_team || [];
@@ -420,11 +440,23 @@ export default function TaskDetailModal({
     );
 
   const currentUserLower = currentUser ? currentUser.toLowerCase() : '';
-  const isDirectlyTagged = currentUser && (
-    (selectedTask.requester && new RegExp(`@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(selectedTask.requester)) ||
-    (selectedTask.head_of_project && new RegExp(`@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(selectedTask.head_of_project)) ||
-    (selectedTask.rc_team && new RegExp(`@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(selectedTask.rc_team))
-  );
+  const isDirectlyTagged =
+    currentUser &&
+    ((selectedTask.requester &&
+      new RegExp(
+        `@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
+        'i'
+      ).test(selectedTask.requester)) ||
+      (selectedTask.head_of_project &&
+        new RegExp(
+          `@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
+          'i'
+        ).test(selectedTask.head_of_project)) ||
+      (selectedTask.rc_team &&
+        new RegExp(
+          `@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
+          'i'
+        ).test(selectedTask.rc_team)));
 
   const isInvolved =
     !isPreviewMode &&
@@ -775,7 +807,7 @@ export default function TaskDetailModal({
                                       <span>@{m}</span>
                                       {!teamMembers.includes(m) && (
                                         <span className='text-[8px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest ml-auto'>
-                                          + Auto-Invite
+                                          +Invite
                                         </span>
                                       )}
                                     </div>
@@ -794,7 +826,7 @@ export default function TaskDetailModal({
                       </div>
 
                       <MultiUserSelect
-                        label={tMsg('Head of Project', 'Head of Project')}
+                        label={tMsg('Supervisor', 'Supervisor')}
                         icon='users'
                         selected={headOfProject}
                         onChange={(users) =>
@@ -805,8 +837,8 @@ export default function TaskDetailModal({
                         }
                         employees={allEmployees}
                         placeholder={tMsg(
-                          'Select Head of Project...',
-                          'Pilih Head PIC Proyek...'
+                          'Select Supervisor...',
+                          'Select Supervisor..'
                         )}
                         tMsg={tMsg}
                         teamMembers={teamMembers}
@@ -1678,24 +1710,38 @@ export default function TaskDetailModal({
                             strokeWidth={2.5}
                           />
                         </button>
-                        {TASK_MEET_NOW_UI_ENABLED && (() => {
-                          const canMeet = isInvolved || isTaskAdmin || workspaceRole === 'project_owner' || workspaceRole === 'admin';
-                          return (
-                            <button
-                              type='button'
-                              disabled={!canMeet}
-                              onClick={handleStartTaskMeet}
-                              className={`text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors uppercase tracking-widest disabled:opacity-50 ${!canMeet ? 'cursor-not-allowed' : ''}`}
-                              title={!canMeet ? tMsg('Only involved members or Project Owners can start Meet Now', 'Hanya anggota terlibat atau Project Owner yang bisa melakukan Meet Now') : ''}>
-                              <Icon
-                                name='video'
-                                className='w-4 h-4'
-                                strokeWidth={2.5}
-                              />
-                              <span className='hidden sm:inline'>Meet Now</span>
-                            </button>
-                          );
-                        })()}
+                        {TASK_MEET_NOW_UI_ENABLED &&
+                          (() => {
+                            const canMeet =
+                              isInvolved ||
+                              isTaskAdmin ||
+                              workspaceRole === 'project_owner' ||
+                              workspaceRole === 'admin';
+                            return (
+                              <button
+                                type='button'
+                                disabled={!canMeet}
+                                onClick={handleStartTaskMeet}
+                                className={`text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors uppercase tracking-widest disabled:opacity-50 ${!canMeet ? 'cursor-not-allowed' : ''}`}
+                                title={
+                                  !canMeet
+                                    ? tMsg(
+                                        'Only involved members or Project Owners can start Meet Now',
+                                        'Hanya anggota terlibat atau Project Owner yang bisa melakukan Meet Now'
+                                      )
+                                    : ''
+                                }>
+                                <Icon
+                                  name='video'
+                                  className='w-4 h-4'
+                                  strokeWidth={2.5}
+                                />
+                                <span className='hidden sm:inline'>
+                                  Meet Now
+                                </span>
+                              </button>
+                            );
+                          })()}
                       </div>
                     )}
                   </div>

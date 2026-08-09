@@ -76,7 +76,7 @@ export default function TaskDetailSidebar({
         </div>
         <div className='shrink-0 min-w-0'>
           <p className='text-xs uppercase tracking-normal font-bold text-neutral-500 dark:text-neutral-400 mb-1'>
-            {tMsg('Head of Project', 'Head of Project')}
+            {tMsg('Supervisor', 'Supervisor')}
           </p>
           <p
             className='font-bold capitalize tracking-wide text-sm truncate'
@@ -207,68 +207,109 @@ export default function TaskDetailSidebar({
 
       {selectedTask.status !== 'Done' && showActionButtons && (
         <div className='flex flex-wrap items-center gap-3 mt-4 sm:mt-5'>
-          {TASK_SCHEDULE_MEETING_UI_ENABLED && (() => {
-            const canAction = isInvolved || isTaskAdmin || workspaceRole === 'project_owner' || workspaceRole === 'admin';
-            return (
-              <button
-                type='button'
-                disabled={!canAction}
-                onClick={() => openCalendarPopup(generateGoogleMeetScheduleUrl())}
-                className={`text-[9px] font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-4 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800/50 transition-all hover:-translate-y-0.5 hover:shadow-md flex items-center gap-1.5 uppercase tracking-widest shadow-sm disabled:opacity-50 ${!canAction ? 'cursor-not-allowed' : ''}`}
-                title={!canAction ? tMsg('Only involved members or Project Owners can schedule meetings', 'Hanya anggota terlibat atau Project Owner yang bisa menjadwalkan rapat') : ''}>
-                <Icon name='calendar-days' className='w-3.5 h-3.5' />{' '}
-                {tMsg('Schedule Meeting', 'Jadwalkan Rapat')}
-              </button>
-            );
-          })()}
-          {TASK_ADD_TO_CALENDAR_UI_ENABLED && (() => {
-            const canAction = isInvolved || isTaskAdmin || workspaceRole === 'project_owner' || workspaceRole === 'admin';
-            return (
-              <button
-                type='button'
-                disabled={!canAction}
-                onClick={() => openCalendarPopup(generateGoogleCalendarUrl())}
-                className={`text-[9px] font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-800/50 transition-all hover:-translate-y-0.5 hover:shadow-md flex items-center gap-1.5 uppercase tracking-widest shadow-sm disabled:opacity-50 ${!canAction ? 'cursor-not-allowed' : ''}`}
-                title={!canAction ? tMsg('Only involved members or Project Owners can add to calendar', 'Hanya anggota terlibat atau Project Owner yang bisa menambahkan ke kalender') : ''}>
-                <Icon name='calendar' className='w-3.5 h-3.5' />{' '}
-                {tMsg('Add to Calendar', 'Ke Kalender')}
-              </button>
-            );
-          })()}
-          {TASK_SMART_NUDGE_UI_ENABLED && !isPreviewMode && (() => {
-            const canNudge = (isInvolved || isTaskAdmin || workspaceRole === 'project_owner' || workspaceRole === 'admin') && workspaceRole !== 'staff';
-            return (
-              <button
-                type='button'
-                onClick={() => setIsNudgeConfirmOpen(true)}
-                disabled={isGeneratingNudge || !hasAnyAssignee || !canNudge}
-                className={`text-[9px] font-bold text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 px-4 py-2 rounded-lg border border-amber-200 dark:border-amber-800/50 transition-all hover:-translate-y-0.5 hover:shadow-md flex items-center gap-1.5 uppercase tracking-widest shadow-sm disabled:opacity-50 ${!hasAnyAssignee || !canNudge ? 'cursor-not-allowed' : ''}`}
-                title={
-                  !canNudge
-                    ? tMsg('Only involved non-staff members or Project Owners can nudge', 'Hanya anggota non-staff terlibats atau Project Owner yang bisa memantau')
-                    : !hasAnyAssignee
+          {TASK_SCHEDULE_MEETING_UI_ENABLED &&
+            (() => {
+              const canAction =
+                isInvolved ||
+                isTaskAdmin ||
+                workspaceRole === 'project_owner' ||
+                workspaceRole === 'admin';
+              return (
+                <button
+                  type='button'
+                  disabled={!canAction}
+                  onClick={() =>
+                    openCalendarPopup(generateGoogleMeetScheduleUrl())
+                  }
+                  className={`text-[9px] font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-4 py-2 rounded-lg border border-indigo-200 dark:border-indigo-800/50 transition-all hover:-translate-y-0.5 hover:shadow-md flex items-center gap-1.5 uppercase tracking-widest shadow-sm disabled:opacity-50 ${!canAction ? 'cursor-not-allowed' : ''}`}
+                  title={
+                    !canAction
                       ? tMsg(
-                          'No assignees to nudge',
-                          'Tidak ada pekerja untuk dipantau'
+                          'Only involved members or Project Owners can schedule meetings',
+                          'Hanya anggota terlibat atau Project Owner yang bisa menjadwalkan rapat'
                         )
                       : ''
-                }>
-                {isGeneratingNudge ? (
-                  <Icon name='clock' className='w-3.5 h-3.5 animate-pulse' />
-                ) : (
-                  <>
-                    <Icon name='bell' className='w-3.5 h-3.5' />{' '}
-                    {tMsg('Smart Nudge', 'Pantauan Cerdas')}
-                  </>
-                )}
-              </button>
-            );
-          })()}
+                  }>
+                  <Icon name='calendar-days' className='w-3.5 h-3.5' />{' '}
+                  {tMsg('Schedule Meeting', 'Jadwalkan Rapat')}
+                </button>
+              );
+            })()}
+          {TASK_ADD_TO_CALENDAR_UI_ENABLED &&
+            (() => {
+              const canAction =
+                isInvolved ||
+                isTaskAdmin ||
+                workspaceRole === 'project_owner' ||
+                workspaceRole === 'admin';
+              return (
+                <button
+                  type='button'
+                  disabled={!canAction}
+                  onClick={() => openCalendarPopup(generateGoogleCalendarUrl())}
+                  className={`text-[9px] font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-800/50 transition-all hover:-translate-y-0.5 hover:shadow-md flex items-center gap-1.5 uppercase tracking-widest shadow-sm disabled:opacity-50 ${!canAction ? 'cursor-not-allowed' : ''}`}
+                  title={
+                    !canAction
+                      ? tMsg(
+                          'Only involved members or Project Owners can add to calendar',
+                          'Hanya anggota terlibat atau Project Owner yang bisa menambahkan ke kalender'
+                        )
+                      : ''
+                  }>
+                  <Icon name='calendar' className='w-3.5 h-3.5' />{' '}
+                  {tMsg('Add to Calendar', 'Ke Kalender')}
+                </button>
+              );
+            })()}
+          {TASK_SMART_NUDGE_UI_ENABLED &&
+            !isPreviewMode &&
+            (() => {
+              const canNudge =
+                (isInvolved ||
+                  isTaskAdmin ||
+                  workspaceRole === 'project_owner' ||
+                  workspaceRole === 'admin') &&
+                workspaceRole !== 'staff';
+              return (
+                <button
+                  type='button'
+                  onClick={() => setIsNudgeConfirmOpen(true)}
+                  disabled={isGeneratingNudge || !hasAnyAssignee || !canNudge}
+                  className={`text-[9px] font-bold text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 px-4 py-2 rounded-lg border border-amber-200 dark:border-amber-800/50 transition-all hover:-translate-y-0.5 hover:shadow-md flex items-center gap-1.5 uppercase tracking-widest shadow-sm disabled:opacity-50 ${!hasAnyAssignee || !canNudge ? 'cursor-not-allowed' : ''}`}
+                  title={
+                    !canNudge
+                      ? tMsg(
+                          'Only involved non-staff members or Project Owners can nudge',
+                          'Hanya anggota non-staff terlibats atau Project Owner yang bisa memantau'
+                        )
+                      : !hasAnyAssignee
+                        ? tMsg(
+                            'No assignees to nudge',
+                            'Tidak ada pekerja untuk dipantau'
+                          )
+                        : ''
+                  }>
+                  {isGeneratingNudge ? (
+                    <Icon name='clock' className='w-3.5 h-3.5 animate-pulse' />
+                  ) : (
+                    <>
+                      <Icon name='bell' className='w-3.5 h-3.5' />{' '}
+                      {tMsg('Smart Nudge', 'Pantauan Cerdas')}
+                    </>
+                  )}
+                </button>
+              );
+            })()}
           {TASK_AUTO_NUDGE_UI_ENABLED &&
             accountStatus !== 'suspended' &&
             !isPreviewMode &&
             (() => {
-              const canAutoNudge = (isInvolved || isTaskAdmin || workspaceRole === 'project_owner' || workspaceRole === 'admin') && workspaceRole !== 'staff';
+              const canAutoNudge =
+                (isInvolved ||
+                  isTaskAdmin ||
+                  workspaceRole === 'project_owner' ||
+                  workspaceRole === 'admin') &&
+                workspaceRole !== 'staff';
               return (
                 <button
                   type='button'

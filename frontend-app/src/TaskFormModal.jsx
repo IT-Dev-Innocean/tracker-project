@@ -1,4 +1,11 @@
-import React, { useState } from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { IconPlus } from './SharedUI';
 import { Icon } from './components/icons/Icon';
@@ -46,6 +53,57 @@ export default function TaskFormModal({
   ); // 'ai' atau 'manual'
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGeneratingTask, setIsGeneratingTask] = useState(false);
+  const [requesterDropdownStyle, setRequesterDropdownStyle] = useState({});
+  const [isRequesterOpen, setIsRequesterOpen] = useState(false);
+  const requesterWrapperRef = useRef(null);
+  const requesterButtonRef = useRef(null);
+  const requesterDropdownRef = useRef(null);
+
+  const updateRequesterDropdownPosition = useCallback(() => {
+    if (!requesterButtonRef.current) return;
+    const rect = requesterButtonRef.current.getBoundingClientRect();
+    setRequesterDropdownStyle({
+      position: 'fixed',
+      top: rect.bottom + 8,
+      left: rect.left,
+      width: rect.width,
+      zIndex: 9999,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isRequesterOpen) return undefined;
+
+    updateRequesterDropdownPosition();
+
+    const handleClickOutside = (e) => {
+      if (
+        requesterWrapperRef.current?.contains(e.target) ||
+        requesterDropdownRef.current?.contains(e.target)
+      ) {
+        return;
+      }
+      setIsRequesterOpen(false);
+    };
+
+    const handleReposition = () => updateRequesterDropdownPosition();
+
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleReposition, true);
+    window.addEventListener('resize', handleReposition);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleReposition, true);
+      window.removeEventListener('resize', handleReposition);
+    };
+  }, [isRequesterOpen, updateRequesterDropdownPosition]);
+
+  const selectRequester = (username) => {
+    setFormData({ ...formData, requester: `@${username}` });
+    setIsRequesterOpen(false);
+    setIsMentioning?.(false);
+  };
 
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const handleGenerateDesc = async () => {
@@ -228,24 +286,116 @@ Format:
     close();
   };
 
-  const globalMentionOptions = selectedBoard?.is_private
-    ? [currentUser]
-    : userDirectory && userDirectory.length > 0
-      ? userDirectory
-          .filter((u) => u.is_connected)
-          .map((u) => u.username)
-          .filter((u) => u !== 'admin')
-      : teamMembers;
+  const [workspacePeople, setWorkspacePeople] = useState([]);
 
-  const allEmployees =
-    userDirectory && userDirectory.length > 0
-      ? userDirectory.filter((u) => u.username !== 'admin')
-      : teamMembers
-          .filter((m) => m !== 'admin')
-          .map((username) => ({ username, full_name: username }));
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get('/api/users/avatars')
+      .then((res) => {
+        if (cancelled) return;
+        setWorkspacePeople(res.data?.directory || []);
+      })
+      .catch(() => {
+        if (!cancelled) setWorkspacePeople([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const allEmployees = useMemo(() => {
+    const source =
+      (userDirectory && userDirectory.length > 0 ? userDirectory : null) ||
+      (workspacePeople && workspacePeople.length > 0
+        ? workspacePeople
+        : null) ||
+      [];
+
+    if (source.length > 0) {
+      return source
+        .filter(
+          (u) =>
+            u?.username &&
+            u.username !== 'admin' &&
+            (u.account_status == null || u.account_status === 'active')
+        )
+        .map((u) => ({
+          username: u.username,
+          full_name: u.full_name || u.name || u.username,
+          name: u.name || u.full_name || u.username,
+        }))
+        .sort((a, b) =>
+          String(a.full_name || a.username).localeCompare(
+            String(b.full_name || b.username)
+          )
+        );
+    }
+
+    return (teamMembers || [])
+      .filter((m) => m && m !== 'admin')
+      .map((username) => ({
+        username,
+        full_name: username,
+        name: username,
+      }));
+  }, [userDirectory, workspacePeople, teamMembers]);
 
   const headOfProject = formData.head_of_project || [];
   const rcTeam = formData.rc_team || [];
+  const selectedRequesterUsername = String(formData.requester || '')
+    .replace(/^@/, '')
+    .trim();
+  const selectedRequesterEmployee = allEmployees.find(
+    (emp) => emp.username === selectedRequesterUsername
+  );
+  const requesterDisplayLabel = selectedRequesterEmployee
+    ? selectedRequesterEmployee.full_name || selectedRequesterEmployee.username
+    : selectedRequesterUsername
+      ? formData.requester
+      : tMsg('Select Requester...', 'Pilih Requester...');
+
+  const requesterDropdownMenu =
+    isRequesterOpen &&
+    createPortal(
+      <div
+        ref={requesterDropdownRef}
+        style={requesterDropdownStyle}
+        className='bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl max-h-48 overflow-y-auto py-2 mac-animate'>
+        {allEmployees.length > 0 ? (
+          allEmployees.map((emp) => {
+            const isSelected = selectedRequesterUsername === emp.username;
+            const isAutoInvite =
+              teamMembers.length > 0 && !teamMembers.includes(emp.username);
+            return (
+              <button
+                key={emp.username}
+                type='button'
+                onClick={() => selectRequester(emp.username)}
+                className={`flex w-full items-center gap-3 px-4 py-2.5 cursor-pointer text-left text-xs font-normal text-black dark:text-white ${
+                  isSelected
+                    ? 'bg-neutral-100 dark:bg-neutral-800'
+                    : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'
+                }`}>
+                <span className='truncate'>
+                  {emp.full_name || emp.name || emp.username}
+                </span>
+                {isAutoInvite && (
+                  <span className='text-[8px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest ml-auto shrink-0'>
+                    +Invite
+                  </span>
+                )}
+              </button>
+            );
+          })
+        ) : (
+          <div className='px-4 py-3 text-xs text-neutral-400 uppercase tracking-widest font-normal'>
+            {tMsg('NO EMPLOYEES FOUND', 'TIDAK ADA KARYAWAN')}
+          </div>
+        )}
+      </div>,
+      document.body
+    );
 
   return (
     <div
@@ -364,7 +514,11 @@ Format:
 
               <div className='space-y-6'>
                 <div className='grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4 relative z-40'>
-                  <div className='group tour-form-requester relative z-50'>
+                  <div
+                    ref={requesterWrapperRef}
+                    className={`group tour-form-requester relative ${
+                      isRequesterOpen ? 'z-9998' : ''
+                    }`}>
                     <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
                       <Icon name='user' className='w-4 h-4' />{' '}
                       {tMsg(
@@ -372,102 +526,33 @@ Format:
                         'Project Owner / Peminta'
                       )}
                     </label>
-                    <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center relative h-12 sm:h-14'>
-                      <input
-                        type='text'
-                        value={formData.requester}
-                        onChange={(e) =>
-                          handleRequesterChange(
-                            e.target.value,
-                            setFormData,
-                            formData
-                          )
-                        }
-                        onKeyDown={(e) => {
-                          if (isMentioning) {
-                            const filtered = globalMentionOptions.filter((m) =>
-                              m.toLowerCase().includes(mentionQuery)
-                            );
-                            if (e.key === 'ArrowDown') {
-                              e.preventDefault();
-                              setMentionIndex(
-                                (prev) => (prev + 1) % (filtered.length || 1)
-                              );
-                            } else if (e.key === 'ArrowUp') {
-                              e.preventDefault();
-                              setMentionIndex(
-                                (prev) =>
-                                  (prev - 1 + filtered.length) %
-                                  (filtered.length || 1)
-                              );
-                            } else if (e.key === 'Enter' || e.key === 'Tab') {
-                              if (filtered.length > 0) {
-                                e.preventDefault();
-                                insertMention(
-                                  filtered[mentionIndex] || filtered[0],
-                                  setFormData,
-                                  formData
-                                );
-                              } else {
-                                setIsMentioning(false);
-                              }
-                            } else if (e.key === 'Escape') {
-                              e.preventDefault();
-                              setIsMentioning(false);
-                            }
-                          }
-                        }}
-                        className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-normal text-black dark:text-white outline-none placeholder-neutral-400 placeholder:text-xs h-full'
-                        placeholder={tMsg(
-                          'Select or type employee name...',
-                          'Pilih atau ketik nama karyawan...'
-                        )}
-                        required
-                        autoComplete='off'
-                      />
-
-                      {isMentioning && (
-                        <div className='absolute left-0 top-full mt-2 w-full bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl z-50 max-h-40 overflow-y-auto py-2 mac-animate'>
-                          {globalMentionOptions.filter((m) =>
-                            m.toLowerCase().includes(mentionQuery)
-                          ).length > 0 ? (
-                            globalMentionOptions
-                              .filter((m) =>
-                                m.toLowerCase().includes(mentionQuery)
-                              )
-                              .map((m, idx) => (
-                                <div
-                                  key={m}
-                                  className={`px-4 py-3 cursor-pointer text-xs text-black dark:text-white font-bold border-b border-neutral-200 dark:border-neutral-800 last:border-0 flex items-center gap-2 ${
-                                    mentionIndex === idx
-                                      ? 'bg-neutral-200 dark:bg-neutral-800'
-                                      : 'hover:bg-neutral-200 dark:hover:bg-neutral-800'
-                                  }`}
-                                  onClick={() =>
-                                    insertMention(m, setFormData, formData)
-                                  }>
-                                  <span>@{m}</span>
-                                  {!teamMembers.includes(m) && (
-                                    <span className='text-[8px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest ml-auto'>
-                                      + Auto-Invite
-                                    </span>
-                                  )}
-                                </div>
-                              ))
-                          ) : (
-                            <div className='px-4 py-3 text-xs text-neutral-400 uppercase tracking-widest font-bold'>
-                              {tMsg(
-                                'NO MEMBERS FOUND',
-                                'TIDAK ADA ANGGOTA DITEMUKAN'
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    <button
+                      ref={requesterButtonRef}
+                      type='button'
+                      onClick={() => setIsRequesterOpen((prev) => !prev)}
+                      className='w-full bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black transition-all flex items-center h-12 sm:h-14 px-3.5 text-left'>
+                      <span
+                        className={`text-xs font-normal truncate ${
+                          selectedRequesterUsername
+                            ? 'text-black dark:text-white'
+                            : 'text-neutral-400'
+                        }`}>
+                        {requesterDisplayLabel}
+                      </span>
+                    </button>
+                    <input
+                      type='text'
+                      value={formData.requester || ''}
+                      required
+                      tabIndex={-1}
+                      aria-hidden='true'
+                      className='sr-only'
+                      onChange={() => {}}
+                    />
+                    {requesterDropdownMenu}
                   </div>
                   <MultiUserSelect
-                    label={tMsg('Head of Project', 'Head of Project')}
+                    label={tMsg('Supervisor', 'Supervisor')}
                     icon='users'
                     selected={headOfProject}
                     onChange={(users) =>
@@ -475,8 +560,8 @@ Format:
                     }
                     employees={allEmployees}
                     placeholder={tMsg(
-                      'Select Head of Project...',
-                      'Pilih Head PIC Proyek...'
+                      'Select Supervisor...',
+                      'Select Supervisor..'
                     )}
                     tMsg={tMsg}
                     teamMembers={teamMembers}

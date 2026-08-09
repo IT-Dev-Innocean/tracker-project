@@ -370,6 +370,7 @@ export default function AppModals() {
           isSubmitting={isSubmitting}
           handleManualFormClick={handleManualFormClick}
           selectedBoard={selectedBoard}
+          userDirectory={userDirectory}
         />
       )}
 
