@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import os
 from collections import defaultdict
 
-from database import get_db, User, Request, Subtask, Board, BoardMember, LeaveDay, LeaveRecord, Comment, Notification, DirectMessage
+from database import get_db, User, Request, Subtask, Board, BoardMember, LeaveDay, LeaveRecord, Comment, Notification, DirectMessage, Client
 from schemas import *
 from dependencies import *
 from utils import *
@@ -282,6 +282,24 @@ def create_board(
     is_private = 1 if payload.name.lower() == "to-do list" else 0
     project_number = (payload.project_number or "").strip() or None
     client_name = (payload.client_name or "").strip() or None
+
+    # Auto-create client directory entry when a new client name is used
+    if client_name:
+        existing_client = (
+            db.query(Client)
+            .filter(func.lower(Client.client_name) == client_name.lower())
+            .first()
+        )
+        if not existing_client:
+            db.add(
+                Client(
+                    client_code=None,
+                    client_name=client_name,
+                    status="active",
+                    created_by=current_user,
+                )
+            )
+
     new_board = Board(
         name=payload.name,
         owner_username=current_user,

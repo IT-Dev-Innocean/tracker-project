@@ -29,20 +29,41 @@ export default function ClientManagementPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [selectedClients, setSelectedClients] = useState([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [clientToDelete, setClientToDelete] = useState(null);
+  const [clientsToDelete, setClientsToDelete] = useState([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [clientsPerPage, setClientsPerPage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = Number(
+        localStorage.getItem('innocean_client_manage_per_page')
+      );
+      if ([5, 10, 20, 50].includes(saved)) return saved;
+    }
+    return 5;
+  });
+
+  const setClientsPerPagePersist = (value) => {
+    const next = Number(value);
+    setClientsPerPage(next);
+    setCurrentPage(1);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('innocean_client_manage_per_page', String(next));
+    }
+  };
 
   const loadClients = () => {
     setIsLoading(true);
     axios
-      .get('/api/clients')
+      .get('/api/clients', { params: { include_inactive: true } })
       .then((res) => {
         setClients(res.data.clients || []);
+        setSelectedClients([]);
         setIsLoading(false);
       })
       .catch(() => {
@@ -67,10 +88,55 @@ export default function ClientManagementPage() {
       const matchSearch =
         !q ||
         (c.client_code || '').toLowerCase().includes(q) ||
-        (c.client_name || '').toLowerCase().includes(q);
+        (c.client_name || '').toLowerCase().includes(q) ||
+        (c.created_by || '').toLowerCase().includes(q);
       return matchStatus && matchSearch;
     });
   }, [clients, searchQuery, statusFilter]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredClients.length / clientsPerPage) || 1
+  );
+
+  const paginatedClients = useMemo(() => {
+    const start = (currentPage - 1) * clientsPerPage;
+    return filteredClients.slice(start, start + clientsPerPage);
+  }, [filteredClients, currentPage, clientsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, clientsPerPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const rangeStart =
+    filteredClients.length === 0 ? 0 : (currentPage - 1) * clientsPerPage + 1;
+  const rangeEnd = Math.min(
+    currentPage * clientsPerPage,
+    filteredClients.length
+  );
+
+  const handleToggleSelectClient = (id) => {
+    setSelectedClients((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllClients = (e) => {
+    if (e.target.checked) {
+      setSelectedClients(paginatedClients.map((c) => c.id));
+    } else {
+      setSelectedClients([]);
+    }
+  };
+
+  const triggerDelete = (clientsArray) => {
+    setClientsToDelete(clientsArray);
+    setDeleteConfirmOpen(true);
+  };
 
   const statusBadge = (status) => {
     if (status === 'inactive') {
@@ -112,12 +178,9 @@ export default function ClientManagementPage() {
   const handleSave = () => {
     const code = formData.client_code.trim();
     const name = formData.client_name.trim();
-    if (!code || !name) {
+    if (!name) {
       showNotification?.(
-        tMsg(
-          'Client code and name are required',
-          'Kode dan nama klien wajib diisi'
-        ),
+        tMsg('Client name is required', 'Nama klien wajib diisi'),
         'error'
       );
       return;
@@ -125,7 +188,7 @@ export default function ClientManagementPage() {
 
     setIsSaving(true);
     const payload = {
-      client_code: code,
+      client_code: code || null,
       client_name: name,
       status: formData.status || 'active',
     };
@@ -156,26 +219,33 @@ export default function ClientManagementPage() {
   };
 
   const executeDelete = () => {
-    if (!clientToDelete) return;
+    if (!clientsToDelete.length) return;
     setIsDeleting(true);
-    axios
-      .delete(`/api/clients/${clientToDelete.id}`)
-      .then((res) => {
+    const requests = clientsToDelete.map((c) =>
+      axios.delete(`/api/clients/${c.id}`)
+    );
+    Promise.all(requests)
+      .then(() => {
         showNotification?.(
-          res.data.message ||
-            tMsg('Client deleted successfully', 'Klien berhasil dihapus'),
+          clientsToDelete.length > 1
+            ? tMsg('Clients deleted successfully', 'Klien berhasil dihapus')
+            : tMsg('Client deleted successfully', 'Klien berhasil dihapus'),
           'success'
         );
         setIsDeleting(false);
         setDeleteConfirmOpen(false);
-        setClientToDelete(null);
+        setClientsToDelete([]);
+        setSelectedClients([]);
         loadClients();
       })
       .catch((err) => {
         setIsDeleting(false);
         showNotification?.(
           err.response?.data?.detail ||
-            tMsg('Failed to delete client', 'Gagal menghapus klien'),
+            tMsg(
+              'Failed to delete some clients',
+              'Gagal menghapus beberapa klien'
+            ),
           'error'
         );
       });
@@ -198,6 +268,15 @@ export default function ClientManagementPage() {
       </div>
     );
   }
+
+  const deleteCount = clientsToDelete.length;
+  const deleteLabel =
+    deleteCount === 1
+      ? clientsToDelete[0]?.client_name
+      : tMsg(
+          `${deleteCount} selected clients`,
+          `${deleteCount} klien terpilih`
+        );
 
   return (
     <div className='flex-1 overflow-auto p-4 sm:p-8 scrollbar-thin relative'>
@@ -229,9 +308,30 @@ export default function ClientManagementPage() {
 
         <div className='overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900'>
           <div className='px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-950 flex-wrap gap-4'>
-            <h3 className='font-bold text-black dark:text-white text-sm uppercase tracking-wider'>
-              {tMsg('Client Directory', 'Direktori Klien')}
-            </h3>
+            <div className='flex items-center gap-4 flex-wrap'>
+              <h3 className='font-bold text-black dark:text-white text-sm uppercase tracking-wider'>
+                {tMsg('Client Directory', 'Direktori Klien')}
+              </h3>
+              {selectedClients.length > 0 && (
+                <button
+                  type='button'
+                  onClick={() =>
+                    triggerDelete(
+                      clients
+                        .filter((c) => selectedClients.includes(c.id))
+                        .map((c) => ({
+                          id: c.id,
+                          client_name: c.client_name,
+                          client_code: c.client_code,
+                        }))
+                    )
+                  }
+                  className='text-[10px] font-bold bg-red-500 text-white px-3 py-1.5 rounded-lg uppercase tracking-widest hover:bg-red-600 transition-colors shadow-sm'>
+                  <Icon name='trash' className='w-3.5 h-3.5 inline mr-1' />
+                  {tMsg('Delete', 'Hapus')} ({selectedClients.length})
+                </button>
+              )}
+            </div>
             <div className='flex items-center gap-2 flex-wrap'>
               <div className='relative'>
                 <Icon
@@ -272,11 +372,24 @@ export default function ClientManagementPage() {
               <table className='w-full min-w-3xl text-left border-collapse text-sm'>
                 <thead className='bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 sticky top-0 z-10'>
                   <tr>
-                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                      {tMsg('Client Code', 'Kode Klien')}
+                    <th className='px-6 py-4 border-b border-neutral-200 dark:border-neutral-700 w-10'>
+                      <input
+                        type='checkbox'
+                        className='cursor-pointer rounded border-neutral-300 dark:border-neutral-600'
+                        checked={
+                          paginatedClients.length > 0 &&
+                          paginatedClients.every((c) =>
+                            selectedClients.includes(c.id)
+                          )
+                        }
+                        onChange={handleSelectAllClients}
+                      />
                     </th>
                     <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
                       {tMsg('Client Name', 'Nama Klien')}
+                    </th>
+                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
+                      {tMsg('Owner', 'Pemilik')}
                     </th>
                     <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-center'>
                       {tMsg('Status', 'Status')}
@@ -287,21 +400,38 @@ export default function ClientManagementPage() {
                   </tr>
                 </thead>
                 <tbody className='divide-y divide-neutral-200 dark:divide-neutral-800'>
-                  {filteredClients.map((c) => (
+                  {paginatedClients.map((c) => (
                     <tr
                       key={c.id}
                       className='hover:bg-white dark:hover:bg-neutral-950 transition-colors'>
-                      <td className='px-6 py-4 font-bold text-black dark:text-white text-sm whitespace-nowrap'>
-                        <HighlightText
-                          text={c.client_code}
-                          query={searchQuery}
+                      <td className='px-6 py-4 whitespace-nowrap w-10'>
+                        <input
+                          type='checkbox'
+                          className='cursor-pointer rounded border-neutral-300 dark:border-neutral-600'
+                          checked={selectedClients.includes(c.id)}
+                          onChange={() => handleToggleSelectClient(c.id)}
                         />
                       </td>
-                      <td className='px-6 py-4 text-sm font-medium text-neutral-700 dark:text-neutral-300 whitespace-nowrap'>
+                      <td className='px-6 py-4 font-bold text-black dark:text-white text-sm whitespace-nowrap'>
                         <HighlightText
                           text={c.client_name}
                           query={searchQuery}
                         />
+                      </td>
+                      <td className='px-6 py-4 text-sm font-medium text-neutral-700 dark:text-neutral-300 whitespace-nowrap'>
+                        {c.created_by ? (
+                          <>
+                            @
+                            <HighlightText
+                              text={c.created_by}
+                              query={searchQuery}
+                            />
+                          </>
+                        ) : (
+                          <span className='text-neutral-300 dark:text-neutral-600'>
+                            —
+                          </span>
+                        )}
                       </td>
                       <td className='px-6 py-4 text-center whitespace-nowrap'>
                         {statusBadge(c.status)}
@@ -316,10 +446,15 @@ export default function ClientManagementPage() {
                           </button>
                           <button
                             type='button'
-                            onClick={() => {
-                              setClientToDelete(c);
-                              setDeleteConfirmOpen(true);
-                            }}
+                            onClick={() =>
+                              triggerDelete([
+                                {
+                                  id: c.id,
+                                  client_name: c.client_name,
+                                  client_code: c.client_code,
+                                },
+                              ])
+                            }
                             className='flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-900/20 dark:text-red-400 px-3 py-1.5 rounded-lg transition-all border border-red-200 dark:border-red-800/50'>
                             <Icon name='trash' className='w-3.5 h-3.5' />
                             {tMsg('Delete', 'Hapus')}
@@ -332,6 +467,55 @@ export default function ClientManagementPage() {
               </table>
             )}
           </div>
+
+          {filteredClients.length > 0 && (
+            <div className='px-4 sm:px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+              <div className='flex items-center gap-2 flex-wrap'>
+                <span className='text-[10px] font-bold text-neutral-500 uppercase tracking-widest'>
+                  {tMsg('Show', 'Tampilkan')}
+                </span>
+                <select
+                  value={clientsPerPage}
+                  onChange={(e) => setClientsPerPagePersist(e.target.value)}
+                  className='py-1.5 px-2 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-lg outline-none text-xs font-bold'>
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+                <span className='text-[10px] font-bold text-neutral-400 uppercase tracking-widest'>
+                  {tMsg(
+                    `${rangeStart}–${rangeEnd} of ${filteredClients.length}`,
+                    `${rangeStart}–${rangeEnd} dari ${filteredClients.length}`
+                  )}
+                </span>
+              </div>
+
+              <div className='flex items-center gap-2'>
+                <button
+                  type='button'
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(prev - 1, 1))
+                  }
+                  disabled={currentPage === 1}
+                  className='px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-neutral-100 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'>
+                  {tMsg('Prev', 'Sebelumnya')}
+                </button>
+                <span className='text-xs font-bold text-neutral-700 dark:text-neutral-300 min-w-16 text-center'>
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  type='button'
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                  className='px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-neutral-100 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors'>
+                  {tMsg('Next', 'Berikutnya')}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -345,14 +529,14 @@ export default function ClientManagementPage() {
             </h3>
             <p className='text-neutral-600 dark:text-neutral-400 text-sm mb-6 text-center'>
               {tMsg(
-                'Fill in client code, name, and status.',
-                'Isi kode klien, nama, dan status.'
+                'Fill in client name and status. Client code is optional.',
+                'Isi nama klien dan status. Kode klien bersifat opsional.'
               )}
             </p>
             <div className='space-y-4 mb-6'>
               <div>
                 <label className='block text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-1.5'>
-                  {tMsg('Client Code', 'Kode Klien')}
+                  {tMsg('Client Code (optional)', 'Kode Klien (opsional)')}
                 </label>
                 <input
                   type='text'
@@ -428,26 +612,43 @@ export default function ClientManagementPage() {
         </div>
       )}
 
-      {deleteConfirmOpen && clientToDelete && (
+      {deleteConfirmOpen && deleteCount > 0 && (
         <div className='fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4'>
           <div className='bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-md border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl text-center'>
             <h3 className='text-2xl font-black text-black dark:text-white mb-2 uppercase'>
-              {tMsg('Delete Client?', 'Hapus Klien?')}
+              {deleteCount > 1
+                ? tMsg('Delete Clients?', 'Hapus Klien?')
+                : tMsg('Delete Client?', 'Hapus Klien?')}
             </h3>
             <p className='text-neutral-600 dark:text-neutral-400 text-sm mb-6'>
-              {tMsg(
-                'This permanently deletes ',
-                'Ini akan menghapus permanen '
+              {deleteCount > 1 ? (
+                <>
+                  {tMsg(
+                    'This permanently deletes ',
+                    'Ini akan menghapus permanen '
+                  )}
+                  <strong>{deleteLabel}</strong>.
+                </>
+              ) : (
+                <>
+                  {tMsg(
+                    'This permanently deletes ',
+                    'Ini akan menghapus permanen '
+                  )}
+                  <strong>{clientsToDelete[0].client_name}</strong>
+                  {clientsToDelete[0].client_code
+                    ? ` (${clientsToDelete[0].client_code})`
+                    : ''}
+                  .
+                </>
               )}
-              <strong>{clientToDelete.client_name}</strong> (
-              {clientToDelete.client_code}).
             </p>
             <div className='flex gap-4'>
               <button
                 type='button'
                 onClick={() => {
                   setDeleteConfirmOpen(false);
-                  setClientToDelete(null);
+                  setClientsToDelete([]);
                 }}
                 disabled={isDeleting}
                 className='flex-1 px-4 py-3 rounded-full font-bold text-xs uppercase bg-neutral-100 dark:bg-neutral-900'>

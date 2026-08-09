@@ -4686,6 +4686,7 @@ export default function useAppLogic() {
         setNewBoardClient('');
         setIsPrivateBoard(false);
         fetchBoards();
+        fetchClients();
         showNotification('Project created successfully!', 'success');
       })
       .catch((err) => {

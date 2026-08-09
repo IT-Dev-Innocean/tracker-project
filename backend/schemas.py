@@ -97,7 +97,7 @@ class BoardUpdateModel(BaseModel):
 
 
 class ClientCreateModel(BaseModel):
-    client_code: str
+    client_code: Optional[str] = None
     client_name: str
     status: Optional[str] = "active"
 
