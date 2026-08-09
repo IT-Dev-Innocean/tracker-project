@@ -1,19 +1,42 @@
 import React from 'react';
 import axios from 'axios';
 import { Icon } from '../icons/Icon';
+import RoleUsersTrigger from '../RoleUsersTrigger';
 import {
   TASK_SCHEDULE_MEETING_UI_ENABLED,
   TASK_ADD_TO_CALENDAR_UI_ENABLED,
   TASK_SMART_NUDGE_UI_ENABLED,
   TASK_AUTO_NUDGE_UI_ENABLED,
+  TASK_QUEUE_LABEL_UI_ENABLED,
 } from '../../featureFlags';
 
-const formatUserList = (val) => {
-  if (!val || !String(val).trim()) return '-';
+const extractUsernames = (val) => {
+  if (!val) return [];
+  if (Array.isArray(val)) {
+    return val
+      .map((u) => String(u || '').replace(/^@/, '').trim())
+      .filter(Boolean);
+  }
   return String(val)
     .split(',')
-    .map((u) => `@${u.trim()}`)
-    .join(', ');
+    .map((part) => part.replace(/@/g, '').trim())
+    .filter(Boolean);
+};
+
+const resolveFullName = (username, employees = []) => {
+  if (!username) return '';
+  const key = String(username).replace(/^@/, '').trim().toLowerCase();
+  const emp = employees.find(
+    (e) => String(e.username || '').toLowerCase() === key
+  );
+  return emp?.full_name || emp?.name || username.replace(/^@/, '').trim();
+};
+
+const formatUserList = (val, employees = []) => {
+  const names = extractUsernames(val).map((u) =>
+    resolveFullName(u, employees)
+  );
+  return names.length > 0 ? names.join(', ') : '-';
 };
 
 export default function TaskDetailSidebar({
@@ -39,12 +62,23 @@ export default function TaskDetailSidebar({
   handleToggleAutoNudge,
   setSelectedTask,
   showNotification,
+  allEmployees = [],
+  avatarsMap = {},
 }) {
   const showActionButtons =
     TASK_SCHEDULE_MEETING_UI_ENABLED ||
     TASK_ADD_TO_CALENDAR_UI_ENABLED ||
     TASK_SMART_NUDGE_UI_ENABLED ||
     TASK_AUTO_NUDGE_UI_ENABLED;
+
+  const requesterDisplay = formatUserList(selectedTask.requester, allEmployees);
+  const supervisorUsers = extractUsernames(selectedTask.head_of_project);
+  const rcTeamUsers = extractUsernames(selectedTask.rc_team);
+  const supervisorTitle = formatUserList(
+    selectedTask.head_of_project,
+    allEmployees
+  );
+  const rcTeamTitle = formatUserList(selectedTask.rc_team, allEmployees);
 
   return (
     <div className='flex flex-col gap-4 sm:gap-5 mb-6 mt-2'>
@@ -56,10 +90,11 @@ export default function TaskDetailSidebar({
           <div className='flex flex-col gap-1.5 mt-1'>
             <p
               className='font-bold capitalize tracking-wide text-sm truncate leading-none'
-              title={selectedTask.requester}>
-              {selectedTask.requester || '-'}
+              title={requesterDisplay}>
+              {requesterDisplay}
             </p>
-            {queuePosition &&
+            {TASK_QUEUE_LABEL_UI_ENABLED &&
+              queuePosition &&
               totalQueue &&
               selectedTask.status !== 'Done' &&
               selectedTask.status !== 'Rejected' && (
@@ -78,21 +113,31 @@ export default function TaskDetailSidebar({
           <p className='text-xs uppercase tracking-normal font-bold text-neutral-500 dark:text-neutral-400 mb-1'>
             {tMsg('Supervisor', 'Supervisor')}
           </p>
-          <p
-            className='font-bold capitalize tracking-wide text-sm truncate'
-            title={formatUserList(selectedTask.head_of_project)}>
-            {formatUserList(selectedTask.head_of_project)}
-          </p>
+          <div className='mt-0.5' title={supervisorTitle}>
+            <RoleUsersTrigger
+              selected={supervisorUsers}
+              employees={allEmployees}
+              avatarsMap={avatarsMap}
+              placeholder='-'
+              emptyClassName='font-bold capitalize tracking-wide text-sm text-black dark:text-white'
+              nameClassName='font-bold capitalize tracking-wide text-sm text-black dark:text-white truncate'
+            />
+          </div>
         </div>
         <div className='shrink-0 min-w-0'>
           <p className='text-xs uppercase tracking-normal font-bold text-neutral-500 dark:text-neutral-400 mb-1'>
             {tMsg('R&C Team', 'Tim R&C')}
           </p>
-          <p
-            className='font-bold capitalize tracking-wide text-sm truncate'
-            title={formatUserList(selectedTask.rc_team)}>
-            {formatUserList(selectedTask.rc_team)}
-          </p>
+          <div className='mt-0.5' title={rcTeamTitle}>
+            <RoleUsersTrigger
+              selected={rcTeamUsers}
+              employees={allEmployees}
+              avatarsMap={avatarsMap}
+              placeholder='-'
+              emptyClassName='font-bold capitalize tracking-wide text-sm text-black dark:text-white'
+              nameClassName='font-bold capitalize tracking-wide text-sm text-black dark:text-white truncate'
+            />
+          </div>
         </div>
       </div>
 

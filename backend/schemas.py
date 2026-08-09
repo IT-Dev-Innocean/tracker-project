@@ -53,6 +53,7 @@ class SubtaskModel(BaseModel):
 class SubtaskToggleModel(BaseModel):
     is_done: int
     assignee: Optional[str] = None
+    task_name: Optional[str] = None
 
 
 class CommentModel(BaseModel):

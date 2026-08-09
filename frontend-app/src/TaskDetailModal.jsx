@@ -3,6 +3,7 @@ import axios from 'axios';
 import { IconPerson, Avatar } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import MultiUserSelect from './components/MultiUserSelect';
+import RoleUsersTrigger from './components/RoleUsersTrigger';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import {
   HighlightText,
@@ -50,13 +51,19 @@ export default function TaskDetailModal({
   workspaceRole = 'project_owner',
   subtasks,
   handleToggleSubtask,
+  handleToggleTeamGroup,
   handleUpdateSubtaskAssignee,
+  handleUpdateSubtaskName,
+  handleRenameTeamGroup,
+  handleSyncTeamAssignees,
   handleDeleteSubtask,
+  handleDeleteTeamGroup,
   newSubtaskName,
   setNewSubtaskName,
   newSubtaskAssignee,
   setNewSubtaskAssignee,
   handleAddSubtask,
+  handleAddTeamSubtasks,
   comments,
   avatarsMap,
   handleDeleteComment,
@@ -842,6 +849,17 @@ export default function TaskDetailModal({
                         )}
                         tMsg={tMsg}
                         teamMembers={teamMembers}
+                        renderSelected={(selected, employees) => (
+                          <RoleUsersTrigger
+                            selected={selected}
+                            employees={employees}
+                            avatarsMap={avatarsMap}
+                            placeholder={tMsg(
+                              'Select Supervisor...',
+                              'Select Supervisor..'
+                            )}
+                          />
+                        )}
                       />
 
                       <MultiUserSelect
@@ -858,6 +876,17 @@ export default function TaskDetailModal({
                         )}
                         tMsg={tMsg}
                         teamMembers={teamMembers}
+                        renderSelected={(selected, employees) => (
+                          <RoleUsersTrigger
+                            selected={selected}
+                            employees={employees}
+                            avatarsMap={avatarsMap}
+                            placeholder={tMsg(
+                              'Select R&C Team...',
+                              'Pilih Tim R&C...'
+                            )}
+                          />
+                        )}
                       />
                     </div>
 
@@ -1299,6 +1328,8 @@ export default function TaskDetailModal({
                     handleToggleAutoNudge={handleToggleAutoNudge}
                     setSelectedTask={setSelectedTask}
                     showNotification={showNotification}
+                    allEmployees={allEmployees}
+                    avatarsMap={avatarsMap}
                   />
                   <div>
                     <p className='text-xs uppercase tracking-normal font-bold text-neutral-500 dark:text-neutral-400 mb-2'>
@@ -1334,7 +1365,7 @@ export default function TaskDetailModal({
                         </div>
                       </div>
                     ) : (
-                      <div className='whitespace-pre-wrap wrap-break-word bg-neutral-50 dark:bg-neutral-900 p-6 rounded-3xl border border-neutral-100 dark:border-neutral-800 text-sm font-medium leading-relaxed max-h-60 overflow-y-auto text-neutral-600 dark:text-neutral-300'>
+                      <div className='whitespace-pre-wrap wrap-break-word bg-neutral-50 dark:bg-neutral-900 p-6 rounded-lg border border-neutral-100 dark:border-neutral-800 text-sm font-medium leading-relaxed max-h-60 overflow-y-auto text-neutral-600 dark:text-neutral-300'>
                         {renderRichText(selectedTask.description)}
                       </div>
                     )}
@@ -1514,10 +1545,18 @@ export default function TaskDetailModal({
                     accountStatus={accountStatus}
                     isSystemTicket={isSystemTicket}
                     handleToggleSubtask={handleToggleSubtask}
+                    handleToggleTeamGroup={handleToggleTeamGroup}
                     handleUpdateSubtaskAssignee={handleUpdateSubtaskAssignee}
+                    handleUpdateSubtaskName={handleUpdateSubtaskName}
+                    handleRenameTeamGroup={handleRenameTeamGroup}
+                    handleSyncTeamAssignees={handleSyncTeamAssignees}
                     teamMembers={teamMembers}
+                    allEmployees={allEmployees}
+                    avatarsMap={avatarsMap}
                     handleDeleteSubtask={handleDeleteSubtask}
+                    handleDeleteTeamGroup={handleDeleteTeamGroup}
                     handleAddSubtask={handleAddSubtask}
+                    handleAddTeamSubtasks={handleAddTeamSubtasks}
                     newSubtaskName={newSubtaskName}
                     setNewSubtaskName={setNewSubtaskName}
                     newSubtaskAssignee={newSubtaskAssignee}

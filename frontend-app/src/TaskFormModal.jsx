@@ -7,11 +7,13 @@ import React, {
 } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
-import { IconPlus } from './SharedUI';
+import { IconPlus, Avatar } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import MultiUserSelect from './components/MultiUserSelect';
+import RoleUsersTrigger from './components/RoleUsersTrigger';
 import { useCloseAnimation, LoadingSpinner } from './Utils';
 import { TASK_FORM_AI_ASSISTANT_ENABLED } from './featureFlags';
+import { DEFAULT_FORM_TEAM_SUBTASKS } from './utils/formSubtasks';
 
 export default function TaskFormModal({
   setIsFormOpen,
@@ -44,6 +46,7 @@ export default function TaskFormModal({
   handleManualFormClick,
   selectedBoard,
   userDirectory,
+  avatarsMap = {},
 }) {
   const [isClosing, close] = useCloseAnimation(() => setIsFormOpen(false));
   const tMsg = (en, id) => (language === 'id' ? id : en);
@@ -206,9 +209,17 @@ Format:
         Array.isArray(parsed.subtasks) &&
         setFormSubtasks
       ) {
-        setFormSubtasks(
-          parsed.subtasks.map((name) => ({ task_name: name, assignee: null }))
-        );
+        const aiTeams = parsed.subtasks.map((name) => ({
+          task_name: name,
+          assignees: [],
+        }));
+        setFormSubtasks([
+          ...DEFAULT_FORM_TEAM_SUBTASKS.map((t) => ({
+            task_name: t.task_name,
+            assignees: [],
+          })),
+          ...aiTeams,
+        ]);
       }
     } catch (err) {
       console.error(err);
@@ -280,7 +291,12 @@ Format:
       recurring: 'none',
       auto_nudge: false,
     }));
-    setFormSubtasks([]);
+    setFormSubtasks(
+      DEFAULT_FORM_TEAM_SUBTASKS.map((t) => ({
+        task_name: t.task_name,
+        assignees: [],
+      }))
+    );
     setFormSubtaskInput('');
     setFormSubtaskAssignee('');
     close();
@@ -565,6 +581,17 @@ Format:
                     )}
                     tMsg={tMsg}
                     teamMembers={teamMembers}
+                    renderSelected={(selected, employees) => (
+                      <RoleUsersTrigger
+                        selected={selected}
+                        employees={employees}
+                        avatarsMap={avatarsMap}
+                        placeholder={tMsg(
+                          'Select Supervisor...',
+                          'Select Supervisor..'
+                        )}
+                      />
+                    )}
                   />
 
                   <MultiUserSelect
@@ -578,6 +605,17 @@ Format:
                     placeholder={tMsg('Select R&C Team...', 'Pilih Tim R&C...')}
                     tMsg={tMsg}
                     teamMembers={teamMembers}
+                    renderSelected={(selected, employees) => (
+                      <RoleUsersTrigger
+                        selected={selected}
+                        employees={employees}
+                        avatarsMap={avatarsMap}
+                        placeholder={tMsg(
+                          'Select R&C Team...',
+                          'Pilih Tim R&C...'
+                        )}
+                      />
+                    )}
                   />
                 </div>
 
@@ -854,75 +892,171 @@ Format:
               </div>
 
               <div className='group pt-8 mt-8 border-t border-neutral-200 dark:border-neutral-800 tour-form-checklist'>
-                <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-4 flex items-center gap-2'>
+                <label className='text-xs font-bold text-neutral-500 uppercase tracking-normal mb-2 flex items-center gap-2'>
                   <Icon name='clipboard-list' className='w-4 h-4' />{' '}
                   {tMsg('Sub-task Checklist', 'Daftar Periksa Sub-tugas')}
                 </label>
-                <div className='flex flex-col sm:flex-row gap-2 mb-4'>
-                  <input
-                    type='text'
-                    value={formSubtaskInput}
-                    onChange={(e) => setFormSubtaskInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddFormSubtask(e);
-                      }
-                    }}
-                    className='flex-2 bg-neutral-100 dark:bg-neutral-900 rounded-xl border border-transparent p-3.5 text-sm font-medium text-black dark:text-white outline-none placeholder-neutral-400 focus:bg-white dark:focus:bg-black focus:border-neutral-300 dark:focus:border-neutral-700 transition-all'
-                    placeholder={tMsg(
-                      'Add checklist item...',
-                      'Tambah item daftar periksa...'
-                    )}
-                  />
-                  <select
-                    value={formSubtaskAssignee}
-                    onChange={(e) => setFormSubtaskAssignee(e.target.value)}
-                    className='flex-1 bg-neutral-100 dark:bg-neutral-900 rounded-xl border border-transparent p-3.5 text-sm font-medium text-black dark:text-white outline-none focus:bg-white dark:focus:bg-black focus:border-neutral-300 dark:focus:border-neutral-700 transition-all normal-case tracking-normal [&>option]:bg-white dark:[&>option]:bg-neutral-950 [&>option]:text-black dark:[&>option]:text-white'>
-                    <option value=''>
-                      {tMsg('Unassigned', 'Belum Ditugaskan')}
-                    </option>
-                    {teamMembers.map((m) => (
-                      <option key={m} value={m}>
-                        {m}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type='button'
-                    onClick={handleAddFormSubtask}
-                    className='bg-black dark:bg-white text-white dark:text-black hover:opacity-80 px-6 py-3.5 rounded-xl text-xs font-bold transition-all uppercase tracking-widest shadow-md hover:-translate-y-0.5'>
-                    {tMsg('ADD', 'TAMBAH')}
-                  </button>
+                <p className='text-sm font-bold text-indigo-600 dark:text-indigo-400 mb-4'>
+                  {tMsg(
+                    'Brief assigned to and collaborated with:',
+                    'Brief ditugaskan dan dikolaborasikan dengan:'
+                  )}
+                </p>
+
+                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
+                  {(formSubtasks.length > 0
+                    ? formSubtasks
+                    : DEFAULT_FORM_TEAM_SUBTASKS
+                  ).map((st, i) => {
+                    const assignees = Array.isArray(st.assignees)
+                      ? st.assignees
+                      : st.assignee
+                        ? [st.assignee]
+                        : [];
+                    return (
+                      <div
+                        key={`team-slot-${i}`}
+                        className='rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 p-3 flex flex-col gap-2 relative group/team'>
+                        <div className='flex items-center gap-2'>
+                          <input
+                            type='text'
+                            value={st.task_name || ''}
+                            onChange={(e) => {
+                              const next = [...formSubtasks];
+                              if (!next[i]) {
+                                next[i] = {
+                                  task_name: e.target.value,
+                                  assignees: [],
+                                };
+                              } else {
+                                next[i] = {
+                                  ...next[i],
+                                  task_name: e.target.value,
+                                };
+                              }
+                              setFormSubtasks(next);
+                            }}
+                            className='w-full bg-transparent border-0 border-b border-neutral-200 dark:border-neutral-700 focus:border-indigo-500 outline-none text-xs font-bold text-black dark:text-white px-0 py-1.5'
+                            placeholder={tMsg('Team name', 'Nama tim')}
+                          />
+                          <button
+                            type='button'
+                            onClick={() =>
+                              setFormSubtasks(
+                                formSubtasks.filter((_, idx) => idx !== i)
+                              )
+                            }
+                            className='text-neutral-400 hover:text-red-500 opacity-100 sm:opacity-0 group-hover/team:opacity-100 transition-opacity shrink-0'
+                            title={tMsg('Remove team', 'Hapus tim')}>
+                            <Icon name='x' className='w-3.5 h-3.5' />
+                          </button>
+                        </div>
+
+                        <MultiUserSelect
+                          hideLabel
+                          label={tMsg('Employees', 'Karyawan')}
+                          icon='users'
+                          selected={assignees}
+                          onChange={(users) => {
+                            const next = [...formSubtasks];
+                            next[i] = {
+                              ...next[i],
+                              assignees: users,
+                              assignee: undefined,
+                            };
+                            setFormSubtasks(next);
+                          }}
+                          employees={allEmployees}
+                          placeholder={tMsg(
+                            'Employee Names',
+                            'Nama Karyawan'
+                          )}
+                          tMsg={tMsg}
+                          teamMembers={teamMembers}
+                          renderSelected={(selected, employees) => {
+                            if (!selected.length) {
+                              return (
+                                <span className='text-xs font-normal text-neutral-400 truncate'>
+                                  {tMsg('Employee Names', 'Nama Karyawan')}
+                                </span>
+                              );
+                            }
+
+                            if (selected.length === 1) {
+                              const emp = employees.find(
+                                (e) => e.username === selected[0]
+                              );
+                              const fullName =
+                                emp?.full_name || emp?.name || selected[0];
+                              return (
+                                <span className='flex items-center gap-2 min-w-0'>
+                                  <Avatar
+                                    name={fullName}
+                                    url={avatarsMap[selected[0]]}
+                                    size='w-7 h-7'
+                                    textClass='text-[9px]'
+                                    maxInitials={2}
+                                    withRing
+                                  />
+                                  <span className='text-xs font-medium text-black dark:text-white truncate'>
+                                    {fullName}
+                                  </span>
+                                </span>
+                              );
+                            }
+
+                            return (
+                              <span className='flex items-center'>
+                                {selected.slice(0, 4).map((username, idx) => {
+                                  const emp = employees.find(
+                                    (e) => e.username === username
+                                  );
+                                  const fullName =
+                                    emp?.full_name || emp?.name || username;
+                                  return (
+                                    <span
+                                      key={username}
+                                      className={idx === 0 ? '' : '-ml-2'}
+                                      style={{ zIndex: 10 - idx }}>
+                                      <Avatar
+                                        name={fullName}
+                                        url={avatarsMap[username]}
+                                        size='w-7 h-7'
+                                        textClass='text-[9px]'
+                                        maxInitials={2}
+                                        withRing
+                                      />
+                                    </span>
+                                  );
+                                })}
+                                {selected.length > 4 && (
+                                  <span className='-ml-2 w-7 h-7 rounded-full bg-neutral-300 dark:bg-neutral-700 text-[9px] font-bold text-black dark:text-white flex items-center justify-center ring-2 ring-white dark:ring-neutral-950'>
+                                    +{selected.length - 4}
+                                  </span>
+                                )}
+                              </span>
+                            );
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
 
-                {formSubtasks.length > 0 && (
-                  <div className='space-y-3 mt-4 max-h-40 overflow-y-auto pr-2'>
-                    {formSubtasks.map((st, i) => (
-                      <div
-                        key={i}
-                        className='flex items-center justify-between bg-neutral-50 dark:bg-neutral-900 px-5 py-3 rounded-2xl border border-neutral-100 dark:border-neutral-800 group/item transition-colors'>
-                        <div className='flex items-center gap-4 flex-1 break-normal'>
-                          <span className='w-4 h-4 rounded border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-black shrink-0'></span>
-                          <span className='text-sm font-medium text-black dark:text-white'>
-                            {st.task_name}
-                          </span>
-                          {st.assignee && (
-                            <span className='ml-auto text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-medium px-2 py-1 rounded-lg border border-indigo-200 dark:border-indigo-800/50'>
-                              @{st.assignee}
-                            </span>
-                          )}
-                        </div>
-                        <button
-                          type='button'
-                          onClick={() => handleRemoveFormSubtask(i)}
-                          className='text-neutral-400 hover:text-red-500 font-bold opacity-100 md:opacity-0 group-hover/item:opacity-100 transition-opacity px-2 md:px-0'>
-                          <Icon name='x' className='w-4 h-4' />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <button
+                  type='button'
+                  onClick={() =>
+                    setFormSubtasks([
+                      ...formSubtasks,
+                      {
+                        task_name: tMsg('New Team', 'Tim Baru'),
+                        assignees: [],
+                      },
+                    ])
+                  }
+                  className='mt-3 text-[10px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-400 hover:underline'>
+                  + {tMsg('Add Team', 'Tambah Tim')}
+                </button>
               </div>
             </div>
             <div className='p-5 sm:p-8 md:px-12 md:py-6 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shrink-0 flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 z-10'>

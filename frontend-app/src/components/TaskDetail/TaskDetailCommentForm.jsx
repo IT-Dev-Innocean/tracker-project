@@ -208,7 +208,10 @@ export default function TaskDetailCommentForm({
             {isCommentMentioning && accountStatus !== 'suspended' && (
               <div className='absolute left-0 bottom-full mb-2 w-full bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl z-50 max-h-40 overflow-y-auto py-2'>
                 {(() => {
-                  const effectiveGlobalOptions = workspaceRole === 'staff' ? (teamMembers || []) : globalMentionOptions;
+                  const effectiveGlobalOptions =
+                    workspaceRole === 'staff'
+                      ? teamMembers || []
+                      : globalMentionOptions;
                   const allOptions = getCommentMentionOptions(
                     selectedBoard,
                     effectiveGlobalOptions
@@ -249,7 +252,7 @@ export default function TaskDetailCommentForm({
                           !m.startsWith('AI') &&
                           !teamMembers.includes(m) && (
                             <span className='text-[8px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest ml-auto'>
-                              + Auto-Invite
+                              +Invite
                             </span>
                           )}
                       </div>

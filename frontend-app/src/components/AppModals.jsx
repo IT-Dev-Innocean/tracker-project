@@ -89,14 +89,20 @@ export default function AppModals() {
     accountStatus,
     subtasks,
     handleToggleSubtask,
+    handleToggleTeamGroup,
     handleUpdateSubtaskAssignee,
+    handleUpdateSubtaskName,
+    handleRenameTeamGroup,
+    handleSyncTeamAssignees,
     handleDeleteSubtask,
+    handleDeleteTeamGroup,
     handleSubtaskDragEnd,
     newSubtaskName,
     setNewSubtaskName,
     newSubtaskAssignee,
     setNewSubtaskAssignee,
     handleAddSubtask,
+    handleAddTeamSubtasks,
     comments,
     avatarsMap,
     handleDeleteComment,
@@ -371,6 +377,7 @@ export default function AppModals() {
           handleManualFormClick={handleManualFormClick}
           selectedBoard={selectedBoard}
           userDirectory={userDirectory}
+          avatarsMap={avatarsMap}
         />
       )}
 
@@ -403,14 +410,20 @@ export default function AppModals() {
           accountStatus={accountStatus}
           subtasks={subtasks}
           handleToggleSubtask={handleToggleSubtask}
+          handleToggleTeamGroup={handleToggleTeamGroup}
           handleUpdateSubtaskAssignee={handleUpdateSubtaskAssignee}
+          handleUpdateSubtaskName={handleUpdateSubtaskName}
+          handleRenameTeamGroup={handleRenameTeamGroup}
+          handleSyncTeamAssignees={handleSyncTeamAssignees}
           handleDeleteSubtask={handleDeleteSubtask}
+          handleDeleteTeamGroup={handleDeleteTeamGroup}
           handleSubtaskDragEnd={handleSubtaskDragEnd}
           newSubtaskName={newSubtaskName}
           setNewSubtaskName={setNewSubtaskName}
           newSubtaskAssignee={newSubtaskAssignee}
           setNewSubtaskAssignee={setNewSubtaskAssignee}
           handleAddSubtask={handleAddSubtask}
+          handleAddTeamSubtasks={handleAddTeamSubtasks}
           comments={comments}
           avatarsMap={avatarsMap}
           handleDeleteComment={handleDeleteComment}
@@ -743,14 +756,20 @@ export default function AppModals() {
               accountStatus={accountStatus}
               subtasks={subtasks}
               handleToggleSubtask={handleToggleSubtask}
+              handleToggleTeamGroup={handleToggleTeamGroup}
               handleUpdateSubtaskAssignee={handleUpdateSubtaskAssignee}
+              handleUpdateSubtaskName={handleUpdateSubtaskName}
+              handleRenameTeamGroup={handleRenameTeamGroup}
+              handleSyncTeamAssignees={handleSyncTeamAssignees}
               handleDeleteSubtask={handleDeleteSubtask}
+              handleDeleteTeamGroup={handleDeleteTeamGroup}
               handleSubtaskDragEnd={handleSubtaskDragEnd}
               newSubtaskName={newSubtaskName}
               setNewSubtaskName={setNewSubtaskName}
               newSubtaskAssignee={newSubtaskAssignee}
               setNewSubtaskAssignee={setNewSubtaskAssignee}
               handleAddSubtask={handleAddSubtask}
+              handleAddTeamSubtasks={handleAddTeamSubtasks}
               comments={comments}
               avatarsMap={avatarsMap}
               handleDeleteComment={handleDeleteComment}

@@ -16,6 +16,10 @@ export default function MultiUserSelect({
   placeholder,
   tMsg,
   teamMembers = [],
+  hideLabel = false,
+  renderSelected,
+  className = '',
+  disabled = false,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState({});
@@ -30,7 +34,7 @@ export default function MultiUserSelect({
       position: 'fixed',
       top: rect.bottom + 8,
       left: rect.left,
-      width: rect.width,
+      width: Math.max(rect.width, 220),
       zIndex: 9999,
     });
   }, []);
@@ -122,26 +126,36 @@ export default function MultiUserSelect({
 
   return (
     <div
-      className={`group relative ${isOpen ? 'z-9998' : ''}`}
+      className={`group relative ${isOpen ? 'z-9998' : ''} ${className}`}
       ref={wrapperRef}>
-      <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
-        <Icon name={icon} className='w-4 h-4' /> {label}
-      </label>
+      {!hideLabel && (
+        <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
+          <Icon name={icon} className='w-4 h-4' /> {label}
+        </label>
+      )}
       <button
         ref={buttonRef}
         type='button'
+        disabled={disabled}
         onClick={() => {
+          if (disabled) return;
           setIsOpen((prev) => !prev);
         }}
-        className='w-full bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black transition-all flex items-center h-12 sm:h-14 px-3.5 text-left'>
-        <span
-          className={`text-xs font-normal truncate ${
-            selected.length > 0
-              ? 'text-black dark:text-white'
-              : 'text-neutral-400'
-          }`}>
-          {displayLabel}
-        </span>
+        className={`w-full bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black transition-all flex items-center min-h-12 sm:min-h-14 px-3.5 text-left ${
+          disabled ? 'opacity-60 cursor-not-allowed' : ''
+        }`}>
+        {renderSelected ? (
+          renderSelected(selected, employees)
+        ) : (
+          <span
+            className={`text-xs font-normal truncate ${
+              selected.length > 0
+                ? 'text-black dark:text-white'
+                : 'text-neutral-400'
+            }`}>
+            {displayLabel}
+          </span>
+        )}
       </button>
       {dropdownMenu}
     </div>

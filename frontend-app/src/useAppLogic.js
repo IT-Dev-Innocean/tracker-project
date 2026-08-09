@@ -13,6 +13,10 @@ import {
   TODO_LIST_UI_ENABLED,
 } from './featureFlags';
 import {
+  DEFAULT_FORM_TEAM_SUBTASKS,
+  flattenFormSubtasksForApi,
+} from './utils/formSubtasks';
+import {
   bindStatusColorAlias,
   DEFAULT_STATUS_COLUMNS,
   getStatusLabelColor,
@@ -379,7 +383,12 @@ export default function useAppLogic() {
     auto_nudge: false,
     recurring: 'none',
   });
-  const [formSubtasks, setFormSubtasks] = useState([]);
+  const [formSubtasks, setFormSubtasks] = useState(() =>
+    DEFAULT_FORM_TEAM_SUBTASKS.map((t) => ({
+      task_name: t.task_name,
+      assignees: [],
+    }))
+  );
   const [formSubtaskInput, setFormSubtaskInput] = useState('');
   const [formSubtaskAssignee, setFormSubtaskAssignee] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -3099,20 +3108,32 @@ export default function useAppLogic() {
       .finally(() => setIsSubtasksLoading(false));
   };
 
-  const handleAddSubtask = (e) => {
-    e.preventDefault();
-    if (!newSubtaskName.trim()) return;
-    axios
-      .post(`/api/tasks/${selectedTask.id}/subtasks`, {
-        task_name: newSubtaskName,
-        assignee: newSubtaskAssignee || null,
-      })
+  const refreshSubtaskViews = () => {
+    if (!selectedTask?.id) return;
+    fetchSubtasks(selectedTask.id);
+    fetchComments(selectedTask.id);
+    fetchTasks();
+  };
+
+  const handleAddTeamSubtasks = (taskName, assignees = []) => {
+    const name = String(taskName || '').trim();
+    if (!name || !selectedTask?.id) return Promise.resolve();
+    const list =
+      Array.isArray(assignees) && assignees.length > 0
+        ? [...new Set(assignees.filter(Boolean))]
+        : [null];
+    return Promise.all(
+      list.map((assignee) =>
+        axios.post(`/api/tasks/${selectedTask.id}/subtasks`, {
+          task_name: name,
+          assignee: assignee || null,
+        })
+      )
+    )
       .then(() => {
         setNewSubtaskName('');
         setNewSubtaskAssignee('');
-        fetchSubtasks(selectedTask.id);
-        fetchComments(selectedTask.id);
-        fetchTasks();
+        refreshSubtaskViews();
       })
       .catch((err) =>
         showNotification(
@@ -3120,6 +3141,146 @@ export default function useAppLogic() {
           'error'
         )
       );
+  };
+
+  const handleAddSubtask = (e) => {
+    e.preventDefault();
+    if (!newSubtaskName.trim()) return;
+    const assignees = newSubtaskAssignee
+      ? Array.isArray(newSubtaskAssignee)
+        ? newSubtaskAssignee
+        : [newSubtaskAssignee]
+      : [];
+    handleAddTeamSubtasks(newSubtaskName, assignees);
+  };
+
+  const handleRenameTeamGroup = (items, newName) => {
+    const name = String(newName || '').trim();
+    if (!name || !items?.length) return;
+    const prevSubtasks = subtasks;
+    const ids = new Set(items.map((st) => st.id));
+    setSubtasks((prev) =>
+      prev.map((st) => (ids.has(st.id) ? { ...st, task_name: name } : st))
+    );
+    Promise.all(
+      items.map((st) =>
+        axios.put(`/api/subtasks/${st.id}`, {
+          is_done: st.is_done === 1 ? 1 : 0,
+          assignee: st.assignee || null,
+          task_name: name,
+        })
+      )
+    )
+      .then(() => refreshSubtaskViews())
+      .catch((err) => {
+        setSubtasks(prevSubtasks);
+        showNotification(
+          err.response?.data?.detail || 'Failed to rename team!',
+          'error'
+        );
+      });
+  };
+
+  const handleToggleTeamGroup = (items) => {
+    if (!items?.length) return;
+    const allDone = items.every((st) => st.is_done === 1);
+    const newStatus = allDone ? 0 : 1;
+    const prevSubtasks = subtasks;
+    const ids = new Set(items.map((st) => st.id));
+    setSubtasks((prev) =>
+      prev.map((st) => (ids.has(st.id) ? { ...st, is_done: newStatus } : st))
+    );
+    Promise.all(
+      items.map((st) =>
+        axios.put(`/api/subtasks/${st.id}`, {
+          is_done: newStatus,
+          assignee: st.assignee || null,
+        })
+      )
+    )
+      .then(() => refreshSubtaskViews())
+      .catch((err) => {
+        setSubtasks(prevSubtasks);
+        showNotification(
+          err.response?.data?.detail || 'Failed to update sub-task!',
+          'error'
+        );
+      });
+  };
+
+  const handleDeleteTeamGroup = (items) => {
+    if (!items?.length) return;
+    Promise.all(items.map((st) => axios.delete(`/api/subtasks/${st.id}`)))
+      .then(() => refreshSubtaskViews())
+      .catch((err) =>
+        showNotification(
+          err.response?.data?.detail || 'Failed to delete sub-task!',
+          'error'
+        )
+      );
+  };
+
+  const handleSyncTeamAssignees = (teamName, items, nextAssignees = []) => {
+    if (!selectedTask?.id) return;
+    const name = String(teamName || '').trim();
+    if (!name) return;
+
+    const desired = [...new Set((nextAssignees || []).filter(Boolean))];
+    const withAssignee = items.filter((st) => st.assignee);
+    const withoutAssignee = items.filter((st) => !st.assignee);
+    const currentSet = new Set(withAssignee.map((st) => st.assignee));
+    const desiredSet = new Set(desired);
+
+    const toDelete = withAssignee.filter((st) => !desiredSet.has(st.assignee));
+    const toAdd = desired.filter((u) => !currentSet.has(u));
+    const ops = [];
+
+    toDelete.forEach((st) => {
+      ops.push(axios.delete(`/api/subtasks/${st.id}`));
+    });
+
+    let emptyIdx = 0;
+    toAdd.forEach((username) => {
+      if (emptyIdx < withoutAssignee.length) {
+        const slot = withoutAssignee[emptyIdx++];
+        ops.push(
+          axios.put(`/api/subtasks/${slot.id}`, {
+            is_done: slot.is_done === 1 ? 1 : 0,
+            assignee: username,
+            task_name: name,
+          })
+        );
+      } else {
+        ops.push(
+          axios.post(`/api/tasks/${selectedTask.id}/subtasks`, {
+            task_name: name,
+            assignee: username,
+          })
+        );
+      }
+    });
+
+    if (desired.length === 0) {
+      withoutAssignee.forEach((st) => {
+        ops.push(axios.delete(`/api/subtasks/${st.id}`));
+      });
+    } else {
+      for (let i = emptyIdx; i < withoutAssignee.length; i += 1) {
+        ops.push(axios.delete(`/api/subtasks/${withoutAssignee[i].id}`));
+      }
+    }
+
+    if (ops.length === 0) return;
+
+    Promise.all(ops)
+      .then(() => refreshSubtaskViews())
+      .catch((err) => {
+        showNotification(
+          err.response?.data?.detail || 'Failed to update assignees!',
+          'error'
+        );
+        refreshSubtaskViews();
+      });
   };
 
   const handleToggleSubtask = (subtaskId, currentStatus, currentAssignee) => {
@@ -3161,13 +3322,13 @@ export default function useAppLogic() {
     const prevSubtasks = subtasks;
     setSubtasks((prev) =>
       prev.map((st) =>
-        st.id === subtaskId ? { ...st, assignee: newAssignee } : st
+        st.id === subtaskId ? { ...st, assignee: newAssignee || null } : st
       )
     );
     axios
       .put(`/api/subtasks/${subtaskId}`, {
         is_done: keepStatus,
-        assignee: newAssignee,
+        assignee: newAssignee || null,
       })
       .then(() => {
         fetchSubtasks(selectedTask.id);
@@ -3179,6 +3340,34 @@ export default function useAppLogic() {
         setSubtasks(prevSubtasks);
         showNotification(
           err.response?.data?.detail || 'Failed to update sub-task assignee!',
+          'error'
+        );
+      });
+  };
+
+  const handleUpdateSubtaskName = (subtaskId, currentIsDone, currentAssignee, newName) => {
+    const name = String(newName || '').trim();
+    if (!name) return;
+    const keepStatus = currentIsDone === 1 ? 1 : 0;
+    const prevSubtasks = subtasks;
+    setSubtasks((prev) =>
+      prev.map((st) => (st.id === subtaskId ? { ...st, task_name: name } : st))
+    );
+    axios
+      .put(`/api/subtasks/${subtaskId}`, {
+        is_done: keepStatus,
+        assignee: currentAssignee || null,
+        task_name: name,
+      })
+      .then(() => {
+        fetchSubtasks(selectedTask.id);
+        fetchComments(selectedTask.id);
+        fetchTasks();
+      })
+      .catch((err) => {
+        setSubtasks(prevSubtasks);
+        showNotification(
+          err.response?.data?.detail || 'Failed to rename sub-task!',
           'error'
         );
       });
@@ -3812,10 +4001,30 @@ export default function useAppLogic() {
     const destinationIndex = result.destination.index;
     if (sourceIndex === destinationIndex) return;
 
-    const newSubtasks = Array.from(subtasks);
-    const [removed] = newSubtasks.splice(sourceIndex, 1);
-    newSubtasks.splice(destinationIndex, 0, removed);
-    setSubtasks(newSubtasks); // Optimistic UI Update
+    // Reorder by team groups (same task_name), then flatten back
+    const groups = [];
+    const groupIndexByKey = new Map();
+    subtasks.forEach((st) => {
+      const key = String(st.task_name || '')
+        .trim()
+        .toLowerCase() || '__unnamed__';
+      if (!groupIndexByKey.has(key)) {
+        groupIndexByKey.set(key, groups.length);
+        groups.push({ key, items: [st] });
+      } else {
+        groups[groupIndexByKey.get(key)].items.push(st);
+      }
+    });
+
+    if (sourceIndex >= groups.length || destinationIndex >= groups.length) {
+      return;
+    }
+
+    const nextGroups = Array.from(groups);
+    const [removed] = nextGroups.splice(sourceIndex, 1);
+    nextGroups.splice(destinationIndex, 0, removed);
+    const newSubtasks = nextGroups.flatMap((g) => g.items);
+    setSubtasks(newSubtasks);
 
     const orderedIds = newSubtasks.map((s) => s.id);
     axios
@@ -3824,7 +4033,7 @@ export default function useAppLogic() {
       })
       .catch(() => {
         showNotification('Failed to save subtask order!', 'error');
-        fetchSubtasks(selectedTask.id); // Revert jika gagal
+        fetchSubtasks(selectedTask.id);
       });
   };
 
@@ -3904,7 +4113,7 @@ export default function useAppLogic() {
       deadline: `${formData.deadline} 17:00:00`,
       etc: formData.etc || 2,
       recurring: formData.recurring || 'none',
-      subtasks: formSubtasks,
+      subtasks: flattenFormSubtasksForApi(formSubtasks),
     };
 
     axios
@@ -3923,7 +4132,12 @@ export default function useAppLogic() {
           deadline: getLocalToday(),
           recurring: 'none',
         });
-        setFormSubtasks([]);
+        setFormSubtasks(
+          DEFAULT_FORM_TEAM_SUBTASKS.map((t) => ({
+            task_name: t.task_name,
+            assignees: [],
+          }))
+        );
         setFormSubtaskInput('');
         setFormSubtaskAssignee('');
         fetchTasks();
@@ -4533,6 +4747,14 @@ export default function useAppLogic() {
   );
 
   const handleOpenNewTaskForm = () => {
+    setFormSubtasks(
+      DEFAULT_FORM_TEAM_SUBTASKS.map((t) => ({
+        task_name: t.task_name,
+        assignees: [],
+      }))
+    );
+    setFormSubtaskInput('');
+    setFormSubtaskAssignee('');
     setIsFormOpen(true);
     if (driverRef.current && driverRef.current.isAtNewTask) {
       setTimeout(() => {
@@ -5917,9 +6139,15 @@ export default function useAppLogic() {
     handleOpenDeleteBoard,
     handleColSubmit,
     handleAddSubtask,
+    handleAddTeamSubtasks,
     handleToggleSubtask,
+    handleToggleTeamGroup,
     handleUpdateSubtaskAssignee,
+    handleUpdateSubtaskName,
+    handleRenameTeamGroup,
+    handleSyncTeamAssignees,
     handleDeleteSubtask,
+    handleDeleteTeamGroup,
     handleSubtaskDragEnd,
     handleCommentChange,
     insertCommentMention,

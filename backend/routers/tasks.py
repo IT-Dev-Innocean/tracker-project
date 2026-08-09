@@ -918,9 +918,14 @@ def toggle_subtask(
 
         old_assignee = sub.assignee
         old_is_done = sub.is_done
+        old_name = sub.task_name
         sub.is_done = payload.is_done
         if payload.assignee is not None:
             sub.assignee = payload.assignee
+        if payload.task_name is not None:
+            new_name = payload.task_name.strip()
+            if new_name:
+                sub.task_name = new_name
         db.commit()
 
         if old_is_done != payload.is_done:
@@ -934,6 +939,12 @@ def toggle_subtask(
                 db,
                 sub.request_id,
                 f"**@{current_user}** assigned sub-task **{sub.task_name}** to **@{payload.assignee}**.",
+            )
+        if payload.task_name is not None and sub.task_name != old_name:
+            log_activity(
+                db,
+                sub.request_id,
+                f"**@{current_user}** renamed sub-task **{old_name}** to **{sub.task_name}**.",
             )
 
         if (
