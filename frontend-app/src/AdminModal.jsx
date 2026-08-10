@@ -903,7 +903,7 @@ export default function AdminModal({
               )}
             </div>
             {deleteConfirmOpen && (
-              <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-4 mac-animate">
+              <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-100 flex flex-col items-center justify-center p-4 mac-animate">
                 <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-md border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] text-center flex flex-col items-center">
                   <div className="w-20 h-20 bg-red-50 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-red-200 dark:border-red-800">
 <Icon name="alert-triangle" className="w-10 h-10" />
@@ -956,7 +956,7 @@ export default function AdminModal({
               </div>
             )}
             {boardToTransfer && (
-              <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-4 mac-animate">
+              <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-100 flex flex-col items-center justify-center p-4 mac-animate">
                 <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-md border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] text-center flex flex-col items-center">
                   <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-indigo-200 dark:border-indigo-800">
                     🔄
@@ -1030,7 +1030,7 @@ export default function AdminModal({
             )}
 
             {bulkUserConfirmOpen && (
-              <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-4 mac-animate">
+              <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-100 flex flex-col items-center justify-center p-4 mac-animate">
                 <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-md border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] text-center flex flex-col items-center">
                   <div
                     className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border ${
@@ -1323,7 +1323,7 @@ export default function AdminModal({
 
         {/* Delete Choice Modal */}
         {showDeleteChoice && deleteChoiceUser && (
-          <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-4 mac-animate">
+          <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-100 flex flex-col items-center justify-center p-4 mac-animate">
             <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-md border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] text-center flex flex-col items-center">
               <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border bg-red-50 dark:bg-red-900/30 text-red-500 border-red-200 dark:border-red-800">
 <Icon name="trash" className="w-5 h-5" />
@@ -1499,7 +1499,7 @@ export default function AdminModal({
             }
 
             return (
-              <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-4 mac-animate">
+              <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-100 flex flex-col items-center justify-center p-4 mac-animate">
                 <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-md border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] text-center flex flex-col items-center">
                   <div
                     className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border ${iconColor}`}
@@ -1622,7 +1622,7 @@ export default function AdminModal({
           })()}
 
       {approverModalOpen && (
-        <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-4 mac-animate">
+        <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-100 flex flex-col items-center justify-center p-4 mac-animate">
           <div className="bg-white dark:bg-neutral-950 p-6 sm:p-10 w-full max-w-md border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-3xl md:rounded-[2.5rem] text-center flex flex-col items-center">
             <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-indigo-200 dark:border-indigo-800">
               <Icon name="timer" className="w-10 h-10" />
