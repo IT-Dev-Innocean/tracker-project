@@ -50,12 +50,12 @@ export default function TeamsDirectory() {
       })
       .catch((err) => {
         showNotification?.(
-          err.response?.data?.detail || tMsg('Failed to load people', 'Gagal memuat daftar orang'),
+          err.response?.data?.detail || (language === 'id' ? 'Gagal memuat daftar orang' : 'Failed to load people'),
           'error'
         );
         setLoading(false);
       });
-  }, [canManage, showNotification, language]);
+  }, [canManage]);
 
   useEffect(() => {
     loadPeople();
