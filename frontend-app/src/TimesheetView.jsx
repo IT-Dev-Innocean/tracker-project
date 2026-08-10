@@ -405,18 +405,9 @@ export default function TimesheetView({
     setIsLoading(true);
     try {
       const [entriesRes, approvalsRes, historyRes] = await Promise.all([
-        axios.get(
-          `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entries`,
-          { headers }
-        ),
-        axios.get(
-          `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/approvals`,
-          { headers }
-        ),
-        axios.get(
-          `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/approvals/history`,
-          { headers }
-        ),
+        axios.get('/api/timesheets/entries'),
+        axios.get('/api/timesheets/approvals'),
+        axios.get('/api/timesheets/approvals/history'),
       ]);
       setEntries(entriesRes.data.entries || []);
       setApprovals(approvalsRes.data.entries || []);
