@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import InnoceanLogo from './InnoceanLogo';
 import { Icon } from './icons/Icon';
-import { useFeatureFlags } from '../featureFlags';
+import { useFeatureFlags, useFeatureFlag } from '../featureFlags';
 import { isTodoListBoard, excludeTodoListBoards } from '../utils/boards';
 import { canAccessMyTasksMenu } from '../permissions';
 
