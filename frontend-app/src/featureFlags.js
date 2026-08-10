@@ -22,6 +22,7 @@ export const DEFAULT_FEATURE_FLAGS = {
   BOARD_HIGHLIGHTS_TOUR_ENABLED: false,
   TASK_FORM_AI_ASSISTANT_ENABLED: false,
   TASK_COMMENT_AI_MENTION_ENABLED: false,
+  TASK_CHAT_AI_COPILOT_ENABLED: true,
 
   TASK_SCHEDULE_MEETING_UI_ENABLED: false,
   TASK_ADD_TO_CALENDAR_UI_ENABLED: false,
@@ -82,6 +83,11 @@ export const FEATURE_FLAG_META = [
         key: 'TASK_COMMENT_AI_MENTION_ENABLED',
         en: 'Task Comment @AI Mention',
         id: 'Mention @AI di Komentar',
+      },
+      {
+        key: 'TASK_CHAT_AI_COPILOT_ENABLED',
+        en: 'Task Chat AI Copilot Buttons',
+        id: 'Tombol AI Copilot di Chat Task',
       },
     ],
   },
