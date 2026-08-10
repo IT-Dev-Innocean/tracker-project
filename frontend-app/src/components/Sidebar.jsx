@@ -7,6 +7,7 @@ import { isTodoListBoard, excludeTodoListBoards } from '../utils/boards';
 import { canAccessMyTasksMenu } from '../permissions';
 
 export default function Sidebar() {
+  const isProactiveAiEnabled = useFeatureFlag('PROACTIVE_AI_ENABLED');
   const {
     MASTER_VIEW_UI_ENABLED,
     TIMESHEETS_UI_ENABLED,
@@ -372,7 +373,7 @@ export default function Sidebar() {
             className='tour-board-title'
             onClick={() => {
               setSelectedBoard(null);
-              setIsProactiveAIOpen(true);
+              if (isProactiveAiEnabled) setIsProactiveAIOpen(true);
               setIsMobileMenuOpen(false);
             }}
           />

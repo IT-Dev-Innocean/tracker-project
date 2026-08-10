@@ -32,8 +32,11 @@ import SystemSpecsModal from '../SystemSpecsModal';
 import MoMNotepadModal from './SmartAssistant/MoMNotepadModal';
 import GlobalSearchModal from './GlobalSearchModal';
 
+import { useFeatureFlag } from '../featureFlags';
+
 export default function AppModals() {
   const context = useAppContext();
+  const isProactiveAiEnabled = useFeatureFlag('PROACTIVE_AI_ENABLED');
 
   // Expose all context variables locally so the copied JSX works without modification
   const {
@@ -326,7 +329,7 @@ export default function AppModals() {
 
   return (
     <>
-      {isProactiveAIOpen && (
+      {isProactiveAIOpen && isProactiveAiEnabled && (
         <ProactiveAIModal
           setIsProactiveAIOpen={setIsProactiveAIOpen}
           boards={boards}

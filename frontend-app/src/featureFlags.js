@@ -23,6 +23,8 @@ export const DEFAULT_FEATURE_FLAGS = {
   TASK_FORM_AI_ASSISTANT_ENABLED: false,
   TASK_COMMENT_AI_MENTION_ENABLED: false,
   TASK_CHAT_AI_COPILOT_ENABLED: true,
+  PROACTIVE_AI_ENABLED: false,
+  SMART_ASSISTANT_ENABLED: false,
 
   TASK_SCHEDULE_MEETING_UI_ENABLED: false,
   TASK_ADD_TO_CALENDAR_UI_ENABLED: false,
@@ -88,6 +90,16 @@ export const FEATURE_FLAG_META = [
         key: 'TASK_CHAT_AI_COPILOT_ENABLED',
         en: 'Task Chat AI Copilot Buttons',
         id: 'Tombol AI Copilot di Chat Task',
+      },
+      {
+        key: 'PROACTIVE_AI_ENABLED',
+        en: 'Proactive AI Onboarding',
+        id: 'Onboarding AI Proaktif',
+      },
+      {
+        key: 'SMART_ASSISTANT_ENABLED',
+        en: 'Smart Assistant Drawer',
+        id: 'Smart Assistant Drawer',
       },
     ],
   },

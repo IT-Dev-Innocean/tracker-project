@@ -42,6 +42,7 @@ import ChatWorkspaceModal from './ChatWorkspaceModal';
 import SystemSpecsModal from './SystemSpecsModal';
 import LandingPage from './LandingPage';
 import { useAppContext } from './hooks/useAppContext';
+import { useFeatureFlag } from './featureFlags';
 import AppModals from './components/AppModals';
 import BoardFilterSort from './components/BoardFilterSort';
 import ChatMessage, { renderChatMessageContent } from './ChatMessage';
@@ -485,9 +486,10 @@ function App() {
     setClonedTaskIds,
     startX,
     scrollLeft,
-    isMobileProfileOpen,
     setIsMobileProfileOpen,
   } = useAppContext();
+
+  const isSmartAssistantEnabled = useFeatureFlag('SMART_ASSISTANT_ENABLED');
 
   const [activeDragType, setActiveDragType] = useState(null);
 
@@ -1715,7 +1717,8 @@ function App() {
         {/* Floating Smart Assistant Button */}
         {!isProjectChatOpen &&
           accountStatus !== 'suspended' &&
-          showAssistantButton && (
+          showAssistantButton &&
+          isSmartAssistantEnabled && (
             <button
               onClick={() => {
                 setIsProjectChatOpen(true);
@@ -2321,9 +2324,10 @@ function App() {
           )}
 
           {/* Assistant Tab */}
-          <div
-            className={`flex-1 flex-col overflow-hidden ${drawerTab === 'assistant' ? 'flex' : 'hidden'}`}>
-            <SmartAssistant
+          {isSmartAssistantEnabled && (
+            <div
+              className={`flex-1 flex-col overflow-hidden ${drawerTab === 'assistant' ? 'flex' : 'hidden'}`}>
+              <SmartAssistant
               currentUser={currentUser}
               selectedBoard={selectedBoard}
               teamMembers={teamMembers}
@@ -2359,6 +2363,7 @@ function App() {
               setIsMomNotepadOpen={setIsMomNotepadOpen}
             />
           </div>
+          )}
         </div>
       </div>
     </DragDropContext>

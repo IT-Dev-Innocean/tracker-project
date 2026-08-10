@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Avatar, SegmentedControl } from './SharedUI';
 import { Icon } from './components/icons/Icon';
+import { useFeatureFlag } from './featureFlags';
 
 const SettingsSection = ({ title, description, children }) => (
   <div className="animate-in fade-in duration-300">
@@ -88,6 +89,7 @@ export default function SettingsPage({
   setBrowserNotifEnabled,
   showNotification,
 }) {
+  const isSmartAssistantEnabled = useFeatureFlag('SMART_ASSISTANT_ENABLED');
   const [isClosing, setIsClosing] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -935,26 +937,28 @@ export default function SettingsPage({
                       }}
                     />
                   </SettingItem>
-                  <SettingItem
-                    title={tMsg('Floating AI Assistant', 'Asisten AI Mengambang')}
-                    description={tMsg(
-                      'Show the floating Smart Assistant button on the bottom right of your screen. You can still access it from the Account Menu.',
-                      'Tampilkan tombol Asisten Pintar mengambang di kanan bawah layar Anda. Anda tetap bisa mengaksesnya dari Menu Akun.'
-                    )}
-                  >
-                    <SegmentedControl
-                      options={[
-                        { label: 'ON', value: true },
-                        { label: 'OFF', value: false },
-                      ]}
-                      value={showAssistantButton}
-                      size="small"
-                      onChange={(v) => {
-                        setShowAssistantButton(v);
-                        localStorage.setItem('innocean_show_assistant_btn', v);
-                      }}
-                    />
-                  </SettingItem>
+                  {isSmartAssistantEnabled && (
+                    <SettingItem
+                      title={tMsg('Floating AI Assistant', 'Asisten AI Mengambang')}
+                      description={tMsg(
+                        'Show the floating Smart Assistant button on the bottom right of your screen. You can still access it from the Account Menu.',
+                        'Tampilkan tombol Asisten Pintar mengambang di kanan bawah layar Anda. Anda tetap bisa mengaksesnya dari Menu Akun.'
+                      )}
+                    >
+                      <SegmentedControl
+                        options={[
+                          { label: 'ON', value: true },
+                          { label: 'OFF', value: false },
+                        ]}
+                        value={showAssistantButton}
+                        size="small"
+                        onChange={(v) => {
+                          setShowAssistantButton(v);
+                          localStorage.setItem('innocean_show_assistant_btn', v);
+                        }}
+                      />
+                    </SettingItem>
+                  )}
                 </SettingsSection>
               </div>
             )}
