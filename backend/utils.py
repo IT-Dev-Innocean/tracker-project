@@ -533,10 +533,12 @@ def get_user_role(db: Session, username: str) -> str:
     user = db.query(User).filter(User.username == username).first()
     if not user:
         return ROLE_STAFF
+    if user.username == "admin" or user.is_superadmin == 1:
+        return ROLE_ADMIN
     role = getattr(user, "role", None)
     if role in VALID_USER_ROLES:
         return role
-    return ROLE_ADMIN if user.is_superadmin == 1 else ROLE_STAFF
+    return ROLE_STAFF
 
 
 def sync_user_role_flags(user: User, role: str):
