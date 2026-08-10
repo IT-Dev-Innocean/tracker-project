@@ -1,15 +1,17 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import InnoceanLogo from './InnoceanLogo';
 import { Icon } from './icons/Icon';
-import {
-  MASTER_VIEW_UI_ENABLED,
-  TIMESHEETS_UI_ENABLED,
-  TODO_LIST_UI_ENABLED,
-} from '../featureFlags';
+import { useFeatureFlags } from '../featureFlags';
 import { isTodoListBoard, excludeTodoListBoards } from '../utils/boards';
+import { canAccessMyTasksMenu } from '../permissions';
 
 export default function Sidebar() {
+  const {
+    MASTER_VIEW_UI_ENABLED,
+    TIMESHEETS_UI_ENABLED,
+    TODO_LIST_UI_ENABLED,
+  } = useFeatureFlags();
   const {
     currentUser,
     boards,
@@ -60,6 +62,27 @@ export default function Sidebar() {
     workspaceRole === 'admin' ||
     workspaceRole === 'project_owner' ||
     isSuperAdmin;
+  const canSeeMyTasks = canAccessMyTasksMenu(workspaceRole);
+
+  // Redirect non-staff away from My Tasks if they somehow land there
+  useEffect(() => {
+    if (canSeeMyTasks) return;
+    const onMyTasks =
+      sidebarNav === 'my_tasks' ||
+      (selectedBoard?.id === 'global' && showMyTasks);
+    if (!onMyTasks) return;
+    setShowMyTasks?.(false);
+    setSelectedBoard?.(null);
+    setSidebarNav?.('home');
+  }, [
+    canSeeMyTasks,
+    sidebarNav,
+    selectedBoard?.id,
+    showMyTasks,
+    setShowMyTasks,
+    setSelectedBoard,
+    setSidebarNav,
+  ]);
 
   // Sidebar collapse state
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -416,100 +439,103 @@ export default function Sidebar() {
               )}
             </button>
 
-            <button
-              onClick={() => {
-                setSelectedBoard({ id: 'global', name: 'Master View' });
-                setShowMyTasks?.(true);
-                setShowTeams?.(false);
-                setShowAdmin?.(false);
-                setShowProjectManage?.(false);
-                setShowClientManage?.(false);
-                setShowTimesheets?.(false);
-                setSidebarNav?.('my_tasks');
-                setIsMobileMenuOpen?.(false);
-                setIsProactiveAIOpen?.(false);
-              }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                sidebarNav === 'my_tasks' || (selectedBoard?.id === 'global' && showMyTasks)
-                  ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
-                  : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
-              } ${isCollapsed ? 'justify-center' : ''}`}
-              title={tMsg('My Tasks', 'Tugas Saya')}>
-              <div className='w-6 h-6 flex items-center justify-center'>
-                <Icon name='check-square' className='w-5 h-5' />
-              </div>
-              {!isCollapsed && (
-                <span className='text-sm truncate'>
-                  {tMsg('My Tasks', 'Tugas Saya')}
-                </span>
-              )}
-            </button>
-
-            {canManageProjectDir && (
-            <button
-              onClick={() => {
-                setShowTeams?.(false);
-                setShowAdmin?.(false);
-                setShowTimesheets?.(false);
-                setShowClientManage?.(false);
-                setSelectedBoard(null);
-                setSidebarNav?.('projects');
-                // Project Owner / Admin: buka halaman manajemen proyek langsung
-                setShowProjectManage?.(true);
-                setIsMobileMenuOpen?.(false);
-                setIsProactiveAIOpen?.(false);
-              }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                (sidebarNav === 'projects' ||
-                  (!!selectedBoard && selectedBoard.id !== 'global') ||
-                  showProjectManage) &&
-                !showClientManage &&
-                !showTeams &&
-                !showAdmin &&
-                !showTimesheets
-                  ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
-                  : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
-              } ${isCollapsed ? 'justify-center' : ''}`}
-              title={tMsg('Projects', 'Proyek')}>
-              <div className='w-6 h-6 flex items-center justify-center'>
-                <Icon name='folder' className='w-5 h-5' />
-              </div>
-              {!isCollapsed && (
-                <span className='text-sm truncate'>
-                  {tMsg('Projects', 'Proyek')}
-                </span>
-              )}
-            </button>
+            {canSeeMyTasks && (
+              <button
+                onClick={() => {
+                  setSelectedBoard({ id: 'global', name: 'My Tasks' });
+                  setShowMyTasks?.(true);
+                  setShowTeams?.(false);
+                  setShowAdmin?.(false);
+                  setShowProjectManage?.(false);
+                  setShowClientManage?.(false);
+                  setShowTimesheets?.(false);
+                  setSidebarNav?.('my_tasks');
+                  setIsMobileMenuOpen?.(false);
+                  setIsProactiveAIOpen?.(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                  sidebarNav === 'my_tasks' ||
+                  (selectedBoard?.id === 'global' && showMyTasks)
+                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                    : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
+                } ${isCollapsed ? 'justify-center' : ''}`}
+                title={tMsg('My Tasks', 'Tugas Saya')}>
+                <div className='w-6 h-6 flex items-center justify-center'>
+                  <Icon name='check-square' className='w-5 h-5' />
+                </div>
+                {!isCollapsed && (
+                  <span className='text-sm truncate'>
+                    {tMsg('My Tasks', 'Tugas Saya')}
+                  </span>
+                )}
+              </button>
             )}
 
             {canManageProjectDir && (
-            <button
-              onClick={() => {
-                setShowTeams?.(false);
-                setShowAdmin?.(false);
-                setShowTimesheets?.(false);
-                setShowProjectManage?.(false);
-                setSelectedBoard(null);
-                setSidebarNav?.('clients');
-                setShowClientManage?.(true);
-                setIsMobileMenuOpen?.(false);
-                setIsProactiveAIOpen?.(false);
-              }}
-              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                showClientManage || sidebarNav === 'clients'
-                  ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
-                  : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
-              } ${isCollapsed ? 'justify-center' : ''}`}
-              title={tMsg('Clients', 'Klien')}>
-              <div className='w-6 h-6 flex items-center justify-center'>
-                <Icon name='building' className='w-5 h-5' />
-              </div>
-              {!isCollapsed && (
-                <span className='text-sm truncate'>
-                  {tMsg('Clients', 'Klien')}
-                </span>
-              )}
-            </button>
+              <button
+                onClick={() => {
+                  setShowTeams?.(false);
+                  setShowAdmin?.(false);
+                  setShowTimesheets?.(false);
+                  setShowClientManage?.(false);
+                  setSelectedBoard(null);
+                  setSidebarNav?.('projects');
+                  // Project Owner / Admin: buka halaman manajemen proyek langsung
+                  setShowProjectManage?.(true);
+                  setIsMobileMenuOpen?.(false);
+                  setIsProactiveAIOpen?.(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                  (sidebarNav === 'projects' ||
+                    (!!selectedBoard && selectedBoard.id !== 'global') ||
+                    showProjectManage) &&
+                  !showClientManage &&
+                  !showTeams &&
+                  !showAdmin &&
+                  !showTimesheets
+                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                    : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
+                } ${isCollapsed ? 'justify-center' : ''}`}
+                title={tMsg('Projects', 'Proyek')}>
+                <div className='w-6 h-6 flex items-center justify-center'>
+                  <Icon name='folder' className='w-5 h-5' />
+                </div>
+                {!isCollapsed && (
+                  <span className='text-sm truncate'>
+                    {tMsg('Projects', 'Proyek')}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {canManageProjectDir && (
+              <button
+                onClick={() => {
+                  setShowTeams?.(false);
+                  setShowAdmin?.(false);
+                  setShowTimesheets?.(false);
+                  setShowProjectManage?.(false);
+                  setSelectedBoard(null);
+                  setSidebarNav?.('clients');
+                  setShowClientManage?.(true);
+                  setIsMobileMenuOpen?.(false);
+                  setIsProactiveAIOpen?.(false);
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                  showClientManage || sidebarNav === 'clients'
+                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                    : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
+                } ${isCollapsed ? 'justify-center' : ''}`}
+                title={tMsg('Clients', 'Klien')}>
+                <div className='w-6 h-6 flex items-center justify-center'>
+                  <Icon name='building' className='w-5 h-5' />
+                </div>
+                {!isCollapsed && (
+                  <span className='text-sm truncate'>
+                    {tMsg('Clients', 'Klien')}
+                  </span>
+                )}
+              </button>
             )}
 
             {canOpenTeams && (
@@ -569,7 +595,7 @@ export default function Sidebar() {
                 <div className='w-6 h-6 flex items-center justify-center relative'>
                   <Icon name='clock' className='w-5 h-5' />
                   {isCollapsed && unsubmittedTimesheetsCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-600 rounded-full border-2 border-white dark:border-neutral-950 animate-pulse" />
+                    <span className='absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-600 rounded-full border-2 border-white dark:border-neutral-950 animate-pulse' />
                   )}
                 </div>
                 {!isCollapsed && (
@@ -579,9 +605,8 @@ export default function Sidebar() {
                 )}
                 {!isCollapsed && unsubmittedTimesheetsCount > 0 && (
                   <span
-                    className="px-2 py-0.5 bg-red-600 text-white text-[10px] font-black rounded-full shadow-sm shrink-0 animate-pulse"
-                    title={`${unsubmittedTimesheetsCount} minggu belum disubmit`}
-                  >
+                    className='px-2 py-0.5 bg-red-600 text-white text-[10px] font-black rounded-full shadow-sm shrink-0 animate-pulse'
+                    title={`${unsubmittedTimesheetsCount} minggu belum disubmit`}>
                     ⚠️ {unsubmittedTimesheetsCount}
                   </span>
                 )}

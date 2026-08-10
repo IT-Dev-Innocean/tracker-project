@@ -106,11 +106,19 @@ class User(Base):
     deletion_date = Column(DateTime, nullable=True)
     is_superadmin = Column(Integer, default=0)
     # admin | project_owner | manager | staff
-    role = Column(String(50), default="project_owner")
+    role = Column(String(50), default="staff")
     timesheet_approver = Column(String(50), nullable=True)
     timesheet_required = Column(Boolean, default=True)
     job_position = Column(String(100), nullable=True)
     division_name = Column(String(100), nullable=True)
+
+
+class AppSetting(Base):
+    __tablename__ = "app_settings"
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(100), unique=True, index=True, nullable=False)
+    value = Column(Text, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
 class Board(Base):
@@ -236,7 +244,12 @@ def setup_db():
             with engine.begin() as conn:
                 conn.execute(
                     text(
-                        "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'project_owner'"
+                        "ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'staff'"
+                    )
+                )
+                conn.execute(
+                    text(
+                        "ALTER TABLE users ALTER COLUMN role SET DEFAULT 'staff'"
                     )
                 )
                 conn.execute(
@@ -253,7 +266,7 @@ def setup_db():
             try:
                 with engine.begin() as conn:
                     conn.execute(
-                        text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'project_owner'")
+                        text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'staff'")
                     )
                     conn.execute(
                         text("ALTER TABLE users ADD COLUMN timesheet_required BOOLEAN DEFAULT TRUE")
@@ -289,12 +302,20 @@ def setup_db():
 
     db = SessionLocal()
     try:
+        # Seed feature flags row if missing
+        try:
+            from feature_flags import ensure_feature_flags_seeded
+
+            ensure_feature_flags_seeded(db)
+        except Exception as exc:
+            logger.error("Gagal seed feature flags: %s", exc)
+
         # Backfill roles from is_superadmin for rows missing/invalid role
         users = db.query(User).all()
         for u in users:
             current_role = getattr(u, "role", None)
             if current_role not in ("admin", "project_owner", "manager", "staff"):
-                u.role = "admin" if u.is_superadmin == 1 else "project_owner"
+                u.role = "admin" if u.is_superadmin == 1 else "staff"
             # Keep is_superadmin in sync with role
             u.is_superadmin = 1 if u.role == "admin" else 0
         db.commit()

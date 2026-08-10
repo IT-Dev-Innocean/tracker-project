@@ -4,7 +4,7 @@ import { useAppContext } from '../contexts/AppContext';
 import { isUserAssigned, getTaskAssignee } from '../useAppLogic';
 import { Avatar } from '../SharedUI';
 import { Icon } from './icons/Icon';
-import { MY_CAPACITY_UI_ENABLED } from '../featureFlags';
+import { useFeatureFlag } from '../featureFlags';
 import { excludeTodoListBoards } from '../utils/boards';
 
 const cleanMarkdown = (text) => {
@@ -56,6 +56,7 @@ function StatSparkline({ color, id }) {
 }
 
 export default function HomeDashboard() {
+  const MY_CAPACITY_UI_ENABLED = useFeatureFlag('MY_CAPACITY_UI_ENABLED');
   const {
     currentUser,
     boards,

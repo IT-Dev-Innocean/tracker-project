@@ -4,7 +4,7 @@ import { useAppContext } from '../hooks/useAppContext';
 import { HighlightText } from '../Utils';
 import { Icon } from './icons/Icon';
 import { Avatar } from '../SharedUI';
-import { TIMESHEETS_UI_ENABLED } from '../featureFlags';
+import { useFeatureFlag } from '../featureFlags';
 import { excludeTodoListBoards } from '../utils/boards';
 
 function Kbd({ children }) {
@@ -16,6 +16,7 @@ function Kbd({ children }) {
 }
 
 export default function GlobalSearchModal() {
+  const TIMESHEETS_UI_ENABLED = useFeatureFlag('TIMESHEETS_UI_ENABLED');
   const {
     language,
     boards,

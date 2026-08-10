@@ -32,10 +32,16 @@ def _require_client_manager(db: Session, current_user: str):
 
 @router.get("/api/clients")
 def list_clients(
+    include_inactive: bool = False,
     current_user: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    clients = db.query(Client).filter(Client.status == "active").order_by(Client.client_name.asc()).all()
+    query = db.query(Client)
+    if include_inactive:
+        _require_client_manager(db, current_user)
+    else:
+        query = query.filter(Client.status == "active")
+    clients = query.order_by(Client.client_name.asc()).all()
     return {"clients": [_serialize_client(c) for c in clients]}
 
 
@@ -47,12 +53,10 @@ def create_client(
 ):
     _require_client_manager(db, current_user)
 
-    code = (payload.client_code or "").strip()
+    code = (payload.client_code or "").strip() or None
     name = (payload.client_name or "").strip()
     status = (payload.status or "active").strip().lower()
 
-    if not code:
-        raise HTTPException(status_code=400, detail="Client code is required.")
     if not name:
         raise HTTPException(status_code=400, detail="Client name is required.")
     if status not in VALID_CLIENT_STATUSES:
@@ -61,12 +65,13 @@ def create_client(
             detail="Status must be 'active' or 'inactive'.",
         )
 
-    existing = db.query(Client).filter(Client.client_code == code).first()
-    if existing:
-        raise HTTPException(
-            status_code=400,
-            detail="Client code already exists.",
-        )
+    if code:
+        existing = db.query(Client).filter(Client.client_code == code).first()
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail="Client code already exists.",
+            )
 
     client = Client(
         client_code=code,
@@ -97,19 +102,18 @@ def update_client(
         raise HTTPException(status_code=404, detail="Client not found.")
 
     if payload.client_code is not None:
-        code = payload.client_code.strip()
-        if not code:
-            raise HTTPException(status_code=400, detail="Client code is required.")
-        duplicate = (
-            db.query(Client)
-            .filter(Client.client_code == code, Client.id != client_id)
-            .first()
-        )
-        if duplicate:
-            raise HTTPException(
-                status_code=400,
-                detail="Client code already exists.",
+        code = payload.client_code.strip() or None
+        if code:
+            duplicate = (
+                db.query(Client)
+                .filter(Client.client_code == code, Client.id != client_id)
+                .first()
             )
+            if duplicate:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Client code already exists.",
+                )
         client.client_code = code
 
     if payload.client_name is not None:

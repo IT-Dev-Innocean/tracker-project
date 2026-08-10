@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { HighlightText, LoadingSpinner } from './Utils';
 import { Icon } from './components/icons/Icon';
 import { excludeTodoListBoards } from './utils/boards';
+import {
+  DEFAULT_FEATURE_FLAGS,
+  FEATURE_FLAG_META,
+  getAllFeatureFlags,
+  applyServerFeatureFlags,
+  resetFeatureFlagsToDefault,
+} from './featureFlags';
 
 export default function AdminModal({
   adminUsers,
@@ -66,33 +73,10 @@ export default function AdminModal({
   const [boardToTransfer, setBoardToTransfer] = useState(null);
   const [newOwnerInput, setNewOwnerInput] = useState('');
   const [isTransferring, setIsTransferring] = useState(false);
-  const [configData, setConfigData] = useState({
-    database_url: '',
-    secret_key: '',
-    google_calendar_api_key: '',
-    smtp_server: '',
-    smtp_port: '',
-    smtp_username: '',
-    smtp_password: '',
-    gemini_api_key: '',
-    groq_api_key: '',
-  });
-  const [isConfigLoading, setIsConfigLoading] = useState(false);
-  const [showPass, setShowPass] = useState({
-    db: false,
-    jwt: false,
-    cal: false,
-    smtp: false,
-    gemini: false,
-    groq: false,
-  });
-  const togglePass = (key, val) => setShowPass((prev) => ({ ...prev, [key]: val }));
-
-  const [isSudoVerified, setIsSudoVerified] = useState(false);
-  const [showSudoModal, setShowSudoModal] = useState(false);
-  const [sudoPassword, setSudoPassword] = useState('');
-  const [isSudoLoading, setIsSudoLoading] = useState(false);
-  const [showSudoPass, setShowSudoPass] = useState(false);
+  const [featureFlagsDraft, setFeatureFlagsDraft] = useState(() =>
+    getAllFeatureFlags()
+  );
+  const [isSavingFlags, setIsSavingFlags] = useState(false);
 
   const filteredUsers = adminUsers.filter(
     (u) =>
@@ -143,32 +127,79 @@ export default function AdminModal({
     });
   };
 
-  const handleConfigTabClick = () => {
-    if (isSudoVerified) {
-      setActiveTab('config');
-    } else {
-      setShowSudoModal(true);
+  const handleFeatureFlagsTabClick = () => {
+    setFeatureFlagsDraft(getAllFeatureFlags());
+    setActiveTab('feature-flags');
+  };
+
+  const handleToggleFeatureFlag = (key) => {
+    setFeatureFlagsDraft((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const handleSaveFeatureFlags = async () => {
+    setIsSavingFlags(true);
+    try {
+      const res = await axios.put('/api/admin/feature-flags', {
+        flags: featureFlagsDraft,
+      });
+      applyServerFeatureFlags(res.data?.flags || featureFlagsDraft);
+      setFeatureFlagsDraft(getAllFeatureFlags());
+      if (showNotification) {
+        showNotification(
+          tMsg(
+            'Feature flags saved for all users.',
+            'Feature flags disimpan untuk semua pengguna.'
+          ),
+          'success'
+        );
+      }
+    } catch (err) {
+      if (showNotification) {
+        showNotification(
+          err.response?.data?.detail ||
+            tMsg('Failed to save feature flags', 'Gagal menyimpan feature flags'),
+          'error'
+        );
+      }
+    } finally {
+      setIsSavingFlags(false);
     }
   };
 
-  const handleSudoSubmit = (e) => {
-    e.preventDefault();
-    if (!sudoPassword) return;
-    setIsSudoLoading(true);
-    axios
-      .post('/api/admin/verify-sudo', { password: sudoPassword })
-      .then(() => {
-        setIsSudoLoading(false);
-        setIsSudoVerified(true);
-        setShowSudoModal(false);
-        setSudoPassword('');
-        setActiveTab('config');
-      })
-      .catch((err) => {
-        setIsSudoLoading(false);
-        if (showNotification)
-          showNotification(err.response?.data?.detail || tMsg('Incorrect password.', 'Kata sandi salah.'), 'error');
+  const handleResetFeatureFlags = async () => {
+    setIsSavingFlags(true);
+    try {
+      const defaults = { ...DEFAULT_FEATURE_FLAGS };
+      const res = await axios.put('/api/admin/feature-flags', {
+        flags: defaults,
       });
+      applyServerFeatureFlags(res.data?.flags || defaults);
+      setFeatureFlagsDraft(getAllFeatureFlags());
+      if (showNotification) {
+        showNotification(
+          tMsg(
+            'Flags reset to defaults for all users.',
+            'Flags dikembalikan ke default untuk semua pengguna.'
+          ),
+          'success'
+        );
+      }
+    } catch (err) {
+      resetFeatureFlagsToDefault();
+      setFeatureFlagsDraft({ ...DEFAULT_FEATURE_FLAGS });
+      if (showNotification) {
+        showNotification(
+          err.response?.data?.detail ||
+            tMsg('Failed to reset feature flags', 'Gagal mereset feature flags'),
+          'error'
+        );
+      }
+    } finally {
+      setIsSavingFlags(false);
+    }
   };
 
   const handleProjectsTabClick = () => {
@@ -228,42 +259,6 @@ export default function AdminModal({
     }
   };
 
-  useEffect(() => {
-    if (activeTab === 'config' && currentUser === 'admin') {
-      setIsConfigLoading(true);
-      axios
-        .get('/api/admin/config')
-        .then((res) => {
-          setConfigData(res.data);
-          setIsConfigLoading(false);
-        })
-        .catch((err) => {
-          if (showNotification)
-            showNotification(tMsg('Failed to load configuration', 'Gagal memuat konfigurasi'), 'error');
-          setIsConfigLoading(false);
-        });
-    }
-  }, [activeTab, currentUser]);
-
-  const handleConfigSubmit = (e) => {
-    e.preventDefault();
-    setIsConfigLoading(true);
-    axios
-      .put('/api/admin/config', configData)
-      .then((res) => {
-        if (showNotification) showNotification(res.data.message, 'success');
-        setIsConfigLoading(false);
-      })
-      .catch((err) => {
-        if (showNotification)
-          showNotification(
-            err.response?.data?.detail || tMsg('Failed to save configuration', 'Gagal menyimpan konfigurasi'),
-            'error'
-          );
-        setIsConfigLoading(false);
-      });
-  };
-
   return (
     <div className="flex-1 overflow-auto p-4 sm:p-8 scrollbar-thin relative">
       <div className="mx-auto max-w-7xl space-y-5">
@@ -291,18 +286,16 @@ export default function AdminModal({
             >
               {tMsg('User Management', 'Manajemen Pengguna')}
             </button>
-            {currentUser === 'admin' && (
-              <button
-                onClick={handleConfigTabClick}
-                className={`shrink-0 pb-2 text-sm font-medium transition-colors ${
-                  activeTab === 'config'
-                    ? 'border-b-2 border-black dark:border-white text-black dark:text-white font-bold'
-                    : 'text-neutral-400 hover:text-black dark:hover:text-white'
-                }`}
-              >
-                {tMsg('System Configuration', 'Konfigurasi Sistem')}
-              </button>
-            )}
+            <button
+              onClick={handleFeatureFlagsTabClick}
+              className={`shrink-0 pb-2 text-sm font-medium transition-colors ${
+                activeTab === 'feature-flags'
+                  ? 'border-b-2 border-black dark:border-white text-black dark:text-white font-bold'
+                  : 'text-neutral-400 hover:text-black dark:hover:text-white'
+              }`}
+            >
+              {tMsg('Feature Flags', 'Feature Flags')}
+            </button>
             <button
               onClick={() => setActiveTab('approvers')}
               className={`shrink-0 pb-2 text-sm font-medium transition-colors ${
@@ -1233,275 +1226,99 @@ export default function AdminModal({
               </div>
             </div>
           </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-            <form onSubmit={handleConfigSubmit} className="space-y-8 max-w-4xl mx-auto py-2">
-              {/* Core System Settings */}
-              <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 md:p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <Icon name="settings" className="w-8 h-8" />
-                  <div>
-                    <h3 className="text-lg font-black text-black dark:text-white uppercase tracking-wider">
-                      {tMsg('Core System Settings', 'Pengaturan Sistem Inti')}
-                    </h3>
-                    <p className="text-xs font-medium text-neutral-500 mt-1">
-                      {tMsg(
-                        'Configure database, security, and integrations.',
-                        'Konfigurasikan basis data, keamanan, dan integrasi.'
-                      )}
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-5">
-                  <div>
-                    <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">
-                      Database URL (PostgreSQL)
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPass.db ? 'text' : 'password'}
-                        value={configData.database_url || ''}
-                        onChange={(e) => setConfigData({ ...configData, database_url: e.target.value })}
-                        className="w-full bg-white dark:bg-black border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-sm font-medium outline-none focus:border-indigo-500 transition-colors pr-10"
-                        placeholder="postgresql://user:password@host/dbname"
-                      />
-                      <button
-                        type="button"
-                        onMouseDown={() => togglePass('db', true)}
-                        onMouseUp={() => togglePass('db', false)}
-                        onMouseLeave={() => togglePass('db', false)}
-                        onTouchStart={() => togglePass('db', true)}
-                        onTouchEnd={() => togglePass('db', false)}
-                        onTouchCancel={() => togglePass('db', false)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
-                      >
-                        {showPass.db ? <Icon name="eye-off" className="w-4 h-4" /> : <Icon name="eye" className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">
-                      JWT Secret Key
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPass.jwt ? 'text' : 'password'}
-                        value={configData.secret_key || ''}
-                        onChange={(e) => setConfigData({ ...configData, secret_key: e.target.value })}
-                        className="w-full bg-white dark:bg-black border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-sm font-medium outline-none focus:border-indigo-500 transition-colors pr-10"
-                        placeholder="********"
-                      />
-                      <button
-                        type="button"
-                        onMouseDown={() => togglePass('jwt', true)}
-                        onMouseUp={() => togglePass('jwt', false)}
-                        onMouseLeave={() => togglePass('jwt', false)}
-                        onTouchStart={() => togglePass('jwt', true)}
-                        onTouchEnd={() => togglePass('jwt', false)}
-                        onTouchCancel={() => togglePass('jwt', false)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
-                      >
-                        {showPass.jwt ? <Icon name="eye-off" className="w-4 h-4" /> : <Icon name="eye" className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">
-                      Google Calendar API Key
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPass.cal ? 'text' : 'password'}
-                        value={configData.google_calendar_api_key || ''}
-                        onChange={(e) => setConfigData({ ...configData, google_calendar_api_key: e.target.value })}
-                        className="w-full bg-white dark:bg-black border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-sm font-medium outline-none focus:border-indigo-500 transition-colors pr-10"
-                        placeholder="********"
-                      />
-                      <button
-                        type="button"
-                        onMouseDown={() => togglePass('cal', true)}
-                        onMouseUp={() => togglePass('cal', false)}
-                        onMouseLeave={() => togglePass('cal', false)}
-                        onTouchStart={() => togglePass('cal', true)}
-                        onTouchEnd={() => togglePass('cal', false)}
-                        onTouchCancel={() => togglePass('cal', false)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
-                      >
-                        {showPass.cal ? <Icon name="eye-off" className="w-4 h-4" /> : <Icon name="eye" className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
+        ) : activeTab === 'feature-flags' ? (
+          <div className="space-y-5 max-w-4xl">
+            <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-4 sm:p-5">
+              <div className="flex items-start gap-3">
+                <Icon name="sliders" className="w-5 h-5 text-neutral-400 mt-0.5 shrink-0" />
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-black dark:text-white">
+                    {tMsg('Feature Flags Setup', 'Setup Feature Flags')}
+                  </h3>
+                  <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed">
+                    {tMsg(
+                      'Toggle UI features for the whole workspace. Changes are saved to the database and applied for all users.',
+                      'Aktifkan/nonaktifkan fitur UI untuk seluruh workspace. Perubahan disimpan ke database dan berlaku untuk semua pengguna.'
+                    )}
+                  </p>
                 </div>
               </div>
+            </div>
 
-              {/* Automate Email Setting */}
-              <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 md:p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="text-3xl">📧</span>
-                  <div>
-                    <h3 className="text-lg font-black text-black dark:text-white uppercase tracking-wider">
-                      {tMsg('Automate Email Settings (SMTP)', 'Pengaturan Email Otomatis (SMTP)')}
-                    </h3>
-                    <p className="text-xs font-medium text-neutral-500 mt-1">
-                      {tMsg(
-                        'Configure the email server used for sending system notifications.',
-                        'Konfigurasikan server email yang digunakan untuk mengirim notifikasi sistem.'
-                      )}
-                    </p>
-                  </div>
+            {FEATURE_FLAG_META.map((section) => (
+              <div
+                key={section.group.en}
+                className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 overflow-hidden">
+                <div className="px-4 sm:px-5 py-3 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
+                    {tMsg(section.group.en, section.group.id)}
+                  </h4>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">
-                      SMTP Server
-                    </label>
-                    <input
-                      type="text"
-                      value={configData.smtp_server}
-                      onChange={(e) => setConfigData({ ...configData, smtp_server: e.target.value })}
-                      className="w-full bg-white dark:bg-black border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-sm font-medium outline-none focus:border-indigo-500 transition-colors"
-                      placeholder="e.g. smtp.gmail.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">
-                      SMTP Port
-                    </label>
-                    <input
-                      type="number"
-                      value={configData.smtp_port}
-                      onChange={(e) => setConfigData({ ...configData, smtp_port: e.target.value })}
-                      className="w-full bg-white dark:bg-black border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-sm font-medium outline-none focus:border-indigo-500 transition-colors"
-                      placeholder="e.g. 587"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">
-                      {tMsg('SMTP Username', 'Nama Pengguna SMTP')}
-                    </label>
-                    <input
-                      type="text"
-                      value={configData.smtp_username}
-                      onChange={(e) => setConfigData({ ...configData, smtp_username: e.target.value })}
-                      className="w-full bg-white dark:bg-black border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-sm font-medium outline-none focus:border-indigo-500 transition-colors"
-                      placeholder="email@company.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">
-                      {tMsg('SMTP Password', 'Kata Sandi SMTP')}
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPass.smtp ? 'text' : 'password'}
-                        value={configData.smtp_password}
-                        onChange={(e) => setConfigData({ ...configData, smtp_password: e.target.value })}
-                        className="w-full bg-white dark:bg-black border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-sm font-medium outline-none focus:border-indigo-500 transition-colors pr-10"
-                        placeholder="********"
-                      />
-                      <button
-                        type="button"
-                        onMouseDown={() => togglePass('smtp', true)}
-                        onMouseUp={() => togglePass('smtp', false)}
-                        onMouseLeave={() => togglePass('smtp', false)}
-                        onTouchStart={() => togglePass('smtp', true)}
-                        onTouchEnd={() => togglePass('smtp', false)}
-                        onTouchCancel={() => togglePass('smtp', false)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
-                      >
-                        {showPass.smtp ? <Icon name="eye-off" className="w-4 h-4" /> : <Icon name="eye" className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
+                <div className="divide-y divide-neutral-100 dark:divide-neutral-900">
+                  {section.flags.map((flag) => {
+                    const enabled = !!featureFlagsDraft[flag.key];
+                    const isDefault =
+                      enabled === !!DEFAULT_FEATURE_FLAGS[flag.key];
+                    return (
+                      <div
+                        key={flag.key}
+                        className="flex items-center justify-between gap-4 px-4 sm:px-5 py-3.5">
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-black dark:text-white truncate">
+                            {tMsg(flag.en, flag.id)}
+                          </p>
+                          <p className="text-[10px] font-mono text-neutral-400 truncate mt-0.5">
+                            {flag.key}
+                            {!isDefault && (
+                              <span className="ml-2 text-amber-600 dark:text-amber-400 font-sans font-bold uppercase tracking-widest">
+                                {tMsg('overridden', 'diubah')}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={enabled}
+                          onClick={() => handleToggleFeatureFlag(flag.key)}
+                          className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors ${
+                            enabled
+                              ? 'bg-emerald-500'
+                              : 'bg-neutral-300 dark:bg-neutral-700'
+                          }`}>
+                          <span
+                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
+                              enabled ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
+            ))}
 
-              {/* API AI Setting */}
-              <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl p-6 md:p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <Icon name="bot" className="w-8 h-8" />
-                  <div>
-                    <h3 className="text-lg font-black text-black dark:text-white uppercase tracking-wider">
-                      {tMsg('Smart Assistant APIs', 'API Asisten Pintar')}
-                    </h3>
-                    <p className="text-xs font-medium text-neutral-500 mt-1">
-                      {tMsg(
-                        'Set your AI Provider keys. You can use one or both.',
-                        'Atur kunci Penyedia AI Anda. Anda dapat menggunakan salah satu atau keduanya.'
-                      )}
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-5">
-                  <div>
-                    <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">
-                      Google Gemini API Key
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPass.gemini ? 'text' : 'password'}
-                        value={configData.gemini_api_key}
-                        onChange={(e) => setConfigData({ ...configData, gemini_api_key: e.target.value })}
-                        className="w-full bg-white dark:bg-black border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-sm font-medium outline-none focus:border-indigo-500 transition-colors pr-10"
-                        placeholder="********"
-                      />
-                      <button
-                        type="button"
-                        onMouseDown={() => togglePass('gemini', true)}
-                        onMouseUp={() => togglePass('gemini', false)}
-                        onMouseLeave={() => togglePass('gemini', false)}
-                        onTouchStart={() => togglePass('gemini', true)}
-                        onTouchEnd={() => togglePass('gemini', false)}
-                        onTouchCancel={() => togglePass('gemini', false)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
-                      >
-                        {showPass.gemini ? <Icon name="eye-off" className="w-4 h-4" /> : <Icon name="eye" className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold text-neutral-500 uppercase tracking-widest mb-1.5">
-                      Groq API Key (GPT-OSS 120B)
-                    </label>
-                    <div className="relative">
-                      <input
-                        type={showPass.groq ? 'text' : 'password'}
-                        value={configData.groq_api_key}
-                        onChange={(e) => setConfigData({ ...configData, groq_api_key: e.target.value })}
-                        className="w-full bg-white dark:bg-black border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 text-sm font-medium outline-none focus:border-indigo-500 transition-colors pr-10"
-                        placeholder="********"
-                      />
-                      <button
-                        type="button"
-                        onMouseDown={() => togglePass('groq', true)}
-                        onMouseUp={() => togglePass('groq', false)}
-                        onMouseLeave={() => togglePass('groq', false)}
-                        onTouchStart={() => togglePass('groq', true)}
-                        onTouchEnd={() => togglePass('groq', false)}
-                        onTouchCancel={() => togglePass('groq', false)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
-                      >
-                        {showPass.groq ? <Icon name="eye-off" className="w-4 h-4" /> : <Icon name="eye" className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-4">
-                <button
-                  type="submit"
-                  disabled={isConfigLoading}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-8 py-4 rounded-full text-xs uppercase tracking-widest shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50"
-                >
-                  {isConfigLoading
-                    ? tMsg('Saving...', 'Menyimpan...')
-                    : tMsg('Save Configuration', 'Simpan Konfigurasi')}
-                </button>
-              </div>
-            </form>
+            <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-2 pb-4">
+              <button
+                type="button"
+                onClick={handleResetFeatureFlags}
+                disabled={isSavingFlags}
+                className="px-6 py-3.5 rounded-full font-bold text-xs uppercase tracking-widest bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-800 transition-colors disabled:opacity-50">
+                {tMsg('Reset to Default', 'Reset ke Default')}
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveFeatureFlags}
+                disabled={isSavingFlags}
+                className="px-8 py-3.5 rounded-full font-bold text-xs uppercase tracking-widest bg-black dark:bg-white text-white dark:text-black shadow-md hover:-translate-y-0.5 transition-all disabled:opacity-50">
+                {isSavingFlags
+                  ? tMsg('Saving...', 'Menyimpan...')
+                  : tMsg('Save Changes', 'Simpan Perubahan')}
+              </button>
+            </div>
           </div>
-        )}
+        ) : null}
       </div>
 
         {/* Delete Choice Modal */}
@@ -1803,67 +1620,6 @@ export default function AdminModal({
               </div>
             );
           })()}
-
-        {showSudoModal && (
-          <div className="absolute inset-0 bg-white/90 dark:bg-black/90 backdrop-blur-sm z-[60] flex flex-col items-center justify-center p-8 mac-animate">
-            <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-indigo-200 dark:border-indigo-800">
-              🔐
-            </div>
-            <h3 className="text-3xl font-black text-black dark:text-white mb-2">
-              {tMsg('Security Verification', 'Verifikasi Keamanan')}
-            </h3>
-            <p className="text-neutral-500 dark:text-neutral-400 max-w-md text-center text-sm leading-relaxed mb-8">
-              {tMsg(
-                'Please re-enter your admin password to access the System Configuration.',
-                'Silakan masukkan kembali kata sandi admin Anda untuk mengakses Konfigurasi Sistem.'
-              )}
-            </p>
-
-            <form onSubmit={handleSudoSubmit} className="w-full max-w-sm mb-8">
-              <div className="relative mb-6">
-                <input
-                  type={showSudoPass ? 'text' : 'password'}
-                  autoFocus
-                  value={sudoPassword}
-                  onChange={(e) => setSudoPassword(e.target.value)}
-                  className="w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-indigo-500 focus:bg-white dark:focus:bg-black outline-none text-sm font-bold transition-all shadow-inner pr-12"
-                  placeholder={tMsg('Enter admin password...', 'Masukkan kata sandi admin...')}
-                />
-                <button
-                  type="button"
-                  onMouseDown={() => setShowSudoPass(true)}
-                  onMouseUp={() => setShowSudoPass(false)}
-                  onMouseLeave={() => setShowSudoPass(false)}
-                  onTouchStart={() => setShowSudoPass(true)}
-                  onTouchEnd={() => setShowSudoPass(false)}
-                  onTouchCancel={() => setShowSudoPass(false)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-indigo-500 transition-colors cursor-pointer select-none"
-                >
-                  {showSudoPass ? <Icon name="eye-off" className="w-4 h-4" /> : <Icon name="eye" className="w-4 h-4" />}
-                </button>
-              </div>
-              <div className="flex gap-4 w-full">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSudoModal(false);
-                    setSudoPassword('');
-                  }}
-                  className="flex-1 px-4 py-4 rounded-full font-bold text-black dark:text-white bg-neutral-100 dark:bg-neutral-900 hover:bg-neutral-200 dark:hover:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 shadow-sm transition-colors text-sm"
-                >
-                  {tMsg('Cancel', 'Batal')}
-                </button>
-                <button
-                  type="submit"
-                  disabled={!sudoPassword || isSudoLoading}
-                  className="flex-1 px-4 py-4 rounded-full font-bold text-white transition-all text-sm shadow-md bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed hover:-translate-y-0.5"
-                >
-                  {isSudoLoading ? tMsg('Verifying...', 'Memverifikasi...') : tMsg('Unlock', 'Buka Kunci')}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
 
       {approverModalOpen && (
         <div className="fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-4 mac-animate">

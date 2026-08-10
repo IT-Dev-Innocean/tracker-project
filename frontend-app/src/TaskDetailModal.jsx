@@ -3,6 +3,7 @@ import axios from 'axios';
 import { IconPerson, Avatar } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import MultiUserSelect from './components/MultiUserSelect';
+import RoleUsersTrigger from './components/RoleUsersTrigger';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import {
   HighlightText,
@@ -18,11 +19,7 @@ import TaskDetailSubtasks from './components/TaskDetail/TaskDetailSubtasks';
 import TaskDetailActivity from './components/TaskDetail/TaskDetailActivity';
 import TaskDetailComments from './components/TaskDetail/TaskDetailComments';
 import TaskDetailCommentForm from './components/TaskDetail/TaskDetailCommentForm';
-import {
-  TASK_COMMENT_AI_MENTION_ENABLED,
-  TASK_SMART_NUDGE_UI_ENABLED,
-  TASK_MEET_NOW_UI_ENABLED,
-} from './featureFlags';
+import { useFeatureFlags } from './featureFlags';
 export default function TaskDetailModal({
   tasks,
   selectedTask,
@@ -50,13 +47,19 @@ export default function TaskDetailModal({
   workspaceRole = 'project_owner',
   subtasks,
   handleToggleSubtask,
+  handleToggleTeamGroup,
   handleUpdateSubtaskAssignee,
+  handleUpdateSubtaskName,
+  handleRenameTeamGroup,
+  handleSyncTeamAssignees,
   handleDeleteSubtask,
+  handleDeleteTeamGroup,
   newSubtaskName,
   setNewSubtaskName,
   newSubtaskAssignee,
   setNewSubtaskAssignee,
   handleAddSubtask,
+  handleAddTeamSubtasks,
   comments,
   avatarsMap,
   handleDeleteComment,
@@ -95,6 +98,11 @@ export default function TaskDetailModal({
   onCloseInline = null,
   isPreviewMode = false,
 }) {
+  const {
+    TASK_COMMENT_AI_MENTION_ENABLED,
+    TASK_SMART_NUDGE_UI_ENABLED,
+    TASK_MEET_NOW_UI_ENABLED,
+  } = useFeatureFlags();
   const [activeTab, setActiveTab] = useState('comments');
   const [mobileTab, setMobileTab] = useState('details');
   const [hasRequestedAccess, setHasRequestedAccess] = useState(false);
@@ -188,10 +196,30 @@ export default function TaskDetailModal({
 
   const allEmployees =
     userDirectory && userDirectory.length > 0
-      ? userDirectory.filter((u) => u.username !== 'admin')
-      : teamMembers
-          .filter((m) => m !== 'admin')
-          .map((username) => ({ username, full_name: username }));
+      ? userDirectory
+          .filter(
+            (u) =>
+              u?.username &&
+              u.username !== 'admin' &&
+              (u.account_status == null || u.account_status === 'active')
+          )
+          .map((u) => ({
+            username: u.username,
+            full_name: u.full_name || u.name || u.username,
+            name: u.name || u.full_name || u.username,
+          }))
+          .sort((a, b) =>
+            String(a.full_name || a.username).localeCompare(
+              String(b.full_name || b.username)
+            )
+          )
+      : (teamMembers || [])
+          .filter((m) => m && m !== 'admin')
+          .map((username) => ({
+            username,
+            full_name: username,
+            name: username,
+          }));
 
   const headOfProject = editFormData.head_of_project || [];
   const rcTeam = editFormData.rc_team || [];
@@ -420,11 +448,23 @@ export default function TaskDetailModal({
     );
 
   const currentUserLower = currentUser ? currentUser.toLowerCase() : '';
-  const isDirectlyTagged = currentUser && (
-    (selectedTask.requester && new RegExp(`@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(selectedTask.requester)) ||
-    (selectedTask.head_of_project && new RegExp(`@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(selectedTask.head_of_project)) ||
-    (selectedTask.rc_team && new RegExp(`@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`, 'i').test(selectedTask.rc_team))
-  );
+  const isDirectlyTagged =
+    currentUser &&
+    ((selectedTask.requester &&
+      new RegExp(
+        `@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
+        'i'
+      ).test(selectedTask.requester)) ||
+      (selectedTask.head_of_project &&
+        new RegExp(
+          `@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
+          'i'
+        ).test(selectedTask.head_of_project)) ||
+      (selectedTask.rc_team &&
+        new RegExp(
+          `@?${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
+          'i'
+        ).test(selectedTask.rc_team)));
 
   const isInvolved =
     !isPreviewMode &&
@@ -775,7 +815,7 @@ export default function TaskDetailModal({
                                       <span>@{m}</span>
                                       {!teamMembers.includes(m) && (
                                         <span className='text-[8px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest ml-auto'>
-                                          + Auto-Invite
+                                          +Invite
                                         </span>
                                       )}
                                     </div>
@@ -794,7 +834,7 @@ export default function TaskDetailModal({
                       </div>
 
                       <MultiUserSelect
-                        label={tMsg('Head of Project', 'Head of Project')}
+                        label={tMsg('Supervisor', 'Supervisor')}
                         icon='users'
                         selected={headOfProject}
                         onChange={(users) =>
@@ -805,11 +845,22 @@ export default function TaskDetailModal({
                         }
                         employees={allEmployees}
                         placeholder={tMsg(
-                          'Select Head of Project...',
-                          'Pilih Head PIC Proyek...'
+                          'Select Supervisor...',
+                          'Select Supervisor..'
                         )}
                         tMsg={tMsg}
                         teamMembers={teamMembers}
+                        renderSelected={(selected, employees) => (
+                          <RoleUsersTrigger
+                            selected={selected}
+                            employees={employees}
+                            avatarsMap={avatarsMap}
+                            placeholder={tMsg(
+                              'Select Supervisor...',
+                              'Select Supervisor..'
+                            )}
+                          />
+                        )}
                       />
 
                       <MultiUserSelect
@@ -826,6 +877,17 @@ export default function TaskDetailModal({
                         )}
                         tMsg={tMsg}
                         teamMembers={teamMembers}
+                        renderSelected={(selected, employees) => (
+                          <RoleUsersTrigger
+                            selected={selected}
+                            employees={employees}
+                            avatarsMap={avatarsMap}
+                            placeholder={tMsg(
+                              'Select R&C Team...',
+                              'Pilih Tim R&C...'
+                            )}
+                          />
+                        )}
                       />
                     </div>
 
@@ -1267,6 +1329,8 @@ export default function TaskDetailModal({
                     handleToggleAutoNudge={handleToggleAutoNudge}
                     setSelectedTask={setSelectedTask}
                     showNotification={showNotification}
+                    allEmployees={allEmployees}
+                    avatarsMap={avatarsMap}
                   />
                   <div>
                     <p className='text-xs uppercase tracking-normal font-bold text-neutral-500 dark:text-neutral-400 mb-2'>
@@ -1302,7 +1366,7 @@ export default function TaskDetailModal({
                         </div>
                       </div>
                     ) : (
-                      <div className='whitespace-pre-wrap wrap-break-word bg-neutral-50 dark:bg-neutral-900 p-6 rounded-3xl border border-neutral-100 dark:border-neutral-800 text-sm font-medium leading-relaxed max-h-60 overflow-y-auto text-neutral-600 dark:text-neutral-300'>
+                      <div className='whitespace-pre-wrap wrap-break-word bg-neutral-50 dark:bg-neutral-900 p-6 rounded-lg border border-neutral-100 dark:border-neutral-800 text-sm font-medium leading-relaxed max-h-60 overflow-y-auto text-neutral-600 dark:text-neutral-300'>
                         {renderRichText(selectedTask.description)}
                       </div>
                     )}
@@ -1482,10 +1546,18 @@ export default function TaskDetailModal({
                     accountStatus={accountStatus}
                     isSystemTicket={isSystemTicket}
                     handleToggleSubtask={handleToggleSubtask}
+                    handleToggleTeamGroup={handleToggleTeamGroup}
                     handleUpdateSubtaskAssignee={handleUpdateSubtaskAssignee}
+                    handleUpdateSubtaskName={handleUpdateSubtaskName}
+                    handleRenameTeamGroup={handleRenameTeamGroup}
+                    handleSyncTeamAssignees={handleSyncTeamAssignees}
                     teamMembers={teamMembers}
+                    allEmployees={allEmployees}
+                    avatarsMap={avatarsMap}
                     handleDeleteSubtask={handleDeleteSubtask}
+                    handleDeleteTeamGroup={handleDeleteTeamGroup}
                     handleAddSubtask={handleAddSubtask}
+                    handleAddTeamSubtasks={handleAddTeamSubtasks}
                     newSubtaskName={newSubtaskName}
                     setNewSubtaskName={setNewSubtaskName}
                     newSubtaskAssignee={newSubtaskAssignee}
@@ -1678,24 +1750,38 @@ export default function TaskDetailModal({
                             strokeWidth={2.5}
                           />
                         </button>
-                        {TASK_MEET_NOW_UI_ENABLED && (() => {
-                          const canMeet = isInvolved || isTaskAdmin || workspaceRole === 'project_owner' || workspaceRole === 'admin';
-                          return (
-                            <button
-                              type='button'
-                              disabled={!canMeet}
-                              onClick={handleStartTaskMeet}
-                              className={`text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors uppercase tracking-widest disabled:opacity-50 ${!canMeet ? 'cursor-not-allowed' : ''}`}
-                              title={!canMeet ? tMsg('Only involved members or Project Owners can start Meet Now', 'Hanya anggota terlibat atau Project Owner yang bisa melakukan Meet Now') : ''}>
-                              <Icon
-                                name='video'
-                                className='w-4 h-4'
-                                strokeWidth={2.5}
-                              />
-                              <span className='hidden sm:inline'>Meet Now</span>
-                            </button>
-                          );
-                        })()}
+                        {TASK_MEET_NOW_UI_ENABLED &&
+                          (() => {
+                            const canMeet =
+                              isInvolved ||
+                              isTaskAdmin ||
+                              workspaceRole === 'project_owner' ||
+                              workspaceRole === 'admin';
+                            return (
+                              <button
+                                type='button'
+                                disabled={!canMeet}
+                                onClick={handleStartTaskMeet}
+                                className={`text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors uppercase tracking-widest disabled:opacity-50 ${!canMeet ? 'cursor-not-allowed' : ''}`}
+                                title={
+                                  !canMeet
+                                    ? tMsg(
+                                        'Only involved members or Project Owners can start Meet Now',
+                                        'Hanya anggota terlibat atau Project Owner yang bisa melakukan Meet Now'
+                                      )
+                                    : ''
+                                }>
+                                <Icon
+                                  name='video'
+                                  className='w-4 h-4'
+                                  strokeWidth={2.5}
+                                />
+                                <span className='hidden sm:inline'>
+                                  Meet Now
+                                </span>
+                              </button>
+                            );
+                          })()}
                       </div>
                     )}
                   </div>

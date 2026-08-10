@@ -2,6 +2,11 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from './icons/Icon';
 
+function getEmployeeLabel(emp, fallback = '') {
+  if (!emp) return fallback;
+  return emp.full_name || emp.name || emp.username || fallback;
+}
+
 export default function MultiUserSelect({
   label,
   icon,
@@ -11,6 +16,10 @@ export default function MultiUserSelect({
   placeholder,
   tMsg,
   teamMembers = [],
+  hideLabel = false,
+  renderSelected,
+  className = '',
+  disabled = false,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownStyle, setDropdownStyle] = useState({});
@@ -25,7 +34,7 @@ export default function MultiUserSelect({
       position: 'fixed',
       top: rect.bottom + 8,
       left: rect.left,
-      width: rect.width,
+      width: Math.max(rect.width, 220),
       zIndex: 9999,
     });
   }, []);
@@ -67,7 +76,14 @@ export default function MultiUserSelect({
   };
 
   const displayLabel =
-    selected.length > 0 ? selected.map((u) => `@${u}`).join(', ') : placeholder;
+    selected.length > 0
+      ? selected
+          .map((username) => {
+            const emp = employees.find((e) => e.username === username);
+            return getEmployeeLabel(emp, username);
+          })
+          .join(', ')
+      : placeholder;
 
   const dropdownMenu =
     isOpen &&
@@ -78,7 +94,8 @@ export default function MultiUserSelect({
         className='bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl max-h-48 overflow-y-auto py-2 mac-animate'>
         {employees.length > 0 ? (
           employees.map((emp) => {
-            const isAutoInvite = teamMembers.length > 0 && !teamMembers.includes(emp.username);
+            const isAutoInvite =
+              teamMembers.length > 0 && !teamMembers.includes(emp.username);
             return (
               <label
                 key={emp.username}
@@ -89,10 +106,10 @@ export default function MultiUserSelect({
                   onChange={() => toggleUser(emp.username)}
                   className='rounded border-neutral-300 dark:border-neutral-600 text-indigo-600 focus:ring-indigo-500'
                 />
-                <span>{emp.full_name || emp.username}</span>
+                <span>{getEmployeeLabel(emp)}</span>
                 {isAutoInvite && (
                   <span className='text-[8px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest ml-auto'>
-                    + Auto-Invite
+                    +Invite
                   </span>
                 )}
               </label>
@@ -109,26 +126,36 @@ export default function MultiUserSelect({
 
   return (
     <div
-      className={`group relative ${isOpen ? 'z-[9998]' : ''}`}
+      className={`group relative ${isOpen ? 'z-9998' : ''} ${className}`}
       ref={wrapperRef}>
-      <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
-        <Icon name={icon} className='w-4 h-4' /> {label}
-      </label>
+      {!hideLabel && (
+        <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
+          <Icon name={icon} className='w-4 h-4' /> {label}
+        </label>
+      )}
       <button
         ref={buttonRef}
         type='button'
+        disabled={disabled}
         onClick={() => {
+          if (disabled) return;
           setIsOpen((prev) => !prev);
         }}
-        className='w-full bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black transition-all flex items-center h-12 sm:h-14 px-3.5 text-left'>
-        <span
-          className={`text-xs font-normal truncate ${
-            selected.length > 0
-              ? 'text-black dark:text-white'
-              : 'text-neutral-400'
-          }`}>
-          {displayLabel}
-        </span>
+        className={`w-full bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black transition-all flex items-center min-h-12 sm:min-h-14 px-3.5 text-left ${
+          disabled ? 'opacity-60 cursor-not-allowed' : ''
+        }`}>
+        {renderSelected ? (
+          renderSelected(selected, employees)
+        ) : (
+          <span
+            className={`text-xs font-normal truncate ${
+              selected.length > 0
+                ? 'text-black dark:text-white'
+                : 'text-neutral-400'
+            }`}>
+            {displayLabel}
+          </span>
+        )}
       </button>
       {dropdownMenu}
     </div>

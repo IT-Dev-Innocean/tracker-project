@@ -53,6 +53,7 @@ class SubtaskModel(BaseModel):
 class SubtaskToggleModel(BaseModel):
     is_done: int
     assignee: Optional[str] = None
+    task_name: Optional[str] = None
 
 
 class CommentModel(BaseModel):
@@ -97,7 +98,7 @@ class BoardUpdateModel(BaseModel):
 
 
 class ClientCreateModel(BaseModel):
-    client_code: str
+    client_code: Optional[str] = None
     client_name: str
     status: Optional[str] = "active"
 
@@ -168,6 +169,10 @@ class SystemConfigModel(BaseModel):
 
 class SudoVerifyModel(BaseModel):
     password: str
+
+
+class FeatureFlagsUpdateModel(BaseModel):
+    flags: dict
 
 
 class AutoNudgeToggleModel(BaseModel):

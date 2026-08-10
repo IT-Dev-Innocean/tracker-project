@@ -9,7 +9,7 @@ import LandingFeatures from './components/LandingPage/LandingFeatures';
 import LandingFAQ from './components/LandingPage/LandingFAQ';
 import LandingCTA from './components/LandingPage/LandingCTA';
 import { Icon } from './components/icons/Icon';
-import { INSTALL_APP_UI_ENABLED } from './featureFlags';
+import { useFeatureFlag } from './featureFlags';
 
 export default function LandingPage({
   showAuthForm,
@@ -45,6 +45,7 @@ export default function LandingPage({
   isInstallable,
   handleInstallClick,
 }) {
+  const INSTALL_APP_UI_ENABLED = useFeatureFlag('INSTALL_APP_UI_ENABLED');
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isSupportAlertOpen, setIsSupportAlertOpen] = useState(false);

@@ -3,22 +3,42 @@ import { IconPerson, IconPlus } from './components/icons';
 export { IconPerson, IconPlus };
 
 // Komponen Auto-Avatar (Warna & Inisial Acak Berdasarkan Nama)
-export const Avatar = ({ name, url, size = 'w-5 h-5', textClass = 'text-[10px]' }) => {
+export const Avatar = ({
+  name,
+  url,
+  size = 'w-5 h-5',
+  textClass = 'text-[10px]',
+  maxInitials = 1,
+  withRing = false,
+}) => {
   const [imgError, setImgError] = React.useState(false);
+  const ringClass = withRing
+    ? 'ring-2 ring-white dark:ring-neutral-950'
+    : '';
   if (url && !imgError)
     return (
       <img
         src={url}
         alt={name}
         onError={() => setImgError(true)}
-        className={`${size} rounded-full object-cover shrink-0 shadow-sm`}
+        className={`${size} rounded-full object-cover shrink-0 shadow-sm ${ringClass}`}
         title={name?.replace('@', '').trim()}
-        referrerPolicy="no-referrer"
+        referrerPolicy='no-referrer'
       />
     );
   if (!name) return <IconPerson className={size} />;
   const cleanName = name.replace('@', '').trim();
-  const initial = cleanName ? cleanName.charAt(0).toUpperCase() : '?';
+  const parts = cleanName.split(/[\s._-]+/).filter(Boolean);
+  let initial = '?';
+  if (cleanName) {
+    if (maxInitials > 1 && parts.length >= 2) {
+      initial = `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+    } else if (maxInitials > 1) {
+      initial = cleanName.slice(0, 2).toUpperCase();
+    } else {
+      initial = cleanName.charAt(0).toUpperCase();
+    }
+  }
   const colors = [
     'bg-red-500',
     'bg-blue-500',
@@ -36,9 +56,8 @@ export const Avatar = ({ name, url, size = 'w-5 h-5', textClass = 'text-[10px]' 
   const colorIndex = Math.abs(hash) % colors.length;
   return (
     <div
-      className={`${size} ${colors[colorIndex]} rounded-full flex items-center justify-center text-white font-bold ${textClass} shrink-0 shadow-sm`}
-      title={cleanName}
-    >
+      className={`${size} ${colors[colorIndex]} rounded-full flex items-center justify-center text-white font-bold ${textClass} shrink-0 shadow-sm ${ringClass}`}
+      title={cleanName}>
       {initial}
     </div>
   );

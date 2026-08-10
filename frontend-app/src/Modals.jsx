@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import * as Select from '@radix-ui/react-select';
 import { Avatar, SegmentedControl } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import { useCloseAnimation, LoadingSpinner } from './Utils';
 import { STATUS_COLOR_PALETTE } from './utils/statusColors';
-import { WELCOME_TOUR_BUTTONS_ENABLED } from './featureFlags';
+import { useFeatureFlag } from './featureFlags';
 
 function ThemeThumbnail({ variant }) {
   const isDark = variant === 'dark';
@@ -166,6 +167,7 @@ export function WelcomeTourModal({
   setThemeMode,
   currentUser,
 }) {
+  const WELCOME_TOUR_BUTTONS_ENABLED = useFeatureFlag('WELCOME_TOUR_BUTTONS_ENABLED');
   const [pendingLang, setPendingLang] = useState(language);
   const [pendingTheme, setPendingTheme] = useState(
     themeMode || (isDarkMode ? 'dark' : 'light')
@@ -617,6 +619,9 @@ export function ExportModal({
   );
 }
 
+const CLIENT_SELECT_NONE = '__none__';
+const CLIENT_SELECT_CREATE = '__create_new__';
+
 export function CreateBoardModal({
   setIsCreateBoardOpen,
   handleCreateBoard,
@@ -630,13 +635,31 @@ export function CreateBoardModal({
   language,
   isSubmitting,
 }) {
+  const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
+  const [clientSelectValue, setClientSelectValue] = useState(
+    newBoardClient || CLIENT_SELECT_NONE
+  );
   const [isClosing, close] = useCloseAnimation(() => {
     setIsCreateBoardOpen(false);
     setNewBoardName('');
     if (setNewBoardNumber) setNewBoardNumber('');
     if (setNewBoardClient) setNewBoardClient('');
+    setIsCreatingNewClient(false);
+    setClientSelectValue(CLIENT_SELECT_NONE);
   });
   const tMsg = (en, id) => (language === 'id' ? id : en);
+
+  const handleClientSelectChange = (value) => {
+    setClientSelectValue(value);
+    if (value === CLIENT_SELECT_CREATE) {
+      setIsCreatingNewClient(true);
+      setNewBoardClient?.('');
+      return;
+    }
+    setIsCreatingNewClient(false);
+    setNewBoardClient?.(value === CLIENT_SELECT_NONE ? '' : value);
+  };
+
   return (
     <div
       className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
@@ -660,18 +683,67 @@ export function CreateBoardModal({
             <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
               {tMsg('Client Name', 'Nama Klien')}
             </label>
-            <select
-              value={newBoardClient || ''}
-              onChange={(e) => setNewBoardClient?.(e.target.value)}
-              className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold transition-all cursor-pointer'
-              autoFocus>
-              <option value=''>-- {tMsg('Select Client', 'Pilih Klien')} --</option>
-              {clients.map((c) => (
-                <option key={c.id || c.client_code} value={c.client_name}>
-                  {c.client_name} ({c.client_code})
-                </option>
-              ))}
-            </select>
+            <Select.Root
+              value={clientSelectValue}
+              onValueChange={handleClientSelectChange}>
+              <Select.Trigger
+                autoFocus
+                className='group flex w-full items-center justify-between gap-2 p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold transition-all cursor-pointer data-placeholder:text-neutral-400'>
+                <Select.Value
+                  placeholder={`-- ${tMsg('Select Client', 'Pilih Klien')} --`}
+                />
+                <Select.Icon>
+                  <Icon
+                    name='chevron-down'
+                    className='w-4 h-4 text-neutral-400 group-data-[state=open]:rotate-180 transition-transform'
+                  />
+                </Select.Icon>
+              </Select.Trigger>
+              <Select.Portal>
+                <Select.Content
+                  position='popper'
+                  sideOffset={6}
+                  className='z-80 overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-2xl w-(--radix-select-trigger-width) max-h-64'>
+                  <Select.Viewport className='p-1.5'>
+                    <Select.Item
+                      value={CLIENT_SELECT_NONE}
+                      className='relative flex cursor-pointer select-none items-center rounded-xl px-3 py-2.5 text-sm font-bold text-neutral-500 outline-none data-highlighted:bg-neutral-100 dark:data-highlighted:bg-neutral-900 data-[state=checked]:text-black dark:data-[state=checked]:text-white'>
+                      <Select.ItemText>
+                        -- {tMsg('Select Client', 'Pilih Klien')} --
+                      </Select.ItemText>
+                    </Select.Item>
+                    <Select.Item
+                      value={CLIENT_SELECT_CREATE}
+                      className='relative flex cursor-pointer select-none items-center rounded-xl px-3 py-2.5 text-sm font-bold text-indigo-600 dark:text-indigo-400 outline-none data-highlighted:bg-indigo-50 dark:data-highlighted:bg-indigo-950/40'>
+                      <Select.ItemText>
+                        + {tMsg('Create New Client', 'Buat Klien Baru')}
+                      </Select.ItemText>
+                    </Select.Item>
+                    {clients.map((c) => (
+                      <Select.Item
+                        key={c.id || c.client_name}
+                        value={c.client_name}
+                        className='relative flex cursor-pointer select-none items-center rounded-xl px-3 py-2.5 text-sm font-bold text-black dark:text-white outline-none data-highlighted:bg-neutral-100 dark:data-highlighted:bg-neutral-900'>
+                        <Select.ItemText>{c.client_name}</Select.ItemText>
+                      </Select.Item>
+                    ))}
+                  </Select.Viewport>
+                </Select.Content>
+              </Select.Portal>
+            </Select.Root>
+            {isCreatingNewClient && (
+              <input
+                type='text'
+                value={newBoardClient || ''}
+                onChange={(e) => setNewBoardClient?.(e.target.value)}
+                placeholder={tMsg(
+                  'Enter new client name...',
+                  'Masukkan nama klien baru...'
+                )}
+                className='mt-3 w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all'
+                autoFocus
+              />
+            )}
           </div>
           <div className='mb-6'>
             <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
