@@ -70,7 +70,7 @@ export default function TeamsDirectory() {
         if (statusFilter === 'frozen' && user.account_status !== 'suspended') return false;
         if (statusFilter === 'unverified' && user.is_verified === 1) return false;
         if (!needle) return true;
-        return [user.full_name, user.username, user.email]
+        return [user.full_name, user.username, user.email, user.job_position, user.division_name]
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(needle));
       })
@@ -83,35 +83,32 @@ export default function TeamsDirectory() {
     const map = {
       admin: {
         label: tMsg('Admin', 'Admin'),
-        className:
-          'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+        className: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300',
       },
       project_owner: {
-        label: tMsg('Owner', 'Owner'),
-        className:
-          'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+        label: tMsg('Project Owner', 'Project Owner'),
+        className: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300',
       },
       manager: {
         label: tMsg('Manager', 'Manager'),
-        className: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400',
+        className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300',
       },
       staff: {
         label: tMsg('Staff', 'Staff'),
-        className:
-          'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300',
+        className: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300',
       },
     };
     return map[role] || map.staff;
   };
 
   const statusLabel = (user) => {
-    if (user.is_verified !== 1) return { text: tMsg('Unverified', 'Belum Verifikasi'), tone: 'muted' };
-    if (user.account_status === 'suspended') return { text: tMsg('Frozen', 'Beku'), tone: 'cyan' };
-    if (user.account_status === 'pending_deletion')
-      return { text: tMsg('Deleting', 'Dihapus'), tone: 'red' };
-    if (user.account_status === 'offboarding')
-      return { text: tMsg('Offboarding', 'Keluar'), tone: 'purple' };
-    return { text: tMsg('Active', 'Aktif'), tone: 'green' };
+    if (user.account_status === 'suspended') {
+      return { text: tMsg('Frozen', 'Beku'), className: 'text-red-500' };
+    }
+    if (user.is_verified === 0) {
+      return { text: tMsg('Unverified', 'Belum Verifikasi'), className: 'text-amber-500' };
+    }
+    return { text: tMsg('Active', 'Aktif'), className: 'text-emerald-500' };
   };
 
   const handleInvite = (e) => {
@@ -180,11 +177,13 @@ export default function TeamsDirectory() {
 
   const exportCsv = () => {
     const rows = [
-      ['username', 'full_name', 'email', 'role', 'status'],
+      ['username', 'full_name', 'email', 'job_position', 'division_name', 'role', 'status'],
       ...filtered.map((u) => [
         u.username,
         u.full_name || '',
         u.email || '',
+        u.job_position || '',
+        u.division_name || '',
         u.role || '',
         u.account_status || '',
       ]),
@@ -289,11 +288,13 @@ export default function TeamsDirectory() {
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800">
-          <table className="w-full min-w-[860px] text-sm">
+          <table className="w-full min-w-[1000px] text-sm">
             <thead className="border-b border-neutral-200 bg-neutral-50 text-left text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-400">
               <tr>
                 <th className="px-4 py-3">{tMsg('Name', 'Nama')}</th>
                 <th className="px-4 py-3">{tMsg('Email', 'Email')}</th>
+                <th className="px-4 py-3">{tMsg('Job Position', 'Posisi Kerja')}</th>
+                <th className="px-4 py-3">{tMsg('Division Name', 'Nama Divisi')}</th>
                 <th className="px-4 py-3">{tMsg('Role', 'Peran')}</th>
                 <th className="px-4 py-3">{tMsg('User Status', 'Status')}</th>
                 <th className="px-4 py-3 text-right">{tMsg('Actions', 'Tindakan')}</th>
@@ -302,7 +303,7 @@ export default function TeamsDirectory() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-4 py-14 text-center text-neutral-400">
+                  <td colSpan={7} className="px-4 py-14 text-center text-neutral-400">
                     {tMsg('Loading…', 'Memuat…')}
                   </td>
                 </tr>
@@ -340,6 +341,24 @@ export default function TeamsDirectory() {
                       </td>
                       <td className="px-4 py-3 text-neutral-600 dark:text-neutral-300">
                         {person.email || '—'}
+                      </td>
+                      <td className="px-4 py-3 text-neutral-600 dark:text-neutral-300">
+                        {person.job_position ? (
+                          <span className="font-medium">{person.job_position}</span>
+                        ) : (
+                          <span className="text-xs italic text-amber-500/90 dark:text-amber-400/90 font-medium">
+                            {tMsg('Not updated yet', 'Belum diupdate')}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-neutral-600 dark:text-neutral-300">
+                        {person.division_name ? (
+                          <span className="font-medium">{person.division_name}</span>
+                        ) : (
+                          <span className="text-xs italic text-amber-500/90 dark:text-amber-400/90 font-medium">
+                            {tMsg('Not updated yet', 'Belum diupdate')}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <span
