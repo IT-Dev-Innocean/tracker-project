@@ -683,7 +683,7 @@ export default function useAppLogic() {
   const [isGlobalSearchClosing, setIsGlobalSearchClosing] = useState(false);
   const [accountStatus, setAccountStatus] = useState('active');
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [workspaceRole, setWorkspaceRole] = useState('project_owner'); // admin | project_owner | manager | staff
+  const [workspaceRole, setWorkspaceRole] = useState('staff'); // admin | project_owner | manager | staff
   useEffect(() => {
     if (workspaceRole === 'staff' && viewMode === 'analytics') {
       setViewMode('kanban');
@@ -2306,7 +2306,7 @@ export default function useAppLogic() {
         );
         setWorkspaceRole(
           res.data.role ||
-            (res.data.is_superadmin === 1 ? 'admin' : 'project_owner')
+            (res.data.is_superadmin === 1 ? 'admin' : 'staff')
         );
         setProfileData({ ...res.data, current_password: '', new_password: '' });
         fetchTimesheetUnsubmittedCount(res.data);

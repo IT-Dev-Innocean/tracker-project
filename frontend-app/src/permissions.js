@@ -14,7 +14,7 @@ export function normalizeRole(role, isSuperAdmin = false) {
   if (role === ROLE_ADMIN || role === ROLE_PROJECT_OWNER || role === ROLE_MANAGER || role === ROLE_STAFF) {
     return role;
   }
-  return isSuperAdmin ? ROLE_ADMIN : ROLE_PROJECT_OWNER;
+  return isSuperAdmin ? ROLE_ADMIN : ROLE_STAFF;
 }
 
 export function canAccessAdmin(role) {
