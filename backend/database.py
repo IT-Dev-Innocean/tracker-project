@@ -113,6 +113,14 @@ class User(Base):
     division_name = Column(String(100), nullable=True)
 
 
+class AppSetting(Base):
+    __tablename__ = "app_settings"
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String(100), unique=True, index=True, nullable=False)
+    value = Column(Text, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class Board(Base):
     __tablename__ = "boards"
     id = Column(Integer, primary_key=True, index=True)
@@ -294,6 +302,14 @@ def setup_db():
 
     db = SessionLocal()
     try:
+        # Seed feature flags row if missing
+        try:
+            from feature_flags import ensure_feature_flags_seeded
+
+            ensure_feature_flags_seeded(db)
+        except Exception as exc:
+            logger.error("Gagal seed feature flags: %s", exc)
+
         # Backfill roles from is_superadmin for rows missing/invalid role
         users = db.query(User).all()
         for u in users:

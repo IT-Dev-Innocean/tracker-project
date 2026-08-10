@@ -2,12 +2,7 @@ import { Avatar } from '../../SharedUI';
 import { useAppContext } from '../../contexts/AppContext';
 import InnoceanLogo from '../InnoceanLogo';
 import { Icon } from '../icons/Icon';
-import {
-  MY_TICKETS_UI_ENABLED,
-  SUBMIT_IDEA_UI_ENABLED,
-  CONTACT_SUPPORT_UI_ENABLED,
-  REPLAY_TOUR_UI_ENABLED,
-} from '../../featureFlags';
+import { useFeatureFlags } from '../../featureFlags';
 
 function NotificationTypeIcon({ type }) {
   if (type === 'task_assigned')
@@ -24,6 +19,12 @@ function NotificationTypeIcon({ type }) {
 }
 
 export default function MobileTopBar() {
+  const {
+    MY_TICKETS_UI_ENABLED,
+    SUBMIT_IDEA_UI_ENABLED,
+    CONTACT_SUPPORT_UI_ENABLED,
+    REPLAY_TOUR_UI_ENABLED,
+  } = useFeatureFlags();
   const {
     language,
     setIsMobileMenuOpen,

@@ -19,11 +19,7 @@ import TaskDetailSubtasks from './components/TaskDetail/TaskDetailSubtasks';
 import TaskDetailActivity from './components/TaskDetail/TaskDetailActivity';
 import TaskDetailComments from './components/TaskDetail/TaskDetailComments';
 import TaskDetailCommentForm from './components/TaskDetail/TaskDetailCommentForm';
-import {
-  TASK_COMMENT_AI_MENTION_ENABLED,
-  TASK_SMART_NUDGE_UI_ENABLED,
-  TASK_MEET_NOW_UI_ENABLED,
-} from './featureFlags';
+import { useFeatureFlags } from './featureFlags';
 export default function TaskDetailModal({
   tasks,
   selectedTask,
@@ -102,6 +98,11 @@ export default function TaskDetailModal({
   onCloseInline = null,
   isPreviewMode = false,
 }) {
+  const {
+    TASK_COMMENT_AI_MENTION_ENABLED,
+    TASK_SMART_NUDGE_UI_ENABLED,
+    TASK_MEET_NOW_UI_ENABLED,
+  } = useFeatureFlags();
   const [activeTab, setActiveTab] = useState('comments');
   const [mobileTab, setMobileTab] = useState('details');
   const [hasRequestedAccess, setHasRequestedAccess] = useState(false);

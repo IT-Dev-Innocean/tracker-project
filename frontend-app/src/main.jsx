@@ -4,6 +4,7 @@ import './index.css';
 import App from './App.jsx';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AppProvider } from './contexts/AppContext';
+import FeatureFlagsBootstrap from './components/FeatureFlagsBootstrap.jsx';
 
 // Membungkam peringatan palsu dari @hello-pangea/dnd terkait Orthogonal Scroll di Kanban Board
 const originalWarn = console.warn;
@@ -19,9 +20,11 @@ const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <GoogleOAuthProvider clientId={googleClientId}>
-      <AppProvider>
-        <App />
-      </AppProvider>
+      <FeatureFlagsBootstrap>
+        <AppProvider>
+          <App />
+        </AppProvider>
+      </FeatureFlagsBootstrap>
     </GoogleOAuthProvider>
   </StrictMode>
 );

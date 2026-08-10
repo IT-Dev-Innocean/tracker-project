@@ -6,7 +6,7 @@ import json
 from datetime import datetime, timedelta
 import os
 
-from database import get_db, User, Request, Subtask, Board, BoardMember, LeaveDay, LeaveRecord, Comment, Notification, DirectMessage
+from database import get_db, User, Request, Subtask, Board, BoardMember, LeaveDay, LeaveRecord, Comment, Notification, DirectMessage, AppSetting
 from schemas import *
 from dependencies import *
 from utils import *
@@ -82,6 +82,32 @@ def verify_sudo(
     if not user or not verify_password(payload.password, user.password):
         raise HTTPException(status_code=400, detail="Incorrect password.")
     return {"message": "Verified"}
+
+
+@router.get("/api/feature-flags")
+def read_feature_flags(db: Session = Depends(get_db)):
+    """Public read — all clients use the same workspace feature flags."""
+    from feature_flags import get_feature_flags, ensure_feature_flags_seeded
+
+    ensure_feature_flags_seeded(db)
+    return {"flags": get_feature_flags(db)}
+
+
+@router.put("/api/admin/feature-flags")
+def update_feature_flags(
+    payload: FeatureFlagsUpdateModel,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not can_access_admin_menu(db, current_user):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    from feature_flags import save_feature_flags
+
+    flags = save_feature_flags(db, payload.flags or {})
+    return {
+        "message": "Feature flags updated successfully!",
+        "flags": flags,
+    }
 
 
 @router.get("/api/admin/users")

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useCloseAnimation, LoadingSpinner } from './Utils';
 import { Avatar } from './SharedUI';
 import { Icon } from './components/icons/Icon';
-import { TODO_LIST_UI_ENABLED } from './featureFlags';
+import { useFeatureFlag } from './featureFlags';
 import { isTodoListBoard } from './utils/boards';
 
 export default function ProactiveAIModal({
@@ -22,6 +22,7 @@ export default function ProactiveAIModal({
   formatDateMMM,
   avatarsMap,
 }) {
+  const TODO_LIST_UI_ENABLED = useFeatureFlag('TODO_LIST_UI_ENABLED');
   const [prompt, setPrompt] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [loadingText, setLoadingText] = useState('');

@@ -5,13 +5,14 @@ import BoardFilterSort from '../BoardFilterSort';
 import QuickFiltersPopover from '../QuickFiltersPopover';
 import { LiveClock } from '../../Widgets';
 import { Icon } from '../icons/Icon';
-import {
-  TEAM_CHAT_UI_ENABLED,
-  EXPORT_CSV_UI_ENABLED,
-  GET_ALL_DATA_UI_ENABLED,
-} from '../../featureFlags';
+import { useFeatureFlags } from '../../featureFlags';
 
 export default function MainToolbar() {
+  const {
+    TEAM_CHAT_UI_ENABLED,
+    EXPORT_CSV_UI_ENABLED,
+    GET_ALL_DATA_UI_ENABLED,
+  } = useFeatureFlags();
   const {
     language,
     selectedBoard,

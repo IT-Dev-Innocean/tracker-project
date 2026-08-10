@@ -1,15 +1,16 @@
 import React from 'react';
 import { Icon } from '../icons/Icon';
-import { TASK_COMMENT_AI_MENTION_ENABLED } from '../../featureFlags';
+import { getFeatureFlag, useFeatureFlag } from '../../featureFlags';
 
 function getCommentMentionOptions(selectedBoard, globalMentionOptions) {
   const members = globalMentionOptions || [];
+  const aiEnabled = getFeatureFlag('TASK_COMMENT_AI_MENTION_ENABLED');
   if (selectedBoard?.is_private) {
-    return TASK_COMMENT_AI_MENTION_ENABLED
+    return aiEnabled
       ? ['AI (Private)', 'AI (Team)', ...members]
       : [...members];
   }
-  return TASK_COMMENT_AI_MENTION_ENABLED
+  return aiEnabled
     ? ['all', 'AI (Team)', 'AI (Private)', ...members]
     : ['all', ...members];
 }
@@ -42,6 +43,7 @@ export default function TaskDetailCommentForm({
   workspaceRole,
   tMsg,
 }) {
+  const TASK_COMMENT_AI_MENTION_ENABLED = useFeatureFlag('TASK_COMMENT_AI_MENTION_ENABLED');
   return (
     <>
       {isInvolved ? (

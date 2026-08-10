@@ -12,7 +12,7 @@ import { Icon } from './components/icons/Icon';
 import MultiUserSelect from './components/MultiUserSelect';
 import RoleUsersTrigger from './components/RoleUsersTrigger';
 import { useCloseAnimation, LoadingSpinner } from './Utils';
-import { TASK_FORM_AI_ASSISTANT_ENABLED } from './featureFlags';
+import { useFeatureFlag } from './featureFlags';
 import { DEFAULT_FORM_TEAM_SUBTASKS } from './utils/formSubtasks';
 
 export default function TaskFormModal({
@@ -48,6 +48,7 @@ export default function TaskFormModal({
   userDirectory,
   avatarsMap = {},
 }) {
+  const TASK_FORM_AI_ASSISTANT_ENABLED = useFeatureFlag('TASK_FORM_AI_ASSISTANT_ENABLED');
   const [isClosing, close] = useCloseAnimation(() => setIsFormOpen(false));
   const tMsg = (en, id) => (language === 'id' ? id : en);
 

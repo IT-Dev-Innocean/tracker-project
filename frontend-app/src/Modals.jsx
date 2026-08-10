@@ -5,7 +5,7 @@ import { Avatar, SegmentedControl } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import { useCloseAnimation, LoadingSpinner } from './Utils';
 import { STATUS_COLOR_PALETTE } from './utils/statusColors';
-import { WELCOME_TOUR_BUTTONS_ENABLED } from './featureFlags';
+import { useFeatureFlag } from './featureFlags';
 
 function ThemeThumbnail({ variant }) {
   const isDark = variant === 'dark';
@@ -167,6 +167,7 @@ export function WelcomeTourModal({
   setThemeMode,
   currentUser,
 }) {
+  const WELCOME_TOUR_BUTTONS_ENABLED = useFeatureFlag('WELCOME_TOUR_BUTTONS_ENABLED');
   const [pendingLang, setPendingLang] = useState(language);
   const [pendingTheme, setPendingTheme] = useState(
     themeMode || (isDarkMode ? 'dark' : 'light')

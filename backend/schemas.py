@@ -171,6 +171,10 @@ class SudoVerifyModel(BaseModel):
     password: str
 
 
+class FeatureFlagsUpdateModel(BaseModel):
+    flags: dict
+
+
 class AutoNudgeToggleModel(BaseModel):
     auto_nudge: bool
 

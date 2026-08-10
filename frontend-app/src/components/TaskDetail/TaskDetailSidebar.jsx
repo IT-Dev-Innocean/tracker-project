@@ -2,13 +2,7 @@ import React from 'react';
 import axios from 'axios';
 import { Icon } from '../icons/Icon';
 import RoleUsersTrigger from '../RoleUsersTrigger';
-import {
-  TASK_SCHEDULE_MEETING_UI_ENABLED,
-  TASK_ADD_TO_CALENDAR_UI_ENABLED,
-  TASK_SMART_NUDGE_UI_ENABLED,
-  TASK_AUTO_NUDGE_UI_ENABLED,
-  TASK_QUEUE_LABEL_UI_ENABLED,
-} from '../../featureFlags';
+import { useFeatureFlags } from '../../featureFlags';
 
 const extractUsernames = (val) => {
   if (!val) return [];
@@ -65,6 +59,13 @@ export default function TaskDetailSidebar({
   allEmployees = [],
   avatarsMap = {},
 }) {
+  const {
+    TASK_SCHEDULE_MEETING_UI_ENABLED,
+    TASK_ADD_TO_CALENDAR_UI_ENABLED,
+    TASK_SMART_NUDGE_UI_ENABLED,
+    TASK_AUTO_NUDGE_UI_ENABLED,
+    TASK_QUEUE_LABEL_UI_ENABLED,
+  } = useFeatureFlags();
   const showActionButtons =
     TASK_SCHEDULE_MEETING_UI_ENABLED ||
     TASK_ADD_TO_CALENDAR_UI_ENABLED ||

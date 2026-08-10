@@ -5,13 +5,7 @@ import { useAuth } from './hooks/useAuth';
 import { useTask } from './hooks/useTask';
 import { useBoard } from './hooks/useBoard';
 import { useUISettings } from './hooks/useUISettings';
-import {
-  BOARD_HIGHLIGHTS_TOUR_ENABLED,
-  MASTER_VIEW_UI_ENABLED,
-  MY_CAPACITY_UI_ENABLED,
-  TIMESHEETS_UI_ENABLED,
-  TODO_LIST_UI_ENABLED,
-} from './featureFlags';
+import { useFeatureFlags } from './featureFlags';
 import {
   DEFAULT_FORM_TEAM_SUBTASKS,
   flattenFormSubtasksForApi,
@@ -183,6 +177,14 @@ export default function useAppLogic() {
     sortBy,
     setSortBy,
   } = useFilters();
+
+  const {
+    BOARD_HIGHLIGHTS_TOUR_ENABLED,
+    MASTER_VIEW_UI_ENABLED,
+    MY_CAPACITY_UI_ENABLED,
+    TIMESHEETS_UI_ENABLED,
+    TODO_LIST_UI_ENABLED,
+  } = useFeatureFlags();
 
   // Set default sort on initial load
   useEffect(() => {
@@ -448,7 +450,7 @@ export default function useAppLogic() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('innocean_show_timesheets', String(showTimesheets));
     }
-  }, [showTimesheets]);
+  }, [showTimesheets, TIMESHEETS_UI_ENABLED]);
   const [isNotifClosing, setIsNotifClosing] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState(null);
   const [memberToRevoke, setMemberToRevoke] = useState(null);

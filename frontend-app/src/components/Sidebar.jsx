@@ -2,15 +2,16 @@ import { useMemo, useState, useEffect } from 'react';
 import { useAppContext } from '../hooks/useAppContext';
 import InnoceanLogo from './InnoceanLogo';
 import { Icon } from './icons/Icon';
-import {
-  MASTER_VIEW_UI_ENABLED,
-  TIMESHEETS_UI_ENABLED,
-  TODO_LIST_UI_ENABLED,
-} from '../featureFlags';
+import { useFeatureFlags } from '../featureFlags';
 import { isTodoListBoard, excludeTodoListBoards } from '../utils/boards';
 import { canAccessMyTasksMenu } from '../permissions';
 
 export default function Sidebar() {
+  const {
+    MASTER_VIEW_UI_ENABLED,
+    TIMESHEETS_UI_ENABLED,
+    TODO_LIST_UI_ENABLED,
+  } = useFeatureFlags();
   const {
     currentUser,
     boards,
