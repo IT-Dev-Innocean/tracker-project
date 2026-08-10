@@ -778,26 +778,28 @@ Format:
                         className='text-[10px] font-bold px-2.5 py-1 bg-white dark:bg-black rounded-md shadow-sm border border-neutral-200 dark:border-neutral-700 hover:bg-neutral-50'>
                         • List
                       </button>
-                      <button
-                        type='button'
-                        onClick={handleGenerateDesc}
-                        disabled={isGeneratingDesc}
-                        className='ml-auto text-[10px] font-bold px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md shadow-sm border border-indigo-200 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 disabled:opacity-50 flex items-center gap-1 transition-colors'>
-                        {isGeneratingDesc ? (
-                          <>
-                            <Icon
-                              name='clock'
-                              className='w-3 h-3 inline animate-pulse'
-                            />{' '}
-                            ...
-                          </>
-                        ) : (
-                          <>
-                            <Icon name='sparkles' className='w-3 h-3 inline' />{' '}
-                            Auto Generate
-                          </>
-                        )}
-                      </button>
+                      {TASK_FORM_AI_ASSISTANT_ENABLED && (
+                        <button
+                          type='button'
+                          onClick={handleGenerateDesc}
+                          disabled={isGeneratingDesc}
+                          className='ml-auto text-[10px] font-bold px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-md shadow-sm border border-indigo-200 dark:border-indigo-800/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 disabled:opacity-50 flex items-center gap-1 transition-colors'>
+                          {isGeneratingDesc ? (
+                            <>
+                              <Icon
+                                name='clock'
+                                className='w-3 h-3 inline animate-pulse'
+                              />{' '}
+                              ...
+                            </>
+                          ) : (
+                            <>
+                              <Icon name='sparkles' className='w-3 h-3 inline' />{' '}
+                              Auto Generate
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                     <textarea
                       value={formData.description}
