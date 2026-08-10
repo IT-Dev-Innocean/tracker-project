@@ -20,11 +20,21 @@ axios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('innocean_auth');
-      localStorage.removeItem('innocean_token');
-      localStorage.removeItem('innocean_username');
-      localStorage.removeItem('innocean_selected_board');
-      window.dispatchEvent(new Event('auth_error')); // Mencegah infinite reload loop
+      const detail = (error.response.data?.detail || '').toLowerCase();
+      // Hanya logout jika token benar-benar invalid/expired atau user tidak ditemukan
+      if (
+        detail.includes('token') ||
+        detail.includes('signature') ||
+        detail.includes('credentials') ||
+        detail.includes('no longer exists') ||
+        detail.includes('not authenticated')
+      ) {
+        localStorage.removeItem('innocean_auth');
+        localStorage.removeItem('innocean_token');
+        localStorage.removeItem('innocean_username');
+        localStorage.removeItem('innocean_selected_board');
+        window.dispatchEvent(new Event('auth_error'));
+      }
     }
     return Promise.reject(error);
   }

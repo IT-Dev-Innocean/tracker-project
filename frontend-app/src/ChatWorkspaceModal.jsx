@@ -8,6 +8,7 @@ import ChatHeader from './components/ChatWorkspace/ChatHeader';
 import ChatMessageList from './components/ChatWorkspace/ChatMessageList';
 import ChatInputArea from './components/ChatWorkspace/ChatInputArea';
 import { Icon } from './components/icons/Icon';
+import { getFeatureFlag } from './featureFlags';
 export default function ChatWorkspaceModal({
   setIsChatWorkspaceOpen,
   boards,
@@ -352,6 +353,7 @@ export default function ChatWorkspaceModal({
             }
             return c;
           })
+          .filter((c) => !c?.text?.startsWith('[ACTIVITY]'))
           .filter((c) => !c.isPrivate || c.privateUser === currentUser);
 
         if (loadMore) {
@@ -612,9 +614,10 @@ export default function ChatWorkspaceModal({
     }
 
     const lowerComment = newMessage.toLowerCase();
-    const isPrivateAI = lowerComment.includes('@ai (private)');
+    const isAiMentionEnabled = getFeatureFlag('TASK_COMMENT_AI_MENTION_ENABLED');
+    const isPrivateAI = isAiMentionEnabled && lowerComment.includes('@ai (private)');
 
-    if (activeChat.type === 'task' && (lowerComment.includes('@smart assistant') || lowerComment.includes('@ai'))) {
+    if (activeChat.type === 'task' && isAiMentionEnabled && (lowerComment.includes('@smart assistant') || lowerComment.includes('@ai'))) {
       if (handleAskAITaskChat && !isAiReplying) {
         // Optimistic UI untuk pesan pengguna sendiri agar instan
         const tempId = Date.now();

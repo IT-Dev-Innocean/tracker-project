@@ -2,7 +2,7 @@ import { Avatar } from '../../SharedUI';
 import { useAppContext } from '../../contexts/AppContext';
 import InnoceanLogo from '../InnoceanLogo';
 import { Icon } from '../icons/Icon';
-import { useFeatureFlags } from '../../featureFlags';
+import { useFeatureFlags, useFeatureFlag } from '../../featureFlags';
 
 function NotificationTypeIcon({ type }) {
   if (type === 'task_assigned')
@@ -63,6 +63,7 @@ export default function MobileTopBar() {
     openGlobalSearch,
   } = useAppContext();
 
+  const isSmartAssistantEnabled = useFeatureFlag('SMART_ASSISTANT_ENABLED');
   const tMsg = (en, id) => (language === 'id' ? id : en);
   const role = isSuperAdmin ? 'admin' : workspaceRole;
   const roleLabel =
@@ -248,17 +249,19 @@ export default function MobileTopBar() {
                   <Icon name='calendar-days' className='w-4 h-4' />{' '}
                   {tMsg('Time Off', 'Cuti')}
                 </button>
-                <button
-                  onClick={() => {
-                    setIsProjectChatOpen(true);
-                    setDrawerTab('assistant');
-                    setIsMobileProfileOpen(false);
-                  }}
-                  disabled={accountStatus === 'suspended'}
-                  className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                  <Icon name='sparkles' className='w-4 h-4' />{' '}
-                  {tMsg('Smart Assistant', 'Asisten Pintar AI')}
-                </button>
+                {isSmartAssistantEnabled && (
+                  <button
+                    onClick={() => {
+                      setIsProjectChatOpen(true);
+                      setDrawerTab('assistant');
+                      setIsMobileProfileOpen(false);
+                    }}
+                    disabled={accountStatus === 'suspended'}
+                    className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
+                    <Icon name='sparkles' className='w-4 h-4' />{' '}
+                    {tMsg('Smart Assistant', 'Asisten Pintar AI')}
+                  </button>
+                )}
                 {MY_TICKETS_UI_ENABLED && (
                   <button
                     onClick={() => {

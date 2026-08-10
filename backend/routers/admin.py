@@ -132,6 +132,8 @@ def get_all_users(
                 "role": get_user_role(db, u.username),
                 "timesheet_approver": u.timesheet_approver,
                 "timesheet_required": u.timesheet_required if getattr(u, 'timesheet_required', None) is not None else True,
+                "job_position": u.job_position,
+                "division_name": u.division_name,
             }
             for u in users
         ]

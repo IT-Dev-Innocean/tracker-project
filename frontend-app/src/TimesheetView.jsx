@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { HighlightText, LoadingSpinner } from './Utils';
+import { Avatar } from './SharedUI';
 import { useAppContext } from './hooks/useAppContext';
 import { Icon } from './components/icons/Icon';
 
@@ -404,18 +405,9 @@ export default function TimesheetView({
     setIsLoading(true);
     try {
       const [entriesRes, approvalsRes, historyRes] = await Promise.all([
-        axios.get(
-          `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/entries`,
-          { headers }
-        ),
-        axios.get(
-          `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/approvals`,
-          { headers }
-        ),
-        axios.get(
-          `${import.meta.env.VITE_API_BASE_URL || ''}/api/timesheets/approvals/history`,
-          { headers }
-        ),
+        axios.get('/api/timesheets/entries'),
+        axios.get('/api/timesheets/approvals'),
+        axios.get('/api/timesheets/approvals/history'),
       ]);
       setEntries(entriesRes.data.entries || []);
       setApprovals(approvalsRes.data.entries || []);
@@ -1378,39 +1370,65 @@ export default function TimesheetView({
       </div>
 
       {/* Header */}
-      <div className='flex flex-col md:flex-row md:justify-between md:items-center gap-4 border-b border-neutral-200 dark:border-neutral-800 pb-6 shrink-0'>
+      <div className='flex flex-col md:flex-row md:justify-between md:items-center gap-6 border-b border-neutral-200 dark:border-neutral-800 pb-6 shrink-0'>
         <div className='flex flex-col gap-2'>
           <h1 className='text-4xl md:text-5xl font-black text-black dark:text-white leading-none flex items-center gap-3'>
             <Icon
               name='timer'
-              className='w-4 h-4 text-indigo-600 dark:text-indigo-400'
+              className='w-8 h-8 md:w-10 md:h-10 text-indigo-600 dark:text-indigo-400'
             />
-            My timesheets
+            {tMsg('My Timesheets', 'Timesheet Saya')}
           </h1>
           <p className='text-slate-500 dark:text-slate-400 font-medium'>
-            Log and manage your hours across all projects on a weekly basis.
+            {tMsg('Log and manage your hours across all projects on a weekly basis.', 'Catat dan kelola jam kerja Anda di seluruh proyek setiap minggu.')}
           </p>
         </div>
 
-        {/* Approver Status Badge */}
-        <div className='flex items-center gap-2 px-4 py-2 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl shadow-sm text-xs font-bold w-max'>
-          <span>
-            <Icon name='target' className='w-3.5 h-3.5 inline-block mr-1' />{' '}
-            {tMsg('Approver', 'Penyetuju')}:
-          </span>
-          {profileData?.timesheet_approver ? (
-            <span className='text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-lg'>
-              @{profileData.timesheet_approver}
+        {/* User Details & Approver Card */}
+        <div className='flex flex-wrap items-center gap-4 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-3.5 px-4 rounded-2xl shadow-sm'>
+          <div className='flex items-center gap-3 pr-4 border-r border-neutral-200 dark:border-neutral-800'>
+            <Avatar
+              name={profileData?.full_name || profileData?.username || currentUser}
+              url={profileData?.avatar}
+              size='w-10 h-10'
+            />
+            <div className='flex flex-col min-w-0'>
+              <div className='flex items-center gap-2'>
+                <span className='font-bold text-sm text-neutral-900 dark:text-white truncate max-w-[180px]'>
+                  {profileData?.full_name || profileData?.username || currentUser}
+                </span>
+                {profileData?.username && (
+                  <span className='text-[11px] font-medium text-neutral-400 dark:text-neutral-500'>
+                    (@{profileData.username})
+                  </span>
+                )}
+              </div>
+              <span className='text-xs text-neutral-500 dark:text-neutral-400 truncate max-w-[200px]'>
+                {profileData?.email || tMsg('No email', 'Tanpa email')}
+              </span>
+              <div className='flex items-center gap-2 mt-0.5 text-[11px] font-medium text-indigo-600 dark:text-indigo-400 flex-wrap'>
+                <span>{profileData?.job_position || tMsg('No Position', 'Belum Ada Posisi')}</span>
+                <span className='text-neutral-300 dark:text-neutral-700'>•</span>
+                <span>{profileData?.division_name || tMsg('No Division', 'Belum Ada Divisi')}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className='flex flex-col gap-1 text-xs font-bold'>
+            <span className='text-[10px] uppercase tracking-wider text-neutral-400 dark:text-neutral-500'>
+              {tMsg('Approver', 'Penyetuju')}
             </span>
-          ) : (
-            <span className='text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-lg'>
-              <Icon name='alert-triangle' className='w-4 h-4 inline' />{' '}
-              {tMsg(
-                'No Approver (Contact Admin)',
-                'Belum Ditentukan (Hubungi Admin)'
-              )}
-            </span>
-          )}
+            {profileData?.timesheet_approver ? (
+              <span className='text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-1 rounded-lg text-xs w-max'>
+                @{profileData.timesheet_approver}
+              </span>
+            ) : (
+              <span className='text-red-500 bg-red-50 dark:bg-red-900/20 px-2.5 py-1 rounded-lg text-xs w-max flex items-center gap-1'>
+                <Icon name='alert-triangle' className='w-3.5 h-3.5' />
+                {tMsg('Belum Ditentukan', 'Belum Ditentukan')}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

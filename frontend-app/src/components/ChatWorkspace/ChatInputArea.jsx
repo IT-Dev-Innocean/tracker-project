@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon } from '../icons/Icon';
+import { useFeatureFlag } from '../../featureFlags';
 
 export default function ChatInputArea({
   activeChat,
@@ -29,6 +30,26 @@ export default function ChatInputArea({
   insertMention,
   tMsg,
 }) {
+  const isAiCopilotEnabled = useFeatureFlag('TASK_CHAT_AI_COPILOT_ENABLED');
+
+  const isAiMentionEnabled = useFeatureFlag('TASK_COMMENT_AI_MENTION_ENABLED');
+
+  const getMentionOptions = () => {
+    const activeBoardIsPrivate = boards?.find((b) => b.id === activeChat.board_id)?.is_private;
+    if (activeChat.type === 'task') {
+      if (activeBoardIsPrivate) {
+        return isAiMentionEnabled ? ['AI (Private)', 'AI (Team)'] : [];
+      }
+      return isAiMentionEnabled
+        ? ['all', 'AI (Team)', 'AI (Private)', ...(activeBoardMembers || [])]
+        : ['all', ...(activeBoardMembers || [])];
+    }
+    if (activeChat.type === 'project') {
+      return ['team', ...(activeBoardMembers || [])];
+    }
+    return [];
+  };
+
   return (
     <div
       className={`p-4 border-t border-neutral-200 dark:border-neutral-800 shrink-0 relative z-20 ${
@@ -54,13 +75,13 @@ export default function ChatInputArea({
         </div>
       )}
       <form onSubmit={sendMessage} className="flex gap-2 relative items-end">
-        {activeChat.type === 'task' && (
+        {activeChat.type === 'task' && isAiCopilotEnabled && (
           <>
             <button
               type="button"
               onClick={() => {
-                if (!newMessage.trim()) return;
-                let finalComment = newMessage.trim();
+                const promptText = newMessage.trim() || tMsg('Summarize this task', 'Rangkum task ini');
+                let finalComment = promptText;
                 if (replyingTo) {
                   const cleanPreview = replyingTo.text
                     .replace(/^> .*?\n/gm, '')
@@ -88,7 +109,7 @@ export default function ChatInputArea({
                 handleAskAITaskChat(
                   activeChat.id,
                   finalComment,
-                  newMessage.trim(),
+                  promptText,
                   () => {
                     setNewMessage('');
                     setReplyingTo(null);
@@ -96,7 +117,7 @@ export default function ChatInputArea({
                   false
                 );
               }}
-              disabled={accountStatus === 'suspended' || !newMessage.trim() || isAiReplying}
+              disabled={accountStatus === 'suspended' || isAiReplying}
               className="bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 w-10 sm:w-12 h-[48px] rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 shrink-0"
               title={tMsg('Ask AI (Team)', 'Tanya AI (Tim)')}
             >
@@ -105,8 +126,8 @@ export default function ChatInputArea({
             <button
               type="button"
               onClick={() => {
-                if (!newMessage.trim()) return;
-                let finalComment = newMessage.trim();
+                const promptText = newMessage.trim() || tMsg('Summarize this task', 'Rangkum task ini');
+                let finalComment = promptText;
                 if (replyingTo) {
                   const cleanPreview = replyingTo.text
                     .replace(/^> .*?\n/gm, '')
@@ -134,7 +155,7 @@ export default function ChatInputArea({
                 handleAskAITaskChat(
                   activeChat.id,
                   finalComment,
-                  newMessage.trim(),
+                  promptText,
                   () => {
                     setNewMessage('');
                     setReplyingTo(null);
@@ -142,7 +163,7 @@ export default function ChatInputArea({
                   true
                 );
               }}
-              disabled={accountStatus === 'suspended' || !newMessage.trim() || isAiReplying}
+              disabled={accountStatus === 'suspended' || isAiReplying}
               className="bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-slate-400 w-10 sm:w-12 h-[48px] rounded-xl flex items-center justify-center transition-colors disabled:opacity-50 shrink-0"
               title={tMsg('Ask AI (Private)', 'Tanya AI (Privat)')}
             >
@@ -154,7 +175,13 @@ export default function ChatInputArea({
           value={newMessage}
           onChange={handleInputChange}
           disabled={accountStatus === 'suspended'}
-          placeholder={activeChat.type === 'dm' ? 'Type a message...' : 'Write a comment... (@AI to ask)'}
+          placeholder={
+            activeChat.type === 'dm'
+              ? 'Type a message...'
+              : isAiMentionEnabled
+              ? 'Write a comment... (@AI to ask)'
+              : 'Write a comment...'
+          }
           className="flex-1 py-3 px-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-xl focus:bg-white dark:focus:bg-black focus:border-indigo-500 dark:focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none text-sm font-medium placeholder-neutral-400 transition-colors disabled:opacity-50 resize-none max-h-[120px]"
           style={{ minHeight: '44px' }}
           rows="1"
@@ -164,15 +191,7 @@ export default function ChatInputArea({
           }}
           onKeyDown={(e) => {
             if (isMentioning) {
-              const activeBoardIsPrivate = boards?.find((b) => b.id === activeChat.board_id)?.is_private;
-              const allOps =
-                activeChat.type === 'task'
-                  ? activeBoardIsPrivate
-                    ? ['AI (Private)', 'AI (Team)']
-                    : ['all', 'AI (Team)', 'AI (Private)', ...(activeBoardMembers || [])]
-                  : activeChat.type === 'project'
-                  ? ['team', ...(activeBoardMembers || [])]
-                  : [];
+              const allOps = getMentionOptions();
               const filtered = allOps.filter((m) => m.toLowerCase().includes(mentionQuery));
               if (e.key === 'ArrowDown') {
                 e.preventDefault();
@@ -206,13 +225,7 @@ export default function ChatInputArea({
         {isMentioning && accountStatus !== 'suspended' && activeChat.type !== 'dm' && (
           <div className="absolute left-0 bottom-full mb-2 w-full min-w-[200px] bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl z-50 max-h-40 overflow-y-auto py-2">
             {(() => {
-              const activeBoardIsPrivate = boards?.find((b) => b.id === activeChat.board_id)?.is_private;
-              const allOptions =
-                activeChat.type === 'task'
-                  ? activeBoardIsPrivate
-                    ? ['AI (Private)', 'AI (Team)']
-                    : ['all', 'AI (Team)', 'AI (Private)', ...(activeBoardMembers || [])]
-                  : ['team', ...(activeBoardMembers || [])];
+              const allOptions = getMentionOptions();
               const filteredOptions = allOptions.filter((m) => m.toLowerCase().includes(mentionQuery));
               if (filteredOptions.length > 0) {
                 return filteredOptions.map((m, idx) => (
