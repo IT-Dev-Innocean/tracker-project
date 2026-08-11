@@ -28,6 +28,19 @@ export default function TimelineView({
   const [isExporting, setIsExporting] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+  const contextLeaves = React.useMemo(() => {
+    return leaves.filter((l) => {
+      if (l.leave_type !== 'personal') return true;
+      if (l.username === currentUser) return true;
+      if (!selectedBoard || selectedBoard.id === 'global' || selectedBoard.id === 'todo') {
+        return true;
+      }
+      if (selectedBoard.owner_username === l.username) return true;
+      if (selectedBoard.members && selectedBoard.members.some((m) => (m.member_username || m.username) === l.username)) return true;
+      return false;
+    });
+  }, [leaves, selectedBoard, currentUser]);
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -354,7 +367,7 @@ export default function TimelineView({
         start.getDate()
       ).padStart(2, '0')}`;
       const isWeekend = start.getDay() === 0 || start.getDay() === 6;
-      const isHoliday = leaves.some(
+      const isHoliday = contextLeaves.some(
         (l) => l.leave_date === dStr && (l.leave_type !== 'personal' || isUserAssigned(t, l.username))
       );
       if (isWeekend || isHoliday) {
@@ -619,7 +632,7 @@ export default function TimelineView({
                   const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
                     d.getDate()
                   ).padStart(2, '0')}`;
-                  const hasHoliday = leaves.some(
+                  const hasHoliday = contextLeaves.some(
                     (l) => l.leave_date === dStr && (l.leave_type !== 'personal' || l.username === currentUser)
                   );
 
@@ -634,7 +647,7 @@ export default function TimelineView({
                       style={{ width: DAY_WIDTH }}
                       title={
                         hasHoliday
-                          ? leaves.find(
+                          ? contextLeaves.find(
                               (l) =>
                                 l.leave_date === dStr && (l.leave_type !== 'personal' || l.username === currentUser)
                             )?.description
@@ -690,7 +703,7 @@ export default function TimelineView({
                 const dStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
                   d.getDate()
                 ).padStart(2, '0')}`;
-                const hasHoliday = leaves.some(
+                const hasHoliday = contextLeaves.some(
                   (l) => l.leave_date === dStr && (l.leave_type !== 'personal' || l.username === currentUser)
                 );
 
@@ -743,7 +756,7 @@ export default function TimelineView({
                             d.getDate()
                           ).padStart(2, '0')}`;
                           const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-                          const holiday = leaves.find(
+                          const holiday = contextLeaves.find(
                             (l) =>
                               l.leave_date === dStr && (l.leave_type !== 'personal' || isUserAssigned(t, l.username))
                           );
