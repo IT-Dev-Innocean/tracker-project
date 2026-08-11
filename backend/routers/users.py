@@ -273,7 +273,7 @@ def get_notifications(
         n.related_task_id
         for n in final_notifs
         if n.related_task_id
-        and n.type not in ["team_chat", "team_chat_no_email", "team_invite"]
+        and n.type not in ["team_chat", "team_chat_no_email", "team_invite", "access_request", "access_accepted", "info"]
     ]
     board_by_task = {}
     if task_ids:
@@ -283,13 +283,29 @@ def get_notifications(
             .filter(Request.id.in_(task_ids))
             .all()
         }
+    # Pre-fetch boards map by name for exact fallback matching (sorted by longest name first)
+    boards_list = db.query(Board.id, Board.name).all()
+    boards_list.sort(key=lambda b: len(b.name), reverse=True)
+
     res = []
     for n in final_notifs:
         board_id = None
-        if n.type in ["team_chat", "team_chat_no_email", "team_invite"]:
+        if n.type in ["team_chat", "team_chat_no_email", "team_invite", "access_request", "access_accepted"]:
+            board_id = n.related_task_id
+        elif n.type == "info" and n.related_task_id:
+            # Info notifications for project invite responses store board.id in related_task_id
             board_id = n.related_task_id
         elif n.related_task_id:
             board_id = board_by_task.get(n.related_task_id)
+
+        # Fallback parsing project name from message string if board_id not resolved or invalid
+        if n.message:
+            msg_lower = n.message.lower()
+            for b in boards_list:
+                if b.name.lower() in msg_lower:
+                    board_id = b.id
+                    break
+
         res.append(
             {
                 "id": n.id,

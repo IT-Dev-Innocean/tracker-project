@@ -826,6 +826,62 @@ def accept_access_request(board_id: int, member_id: int, current_user: str = Dep
         f"Your request to join project '{board.name}' has been accepted. You are now a member!{task_info}",
         "access_accepted", board.id
     )
+
+@router.put("/api/invitations/{board_id}/accept")
+def accept_board_invitation(
+    board_id: int,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    board = db.query(Board).filter(Board.id == board_id).first()
+    if not board:
+        raise HTTPException(status_code=404, detail="Project not found")
+    inv = (
+        db.query(BoardMember)
+        .filter(BoardMember.board_id == board_id, BoardMember.member_username == current_user)
+        .first()
+    )
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invitation not found")
+    
+    inv.status = "accepted"
+    db.commit()
+    create_notification(
+        db,
+        board.owner_username,
+        f"@{current_user} accepted your invitation to join project: {board.name}",
+        "info",
+        board_id,
+    )
+    return {"message": "Invitation accepted successfully!"}
+
+@router.delete("/api/invitations/{board_id}/decline")
+def decline_board_invitation(
+    board_id: int,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    board = db.query(Board).filter(Board.id == board_id).first()
+    if not board:
+        raise HTTPException(status_code=404, detail="Project not found")
+    inv = (
+        db.query(BoardMember)
+        .filter(BoardMember.board_id == board_id, BoardMember.member_username == current_user)
+        .first()
+    )
+    if not inv:
+        raise HTTPException(status_code=404, detail="Invitation not found")
+    
+    inv.status = "declined"
+    db.commit()
+    create_notification(
+        db,
+        board.owner_username,
+        f"@{current_user} declined your invitation to join project: {board.name}",
+        "info",
+        board_id,
+    )
+    return {"message": "Invitation declined."}
 @router.post("/api/boards/{board_id}/join")
 def join_board(
     board_id: int,
@@ -925,16 +981,33 @@ def invite_board_member(
             .first()
         )
         if existing_connection:
-            errors.append(f"{identifier} (Already in project)")
-            continue
+            if existing_connection.status == "accepted":
+                errors.append(f"{identifier} (Already in project)")
+                continue
+            elif existing_connection.status == "requesting":
+                errors.append(f"{identifier} (Requesting access currently)")
+                continue
+            else:
+                # Update existing pending or declined invitation to pending
+                existing_connection.status = "pending"
+                create_notification(
+                    db,
+                    target.username,
+                    f"@{current_user} invited you to project: {board.name}",
+                    "team_invite",
+                    board_id,
+                )
+                success_count += 1
+                continue
 
-        new_invite = BoardMember(board_id=board_id, member_username=target.username)
+        new_invite = BoardMember(board_id=board_id, member_username=target.username, status="pending")
         db.add(new_invite)
         create_notification(
             db,
             target.username,
             f"@{current_user} invited you to project: {board.name}",
             "team_invite",
+            board_id,
         )
         success_count += 1
 

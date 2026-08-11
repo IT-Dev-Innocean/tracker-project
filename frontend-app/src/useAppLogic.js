@@ -5008,6 +5008,16 @@ export default function useAppLogic() {
   };
 
   const openTeamModal = (bId = null) => {
+    if (bId) {
+      const match = (boards || []).find((b) => String(b.id) === String(bId));
+      if (match) {
+        setSelectedBoard(match);
+      } else {
+        axios.get(`/api/boards/${bId}`).then((res) => {
+          if (res.data?.board) setSelectedBoard(res.data.board);
+        }).catch(console.error);
+      }
+    }
     fetchMyTeam(bId);
     setIsTeamModalOpen(true);
   };
@@ -5032,6 +5042,27 @@ export default function useAppLogic() {
         setIsLoading(false);
         showNotification(
           err.response?.data?.detail || 'Failed to invite user.',
+          'error'
+        );
+      });
+  };
+
+  const handleReinviteMember = (username) => {
+    if (!selectedBoard?.id || !username) return;
+    setIsLoading(true);
+    axios
+      .post(`/api/boards/${selectedBoard.id}/invite`, {
+        members_input: username,
+      })
+      .then((res) => {
+        setIsLoading(false);
+        showNotification(res.data.message, 'success');
+        fetchMyTeam();
+      })
+      .catch((err) => {
+        setIsLoading(false);
+        showNotification(
+          err.response?.data?.detail || 'Failed to re-invite user.',
           'error'
         );
       });
@@ -6199,6 +6230,7 @@ export default function useAppLogic() {
     handleLogin,
     openTeamModal,
     handleInviteTeam,
+    handleReinviteMember,
     handleJoinProject,
     handleInviteInputChange,
     applyInviteSuggestion,

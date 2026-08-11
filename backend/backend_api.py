@@ -308,6 +308,15 @@ def accept_invite(
     if inv:
         inv.status = "accepted"
         db.commit()
+        board = db.query(Board).filter(Board.id == inv.board_id).first()
+        if board:
+            create_notification(
+                db,
+                board.owner_username,
+                f"@{current_user} accepted your invitation to join project: {board.name}",
+                "info",
+                board.id,
+            )
     return {"message": "Invitation accepted"}
 
 
@@ -317,10 +326,25 @@ def decline_invite(
     current_user: str = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    db.query(BoardMember).filter(
-        BoardMember.id == invite_id, BoardMember.member_username == current_user
-    ).delete()
-    db.commit()
+    inv = (
+        db.query(BoardMember)
+        .filter(
+            BoardMember.id == invite_id, BoardMember.member_username == current_user
+        )
+        .first()
+    )
+    if inv:
+        inv.status = "declined"
+        db.commit()
+        board = db.query(Board).filter(Board.id == inv.board_id).first()
+        if board:
+            create_notification(
+                db,
+                board.owner_username,
+                f"@{current_user} declined your invitation to join project: {board.name}",
+                "info",
+                board.id,
+            )
     return {"message": "Invitation declined"}
 
 

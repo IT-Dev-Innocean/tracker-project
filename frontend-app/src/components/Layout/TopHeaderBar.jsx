@@ -66,6 +66,7 @@ export default function TopHeaderBar() {
     setShowTimesheets,
     setSidebarNav,
     unsubmittedTimesheetsCount,
+    openTeamModal,
   } = useAppContext();
 
   const isSmartAssistantEnabled = useFeatureFlag('SMART_ASSISTANT_ENABLED');
@@ -290,16 +291,25 @@ export default function TopHeaderBar() {
                       key={n.id}
                       onClick={() => {
                         if (!n.is_read) handleReadNotification(n.id);
-                        if (
+                        if (n.type === 'team_invite') {
+                          setIsInvitesModalOpen(true);
+                        } else if (
+                          n.type === 'access_request' ||
+                          n.type === 'access_accepted' ||
+                          n.message?.includes('declined') ||
+                          n.message?.includes('accepted')
+                        ) {
+                          if (n.board_id && openTeamModal) {
+                            openTeamModal(n.board_id);
+                          }
+                        } else if (
                           n.related_task_id &&
                           n.type !== 'team_chat' &&
-                          n.type !== 'team_chat_no_email' &&
-                          n.type !== 'team_invite' &&
-                          n.type !== 'access_request'
+                          n.type !== 'team_chat_no_email'
                         ) {
                           handleNotificationTaskClick(n.related_task_id);
-                        } else if (n.type === 'team_invite') {
-                          setIsInvitesModalOpen(true);
+                        } else if (n.board_id && openTeamModal) {
+                          openTeamModal(n.board_id);
                         }
                         setIsNotifOpen(false);
                       }}
