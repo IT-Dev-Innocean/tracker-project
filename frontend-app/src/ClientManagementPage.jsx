@@ -386,10 +386,13 @@ export default function ClientManagementPage() {
                       />
                     </th>
                     <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
+                      {tMsg('Client Code', 'Kode Klien')}
+                    </th>
+                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
                       {tMsg('Client Name', 'Nama Klien')}
                     </th>
                     <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                      {tMsg('Owner', 'Pemilik')}
+                      {tMsg('Created By', 'Dibuat Oleh')}
                     </th>
                     <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-center'>
                       {tMsg('Status', 'Status')}
@@ -411,6 +414,18 @@ export default function ClientManagementPage() {
                           checked={selectedClients.includes(c.id)}
                           onChange={() => handleToggleSelectClient(c.id)}
                         />
+                      </td>
+                      <td className='px-6 py-4 font-mono text-sm font-bold text-neutral-800 dark:text-neutral-200 whitespace-nowrap'>
+                        {c.client_code ? (
+                          <HighlightText
+                            text={c.client_code}
+                            query={searchQuery}
+                          />
+                        ) : (
+                          <span className='text-neutral-300 dark:text-neutral-600 font-normal'>
+                            —
+                          </span>
+                        )}
                       </td>
                       <td className='px-6 py-4 font-bold text-black dark:text-white text-sm whitespace-nowrap'>
                         <HighlightText
