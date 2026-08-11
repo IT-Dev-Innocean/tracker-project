@@ -23,6 +23,7 @@ export default function TimelineView({
   isTrashHovered,
   isDarkMode,
   language,
+  workspaceRole,
 }) {
   const tMsg = (en, id) => (language === 'id' ? id : en);
   const [isExporting, setIsExporting] = useState(false);
@@ -793,15 +794,17 @@ export default function TimelineView({
                         if (segments.length === 0 && offSegments.length === 0)
                           segments.push({ start: new Date(t.start), end: new Date(t.end) });
 
-                        let bgColor = 'bg-emerald-500';
-                        if (t.status === 'Done') bgColor = 'bg-emerald-600';
-                        else if (t.status === 'Rejected') bgColor = 'bg-slate-400';
-                        else if (t.status === 'In Progress') bgColor = 'bg-blue-500';
-                        else if (t.priority_lvl === 'critical') bgColor = 'bg-red-500';
-                        else if (t.priority_lvl === 'warning') bgColor = 'bg-amber-500';
+                        let bgColor = 'bg-orange-500';
+                        const statusKey = (t.status || '').toLowerCase().trim();
+                        if (statusKey === 'done') bgColor = 'bg-emerald-500';
+                        else if (statusKey === 'in progress') bgColor = 'bg-blue-600';
+                        else if (statusKey === 'canceled' || statusKey === 'rejected') bgColor = 'bg-slate-400 dark:bg-slate-500';
+                        else if (statusKey === 'to do' || statusKey === 'pending') bgColor = 'bg-orange-500';
 
                         const isTaskAdmin =
                           isSuperAdmin ||
+                          workspaceRole === 'project_owner' ||
+                          workspaceRole === 'admin' ||
                           t.owner_username === currentUser ||
                           (selectedBoard && selectedBoard.owner_username === currentUser) ||
                           (t.requester &&

@@ -16,6 +16,7 @@ export default function CalendarView({
   isSuperAdmin,
   isTrashHovered,
   dateFormat,
+  workspaceRole,
 }) {
   const [subView, setSubView] = React.useState('month'); // 'month' | 'week' | 'schedule'
   const [expandedDate, setExpandedDate] = React.useState(null);
@@ -391,18 +392,23 @@ export default function CalendarView({
                           </div>
                           <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1.5 pr-1 mt-1">
                             {visibleTasks.map((t) => {
-                              let bgColor = 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400';
-                              if (t.status === 'Rejected')
-                                bgColor = 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300';
-                              else if (t.status === 'In Progress')
-                                bgColor = 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
-                              else if (t.status === 'Pending' || t.status === 'To Do')
-                                bgColor = 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400';
+                              let bgColor = 'bg-orange-500 text-white';
+                              const statusKey = (t.status || '').toLowerCase().trim();
+                              if (statusKey === 'done')
+                                bgColor = 'bg-emerald-500 text-white';
+                              else if (statusKey === 'canceled' || statusKey === 'rejected')
+                                bgColor = 'bg-slate-400 dark:bg-slate-500 text-white';
+                              else if (statusKey === 'in progress')
+                                bgColor = 'bg-blue-600 text-white';
+                              else if (statusKey === 'to do' || statusKey === 'pending')
+                                bgColor = 'bg-orange-500 text-white';
 
                               const isFirst = cellDate.getTime() === t.start.getTime();
                               const isLast = cellDate.getTime() === t.effectiveEnd.getTime();
                               const isTaskAdmin =
                                 isSuperAdmin ||
+                                workspaceRole === 'project_owner' ||
+                                workspaceRole === 'admin' ||
                                 t.owner_username === currentUser ||
                                 (selectedBoard && selectedBoard.owner_username === currentUser) ||
                                 (t.requester &&
@@ -551,13 +557,14 @@ export default function CalendarView({
                     {dayTasks.length > 0 ? (
                       <div className="grid gap-2">
                         {dayTasks.map((t) => {
-                          let statusBg = 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400';
-                          if (t.status === 'Rejected')
-                            statusBg = 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300';
-                          else if (t.status === 'In Progress')
-                            statusBg = 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400';
-                          else if (t.status === 'Pending' || t.status === 'To Do')
-                            statusBg = 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400';
+                          let statusBg = 'bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-400 border border-orange-200/60 dark:border-orange-800/60';
+                          const statusKey = (t.status || '').toLowerCase().trim();
+                          if (statusKey === 'done')
+                            statusBg = 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60';
+                          else if (statusKey === 'canceled' || statusKey === 'rejected')
+                            statusBg = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700';
+                          else if (statusKey === 'in progress')
+                            statusBg = 'bg-blue-100 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/60';
 
                           return (
                             <div

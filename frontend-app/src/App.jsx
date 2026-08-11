@@ -1567,6 +1567,7 @@ function App() {
                         isTrashHovered={isTrashHovered}
                         isDarkMode={isDarkMode}
                         language={language}
+                        workspaceRole={workspaceRole}
                       />
                     )}
 
@@ -1587,6 +1588,7 @@ function App() {
                         isTrashHovered={isTrashHovered}
                         language={language}
                         dateFormat={dateFormat}
+                        workspaceRole={workspaceRole}
                       />
                     )}
                   </>

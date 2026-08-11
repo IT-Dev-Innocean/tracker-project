@@ -1766,14 +1766,17 @@ export default function useAppLogic() {
 
       if (requiresUpdate) {
         const isTaskAdmin =
-          isSuperAdmin ||
-          t.owner_username === currentUser ||
-          (selectedBoard && selectedBoard.owner_username === currentUser) ||
-          (t.requester &&
-            new RegExp(
-              `@${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
-              'i'
-            ).test(t.requester));
+          workspaceRole !== 'staff' &&
+          (isSuperAdmin ||
+            workspaceRole === 'project_owner' ||
+            workspaceRole === 'admin' ||
+            t.owner_username === currentUser ||
+            (selectedBoard && selectedBoard.owner_username === currentUser) ||
+            (t.requester &&
+              new RegExp(
+                `@${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
+                'i'
+              ).test(t.requester)));
         if (isTaskAdmin) {
           setTasks((prev) =>
             prev.map((task) =>
@@ -3810,14 +3813,17 @@ export default function useAppLogic() {
       const draggedTask = tasks.find((t) => t.id.toString() === draggableId);
       if (draggedTask) {
         const isTaskAdmin =
-          isSuperAdmin ||
-          draggedTask.owner_username === currentUser ||
-          (selectedBoard && selectedBoard.owner_username === currentUser) ||
-          (draggedTask.requester &&
-            new RegExp(
-              `@${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
-              'i'
-            ).test(draggedTask.requester));
+          workspaceRole !== 'staff' &&
+          (isSuperAdmin ||
+            workspaceRole === 'project_owner' ||
+            workspaceRole === 'admin' ||
+            draggedTask.owner_username === currentUser ||
+            (selectedBoard && selectedBoard.owner_username === currentUser) ||
+            (draggedTask.requester &&
+              new RegExp(
+                `@${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
+                'i'
+              ).test(draggedTask.requester)));
         if (isTaskAdmin) {
           setSelectedTask(draggedTask);
           setIsDeleteConfirmOpen(true);
@@ -3841,14 +3847,17 @@ export default function useAppLogic() {
 
     // Security & Permission Check pada saat dijatuhkan
     const isTaskAdmin =
-      isSuperAdmin ||
-      draggedTask.owner_username === currentUser ||
-      (selectedBoard && selectedBoard.owner_username === currentUser) ||
-      (draggedTask.requester &&
-        new RegExp(
-          `@${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
-          'i'
-        ).test(draggedTask.requester));
+      workspaceRole !== 'staff' &&
+      (isSuperAdmin ||
+        workspaceRole === 'project_owner' ||
+        workspaceRole === 'admin' ||
+        draggedTask.owner_username === currentUser ||
+        (selectedBoard && selectedBoard.owner_username === currentUser) ||
+        (draggedTask.requester &&
+          new RegExp(
+            `@${currentUser.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w.-])`,
+            'i'
+          ).test(draggedTask.requester)));
 
     if (!isTaskAdmin) {
       showNotification(

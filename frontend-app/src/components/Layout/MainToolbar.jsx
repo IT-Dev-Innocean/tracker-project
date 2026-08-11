@@ -31,6 +31,7 @@ export default function MainToolbar() {
     searchQuery,
     setSearchQuery,
     handleOpenNewTaskForm,
+    handleOpenAddBoard,
     groupBy,
     setGroupBy,
     setViewMode,
@@ -59,6 +60,13 @@ export default function MainToolbar() {
   } = useAppContext();
 
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = React.useState(false);
+  const [isListViewEnabled, setIsListViewEnabled] = React.useState(
+    () => viewMode === 'list' || localStorage.getItem('innocean_list_view_enabled') === 'true'
+  );
+
+  React.useEffect(() => {
+    localStorage.setItem('innocean_list_view_enabled', String(isListViewEnabled));
+  }, [isListViewEnabled]);
   const tMsg = (en, id) => (language === 'id' ? id : en);
   const canCreateTasks =
     workspaceRole === 'admin' ||
@@ -268,7 +276,10 @@ export default function MainToolbar() {
       {/* View tabs — pill segmented control (theme-aware active bg) */}
       <div className='w-full overflow-x-auto custom-scrollbar tour-views'>
         <div className='inline-flex items-center gap-1 p-1 rounded-none bg-transparent w-full border-t md:border-t-0 border-b border-neutral-200 dark:border-neutral-700'>
-          {['kanban', 'list', 'timeline', 'calendar', 'analytics']
+          {(isListViewEnabled
+            ? ['kanban', 'list', 'timeline', 'calendar', 'analytics']
+            : ['kanban', 'timeline', 'calendar', 'analytics']
+          )
             .filter((v) => v !== 'analytics' || workspaceRole !== 'staff')
             .map((v) => {
               const isActive = viewMode === v;
@@ -293,6 +304,31 @@ export default function MainToolbar() {
                 </button>
               );
             })}
+
+          <button
+            type='button'
+            onClick={() => {
+              if (!isListViewEnabled) {
+                setIsListViewEnabled(true);
+                setViewMode('list');
+              } else {
+                setIsListViewEnabled(false);
+                if (viewMode === 'list') setViewMode('kanban');
+              }
+            }}
+            className={`theme-interactive inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-lg transition-colors shrink-0 ml-1 ${
+              isListViewEnabled
+                ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-200'
+                : 'text-neutral-500 hover:text-black dark:hover:text-white'
+            }`}
+            title={
+              isListViewEnabled
+                ? tMsg('Hide List View', 'Sembunyikan Tampilan List')
+                : tMsg('Enable List View', 'Aktifkan Tampilan List')
+            }>
+            <IconPlus className={`w-3.5 h-3.5 transition-transform ${isListViewEnabled ? 'rotate-45' : ''}`} />
+            <span>{tMsg('List View', 'Tampilan List')}</span>
+          </button>
         </div>
       </div>
 

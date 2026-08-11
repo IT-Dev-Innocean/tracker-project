@@ -159,6 +159,8 @@ export default function KanbanBoard({
               ) => {
                 const isTaskAdmin =
                   isSuperAdmin ||
+                  workspaceRole === 'project_owner' ||
+                  workspaceRole === 'admin' ||
                   task.owner_username === currentUser ||
                   (selectedBoard &&
                     selectedBoard.owner_username === currentUser) ||
@@ -256,7 +258,7 @@ export default function KanbanBoard({
                     </div>
 
                     <div className='mb-2'>
-                      <div className='font-bold text-sm text-black dark:text-white break-normal uppercase tracking-wider leading-snug'>
+                      <div className='font-bold text-sm text-black dark:text-white break-normal leading-snug'>
                         <HighlightText
                           text={task.task_name}
                           query={searchQuery}
