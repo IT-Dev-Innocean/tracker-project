@@ -631,6 +631,8 @@ export function CreateBoardModal({
   setNewBoardNumber,
   newBoardClient,
   setNewBoardClient,
+  newBoardClientCode,
+  setNewBoardClientCode,
   clients = [],
   language,
   isSubmitting,
@@ -732,17 +734,29 @@ export function CreateBoardModal({
               </Select.Portal>
             </Select.Root>
             {isCreatingNewClient && (
-              <input
-                type='text'
-                value={newBoardClient || ''}
-                onChange={(e) => setNewBoardClient?.(e.target.value)}
-                placeholder={tMsg(
-                  'Enter new client name...',
-                  'Masukkan nama klien baru...'
-                )}
-                className='mt-3 w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all'
-                autoFocus
-              />
+              <div className='mt-3 space-y-3'>
+                <input
+                  type='text'
+                  value={newBoardClientCode || ''}
+                  onChange={(e) => setNewBoardClientCode?.(e.target.value)}
+                  placeholder={tMsg(
+                    'Client code (e.g. CLI-001, optional)...',
+                    'Kode klien (cth. CLI-001, opsional)...'
+                  )}
+                  className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all font-mono'
+                  autoFocus
+                />
+                <input
+                  type='text'
+                  value={newBoardClient || ''}
+                  onChange={(e) => setNewBoardClient?.(e.target.value)}
+                  placeholder={tMsg(
+                    'Enter new client name...',
+                    'Masukkan nama klien baru...'
+                  )}
+                  className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all'
+                />
+              </div>
             )}
           </div>
           <div className='mb-6'>
@@ -1479,6 +1493,12 @@ export function LeaveModal({
 
         <div className='flex-1 overflow-y-auto space-y-3 pr-2'>
           {leaves
+            .filter((l) => {
+              if (!l.leave_date) return true;
+              const y = new Date(l.leave_date).getFullYear();
+              const currentY = new Date().getFullYear();
+              return y >= currentY;
+            })
             .sort((a, b) => new Date(a.leave_date) - new Date(b.leave_date))
             .map((l) => (
               <div

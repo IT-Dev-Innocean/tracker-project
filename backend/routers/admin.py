@@ -6,7 +6,7 @@ import json
 from datetime import datetime, timedelta
 import os
 
-from database import get_db, User, Request, Subtask, Board, BoardMember, LeaveDay, LeaveRecord, Comment, Notification, DirectMessage, AppSetting
+from database import get_db, User, Request, Subtask, Board, BoardMember, LeaveDay, LeaveRecord, Comment, Notification, DirectMessage, AppSetting, Client
 from schemas import *
 from dependencies import *
 from utils import *
@@ -447,16 +447,23 @@ def get_all_boards_admin(
     boards = db.query(Board).all()
 
     res = []
+    # Build a lookup dictionary for client_name -> client_code
+    clients_map = {c.client_name: c.client_code for c in db.query(Client).all() if c.client_name}
+
     for b in boards:
         if is_todo_list_board(b):
             continue
         owner = db.query(User).filter(User.username == b.owner_username).first()
         owner_status = owner.account_status if owner else "orphan"
+        b_client_name = getattr(b, "client_name", None)
+        b_client_code = clients_map.get(b_client_name) if b_client_name else None
         res.append(
             {
                 "id": b.id,
                 "name": b.name,
                 "project_number": getattr(b, "project_number", None),
+                "client_name": b_client_name,
+                "client_code": b_client_code,
                 "owner_username": b.owner_username,
                 "owner_status": owner_status,
                 "created_at": b.created_at,

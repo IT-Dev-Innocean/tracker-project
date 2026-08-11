@@ -38,7 +38,8 @@ export default function ProjectManagementPage() {
   const [newOwnerInput, setNewOwnerInput] = useState('');
   const [isTransferring, setIsTransferring] = useState(false);
   const [boardToEdit, setBoardToEdit] = useState(null);
-  const [editForm, setEditForm] = useState({ project_number: '', name: '' });
+  const [editForm, setEditForm] = useState({ project_number: '', name: '', client_name: '' });
+  const [clients, setClients] = useState([]);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [projectsPerPage, setProjectsPerPage] = useState(() => {
@@ -165,7 +166,9 @@ export default function ProjectManagementPage() {
       const matchSearch =
         b.name.toLowerCase().includes(q) ||
         b.owner_username.toLowerCase().includes(q) ||
-        (b.project_number || '').toLowerCase().includes(q);
+        (b.project_number || '').toLowerCase().includes(q) ||
+        (b.client_code || '').toLowerCase().includes(q) ||
+        (b.client_name || '').toLowerCase().includes(q);
       return matchFilter && matchSearch;
     });
   }, [manageBoards, projectFilter, projectSearchQuery]);
@@ -229,17 +232,25 @@ export default function ProjectManagementPage() {
     setDeleteConfirmOpen(true);
   };
 
+  useEffect(() => {
+    axios
+      .get('/api/clients')
+      .then((res) => setClients(res.data.clients || []))
+      .catch(console.error);
+  }, []);
+
   const openEditBoard = (board) => {
     setBoardToEdit(board);
     setEditForm({
       project_number: board.project_number || '',
       name: board.name || '',
+      client_name: board.client_name || '',
     });
   };
 
   const closeEditBoard = () => {
     setBoardToEdit(null);
-    setEditForm({ project_number: '', name: '' });
+    setEditForm({ project_number: '', name: '', client_name: '' });
   };
 
   const executeEditBoard = () => {
@@ -249,6 +260,7 @@ export default function ProjectManagementPage() {
       .put(`/api/boards/${boardToEdit.id}`, {
         name: editForm.name.trim(),
         project_number: editForm.project_number.trim() || null,
+        client_name: editForm.client_name || null,
       })
       .then((res) => {
         showNotification?.(
@@ -436,14 +448,24 @@ export default function ProjectManagementPage() {
                         onChange={() => handleToggleSelectBoard(b.id)}
                       />
                       <div className='min-w-0 flex-1'>
-                        {b.project_number && (
-                          <p className='text-[10px] font-bold uppercase tracking-wider text-neutral-400 mb-0.5'>
-                            <HighlightText
-                              text={b.project_number}
-                              query={projectSearchQuery}
-                            />
-                          </p>
-                        )}
+                        <div className='flex items-center gap-2 flex-wrap mb-0.5'>
+                          {b.project_number && (
+                            <p className='text-[10px] font-bold uppercase tracking-wider text-neutral-400'>
+                              <HighlightText
+                                text={b.project_number}
+                                query={projectSearchQuery}
+                              />
+                            </p>
+                          )}
+                          {b.client_code && (
+                            <span className='text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50'>
+                              <HighlightText
+                                text={b.client_code}
+                                query={projectSearchQuery}
+                              />
+                            </span>
+                          )}
+                        </div>
                         <h4 className='font-bold text-black dark:text-white truncate'>
                           <HighlightText
                             text={b.name}
@@ -520,11 +542,14 @@ export default function ProjectManagementPage() {
                     <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 whitespace-nowrap'>
                       {tMsg('Project Number', 'Nomor Proyek')}
                     </th>
+                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 whitespace-nowrap'>
+                      {tMsg('Client Code', 'Kode Klien')}
+                    </th>
                     <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
                       {tMsg('Project Name', 'Nama Proyek')}
                     </th>
                     <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                      {tMsg('Owner', 'Pemilik')}
+                      {tMsg('Created By', 'Dibuat Oleh')}
                     </th>
                     <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-center'>
                       {tMsg('Owner Status', 'Status Pemilik')}
@@ -555,6 +580,18 @@ export default function ProjectManagementPage() {
                           />
                         ) : (
                           <span className='text-neutral-300 dark:text-neutral-600'>
+                            —
+                          </span>
+                        )}
+                      </td>
+                      <td className='px-6 py-4 text-sm font-bold font-mono text-neutral-800 dark:text-neutral-200 whitespace-nowrap'>
+                        {b.client_code ? (
+                          <HighlightText
+                            text={b.client_code}
+                            query={projectSearchQuery}
+                          />
+                        ) : (
+                          <span className='text-neutral-300 dark:text-neutral-600 font-normal'>
                             —
                           </span>
                         )}
@@ -709,10 +746,33 @@ export default function ProjectManagementPage() {
             </h3>
             <p className='text-neutral-600 dark:text-neutral-400 text-sm mb-6 text-center'>
               {tMsg(
-                'Update project number and project name.',
-                'Perbarui nomor proyek dan nama proyek.'
+                'Update project number, name, and assigned client.',
+                'Perbarui nomor proyek, nama proyek, dan klien terkait.'
               )}
             </p>
+            <div className='mb-4 text-left'>
+              <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
+                {tMsg('Client', 'Klien')}
+              </label>
+              <select
+                value={editForm.client_name}
+                onChange={(e) =>
+                  setEditForm((prev) => ({
+                    ...prev,
+                    client_name: e.target.value,
+                  }))
+                }
+                className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all'>
+                <option value=''>
+                  -- {tMsg('No Client (None)', 'Tanpa Klien')} --
+                </option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.client_name}>
+                    {c.client_name} {c.client_code ? `(${c.client_code})` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className='mb-4 text-left'>
               <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
                 {tMsg('Project Number', 'Nomor Proyek')}

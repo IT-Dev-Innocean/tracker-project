@@ -64,6 +64,8 @@ def sync_public_holidays_from_gcal():
                                 username=None
                             )
                             db.add(new_holiday)
+                        elif existing.description != summary:
+                            existing.description = summary
                 db.commit()
             except Exception as e:
                 print(f"Error syncing gcal holidays for year {year}: {e}")
@@ -84,26 +86,25 @@ def get_leaves(
         LAST_GCAL_SYNC = now
         background_tasks.add_task(sync_public_holidays_from_gcal)
 
-    # Cari ID project (board) yang Anda miliki atau ikuti
+    # Cari ID project (board) yang Anda miliki atau di mana Anda menjadi anggota aktif
     owned_boards = db.query(Board.id).filter(Board.owner_username == current_user)
     member_boards = db.query(BoardMember.board_id).filter(
         BoardMember.member_username == current_user, BoardMember.status == "accepted"
     )
+    my_board_ids = owned_boards.union(member_boards)
 
-    # Kumpulkan username seluruh rekan satu tim Anda
+    # Kumpulkan username seluruh rekan satu tim HANYA dari proyek di mana pengguna terlibat
     team_members = (
         db.query(BoardMember.member_username)
         .filter(
-            or_(
-                BoardMember.board_id.in_(owned_boards),
-                BoardMember.board_id.in_(member_boards),
-            )
+            BoardMember.board_id.in_(my_board_ids),
+            BoardMember.status == "accepted"
         )
         .all()
     )
     owners = (
         db.query(Board.owner_username)
-        .filter(or_(Board.id.in_(owned_boards), Board.id.in_(member_boards)))
+        .filter(Board.id.in_(my_board_ids))
         .all()
     )
 
@@ -115,20 +116,35 @@ def get_leaves(
     managed_usernames = [mu[0] for mu in managed_users]
     team_usernames.update(managed_usernames)
 
-    # Ambil Hari Libur Nasional, Cuti Bersama, dan Cuti Personal milik Anda & tim Anda
-    leaves = (
-        db.query(LeaveRecord)
-        .filter(
-            or_(
-                LeaveRecord.leave_type.in_(["mass_leave", "public_holiday"]),
-                and_(
+    # Jika current_user adalah Admin / Project Owner / SuperAdmin, berikan akses melihat seluruh cuti personal di workspace
+    is_manager = can_manage_projects(db, current_user) or is_user_superadmin(db, current_user)
+    
+    if is_manager:
+        leaves = (
+            db.query(LeaveRecord)
+            .filter(
+                or_(
+                    LeaveRecord.leave_type.in_(["mass_leave", "public_holiday"]),
                     LeaveRecord.leave_type == "personal",
-                    LeaveRecord.username.in_(team_usernames),
-                ),
+                )
             )
+            .all()
         )
-        .all()
-    )
+    else:
+        # Untuk Staff biasa: HANYA ambil cuti personal milik rekan satu tim di proyek yang ia ikuti atau bawahannya
+        leaves = (
+            db.query(LeaveRecord)
+            .filter(
+                or_(
+                    LeaveRecord.leave_type.in_(["mass_leave", "public_holiday"]),
+                    and_(
+                        LeaveRecord.leave_type == "personal",
+                        LeaveRecord.username.in_(team_usernames),
+                    ),
+                )
+            )
+            .all()
+        )
 
     return {
         "leaves": [

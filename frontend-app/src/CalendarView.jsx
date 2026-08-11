@@ -25,6 +25,19 @@ export default function CalendarView({
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDay = new Date(year, month, 1).getDay();
 
+  const contextLeaves = React.useMemo(() => {
+    return leaves.filter((l) => {
+      if (l.leave_type !== 'personal') return true;
+      if (l.username === currentUser) return true;
+      if (!selectedBoard || selectedBoard.id === 'global' || selectedBoard.id === 'todo') {
+        return true;
+      }
+      if (selectedBoard.owner_username === l.username) return true;
+      if (selectedBoard.members && selectedBoard.members.some((m) => (m.member_username || m.username) === l.username)) return true;
+      return false;
+    });
+  }, [leaves, selectedBoard, currentUser]);
+
   const formatDatePref = (dateString) => {
     if (!dateString) return '-';
     const d = new Date(dateString.replace(/-/g, '/'));
@@ -115,7 +128,7 @@ export default function CalendarView({
         start.getDate()
       ).padStart(2, '0')}`;
       const isWeekend = start.getDay() === 0 || start.getDay() === 6;
-      const isHoliday = leaves.some(
+      const isHoliday = contextLeaves.some(
         (l) => l.leave_date === dStr && (l.leave_type !== 'personal' || isUserAssigned(t, l.username))
       );
       if (isWeekend || isHoliday) start.setDate(start.getDate() + 1);
@@ -147,7 +160,7 @@ export default function CalendarView({
         effectiveEnd.getDate()
       ).padStart(2, '0')}`;
       const isWeekend = effectiveEnd.getDay() === 0 || effectiveEnd.getDay() === 6;
-      const isHoliday = leaves.some(
+      const isHoliday = contextLeaves.some(
         (l) => l.leave_date === dStr && (l.leave_type !== 'personal' || isUserAssigned(t, l.username))
       );
       if ((isWeekend || isHoliday) && effectiveEnd > start) effectiveEnd.setDate(effectiveEnd.getDate() - 1);
@@ -190,7 +203,7 @@ export default function CalendarView({
       const cellDateStr = `${cellDate.getFullYear()}-${String(cellDate.getMonth() + 1).padStart(2, '0')}-${String(
         cellDate.getDate()
       ).padStart(2, '0')}`;
-      const dayLeaves = leaves.filter((l) => l.leave_date === cellDateStr);
+      const dayLeaves = contextLeaves.filter((l) => l.leave_date === cellDateStr);
       const dayTasks = parsedTasks.filter((t) => {
         const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6;
         const isTaskHoliday = dayLeaves.some(
@@ -201,7 +214,7 @@ export default function CalendarView({
       });
       return { cellDate, cellDateStr, dayLeaves, dayTasks };
     }).filter(d => d.dayTasks.length > 0 || d.dayLeaves.length > 0);
-  }, [scheduleDays, parsedTasks, leaves, currentUser]);
+  }, [scheduleDays, parsedTasks, contextLeaves, currentUser]);
 
   const navigatePrev = () => {
     if (subView === 'week') {
@@ -317,7 +330,7 @@ export default function CalendarView({
                         cellDate.getDate()
                       ).padStart(2, '0')}`
                     : null;
-                  const dayLeaves = cellDateStr ? leaves.filter((l) => l.leave_date === cellDateStr) : [];
+                  const dayLeaves = cellDateStr ? contextLeaves.filter((l) => l.leave_date === cellDateStr) : [];
                   const hasGlobalHoliday = dayLeaves.some((l) => l.leave_type !== 'personal' || l.username === currentUser);
 
                   let cellBg = 'bg-white dark:bg-slate-800';
