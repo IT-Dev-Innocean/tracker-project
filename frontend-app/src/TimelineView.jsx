@@ -802,6 +802,8 @@ export default function TimelineView({
 
                         const isTaskAdmin =
                           isSuperAdmin ||
+                          workspaceRole === 'project_owner' ||
+                          workspaceRole === 'admin' ||
                           t.owner_username === currentUser ||
                           (selectedBoard && selectedBoard.owner_username === currentUser) ||
                           (t.requester &&

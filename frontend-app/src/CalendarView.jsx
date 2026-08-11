@@ -403,6 +403,8 @@ export default function CalendarView({
                               const isLast = cellDate.getTime() === t.effectiveEnd.getTime();
                               const isTaskAdmin =
                                 isSuperAdmin ||
+                                workspaceRole === 'project_owner' ||
+                                workspaceRole === 'admin' ||
                                 t.owner_username === currentUser ||
                                 (selectedBoard && selectedBoard.owner_username === currentUser) ||
                                 (t.requester &&

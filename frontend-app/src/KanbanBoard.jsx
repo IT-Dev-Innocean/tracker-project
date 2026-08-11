@@ -159,6 +159,8 @@ export default function KanbanBoard({
               ) => {
                 const isTaskAdmin =
                   isSuperAdmin ||
+                  workspaceRole === 'project_owner' ||
+                  workspaceRole === 'admin' ||
                   task.owner_username === currentUser ||
                   (selectedBoard &&
                     selectedBoard.owner_username === currentUser) ||
