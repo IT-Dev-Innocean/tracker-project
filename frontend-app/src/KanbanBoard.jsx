@@ -256,7 +256,7 @@ export default function KanbanBoard({
                     </div>
 
                     <div className='mb-2'>
-                      <div className='font-bold text-sm text-black dark:text-white break-normal uppercase tracking-wider leading-snug'>
+                      <div className='font-bold text-sm text-black dark:text-white break-normal leading-snug'>
                         <HighlightText
                           text={task.task_name}
                           query={searchQuery}
