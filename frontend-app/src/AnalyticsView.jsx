@@ -110,25 +110,18 @@ export default function AnalyticsView({
   const doneSubtasks = tasksWithLivePriority.reduce((sum, t) => sum + (t.subtask_done || 0), 0);
   const subtaskCompletionPct = totalSubtasks > 0 ? Math.round((doneSubtasks / totalSubtasks) * 100) : 0;
 
-  // Project Health Score Calculation
-  // Memfilter tugas yang ditolak agar tidak memengaruhi skor kesehatan
+  // Project Health Score Calculation based on pure Task & Subtask counts (No ETC)
   const healthAnalyticsTasks = tasksWithLivePriority.filter((t) => t.status !== 'Rejected');
-  const totalHealthEtc = healthAnalyticsTasks.reduce((sum, t) => sum + (t.etc || 2), 0);
-  const doneHealthEtc = healthAnalyticsTasks
-    .filter((t) => t.status === 'Done')
-    .reduce((sum, t) => sum + (t.etc || 2), 0);
-  const activeHealthEtc = healthAnalyticsTasks
-    .filter((t) => t.status !== 'Done')
-    .reduce((sum, t) => sum + (t.etc || 2), 0);
-  const overdueHealthEtc = healthAnalyticsTasks
-    .filter((t) => t.priority_lvl === 'critical' && t.status !== 'Done')
-    .reduce((sum, t) => sum + (t.etc || 2), 0);
+  const totalTasksCount = healthAnalyticsTasks.length;
+  const doneTasksCount = healthAnalyticsTasks.filter((t) => t.status === 'Done').length;
+  const activeTasksCount = healthAnalyticsTasks.filter((t) => t.status !== 'Done').length;
+  const overdueTasksCount = healthAnalyticsTasks.filter((t) => t.priority_lvl === 'critical' && t.status !== 'Done').length;
 
   let projectHealth = 100;
-  if (totalHealthEtc > 0) {
-    const doneScore = (doneHealthEtc / totalHealthEtc) * 100;
-    const wipScore = (activeHealthEtc / totalHealthEtc) * subtaskCompletionPct;
-    const overduePenalty = (overdueHealthEtc / totalHealthEtc) * 50; // Penalti berat untuk task critical
+  if (totalTasksCount > 0) {
+    const doneScore = (doneTasksCount / totalTasksCount) * 100;
+    const wipScore = (activeTasksCount / totalTasksCount) * subtaskCompletionPct;
+    const overduePenalty = (overdueTasksCount / totalTasksCount) * 50;
     projectHealth = Math.max(0, Math.min(100, Math.round(doneScore + wipScore - overduePenalty)));
   }
 
@@ -206,95 +199,118 @@ export default function AnalyticsView({
   const getX = (index) => index * (100 / (daysCount - 1 || 1));
   const getYPct = (val) => 85 - (val / maxTrendVal) * 70;
 
-  // Smart Workload & Insight Logic (Empathy / Workload Support POV)
+  // Smart Workload & Insight Logic based on discrete Subtasks & Tasks count
   const memberDetailedStats = {};
-  // Buat lookup set yang case-insensitive untuk performa dan akurasi
-  // Gunakan `teamMembers` yang spesifik untuk proyek ini, bukan `avatarsMap` global
   const currentMembersLookup = new Set((teamMembers || []).map((m) => m.toLowerCase()));
 
   tasksWithLivePriority.forEach((t) => {
-    if (t.status === 'Rejected') return; // Abaikan tugas yang ditolak secara keseluruhan untuk analisis beban kerja
+    if (t.status === 'Rejected') return;
 
-    const involvedUsers = new Set();
-
-    if (t.owner_username) involvedUsers.add(t.owner_username);
-
-    if (t.requester) {
-      const matches = t.requester.match(/@([\w.-]+)/g);
-      if (matches) {
-        matches.forEach((m) => involvedUsers.add(m.substring(1)));
-      }
-    }
-
+    const subtaskAssigneeMap = [];
     if (t.subtask_details) {
       const lines = t.subtask_details.split('\n');
       lines.forEach((line) => {
+        const isDone = line.startsWith('[x]') || line.startsWith('✓');
         const match = line.match(/\(@([\w.-]+)\)$/);
-        if (match) involvedUsers.add(match[1]);
+        const assignee = match ? match[1] : null;
+        subtaskAssigneeMap.push({ isDone, assignee });
       });
     }
 
-    // DISTRIBUSI BEBAN KERJA: Membagi rata total ETC tugas ke semua orang yang terlibat
-    const validUsers = Array.from(involvedUsers).filter(
-      (p) => p && p.toLowerCase() !== 'unassigned' && currentMembersLookup.has(p.toLowerCase())
+    const subtaskExecutors = new Set(
+      subtaskAssigneeMap
+        .map((s) => s.assignee)
+        .filter((p) => p && p.toLowerCase() !== 'unassigned' && currentMembersLookup.has(p.toLowerCase()))
     );
-    const divisor = validUsers.length > 0 ? validUsers.length : 1;
-    const splitEtc = (t.etc || 2) / divisor;
 
-    validUsers.forEach((person) => {
-      if (!memberDetailedStats[person]) {
-        memberDetailedStats[person] = {
-          total: 0,
-          total_etc: 0,
-          done: 0,
-          done_etc: 0,
-          active: 0,
-          active_etc: 0,
-          critical: 0,
-        };
+    let executors = Array.from(subtaskExecutors);
+
+    if (executors.length === 0) {
+      const fallbackInvolved = new Set();
+      if (t.owner_username) fallbackInvolved.add(t.owner_username);
+      if (t.requester) {
+        const matches = t.requester.match(/@([\w.-]+)/g);
+        if (matches) matches.forEach((m) => fallbackInvolved.add(m.substring(1)));
       }
+      executors = Array.from(fallbackInvolved).filter(
+        (p) => p && p.toLowerCase() !== 'unassigned' && currentMembersLookup.has(p.toLowerCase())
+      );
+    }
 
-      memberDetailedStats[person].total += 1;
-      memberDetailedStats[person].total_etc += splitEtc;
+    if (subtaskAssigneeMap.length > 0 && subtaskExecutors.size > 0) {
+      subtaskAssigneeMap.forEach((st) => {
+        const person = st.assignee;
+        if (!person || !currentMembersLookup.has(person.toLowerCase())) return;
 
-      if (t.status === 'Done') {
-        memberDetailedStats[person].done += 1;
-        memberDetailedStats[person].done_etc += splitEtc;
-      } else {
-        if (t.status !== 'Pending' && t.status !== 'To Do') {
-          memberDetailedStats[person].active += 1;
-          memberDetailedStats[person].active_etc += splitEtc;
+        if (!memberDetailedStats[person]) {
+          memberDetailedStats[person] = {
+            total: 0,
+            subtasks_total: 0,
+            done: 0,
+            subtasks_done: 0,
+            active: 0,
+            subtasks_active: 0,
+            critical: 0,
+          };
         }
-        if (t.priority_lvl === 'critical') memberDetailedStats[person].critical += 1;
-      }
-    });
+
+        memberDetailedStats[person].subtasks_total += 1;
+
+        if (st.isDone || t.status === 'Done') {
+          memberDetailedStats[person].subtasks_done += 1;
+        } else {
+          memberDetailedStats[person].subtasks_active += 1;
+          if (t.priority_lvl === 'critical') memberDetailedStats[person].critical += 1;
+        }
+      });
+    } else {
+      executors.forEach((person) => {
+        if (!memberDetailedStats[person]) {
+          memberDetailedStats[person] = {
+            total: 0,
+            subtasks_total: 0,
+            done: 0,
+            subtasks_done: 0,
+            active: 0,
+            subtasks_active: 0,
+            critical: 0,
+          };
+        }
+
+        memberDetailedStats[person].total += 1;
+
+        if (t.status === 'Done') {
+          memberDetailedStats[person].done += 1;
+        } else {
+          if (t.status !== 'Pending' && t.status !== 'To Do') {
+            memberDetailedStats[person].active += 1;
+          }
+          if (t.priority_lvl === 'critical') memberDetailedStats[person].critical += 1;
+        }
+      });
+    }
   });
 
-  let maxActiveEtc = 0;
+  let maxActiveWork = 0;
   let maxCritical = 0;
 
-  // 1. Cari nilai absolut tertinggi untuk menentukan tingkat bahaya (Threshold)
   Object.entries(memberDetailedStats).forEach(([member, stats]) => {
-    const pendingEtc = stats.total_etc - stats.done_etc; // Active + Pending Work in Hours
-    if (pendingEtc > maxActiveEtc) maxActiveEtc = pendingEtc;
+    const pendingWork = (stats.total - stats.done) + (stats.subtasks_total - stats.subtasks_done);
+    if (pendingWork > maxActiveWork) maxActiveWork = pendingWork;
     if (stats.critical > maxCritical) maxCritical = stats.critical;
   });
 
-  // 2. Kumpulkan SEMUA orang yang melebihi batas bahaya (Threshold Based)
-  // Standard work week is 40 hours. If pending ETC is >= 32 (4 days), consider heavily loaded.
-  const etcThreshold = maxActiveEtc >= 40 ? 40 : maxActiveEtc >= 32 ? 32 : maxActiveEtc >= 24 ? 24 : Infinity;
-  const criticalThreshold = 1; // Siapapun yang punya >= 1 Critical Task akan diangkat
+  const activeWorkThreshold = maxActiveWork >= 10 ? 10 : maxActiveWork >= 6 ? 6 : maxActiveWork >= 4 ? 4 : Infinity;
+  const criticalThreshold = 1;
 
   let topMembers = [];
   let topCriticalMembers = [];
 
   Object.entries(memberDetailedStats).forEach(([member, stats]) => {
-    const pendingEtc = stats.total_etc - stats.done_etc;
-    if (pendingEtc >= etcThreshold && etcThreshold <= maxActiveEtc) topMembers.push(member);
+    const pendingWork = (stats.total - stats.done) + (stats.subtasks_total - stats.subtasks_done);
+    if (pendingWork >= activeWorkThreshold && activeWorkThreshold <= maxActiveWork) topMembers.push(member);
     if (stats.critical >= criticalThreshold) topCriticalMembers.push(member);
   });
-
-  // --- NEW ADVANCED INSIGHTS CALCULATIONS (1-4) ---
 
   // 1. On-Time Delivery Rate (SLA)
   let onTimeCount = 0;
@@ -304,7 +320,7 @@ export default function AnalyticsView({
       const deadlineDate = new Date(t.deadline.replace(/-/g, '/')).getTime();
       if (doneDate <= deadlineDate) onTimeCount++;
     } else {
-      onTimeCount++; // If no deadline, technically on time
+      onTimeCount++;
     }
   });
   const onTimeRate = completedTasks.length > 0 ? Math.round((onTimeCount / completedTasks.length) * 100) : 0;
@@ -328,16 +344,16 @@ export default function AnalyticsView({
     .sort((a, b) => b.avgDays - a.avgDays);
   const maxCycleTime = cycleTimeData.length > 0 ? cycleTimeData[0].avgDays : 1;
 
-  // 3. Velocity Leaderboard (Top Performers)
+  // 3. Velocity Leaderboard (Top Performers by Subtask & Task completion count)
   const velocityLeaderboard = Object.entries(memberDetailedStats)
-    .map(([member, stats]) => ({ member, done: stats.done_etc }))
+    .map(([member, stats]) => ({ member, done: stats.done + stats.subtasks_done }))
     .filter((m) => m.done > 0)
     .sort((a, b) => b.done - a.done)
     .slice(0, 5);
 
   // 4. Bottleneck Radar (Stalled Tasks)
   const activeTasksForRadar = tasksWithLivePriority.filter((t) => t.status !== 'Done' && t.status !== 'Rejected');
-  const bottleneckThreshold = Math.max(avgCycleTime * 1.5, 5); // At least 5 days, or 1.5x average cycle time
+  const bottleneckThreshold = Math.max(avgCycleTime * 1.5, 5);
   const stalledTasks = activeTasksForRadar
     .map((t) => {
       const start = new Date((t.start_date || t.timestamp).replace(/-/g, '/'));
@@ -348,7 +364,6 @@ export default function AnalyticsView({
     .sort((a, b) => b.daysOpen - a.daysOpen)
     .slice(0, 5);
 
-  // Fungsi pembuat kalimat dinamis (contoh: "@alice, @bob, and @charlie")
   const formatNames = (names) => {
     if (!names || names.length === 0) return '';
     if (names.length === 1) return `@${names[0]}`;
@@ -361,7 +376,6 @@ export default function AnalyticsView({
     );
   };
 
-  // Fungsi untuk menampilkan rentang angka (misal: "4-7" atau "5")
   const getTaskRangeStr = (membersArr, isCritical = false) => {
     if (membersArr.length === 0) return '0';
     if (isCritical) {
@@ -370,10 +384,10 @@ export default function AnalyticsView({
       const maxC = Math.max(...counts);
       return minC === maxC ? `${maxC}` : language === 'id' ? `hingga ${maxC}` : `up to ${maxC}`;
     } else {
-      const counts = membersArr.map((m) => memberDetailedStats[m].total_etc - memberDetailedStats[m].done_etc);
-      const minC = Math.round(Math.min(...counts) * 10) / 10;
-      const maxC = Math.round(Math.max(...counts) * 10) / 10;
-      return minC === maxC ? `${maxC}h` : language === 'id' ? `hingga ${maxC}h` : `up to ${maxC}h`;
+      const counts = membersArr.map((m) => (memberDetailedStats[m].total - memberDetailedStats[m].done) + (memberDetailedStats[m].subtasks_total - memberDetailedStats[m].subtasks_done));
+      const minC = Math.min(...counts);
+      const maxC = Math.max(...counts);
+      return minC === maxC ? `${maxC} item` : language === 'id' ? `hingga ${maxC} item` : `up to ${maxC} items`;
     }
   };
 
@@ -391,7 +405,7 @@ export default function AnalyticsView({
   const taskRangeStr = getTaskRangeStr(topMembers, false);
   const criticalRangeStr = getTaskRangeStr(topCriticalMembers, true);
 
-  if (maxActiveEtc >= 40 && maxCritical > 0) {
+  if (maxActiveWork >= 10 && maxCritical > 0) {
     insightIcon = 'circle-alert';
     insightColor =
       'bg-red-50/50 dark:bg-red-900/10 text-red-900 dark:text-red-200 border-red-200/70 dark:border-red-800/50';
@@ -432,7 +446,7 @@ export default function AnalyticsView({
     insightIcon = 'circle-alert';
     insightColor =
       'bg-red-50/50 dark:bg-red-900/10 text-red-900 dark:text-red-200 border-red-200/70 dark:border-red-800/50';
-  } else if (maxActiveEtc >= 24) {
+  } else if (maxActiveWork >= 6) {
     insightMsg =
       language === 'id'
         ? `Sepertinya ${topMembersStr} saat ini memikul beban berat dengan ${taskRangeStr} tugas aktif. Pertimbangkan untuk memeriksa atau membagikan ulang beberapa tugas untuk mendukung mereka!`
@@ -447,7 +461,7 @@ export default function AnalyticsView({
   const handleGenerateGeminiInsight = async () => {
     setIsGeneratingAi(true);
 
-    const completionRate = totalHealthEtc > 0 ? Math.round((doneHealthEtc / totalHealthEtc) * 100) : 0;
+    const completionRate = totalTasksCount > 0 ? Math.round((doneTasksCount / totalTasksCount) * 100) : 0;
 
     const taskByStatus = columns.reduce((acc, status) => {
       acc[status] = tasksWithLivePriority.filter((t) => t.status === status).length;
@@ -473,15 +487,12 @@ export default function AnalyticsView({
       projectHealth: `${projectHealth}%`,
       systemAlert: insightMsg,
       totalTasks: tasksWithLivePriority.length,
-      totalHoursETC: totalHealthEtc,
-      completedHoursETC: doneHealthEtc,
-      activeHoursETC: activeHealthEtc,
       completedTasks: tasksWithLivePriority.filter((t) => t.status === 'Done').length,
       activeTasks: tasksWithLivePriority.filter((t) => t.status !== 'Done' && t.status !== 'Rejected').length,
       overdueTasks: tasksWithLivePriority.filter(
         (t) => t.priority_lvl === 'critical' && t.status !== 'Done' && t.status !== 'Rejected'
       ).length,
-      completionRate: `${completionRate}%`,
+      completionRate: `${totalTasksCount > 0 ? Math.round((doneTasksCount / totalTasksCount) * 100) : 0}%`,
       onTimeSLA: `${onTimeRate}%`,
       avgCycleTime: `${avgCycleTime} days`,
       subtaskCompletion: `${subtaskCompletionPct}%`,
@@ -496,9 +507,12 @@ export default function AnalyticsView({
       }, {}),
       teamWorkload: Object.entries(memberDetailedStats).reduce((acc, [member, stats]) => {
         acc[member] = {
-          total: stats.total_etc,
-          done: stats.done_etc,
-          active: stats.active_etc,
+          totalTasks: stats.total,
+          completedTasks: stats.done,
+          activeTasks: stats.active,
+          totalSubtasks: stats.subtasks_total,
+          completedSubtasks: stats.subtasks_done,
+          activeSubtasks: stats.subtasks_active,
           critical: stats.critical,
         };
         return acc;
@@ -641,12 +655,11 @@ export default function AnalyticsView({
               </span>
               <div className="hidden sm:block absolute top-full left-0 mt-3 w-56 sm:w-64 p-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] rounded-xl shadow-2xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-100 text-left pointer-events-none whitespace-normal border border-slate-700 dark:border-slate-200">
                 <p className="font-medium mb-2 pb-2 border-b border-slate-700/50 dark:border-slate-200/50 leading-relaxed">
-                  Overall workspace health score combining global completion and micro-progress, weighted by Estimated
-                  Time Consumption (ETC).
+                  Overall workspace health score combining task completion and subtask progress, weighted by actual items.
                 </p>
                 <p className="font-bold text-[8px] opacity-50 uppercase tracking-widest mb-1">Logic / Method</p>
                 <p className="font-mono text-[9px] bg-black/20 dark:bg-black/5 p-1.5 rounded wrap-break-word">
-                  (Done ETC% + WIP ETC%) - Overdue Penalty
+                  (Done Tasks% + Subtasks Done%) - Overdue Penalty
                 </p>
                 <div className="absolute bottom-full left-2 border-4 border-transparent border-b-slate-900 dark:border-b-white"></div>
               </div>
@@ -767,18 +780,18 @@ export default function AnalyticsView({
               </span>
               <div className="hidden sm:block absolute top-full left-1/2 -translate-x-1/2 mt-3 w-56 sm:w-64 p-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] rounded-xl shadow-2xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-100 text-left pointer-events-none whitespace-normal border border-slate-700 dark:border-slate-200">
                 <p className="font-medium mb-2 pb-2 border-b border-slate-700/50 dark:border-slate-200/50 leading-relaxed">
-                  Percentage of successfully finished tasks based on total Estimated Time Consumption (ETC).
+                  Percentage of successfully finished tasks based on total tasks count.
                 </p>
                 <p className="font-bold text-[8px] opacity-50 uppercase tracking-widest mb-1">Logic / Method</p>
                 <p className="font-mono text-[9px] bg-black/20 dark:bg-black/5 p-1.5 rounded wrap-break-word">
-                  (Completed ETC / Total ETC) × 100%
+                  (Completed Tasks / Total Tasks) × 100%
                 </p>
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900 dark:border-b-white"></div>
               </div>
             </div>
           </div>
           <p className="text-2xl sm:text-3xl font-extrabold text-amber-500">
-            {totalHealthEtc > 0 ? Math.round((doneHealthEtc / totalHealthEtc) * 100) : 0}%
+            {totalTasksCount > 0 ? Math.round((doneTasksCount / totalTasksCount) * 100) : 0}%
           </p>
         </div>
         <div className="bg-white dark:bg-slate-800 p-4 lg:p-5 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 relative hover:z-50 transition-all duration-300 flex flex-col justify-center">
@@ -1181,7 +1194,7 @@ export default function AnalyticsView({
               </span>
               <div className="hidden sm:block absolute top-full left-0 mt-3 w-56 p-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] rounded-xl shadow-2xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-100 text-left pointer-events-none border border-slate-700 dark:border-slate-200">
                 <p className="font-medium leading-relaxed">
-                  The most productive members based on total Estimated Time Consumption (ETC) delivered.
+                  The most productive members based on total completed subtasks and tasks.
                 </p>
                 <div className="absolute bottom-full left-4 border-4 border-transparent border-b-slate-900 dark:border-b-white"></div>
               </div>
@@ -1224,7 +1237,7 @@ export default function AnalyticsView({
                     </span>
                   </div>
                   <span className="text-xs font-black bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400 px-2 py-1 rounded-md">
-                    {u.done.toFixed(1)}h <span className="opacity-50 font-medium">Delivered</span>
+                    {u.done} <span className="opacity-50 font-medium">Done</span>
                   </span>
                 </div>
               ))
@@ -1485,9 +1498,7 @@ export default function AnalyticsView({
                 </span>
                 <div className="hidden sm:block absolute top-full left-0 mt-3 w-72 p-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] rounded-xl shadow-2xl opacity-0 invisible group-hover/tooltip:opacity-100 group-hover/tooltip:visible transition-all z-100 text-left pointer-events-none whitespace-normal border border-slate-700 dark:border-slate-200">
                   <p className="font-medium leading-relaxed">
-                    Tracks each member's work volume. It flags them as overloaded (⚠️) if their CURRENT active backlog
-                    exceeds a 40-hour work week, or if their TOTAL assigned work in the selected period exceeds a
-                    160-hour monthly capacity.
+                    Tracks subtasks & tasks assigned per member. Highlights overloaded members (⚠️) with high active item counts.
                   </p>
                   <div className="absolute bottom-full left-4 border-4 border-transparent border-b-slate-900 dark:border-b-white"></div>
                 </div>
@@ -1500,29 +1511,28 @@ export default function AnalyticsView({
               <span className="flex items-center gap-1">
                 <div className="w-2 h-2 rounded-full bg-blue-500"></div> Active
               </span>
-              <span className="flex items-center gap-1">
-                <div className="w-2 h-2 rounded-full bg-amber-500"></div> Wait
-              </span>
             </div>
           </div>
           <div className="space-y-5 max-h-64 overflow-y-auto pr-2">
             {(() => {
               return Object.entries(memberDetailedStats)
                 .sort((a, b) => {
-                  // Urutkan berdasarkan beban aktif terberat di atas untuk mencari bottleneck
-                  const activeA = a[1].total_etc - a[1].done_etc;
-                  const activeB = b[1].total_etc - b[1].done_etc;
+                  const activeA = (a[1].total - a[1].done) + (a[1].subtasks_total - a[1].subtasks_done);
+                  const activeB = (b[1].total - b[1].done) + (b[1].subtasks_total - b[1].subtasks_done);
                   return activeB - activeA;
                 })
                 .map(([assignee, stats]) => {
-                  const donePct = (stats.done_etc / stats.total_etc) * 100;
-                  const activePct = (stats.active_etc / stats.total_etc) * 100;
-                  const pendingPct = ((stats.total_etc - stats.done_etc - stats.active_etc) / stats.total_etc) * 100;
+                  const totalSub = stats.subtasks_total || stats.total || 1;
+                  const doneSub = stats.subtasks_done || stats.done || 0;
+                  const activeSub = (stats.subtasks_total ? stats.subtasks_active : stats.active) || 0;
 
-                  const activeLoad = stats.total_etc - stats.done_etc;
-                  const totalLoad = stats.total_etc;
-                  const isOverloaded = activeLoad > 40;
-                  const isTotalOverloaded = totalLoad > 160;
+                  const donePct = (doneSub / totalSub) * 100;
+                  const activePct = (activeSub / totalSub) * 100;
+
+                  const activeItems = (stats.total - stats.done) + (stats.subtasks_total - stats.subtasks_done);
+                  const totalItems = stats.total + stats.subtasks_total;
+                  const isOverloaded = activeItems >= 8;
+
                   return (
                     <div key={assignee}>
                       <div className="flex justify-between items-center text-sm font-bold mb-2">
@@ -1542,22 +1552,15 @@ export default function AnalyticsView({
                             className={`font-black ${
                               isOverloaded ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'
                             }`}
-                            title={`Current Active Backlog: ${Math.round(activeLoad * 10) / 10}h`}
+                            title={`Active Items: ${activeItems}`}
                           >
-                            {Math.round(activeLoad * 10) / 10}h{' '}
-                            <span className="text-[9px] uppercase opacity-70 tracking-widest">
-                              Active {isOverloaded && '⚠️'}
-                              {' / week'}
-                            </span>
+                            {activeItems} <span className="text-[9px] uppercase opacity-70 tracking-widest">Active {isOverloaded && '⚠️'}</span>
                           </span>
                           <span
-                            className={`text-[9px] font-bold uppercase tracking-widest mt-1 ${
-                              isTotalOverloaded ? 'text-red-500' : 'text-slate-400'
-                            }`}
-                            title={`Total load in this period: ${Math.round(totalLoad * 10) / 10}h`}
+                            className="text-[9px] font-bold uppercase tracking-widest mt-1 text-slate-400"
+                            title={`Total Assigned Items: ${totalItems}`}
                           >
-                            {Math.round(totalLoad * 10) / 10}h Total {isTotalOverloaded && '⚠️'}
-                            {' / month'}
+                            {totalItems} Total Items
                           </span>
                         </div>
                       </div>
@@ -1565,17 +1568,12 @@ export default function AnalyticsView({
                         <div
                           className="bg-emerald-500 h-full transition-all duration-1000"
                           style={{ width: `${donePct}%` }}
-                          title={`Done: ${stats.done_etc}h`}
+                          title={`Done: ${doneSub} items`}
                         ></div>
                         <div
                           className="bg-blue-500 h-full transition-all duration-1000"
                           style={{ width: `${activePct}%` }}
-                          title={`In Progress: ${stats.active_etc}h`}
-                        ></div>
-                        <div
-                          className="bg-amber-500 h-full transition-all duration-1000"
-                          style={{ width: `${pendingPct}%` }}
-                          title={`Pending/Others: ${stats.total_etc - stats.done_etc - stats.active_etc}h`}
+                          title={`Active: ${activeSub} items`}
                         ></div>
                       </div>
                     </div>
