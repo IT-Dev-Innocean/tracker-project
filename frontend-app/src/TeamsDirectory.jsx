@@ -24,12 +24,12 @@ export default function TeamsDirectory() {
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [divisionFilter, setDivisionFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteForm, setInviteForm] = useState({
     email: '',
-    role: ROLE_MANAGER,
+    role: ROLE_STAFF,
   });
   const [isInviting, setIsInviting] = useState(false);
   const [menuUser, setMenuUser] = useState(null);
@@ -61,11 +61,20 @@ export default function TeamsDirectory() {
     loadPeople();
   }, [loadPeople]);
 
+  const divisionsList = useMemo(() => {
+    const set = new Set();
+    (people || []).forEach((u) => {
+      if (u.division_name) set.add(u.division_name);
+    });
+    return Array.from(set).sort();
+  }, [people]);
+
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return (people || [])
       .filter((user) => {
-        if (roleFilter !== 'all' && (user.role || 'project_owner') !== roleFilter) return false;
+        if (user.username === 'admin') return false;
+        if (divisionFilter !== 'all' && (user.division_name || '') !== divisionFilter) return false;
         if (statusFilter === 'active' && user.account_status !== 'active') return false;
         if (statusFilter === 'frozen' && user.account_status !== 'suspended') return false;
         if (statusFilter === 'unverified' && user.is_verified === 1) return false;
@@ -77,29 +86,7 @@ export default function TeamsDirectory() {
       .sort((a, b) =>
         String(a.full_name || a.username).localeCompare(String(b.full_name || b.username))
       );
-  }, [people, query, roleFilter, statusFilter]);
-
-  const roleBadge = (role) => {
-    const map = {
-      admin: {
-        label: tMsg('Admin', 'Admin'),
-        className: 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300',
-      },
-      project_owner: {
-        label: tMsg('Project Owner', 'Project Owner'),
-        className: 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300',
-      },
-      manager: {
-        label: tMsg('Manager', 'Manager'),
-        className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300',
-      },
-      staff: {
-        label: tMsg('Staff', 'Staff'),
-        className: 'bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300',
-      },
-    };
-    return map[role] || map.staff;
-  };
+  }, [people, query, divisionFilter, statusFilter]);
 
   const statusLabel = (user) => {
     if (user.account_status === 'suspended') {
@@ -115,7 +102,10 @@ export default function TeamsDirectory() {
     e.preventDefault();
     setIsInviting(true);
     axios
-      .post('/api/teams/invite', inviteForm)
+      .post('/api/teams/invite', {
+        ...inviteForm,
+        role: ROLE_STAFF,
+      })
       .then((res) => {
         showNotification?.(res.data.message, 'success');
         if (res.data.temporary_password) {
@@ -130,7 +120,7 @@ export default function TeamsDirectory() {
         setInviteOpen(false);
         setInviteForm({
           email: '',
-          role: ROLE_MANAGER,
+          role: ROLE_STAFF,
         });
         setIsInviting(false);
         loadPeople();
@@ -177,14 +167,13 @@ export default function TeamsDirectory() {
 
   const exportCsv = () => {
     const rows = [
-      ['username', 'full_name', 'email', 'job_position', 'division_name', 'role', 'status'],
+      ['username', 'full_name', 'email', 'job_position', 'division_name', 'status'],
       ...filtered.map((u) => [
         u.username,
         u.full_name || '',
         u.email || '',
         u.job_position || '',
         u.division_name || '',
-        u.role || '',
         u.account_status || '',
       ]),
     ];
@@ -230,8 +219,8 @@ export default function TeamsDirectory() {
             </h1>
             <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
               {tMsg(
-                'Invite, manage roles, and remove people across your workspace.',
-                'Undang, kelola peran, dan hapus orang di seluruh workspace Anda.'
+                'Invite and remove people across your workspace.',
+                'Undang dan hapus orang di seluruh workspace Anda.'
               )}
             </p>
           </div>
@@ -265,15 +254,16 @@ export default function TeamsDirectory() {
 
         <div className="flex flex-wrap gap-2">
           <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
+            value={divisionFilter}
+            onChange={(e) => setDivisionFilter(e.target.value)}
             className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 px-3 py-2 text-xs font-bold outline-none"
           >
-            <option value="all">{tMsg('All Roles', 'Semua Peran')}</option>
-            <option value={ROLE_ADMIN}>{tMsg('Admin', 'Admin')}</option>
-            <option value={ROLE_PROJECT_OWNER}>{tMsg('Project Owner', 'Project Owner')}</option>
-            <option value={ROLE_MANAGER}>{tMsg('Manager', 'Manager')}</option>
-            <option value={ROLE_STAFF}>{tMsg('Staff', 'Staff')}</option>
+            <option value="all">{tMsg('All Divisions', 'Semua Divisi')}</option>
+            {divisionsList.map((divName) => (
+              <option key={divName} value={divName}>
+                {divName}
+              </option>
+            ))}
           </select>
           <select
             value={statusFilter}
@@ -288,14 +278,13 @@ export default function TeamsDirectory() {
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800">
-          <table className="w-full min-w-[1000px] text-sm">
+          <table className="w-full min-w-[900px] text-sm">
             <thead className="border-b border-neutral-200 bg-neutral-50 text-left text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:border-neutral-800 dark:bg-neutral-900/60 dark:text-neutral-400">
               <tr>
                 <th className="px-4 py-3">{tMsg('Name', 'Nama')}</th>
                 <th className="px-4 py-3">{tMsg('Email', 'Email')}</th>
                 <th className="px-4 py-3">{tMsg('Job Position', 'Posisi Kerja')}</th>
                 <th className="px-4 py-3">{tMsg('Division Name', 'Nama Divisi')}</th>
-                <th className="px-4 py-3">{tMsg('Role', 'Peran')}</th>
                 <th className="px-4 py-3">{tMsg('User Status', 'Status')}</th>
                 <th className="px-4 py-3 text-right">{tMsg('Actions', 'Tindakan')}</th>
               </tr>
@@ -303,13 +292,12 @@ export default function TeamsDirectory() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-14 text-center text-neutral-400">
+                  <td colSpan={6} className="px-4 py-14 text-center text-neutral-400">
                     {tMsg('Loading…', 'Memuat…')}
                   </td>
                 </tr>
               ) : (
                 filtered.map((person) => {
-                  const badge = roleBadge(person.role || 'project_owner');
                   const status = statusLabel(person);
                   const isSelf = person.username === currentUser;
                   const isRootAdmin = person.username === 'admin';
@@ -359,13 +347,6 @@ export default function TeamsDirectory() {
                             {tMsg('Not updated yet', 'Belum diupdate')}
                           </span>
                         )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${badge.className}`}
-                        >
-                          {badge.label}
-                        </span>
                       </td>
                       <td className="px-4 py-3 text-neutral-500">
                         {status.text}
@@ -419,7 +400,7 @@ export default function TeamsDirectory() {
               )}
               {!loading && !filtered.length && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-14 text-center text-neutral-400">
+                  <td colSpan={6} className="px-4 py-14 text-center text-neutral-400">
                     {tMsg('No people found.', 'Tidak ada orang ditemukan.')}
                   </td>
                 </tr>
@@ -453,18 +434,6 @@ export default function TeamsDirectory() {
                 placeholder="email@innocean.co.id"
                 className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 text-sm outline-none"
               />
-              <select
-                value={inviteForm.role}
-                onChange={(e) => setInviteForm((f) => ({ ...f, role: e.target.value }))}
-                className="w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 text-sm font-bold outline-none"
-              >
-                <option value={ROLE_PROJECT_OWNER}>{tMsg('Project Owner', 'Project Owner')}</option>
-                <option value={ROLE_MANAGER}>{tMsg('Manager', 'Manager')}</option>
-                <option value={ROLE_STAFF}>{tMsg('Staff', 'Staff')}</option>
-                {(workspaceRole === ROLE_ADMIN || isSuperAdmin) && (
-                  <option value={ROLE_ADMIN}>{tMsg('Admin', 'Admin')}</option>
-                )}
-              </select>
             </div>
             <div className="mt-6 flex gap-3">
               <button
