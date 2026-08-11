@@ -305,6 +305,7 @@ function App() {
     handleLogin,
     openTeamModal,
     handleInviteTeam,
+    handleReinviteMember,
     handleInviteInputChange,
     applyInviteSuggestion,
     handleRevokeMember,

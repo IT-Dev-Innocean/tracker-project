@@ -94,7 +94,7 @@ export function BaseConfirmModal({
 
   return (
     <div
-      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 transition-opacity duration-200 ${
+      className={`fixed inset-0 bg-white/60 dark:bg-black/60 backdrop-blur-md flex items-center justify-center z-[100] p-4 transition-opacity duration-200 ${
         isClosing ? 'opacity-0' : 'opacity-100'
       }`}>
       <div
@@ -817,6 +817,7 @@ export function CreateBoardModal({
 export function TeamModal({
   setIsTeamModalOpen,
   handleInviteTeam,
+  handleReinviteMember,
   inviteInput,
   handleInviteInputChange,
   inviteSuggestions,
@@ -1011,11 +1012,17 @@ export function TeamModal({
                             ? 'text-black dark:text-white'
                             : member.status === 'requesting'
                               ? 'text-amber-500 dark:text-amber-400'
-                              : 'text-neutral-500 dark:text-neutral-400'
+                              : member.status === 'declined'
+                                ? 'text-red-500 dark:text-red-400'
+                                : 'text-neutral-500 dark:text-neutral-400'
                         }`}>
                         {member.status === 'requesting'
                           ? tMsg('Requesting Access', 'Meminta Akses')
-                          : member.status}
+                          : member.status === 'declined'
+                            ? tMsg('Declined Invitation', 'Menolak Undangan')
+                            : member.status === 'pending'
+                              ? tMsg('Pending Invite', 'Undangan Tertunda')
+                              : member.status}
                       </p>
                     </div>
                   </div>
@@ -1036,6 +1043,15 @@ export function TeamModal({
                         </>
                       ) : (
                         <>
+                          {(member.status === 'declined' || member.status === 'pending') && handleReinviteMember && (
+                            <button
+                              onClick={() => handleReinviteMember(member.username)}
+                              className='text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-600 hover:text-white px-4 py-2.5 rounded-full transition-all border border-indigo-100 dark:border-indigo-800/50 shadow-sm'
+                              title={tMsg('Send invitation again', 'Kirim ulang undangan')}>
+                              <Icon name='rotate-cw' className='w-3.5 h-3.5 inline mr-1' />
+                              {tMsg('Re-invite', 'Undang Ulang')}
+                            </button>
+                          )}
                           {isRealOwner && member.status === 'accepted' && (
                             <button
                               onClick={() =>
@@ -1058,8 +1074,8 @@ export function TeamModal({
                           <button
                             onClick={() => handleRevokeMember(member.id)}
                             className='text-xs font-bold text-red-500 bg-red-50 dark:bg-red-900/30 hover:bg-red-500 hover:text-white px-5 py-2.5 rounded-full transition-all border border-red-200 dark:border-red-800/50 shadow-sm'>
-                            {member.status === 'pending'
-                              ? tMsg('Cancel Invite', 'Batal Undang')
+                            {member.status === 'pending' || member.status === 'declined'
+                              ? tMsg('Remove', 'Hapus')
                               : tMsg('Revoke', 'Cabut')}
                           </button>
                         </>

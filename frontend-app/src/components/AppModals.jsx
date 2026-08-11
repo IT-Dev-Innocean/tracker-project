@@ -173,7 +173,8 @@ export default function AppModals() {
     setInviteSuggestions,
     inviteIndex,
     setInviteIndex,
-    handleSendInvite,
+    handleInviteTeam,
+    handleReinviteMember,
     handleJoinProject,
     isInvitationsModalOpen,
     setIsInvitationsModalOpen,
@@ -285,7 +286,6 @@ export default function AppModals() {
     handleDeleteUser,
     handleExportCSV,
     handleInviteInputChange,
-    handleInviteTeam,
     handleManualVerify,
     handleNotificationTaskClick,
     handleReadNotification,
@@ -613,6 +613,7 @@ export default function AppModals() {
           isSuperAdmin={isSuperAdmin}
           workspaceRole={workspaceRole}
           handleJoinProject={handleJoinProject}
+          handleReinviteMember={handleReinviteMember}
         />
       )}
       {isInvitesModalOpen && (
