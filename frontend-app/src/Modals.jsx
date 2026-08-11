@@ -1493,6 +1493,12 @@ export function LeaveModal({
 
         <div className='flex-1 overflow-y-auto space-y-3 pr-2'>
           {leaves
+            .filter((l) => {
+              if (!l.leave_date) return true;
+              const y = new Date(l.leave_date).getFullYear();
+              const currentY = new Date().getFullYear();
+              return y >= currentY;
+            })
             .sort((a, b) => new Date(a.leave_date) - new Date(b.leave_date))
             .map((l) => (
               <div

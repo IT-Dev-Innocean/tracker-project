@@ -64,6 +64,8 @@ def sync_public_holidays_from_gcal():
                                 username=None
                             )
                             db.add(new_holiday)
+                        elif existing.description != summary:
+                            existing.description = summary
                 db.commit()
             except Exception as e:
                 print(f"Error syncing gcal holidays for year {year}: {e}")
