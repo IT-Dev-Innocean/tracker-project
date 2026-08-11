@@ -16,6 +16,7 @@ export default function CalendarView({
   isSuperAdmin,
   isTrashHovered,
   dateFormat,
+  workspaceRole,
 }) {
   const [subView, setSubView] = React.useState('month'); // 'month' | 'week' | 'schedule'
   const [expandedDate, setExpandedDate] = React.useState(null);
