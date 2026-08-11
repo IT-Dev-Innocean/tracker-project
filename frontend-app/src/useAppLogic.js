@@ -495,6 +495,7 @@ export default function useAppLogic() {
   const [newBoardName, setNewBoardName] = useState('');
   const [newBoardNumber, setNewBoardNumber] = useState('');
   const [newBoardClient, setNewBoardClient] = useState('');
+  const [newBoardClientCode, setNewBoardClientCode] = useState('');
   const [clients, setClients] = useState([]);
   const [isPrivateBoard, setIsPrivateBoard] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState(null);
@@ -5625,6 +5626,7 @@ export default function useAppLogic() {
       is_private: 0,
       project_number: newBoardNumber.trim() || null,
       client_name: newBoardClient.trim() || null,
+      client_code: newBoardClientCode.trim() || null,
     };
     axios
       .post('/api/boards', payload)
@@ -5660,6 +5662,7 @@ export default function useAppLogic() {
         setNewBoardName('');
         setNewBoardNumber('');
         setNewBoardClient('');
+        setNewBoardClientCode('');
         setIsPrivateBoard(false);
         fetchBoards();
         fetchClients();
@@ -5977,6 +5980,8 @@ export default function useAppLogic() {
     newBoardNumber,
     newBoardClient,
     setNewBoardClient,
+    newBoardClientCode,
+    setNewBoardClientCode,
     clients,
     boardToDelete,
     deleteBoardConfirmText,

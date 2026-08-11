@@ -89,6 +89,7 @@ class BoardModel(BaseModel):
     is_private: Optional[int] = 0
     project_number: Optional[str] = None
     client_name: Optional[str] = None
+    client_code: Optional[str] = None
 
 
 class BoardUpdateModel(BaseModel):

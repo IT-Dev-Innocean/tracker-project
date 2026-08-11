@@ -282,6 +282,7 @@ def create_board(
     is_private = 1 if payload.name.lower() == "to-do list" else 0
     project_number = (payload.project_number or "").strip() or None
     client_name = (payload.client_name or "").strip() or None
+    client_code = (payload.client_code or "").strip() or None
 
     # Auto-create client directory entry when a new client name is used
     if client_name:
@@ -293,12 +294,14 @@ def create_board(
         if not existing_client:
             db.add(
                 Client(
-                    client_code=None,
+                    client_code=client_code,
                     client_name=client_name,
                     status="active",
                     created_by=current_user,
                 )
             )
+        elif client_code and not existing_client.client_code:
+            existing_client.client_code = client_code
 
     new_board = Board(
         name=payload.name,
