@@ -13,6 +13,10 @@ export default function TeamsDirectory() {
     isSuperAdmin,
     showNotification,
     avatarsMap = {},
+    leaves = [],
+    formatDateMMM,
+    teamsSubNav = 'people',
+    setTeamsSubNav,
   } = useAppContext();
   const tMsg = (en, id) => (language === 'id' ? id : en);
 
@@ -24,6 +28,8 @@ export default function TeamsDirectory() {
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState('');
+  const activeTab = teamsSubNav;
+  const setActiveTab = (tab) => setTeamsSubNav?.(tab);
   const [divisionFilter, setDivisionFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -215,13 +221,12 @@ export default function TeamsDirectory() {
               {tMsg('Teams', 'Tim')}
             </div>
             <h1 className="mt-1 text-2xl font-black text-black dark:text-white">
-              {tMsg('All People', 'Semua Orang')}
+              {activeTab === 'leaves' ? tMsg('User Leave', 'Cuti Pengguna') : tMsg('All People', 'Semua Orang')}
             </h1>
             <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-              {tMsg(
-                'Invite and remove people across your workspace.',
-                'Undang dan hapus orang di seluruh workspace Anda.'
-              )}
+              {activeTab === 'people'
+                ? tMsg('Invite and remove people across your workspace.', 'Undang dan hapus orang di seluruh workspace Anda.')
+                : tMsg('View leaves submitted by users.', 'Lihat daftar cuti yang diajukan oleh pengguna.')}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -237,21 +242,100 @@ export default function TeamsDirectory() {
                 className="w-full rounded-xl border border-neutral-200 bg-white py-2.5 pl-9 pr-3 text-sm outline-none dark:border-neutral-800 dark:bg-neutral-950 dark:text-white"
               />
             </div>
-            <button
-              onClick={exportCsv}
-              className="rounded-xl border border-neutral-200 dark:border-neutral-800 px-4 py-2.5 text-sm font-bold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-900"
-            >
-              {tMsg('Export', 'Ekspor')}
-            </button>
-            <button
-              onClick={() => setInviteOpen(true)}
-              className="rounded-xl bg-black dark:bg-white px-4 py-2.5 text-sm font-bold text-white dark:text-black hover:opacity-90"
-            >
-              + {tMsg('Invite', 'Undang')}
-            </button>
+            {activeTab === 'people' && (
+              <>
+                <button
+                  onClick={exportCsv}
+                  className="rounded-xl border border-neutral-200 dark:border-neutral-800 px-4 py-2.5 text-sm font-bold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                >
+                  {tMsg('Export', 'Ekspor')}
+                </button>
+                <button
+                  onClick={() => setInviteOpen(true)}
+                  className="rounded-xl bg-black dark:bg-white px-4 py-2.5 text-sm font-bold text-white dark:text-black hover:opacity-90"
+                >
+                  + {tMsg('Invite', 'Undang')}
+                </button>
+              </>
+            )}
           </div>
         </div>
 
+        {activeTab === 'leaves' && (
+          <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 overflow-hidden shadow-sm">
+            <div className="overflow-x-auto scrollbar-thin">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50/70 dark:bg-neutral-900/60 text-[11px] font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                    <th className="px-5 py-3.5">{tMsg('User', 'Pengguna')}</th>
+                    <th className="px-5 py-3.5">{tMsg('Leave Date', 'Tanggal Cuti')}</th>
+                    <th className="px-5 py-3.5">{tMsg('Leave Type', 'Tipe Cuti')}</th>
+                    <th className="px-5 py-3.5">{tMsg('Description / Reason', 'Deskripsi / Alasan')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const needle = query.trim().toLowerCase();
+                    const filteredLeaves = leaves
+                      .filter((l) => l.leave_type === 'personal')
+                      .filter((l) => {
+                        if (!needle) return true;
+                        const u = people.find((p) => p.username === l.username);
+                        const nameMatch = (u?.full_name || '').toLowerCase().includes(needle);
+                        const unameMatch = (l.username || '').toLowerCase().includes(needle);
+                        const descMatch = (l.description || '').toLowerCase().includes(needle);
+                        const dateMatch = (l.leave_date || '').toLowerCase().includes(needle);
+                        return nameMatch || unameMatch || descMatch || dateMatch;
+                      })
+                      .sort((a, b) => new Date(b.leave_date) - new Date(a.leave_date));
+
+                    if (filteredLeaves.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={4} className="p-12 text-center text-neutral-400">
+                            <Icon name="calendar" className="w-8 h-8 mx-auto mb-2 text-neutral-300 dark:text-neutral-600" />
+                            {needle
+                              ? tMsg('No matching leave records found.', 'Tidak ditemukan catatan cuti yang cocok.')
+                              : tMsg('No personal leave records submitted.', 'Belum ada catatan cuti personal yang diajukan.')}
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return filteredLeaves.map((l) => {
+                      const u = people.find((p) => p.username === l.username);
+                      return (
+                        <tr key={l.id} className="border-b border-neutral-100 dark:border-neutral-800/70 last:border-0 hover:bg-neutral-50/80 dark:hover:bg-neutral-900/40 transition-colors">
+                          <td className="px-5 py-3.5 font-medium text-black dark:text-white flex items-center gap-3">
+                            <Avatar url={avatarsMap[l.username]} name={l.username} size="w-8 h-8" />
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-semibold text-black dark:text-white leading-tight">{u?.full_name || l.username}</span>
+                              <span className="text-[11px] text-neutral-400">@{l.username}</span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5 text-neutral-700 dark:text-neutral-300 font-medium">
+                            {formatDateMMM ? formatDateMMM(l.leave_date) : l.leave_date}
+                          </td>
+                          <td className="px-5 py-3.5">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/60 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:text-amber-400">
+                              🌴 {tMsg('Personal Leave', 'Cuti Personal')}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5 text-neutral-600 dark:text-neutral-400 italic">
+                            {l.description || '—'}
+                          </td>
+                        </tr>
+                      );
+                    });
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'people' && (
+        <>
         <div className="flex flex-wrap gap-2">
           <select
             value={divisionFilter}
@@ -407,7 +491,9 @@ export default function TeamsDirectory() {
               )}
             </tbody>
           </table>
-        </div>
+          </div>
+        </>
+        )}
       </div>
 
       {inviteOpen && (

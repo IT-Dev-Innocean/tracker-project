@@ -437,6 +437,7 @@ export default function useAppLogic() {
     return false;
   });
   const [showTeams, setShowTeams] = useState(false);
+  const [teamsSubNav, setTeamsSubNav] = useState('people'); // people | leaves
   const [showAdmin, setShowAdmin] = useState(false);
   const [showProjectManage, setShowProjectManage] = useState(false);
   const [showClientManage, setShowClientManage] = useState(false);
@@ -5958,6 +5959,8 @@ export default function useAppLogic() {
     setShowTimesheets,
     showTeams,
     setShowTeams,
+    teamsSubNav,
+    setTeamsSubNav,
     showAdmin,
     setShowAdmin,
     showProjectManage,

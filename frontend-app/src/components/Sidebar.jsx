@@ -35,6 +35,8 @@ export default function Sidebar() {
     setShowMyTasks,
     showTeams,
     setShowTeams,
+    teamsSubNav,
+    setTeamsSubNav,
     showAdmin,
     setShowAdmin,
     showProjectManage,
@@ -733,10 +735,13 @@ export default function Sidebar() {
                   setShowTeams?.(true);
                   setSelectedBoard(null);
                   setSidebarNav?.('teams');
+                  setTeamsSubNav?.('people');
                 }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-medium ${
-                  isCollapsed ? 'justify-center' : ''
-                }`}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                  showTeams && (teamsSubNav === 'people' || !teamsSubNav)
+                    ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
+                    : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
+                } ${isCollapsed ? 'justify-center' : ''}`}
                 title={tMsg('All People', 'Semua Orang')}>
                 <div className='w-6 h-6 flex items-center justify-center'>
                   <Icon name='user' className='w-5 h-5' />
@@ -750,6 +755,29 @@ export default function Sidebar() {
                       {(userDirectory || []).length || 0}
                     </span>
                   </>
+                )}
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowTeams?.(true);
+                  setSelectedBoard(null);
+                  setSidebarNav?.('teams');
+                  setTeamsSubNav?.('leaves');
+                }}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
+                  showTeams && teamsSubNav === 'leaves'
+                    ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
+                    : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
+                } ${isCollapsed ? 'justify-center' : ''}`}
+                title={tMsg('User Leave', 'Cuti Pengguna')}>
+                <div className='w-6 h-6 flex items-center justify-center'>
+                  <Icon name='calendar' className='w-5 h-5' />
+                </div>
+                {!isCollapsed && (
+                  <span className='text-sm truncate flex-1 text-left'>
+                    {tMsg('User Leave', 'Cuti Pengguna')}
+                  </span>
                 )}
               </button>
             </div>
