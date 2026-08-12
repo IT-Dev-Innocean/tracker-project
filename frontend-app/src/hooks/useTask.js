@@ -114,57 +114,74 @@ export function useTask({ isAuthenticated, selectedBoard, setSelectedBoard, curr
       subtasks: taskData.subtasks || [],
     };
 
-    setIsLoading(true);
+    // Optimistic insert
+    const tempId = `temp-${Date.now()}`;
+    const tempTask = {
+      id: tempId,
+      ...taskPayload,
+      owner_username: currentUser?.username || '',
+      created_at: new Date().toISOString(),
+    };
+
+    setTasks((prev) => [tempTask, ...prev]);
+    if (onSuccess) onSuccess();
+
     axios
       .post('/api/tasks', taskPayload)
       .then((res) => {
-        setIsLoading(false);
-        showNotification(res.data.message, 'success');
+        showNotification(res.data.message || 'Task created successfully', 'success');
         fetchTasks();
-        if (onSuccess) onSuccess();
       })
       .catch((err) => {
-        setIsLoading(false);
+        setTasks((prev) => prev.filter((t) => t.id !== tempId));
         showNotification(err.response?.data?.detail || 'Failed to create task.', 'error');
       });
   };
 
   const handleTaskUpdate = (id, updatedFields) => {
     if (!selectedBoard || selectedBoard.id === 'global') return;
-    const task = tasks.find(t => t.id === id);
+    const task = tasks.find((t) => t.id === id);
     if (!task) return;
 
     const payload = { ...task, ...updatedFields };
-    setIsLoading(true);
+
+    // Optimistic update
+    const previousTasks = tasks;
+    const previousSelectedTask = selectedTask;
+
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...updatedFields } : t)));
+    if (selectedTask?.id === id) {
+      setSelectedTask((prev) => ({ ...prev, ...updatedFields }));
+    }
 
     axios
       .put(`/api/tasks/${id}`, payload)
-      .then((res) => {
-        setIsLoading(false);
-        setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updatedFields } : t));
-        if (selectedTask?.id === id) {
-          setSelectedTask(prev => ({ ...prev, ...updatedFields }));
-        }
-      })
       .catch((err) => {
-        setIsLoading(false);
+        setTasks(previousTasks);
+        if (previousSelectedTask?.id === id) {
+          setSelectedTask(previousSelectedTask);
+        }
         showNotification(err.response?.data?.detail || 'Failed to update task.', 'error');
       });
   };
 
   const handleTaskDelete = (id, onSuccess) => {
-    setIsLoading(true);
+    const previousTasks = tasks;
+    const previousSelectedTask = selectedTask;
+
+    // Optimistic delete
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    if (selectedTask?.id === id) setSelectedTask(null);
+    if (onSuccess) onSuccess();
+
     axios
       .delete(`/api/tasks/${id}`)
       .then(() => {
-        setIsLoading(false);
         showNotification('Task deleted successfully', 'success');
-        fetchTasks();
-        if (selectedTask?.id === id) setSelectedTask(null);
-        if (onSuccess) onSuccess();
       })
       .catch((err) => {
-        setIsLoading(false);
+        setTasks(previousTasks);
+        if (previousSelectedTask?.id === id) setSelectedTask(previousSelectedTask);
         showNotification(err.response?.data?.detail || 'Failed to delete task', 'error');
       });
   };

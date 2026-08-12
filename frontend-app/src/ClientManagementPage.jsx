@@ -186,12 +186,23 @@ export default function ClientManagementPage() {
       return;
     }
 
-    setIsSaving(true);
     const payload = {
       client_code: code || null,
       client_name: name,
       status: formData.status || 'active',
     };
+
+    const previousClients = clients;
+
+    if (editingClient) {
+      setClients((prev) =>
+        prev.map((c) => (c.id === editingClient.id ? { ...c, ...payload } : c))
+      );
+    } else {
+      const tempId = `temp-${Date.now()}`;
+      setClients((prev) => [{ id: tempId, ...payload }, ...prev]);
+    }
+    closeForm();
 
     const request = editingClient
       ? axios.put(`/api/clients/${editingClient.id}`, payload)
@@ -204,12 +215,10 @@ export default function ClientManagementPage() {
             tMsg('Client saved successfully', 'Klien berhasil disimpan'),
           'success'
         );
-        setIsSaving(false);
-        closeForm();
         loadClients();
       })
       .catch((err) => {
-        setIsSaving(false);
+        setClients(previousClients);
         showNotification?.(
           err.response?.data?.detail ||
             tMsg('Failed to save client', 'Gagal menyimpan klien'),
@@ -220,7 +229,14 @@ export default function ClientManagementPage() {
 
   const executeDelete = () => {
     if (!clientsToDelete.length) return;
-    setIsDeleting(true);
+    const previousClients = clients;
+    const deleteIds = new Set(clientsToDelete.map((c) => c.id));
+
+    setClients((prev) => prev.filter((c) => !deleteIds.has(c.id)));
+    setDeleteConfirmOpen(false);
+    setClientsToDelete([]);
+    setSelectedClients([]);
+
     const requests = clientsToDelete.map((c) =>
       axios.delete(`/api/clients/${c.id}`)
     );
@@ -232,20 +248,13 @@ export default function ClientManagementPage() {
             : tMsg('Client deleted successfully', 'Klien berhasil dihapus'),
           'success'
         );
-        setIsDeleting(false);
-        setDeleteConfirmOpen(false);
-        setClientsToDelete([]);
-        setSelectedClients([]);
         loadClients();
       })
       .catch((err) => {
-        setIsDeleting(false);
+        setClients(previousClients);
         showNotification?.(
           err.response?.data?.detail ||
-            tMsg(
-              'Failed to delete some clients',
-              'Gagal menghapus beberapa klien'
-            ),
+            tMsg('Failed to delete client', 'Gagal menghapus klien'),
           'error'
         );
       });

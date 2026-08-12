@@ -3140,6 +3140,20 @@ export default function useAppLogic() {
       Array.isArray(assignees) && assignees.length > 0
         ? [...new Set(assignees.filter(Boolean))]
         : [null];
+
+    const prevSubtasks = subtasks;
+    const tempItems = list.map((assignee, idx) => ({
+      id: `temp-st-${Date.now()}-${idx}`,
+      task_id: selectedTask.id,
+      task_name: name,
+      assignee: assignee || null,
+      is_done: 0,
+    }));
+
+    setSubtasks((prev) => [...prev, ...tempItems]);
+    setNewSubtaskName('');
+    setNewSubtaskAssignee('');
+
     return Promise.all(
       list.map((assignee) =>
         axios.post(`/api/tasks/${selectedTask.id}/subtasks`, {
@@ -3149,16 +3163,15 @@ export default function useAppLogic() {
       )
     )
       .then(() => {
-        setNewSubtaskName('');
-        setNewSubtaskAssignee('');
         refreshSubtaskViews();
       })
-      .catch((err) =>
+      .catch((err) => {
+        setSubtasks(prevSubtasks);
         showNotification(
           err.response?.data?.detail || 'Failed to add sub-task!',
           'error'
-        )
-      );
+        );
+      });
   };
 
   const handleAddSubtask = (e) => {
@@ -3228,14 +3241,19 @@ export default function useAppLogic() {
 
   const handleDeleteTeamGroup = (items) => {
     if (!items?.length) return;
+    const prevSubtasks = subtasks;
+    const ids = new Set(items.map((st) => st.id));
+    setSubtasks((prev) => prev.filter((st) => !ids.has(st.id)));
+
     Promise.all(items.map((st) => axios.delete(`/api/subtasks/${st.id}`)))
       .then(() => refreshSubtaskViews())
-      .catch((err) =>
+      .catch((err) => {
+        setSubtasks(prevSubtasks);
         showNotification(
           err.response?.data?.detail || 'Failed to delete sub-task!',
           'error'
-        )
-      );
+        );
+      });
   };
 
   const handleSyncTeamAssignees = (teamName, items, nextAssignees = []) => {
@@ -5024,22 +5042,22 @@ export default function useAppLogic() {
 
   const handleInviteTeam = (e) => {
     e.preventDefault();
-    if (!inviteInput.trim()) return;
-    setIsLoading(true);
+    if (!inviteInput.trim() || !selectedBoard?.id) return;
+    const inputVal = inviteInput.trim();
+
+    setInviteInput('');
+    setInviteSuggestions([]);
+    showNotification('Sending invitation...', 'info');
 
     axios
       .post(`/api/boards/${selectedBoard.id}/invite`, {
-        members_input: inviteInput.trim(),
+        members_input: inputVal,
       })
       .then((res) => {
-        setIsLoading(false);
-        showNotification(res.data.message, 'success');
-        setInviteInput('');
-        setInviteSuggestions([]);
+        showNotification(res.data.message || 'Invitation sent successfully!', 'success');
         fetchMyTeam();
       })
       .catch((err) => {
-        setIsLoading(false);
         showNotification(
           err.response?.data?.detail || 'Failed to invite user.',
           'error'
@@ -5049,18 +5067,17 @@ export default function useAppLogic() {
 
   const handleReinviteMember = (username) => {
     if (!selectedBoard?.id || !username) return;
-    setIsLoading(true);
+    showNotification(`Re-inviting ${username}...`, 'info');
+
     axios
       .post(`/api/boards/${selectedBoard.id}/invite`, {
         members_input: username,
       })
       .then((res) => {
-        setIsLoading(false);
-        showNotification(res.data.message, 'success');
+        showNotification(res.data.message || `Re-invited ${username} successfully`, 'success');
         fetchMyTeam();
       })
       .catch((err) => {
-        setIsLoading(false);
         showNotification(
           err.response?.data?.detail || 'Failed to re-invite user.',
           'error'
