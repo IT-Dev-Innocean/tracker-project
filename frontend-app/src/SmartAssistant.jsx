@@ -7,9 +7,11 @@ import SmartAssistantQuickTodo from './components/SmartAssistant/SmartAssistantQ
 import SmartAssistantPlanner from './components/SmartAssistant/SmartAssistantPlanner';
 import SmartAssistantChat from './components/SmartAssistant/SmartAssistantChat';
 import { Icon } from './components/icons/Icon';
+import { useFeatureFlags } from './featureFlags';
 
 export default function SmartAssistant({
   currentUser,
+  workspaceRole = 'staff',
   selectedBoard,
   teamMembers,
   categories,
@@ -33,15 +35,66 @@ export default function SmartAssistant({
   isOpen,
   closeDrawer,
   startDriverTour,
-  boards,
+  boards = [],
   setSelectedBoard,
   language,
   avatarsMap,
-  userDirectory,
+  userDirectory = [],
+  leaves = [],
   formatDateMMM,
   chatBg,
   setIsMomNotepadOpen,
 }) {
+  const {
+    SMART_ASSISTANT_QUICK_TODO_ENABLED,
+    SMART_ASSISTANT_PLANNER_ENABLED,
+    SMART_ASSISTANT_MEETING_NOTES_ENABLED,
+  } = useFeatureFlags();
+
+  const [clients, setClients] = useState([]);
+  const [allWorkspaceTasks, setAllWorkspaceTasks] = useState([]);
+  const [dbProjects, setDbProjects] = useState([]);
+  const [dbUsers, setDbUsers] = useState([]);
+  const [dbLeaves, setDbLeaves] = useState([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      Promise.allSettled([
+        axios.get('/api/boards'),
+        axios.get('/api/tasks/all'),
+        axios.get('/api/clients'),
+        axios.get('/api/users'),
+        axios.get('/api/leaves'),
+      ]).then(([boardsRes, tasksRes, clientsRes, usersRes, leavesRes]) => {
+        if (boardsRes.status === 'fulfilled') {
+          const bData = boardsRes.value.data.boards || boardsRes.value.data || [];
+          setDbProjects(Array.isArray(bData) ? bData : []);
+        }
+        if (tasksRes.status === 'fulfilled') {
+          const tData = tasksRes.value.data.tasks || tasksRes.value.data || [];
+          setAllWorkspaceTasks(Array.isArray(tData) ? tData : []);
+        }
+        if (clientsRes.status === 'fulfilled') {
+          const cData = clientsRes.value.data.clients || clientsRes.value.data || [];
+          setClients(Array.isArray(cData) ? cData : []);
+        }
+        if (usersRes.status === 'fulfilled') {
+          const uData = usersRes.value.data.users || usersRes.value.data || [];
+          setDbUsers(Array.isArray(uData) ? uData : []);
+        }
+        if (leavesRes.status === 'fulfilled') {
+          const lData = leavesRes.value.data.leaves || leavesRes.value.data || [];
+          setDbLeaves(Array.isArray(lData) ? lData : []);
+        }
+      });
+    }
+  }, [isOpen]);
+
+  const hasSubFeatures =
+    SMART_ASSISTANT_QUICK_TODO_ENABLED ||
+    SMART_ASSISTANT_PLANNER_ENABLED ||
+    SMART_ASSISTANT_MEETING_NOTES_ENABLED;
+
   const [messages, setMessages] = useState([]);
   const [assistantMode, setAssistantMode] = useState('landing'); // 'landing', 'chat', 'quick_todo', 'planner'
   const [quickTasks, setQuickTasks] = useState([]);
@@ -115,7 +168,12 @@ export default function SmartAssistant({
   useEffect(() => {
     if (isOpen) {
       setTimeout(scrollToBottom, 100);
-      if (messages.length === 0 || localStorage.getItem('innocean_ai_offer_docs') === 'true') {
+      if (!hasSubFeatures) {
+        setAssistantMode('chat');
+        if (messages.length === 0) {
+          startConversation();
+        }
+      } else if (messages.length === 0 || localStorage.getItem('innocean_ai_offer_docs') === 'true') {
         if (localStorage.getItem('innocean_ai_offer_docs') === 'true') {
           setAssistantMode('chat');
           startConversation();
@@ -126,7 +184,7 @@ export default function SmartAssistant({
         setAssistantMode('chat');
       }
     }
-  }, [isOpen]);
+  }, [isOpen, hasSubFeatures]);
 
   useEffect(() => {
     if (scrollContainerRef.current) {
@@ -232,14 +290,16 @@ export default function SmartAssistant({
     setTaskData({});
     setStep('idle');
     const isGlobal = !selectedBoard || selectedBoard.id === 'global';
-    const workspaceName = isGlobal ? 'Global Workspace' : selectedBoard?.name;
+    const projectName = isGlobal
+      ? tMsg('All Projects (Global)', 'Semua Proyek (Global)')
+      : `${tMsg('Project', 'Proyek')}: ${selectedBoard?.name}`;
 
     if (localStorage.getItem('innocean_ai_offer_docs') === 'true') {
       localStorage.removeItem('innocean_ai_offer_docs');
       addBotMessage(
         tMsg(
-          `I've successfully created your "To-do List" tasks! 🎉\n\nWould you like a quick **Workspace Tour** to learn how to manage these tasks, or would you prefer to explore on your own?`,
-          `Saya telah berhasil membuat tugas "To-do List" Anda! 🎉\n\nApakah Anda ingin **Tur Ruang Kerja** singkat untuk mempelajari cara mengelola tugas ini, atau ingin bereksplorasi sendiri?`
+          `I've successfully created your "To-do List" tasks! 🎉\n\nWould you like a quick **Project Tour** to learn how to manage these tasks, or would you prefer to explore on your own?`,
+          `Saya telah berhasil membuat tugas "To-do List" Anda! 🎉\n\nApakah Anda ingin **Tur Proyek** singkat untuk mempelajari cara mengelola tugas ini, atau ingin bereksplorasi sendiri?`
         ),
         [optTour, optExplore]
       );
@@ -248,10 +308,9 @@ export default function SmartAssistant({
 
     addBotMessage(
       tMsg(
-        `Hi **@${currentUser}**! I'm your Smart Assistant.\n\nYou are currently in **${workspaceName}**. What would you like to do?\n\n*💡 Tip: Type **"options"** to see what else I can do.*`,
-        `Hai **@${currentUser}**! Saya Asisten Pintar Anda.\n\nAnda saat ini berada di **${workspaceName}**. Apa yang ingin Anda lakukan?\n\n*💡 Tip: Ketik **"opsi"** untuk melihat menu bantuan.*`
-      ),
-      [optCreate, optAnalysis, optMeeting, optMore]
+        `Hi **@${currentUser}**! I'm your Smart Assistant for **${projectName}**.\n\nHow can I help you today? Feel free to ask about tasks, project progress, team availability, or any questions!`,
+        `Hai **@${currentUser}**! Saya Asisten Pintar untuk **${projectName}**.\n\nAda yang bisa saya bantu hari ini? Anda dapat bertanya seputar tugas, progres proyek, ketersediaan tim, atau topik apa pun!`
+      )
     );
   };
 
@@ -959,7 +1018,7 @@ ${Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n\n') : taskData
           return;
         }
 
-        // --- General AI Conversation & Command Executor Fallback ---
+        // --- General AI Conversation (Pure Role-Based Q&A) ---
         addBotMessage(tMsg('Thinking... 🤔', 'Berpikir... 🤔'));
         const todayStr = getLocalToday();
 
@@ -971,27 +1030,207 @@ ${Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n\n') : taskData
           .map((m) => `${m.sender === 'user' ? 'User' : 'Assistant'}: ${m.text.replace(/<[^>]*>?/gm, '')}`)
           .join('\n');
 
-        const prompt = `You are 'Smart Assistant', the AI Assistant inside INNOCEAN Tracker. Today is ${todayStr}. User @${currentUser} says: "${data}".
+        // --- Build Independent System Database Context (Projects, Tasks, Clients, Users, Leaves) ---
+        const userRole = (workspaceRole || '').toLowerCase();
+        const isStaff = userRole === 'staff';
+
+        const sourceProjects = dbProjects.length > 0 ? dbProjects : (boards || []);
+        const sourceTasks = allWorkspaceTasks.length > 0 ? allWorkspaceTasks : (tasks || []);
+        const sourceClients = clients || [];
+        const sourceUsers = dbUsers.length > 0 ? dbUsers : (userDirectory || []);
+        const sourceLeaves = dbLeaves.length > 0 ? dbLeaves : (leaves || []);
+
+        // Fast lookup map: board_id / board.id -> board.name
+        const boardMap = {};
+        sourceProjects.forEach((b) => {
+          if (b && b.id) {
+            boardMap[String(b.id)] = b.name;
+          }
+        });
+
+        let dbContextSummary = '';
+
+        if (isStaff) {
+          // Staff Role: Scope data strictly to tasks, leaves, projects & teams involving @currentUser
+          const myTasks = sourceTasks.filter((t) => {
+            const mainA = String(t.main_assignee || '').toLowerCase();
+            const req = String(t.requester || '').toLowerCase();
+            const cur = String(currentUser || '').toLowerCase();
+            const isMain = mainA.includes(cur);
+            const isReq = req.includes(cur);
+            const isSub = (t.subtasks || []).some(
+              (st) => String(st.assignee || '').toLowerCase() === cur
+            );
+            return isMain || isReq || isSub;
+          });
+
+          const myLeaves = sourceLeaves.filter((l) => {
+            const cur = String(currentUser || '').toLowerCase();
+            const username = String(l.username || l.user || '').toLowerCase();
+            return username.includes(cur);
+          });
+
+          const myProjects = sourceProjects.map((b) => ({
+            project_name: b.name,
+            project_owner: b.owner_username || b.owner || 'N/A',
+            project_code: b.project_number || b.id,
+          }));
+
+          const taskSummaryList = myTasks.map((t) => ({
+            title: t.task_name,
+            project_name: boardMap[String(t.board_id)] || t.board_name || 'Global',
+            category: t.category,
+            status: t.status,
+            priority: t.priority_lvl || 'medium',
+            created_or_requested_by: t.requester || t.main_assignee || 'N/A', // Creator/Requester (Does not do the work)
+            supervisors_knowing: Array.isArray(t.head_of_project) ? t.head_of_project.join(', ') : (t.head_of_project || 'N/A'), // Supervisors knowing about the task
+            rc_monitoring_team: Array.isArray(t.rc_team) ? t.rc_team.join(', ') : (t.rc_team || 'N/A'), // PIC Monitoring team
+            start_date: t.start_date || t.timestamp,
+            deadline: t.deadline,
+            is_done: t.status === 'Done',
+            assigned_doers_in_subtasks: (t.subtasks && t.subtasks.length > 0)
+              ? t.subtasks.map((st) => ({
+                  subtask_title: st.task_name,
+                  doer_assigned: st.assignee || 'Unassigned',
+                  department: st.department || 'N/A',
+                  is_done: !!st.is_done,
+                }))
+              : (t.subtask_assignees || t.subtask_details || 'None'),
+          }));
+
+          dbContextSummary = `
+USER ROLE: Staff (@${currentUser})
+ROLE SECURITY BOUNDARY: You MUST ONLY provide information about @${currentUser}'s own assigned tasks and leave records. Do NOT leak private details of other employees or unassigned projects.
+
+1. DATABASE - MY TASKS (${taskSummaryList.length} total):
+${JSON.stringify(taskSummaryList, null, 2)}
+
+2. DATABASE - MY LEAVE RECORDS (${myLeaves.length} total):
+${JSON.stringify(myLeaves, null, 2)}
+
+3. DATABASE - ACCESSIBLE PROJECTS:
+${JSON.stringify(myProjects, null, 2)}
+`;
+        } else {
+          // Manager / Admin / Owner / BOD Role: Full access to Projects, Clients, Teams & Leave Teams
+          const projectsSummary = sourceProjects.map((b) => ({
+            id: b.id,
+            name: b.name,
+            owner: b.owner_username || b.owner || 'N/A',
+            project_code: b.project_number || b.id,
+            is_archived: !!b.deletion_date,
+          }));
+
+          const clientsSummary = sourceClients.map((c) => ({
+            client_name: c.client_name || c.name,
+            client_code: c.client_code || c.code,
+            status: c.status || 'active',
+          }));
+
+          const teamsSummary = sourceUsers.map((u) => ({
+            username: u.username,
+            full_name: u.full_name,
+            role: u.role,
+            job_position: u.job_position || u.position || u.title || 'N/A', // Job Position / Jabatan
+            department: u.department || u.division_name || u.division || 'N/A', // Department / Divisi
+            is_active: u.status !== 'suspended',
+          }));
+
+          const leavesSummary = sourceLeaves.map((l) => ({
+            user: l.username || l.user,
+            type: l.leave_type || l.type || 'Leave',
+            start_date: l.start_date || l.date,
+            end_date: l.end_date || l.date,
+            reason: l.reason || l.description,
+            status: l.status || 'Approved',
+          }));
+
+          const allTasksSummary = sourceTasks.map((t) => ({
+            title: t.task_name,
+            project_name: boardMap[String(t.board_id)] || t.board_name || 'Global',
+            status: t.status,
+            category: t.category,
+            priority: t.priority_lvl || 'medium',
+            created_or_requested_by: t.requester || t.main_assignee || 'N/A', // Creator (Not worker)
+            supervisors_knowing: Array.isArray(t.head_of_project) ? t.head_of_project.join(', ') : (t.head_of_project || 'N/A'), // Supervisors knowing about the task
+            rc_monitoring_team: Array.isArray(t.rc_team) ? t.rc_team.join(', ') : (t.rc_team || 'N/A'), // PIC Monitoring team
+            deadline: t.deadline,
+            assigned_doers_in_subtasks: (t.subtasks && t.subtasks.length > 0)
+              ? t.subtasks.map((st) => ({
+                  subtask_title: st.task_name,
+                  doer_assigned: st.assignee || 'Unassigned',
+                  department: st.department || 'N/A',
+                  is_done: !!st.is_done,
+                }))
+              : (t.subtask_assignees || t.subtask_details || 'None'),
+          }));
+
+          dbContextSummary = `
+USER ROLE: Manager / Admin / Owner / BOD (@${currentUser})
+ROLE SECURITY SCOPE: Full workspace-wide read access to Projects Page, Clients Page, Teams Page, and Leave Teams Page.
+
+1. DATABASE - PROJECTS PAGE (${projectsSummary.length} projects):
+${JSON.stringify(projectsSummary, null, 2)}
+
+2. DATABASE - CLIENTS PAGE (${clientsSummary.length} clients):
+${JSON.stringify(clientsSummary, null, 2)}
+
+3. DATABASE - TEAMS PAGE (${teamsSummary.length} members):
+${JSON.stringify(teamsSummary, null, 2)}
+
+4. DATABASE - LEAVE TEAMS PAGE (${leavesSummary.length} leave records):
+${JSON.stringify(leavesSummary, null, 2)}
+
+5. DATABASE - TASKS SUMMARY FOR ALL PROJECTS (${allTasksSummary.length} total tasks):
+${JSON.stringify(allTasksSummary, null, 2)}
+`;
+        }
+
+        // Check if current user is an authorized Administrator
+        const isAdmin = userRole === 'admin' || userRole === 'superadmin' || String(currentUser || '').toLowerCase() === 'admin';
+
+        const prompt = `You are 'Smart Assistant', the intelligent AI Copilot inside INNOCEAN Tracker. Today is ${todayStr}. User @${currentUser} (Role: ${workspaceRole || 'Staff'}) is in project: "${
+          !selectedBoard || selectedBoard.id === 'global' ? 'All Projects (Global)' : selectedBoard.name
+        }". User says: "${data}".
+
+TERMINOLOGY DOMAIN NOTE:
+- In this application, there are NO "workspaces". The structure is strictly: Projects (Proyek) -> Tasks (Tugas) -> Subtasks (Sub-tugas).
+
+TASK ROLES SPECIFICATION (INNOCEAN TRACKER):
+- Requester / Main Assignee: The person who CREATED or REQUESTED the task (they do NOT execute the work).
+- Supervisors / Head of Project: The supervisors who know about/oversee the task.
+- R&C Team: The PIC team responsible for MONITORING task execution.
+- Subtask Assignees (DOERS): The actual people assigned to SUBTASKS are the ONES EXECUTING/DOING THE WORK. When a user is assigned to a subtask, it means that user is assigned to DO the work. Always recognize subtask assignees as the actual workers executing the task!
+
+USER PROFILE & TEAMS SPECIFICATION:
+- Each user profile in the database has a specific Job Position (Jabatan/Position) and Department/Division (Departemen/Divisi). Always use the 'job_position' and 'department' fields in TEAMS PAGE database context to accurately answer questions regarding any user's position, job title, or department!
+
+DATABASE CONTEXT (LIVE DATA FROM DATABASE):
+${dbContextSummary}
 
 Recent Conversation History:
 ${recentHistory}
 
-Please respond in the same language that the user used in their message.
-
-CRITICAL RULE: You must stay strictly within the context of INNOCEAN Tracker, project/task management, office work, scheduling, or developer/work collaboration. If the user's message is unrelated to these topics (e.g., cooking recipes, general chit-chat about hobbies, movies, trivia, sports, personal life, etc.), you must politely decline to answer, explaining in the user's language that your role is strictly to assist with project management, tasks, and productivity in INNOCEAN Tracker. Do not provide information or perform tasks for out-of-context topics under any circumstances.
-
-If the user wants to CREATE/ADD A TASK (e.g. "bikin task", "buatkan task", "create task"), extract the details and reply ONLY with this valid JSON format (do not wrap in markdown quotes, just the raw JSON object):
-{"action": "create_task", "task_name": "extracted title", "requester": "Assignee (with '@') OR Requester name (without '@') OR @${currentUser}", "category": "extracted or 'Other'", "deadline": "YYYY-MM-DD (format strictly like this)", "etc": "Estimate the time consumption in hours (integer) based on task complexity. If user specifies a time (e.g., 'this will take 4 hours'), use that. Default to 2 if unsure.", "description": "detailed description if provided, else empty", "subtasks": ["extracted subtask 1", "extracted subtask 2"]}
-
-If the user wants to ADD A LEAVE/TIME OFF (e.g. "bikin cuti", "tambah libur", "add leave"), extract the details and reply ONLY with this valid JSON format (do not wrap in markdown quotes, just the raw JSON object):
-{"action": "create_leave", "start_date": "YYYY-MM-DD", "end_date": "YYYY-MM-DD", "description": "extracted reason or 'Personal Leave'"}
-
-If the user wants to SUBMIT A TICKET/FEEDBACK/SUPPORT (e.g. "bikin tiket", "create ticket", "lapor bug", "contact support"), extract the details and reply ONLY with this valid JSON format (do not wrap in markdown quotes, just the raw JSON object):
-{"action": "create_ticket", "type": "Support or Feedback", "description": "extracted issue or idea"}
-
-If the user asks to conceptualize a program, workflow, architecture, or flowchart, provide a detailed, readable ASCII-art flowchart wrapped in a \`\`\` code block, and you may ignore the 3-sentence limit to provide a complete answer. Do NOT use leading spaces to center the flowchart; align it to the left edge.
-
-If it's a general question or conversation related to project/task management, office work, or work productivity, reply naturally in text (max 3 sentences) keeping the context of the conversation history.`;
+CRITICAL RULES:
+1. PURE Q&A ASSISTANT ONLY: You CANNOT create tasks, edit data, delete records, or perform mutating side-effects. You ONLY provide informative, conversational text answers.
+2. VISUAL FORMATTING & LAYOUT RULES:
+   - DO NOT USE MARKDOWN TABLES (| header | header |) in chat responses. Markdown tables look messy, cramped, and break layout inside narrow chat bubbles.
+   - Present data, tasks, and project breakdowns using clean, beautifully formatted lists with bullet points (•), bold titles, or numbered cards.
+   - Example clean format for listing tasks:
+     **1. [Task Title]**
+     • **Project:** [Project Name]
+     • **Subtask(s):** [Subtask Name (Department)]
+     • **Status:** [Task Status]
+3. STRICT ADMINISTRATOR PAGE SECURITY GUARDRAIL:
+   ${
+     isAdmin
+       ? `- User @${currentUser} IS AN ADMINISTRATOR. You are authorized to discuss Administrator Settings, system user management, account roles, admin feature flags, and system administrative controls.`
+       : `- STRICT SECURITY GUARDRAIL: User @${currentUser} IS NOT AN ADMINISTRATOR. You MUST REFUSE to answer any questions regarding Administrator Settings, Admin Panel controls, system user role management, password resets, or admin feature flags. Politely inform the user that Admin Settings can ONLY be accessed and managed by Administrators.`
+   }
+4. STRICT ROLE-BASED ACCESS CONTROL:
+   - If User Role is 'Staff', strictly limit your answers to @${currentUser}'s own assigned tasks and subtasks. Politely decline if asked about other staff members' private workload or unassigned projects.
+   - If User Role is Manager/Admin/Owner/BOD, provide comprehensive project insights, team workloads, project health, or performance summaries as requested.
+5. Language: Respond in the exact language used by the user (Indonesian/English). Keep answers warm, professional, clear, and formatted in markdown.`;
 
         axios
           .post('/api/ai/generate', { prompt, provider: selectedModel })
@@ -999,154 +1238,15 @@ If it's a general question or conversation related to project/task management, o
             if (res.data.provider) setAiProvider(res.data.provider);
             setMessages((prev) => prev.filter((m) => m.text !== tMsg('Thinking... 🤔', 'Berpikir... 🤔')));
             const replyText = res.data.text.trim();
-
-            try {
-              let cleanJson = replyText
-                .replace(/```json/gi, '')
-                .replace(/```/g, '')
-                .trim();
-
-              // --- Detect MULTIPLE create_task JSON objects (AI hallucination pattern) ---
-              // When AI returns multiple JSON objects instead of redirecting to planner,
-              // we catch them here and convert them into planner tasks.
-              const multiJsonMatches = cleanJson.match(/\{[^{}]*"action"\s*:\s*"create_task"[^{}]*\}/g);
-              if (multiJsonMatches && multiJsonMatches.length >= 2) {
-                // Parse all valid JSON objects from the response
-                const parsedTasks = [];
-                for (const jsonStr of multiJsonMatches) {
-                  try {
-                    const t = JSON.parse(jsonStr);
-                    if (t.action === 'create_task' && t.task_name) {
-                      parsedTasks.push(t);
-                    }
-                  } catch (_) { /* skip malformed */ }
-                }
-
-                if (parsedTasks.length >= 2) {
-                  // Convert to planner tasks format and redirect
-                  const defaultBoardId = !selectedBoard || selectedBoard.id === 'global'
-                    ? (boards[0]?.id || '')
-                    : selectedBoard.id;
-
-                  const plannerReadyTasks = parsedTasks.map((t) => ({
-                    id: Math.random().toString(),
-                    task_name: t.task_name,
-                    requester: t.requester || `@${currentUser}`,
-                    category: t.category || 'Other',
-                    deadline: t.deadline || '',
-                    etc: Number(t.etc) || 2,
-                    impact: t.impact || 'Medium',
-                    description: t.description || '',
-                    subtasks: Array.isArray(t.subtasks) ? t.subtasks : [],
-                    auto_nudge: false,
-                    target_board_id: defaultBoardId,
-                    selected: true,
-                  }));
-
-                  setMessages((prev) => prev.filter((m) => m.text !== tMsg('Thinking... 🤔', 'Berpikir... 🤔')));
-                  setPlannerTargetBoardId(defaultBoardId);
-                  setPlannedTasks(plannerReadyTasks);
-                  setAssistantMode('planner');
-                  return;
-                }
-              }
-              // --- End multi-JSON detection ---
-
-              const startIdx = cleanJson.indexOf('{');
-              const endIdx = cleanJson.lastIndexOf('}');
-
-              if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
-                cleanJson = cleanJson.substring(startIdx, endIdx + 1);
-                const parsed = JSON.parse(cleanJson);
-                if (parsed.action === 'create_task') {
-                  const deadlineDate = new Date(parsed.deadline);
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-
-                  const enrichedParsed = {
-                    ...parsed,
-                    subtasks: Array.isArray(parsed.subtasks)
-                      ? parsed.subtasks.map((st) => ({ task_name: st, assignee: null }))
-                      : [],
-                  };
-
-                  if (deadlineDate < today) {
-                    setTaskData(enrichedParsed);
-                    setStep('ask_deadline');
-                    addBotMessage(
-                      tMsg(
-                        `⚠️ The deadline for the task cannot be earlier than today. Please provide a valid deadline.`,
-                        `⚠️ Tenggat waktu untuk tugas tidak boleh lebih awal dari hari ini. Silakan berikan tenggat waktu yang valid.`
-                      ),
-                      null,
-                      true
-                    );
-                    return;
-                  }
-
-                  if (isGlobal) {
-                    setTaskData(enrichedParsed);
-                    setStep('ask_board_for_create');
-                    addBotMessage(
-                      tMsg(
-                        `I've prepared the task **"${parsed.task_name}"**. Since you are in the Global Workspace, which project should this belong to?`,
-                        `Saya telah menyiapkan tugas **"${parsed.task_name}"**. Karena Anda berada di Ruang Kerja Global, proyek mana yang akan menjadi tempat tugas ini?`
-                      ),
-                      (boards || []).map((b) => b.name).slice(0, 5)
-                    );
-                  } else {
-                    // Jika tidak global, tetapkan default ke board saat ini, tapi arahkan ke Konfirmasi.
-                    const finalData = { ...enrichedParsed, board_id: selectedBoard.id, board_name: selectedBoard.name };
-                    setTaskData(finalData);
-                    setStep('confirm_project_details');
-
-                    const summary =
-                      language === 'id'
-                        ? `Saya akan membuat tugas ini di proyek **${finalData.board_name}** dengan kategori **${finalData.category}**.\n\nApakah ini sudah benar, atau Anda ingin mengubahnya?`
-                        : `I will create this task in project **${finalData.board_name}** under category **${finalData.category}**.\n\nIs this correct, or do you want to change it?`;
-
-                    addBotMessage(summary, [optProceed, optChangeProj, optChangeCat, optCancel]);
-                  }
-                  return;
-                } else if (parsed.action === 'create_leave') {
-                  setTaskData(parsed);
-                  setStep('confirm_leave');
-                  addBotMessage(
-                    tMsg(
-                      `I've extracted your leave details:\n\n• **Start:** ${parsed.start_date}\n• **End:** ${parsed.end_date}\n• **Reason:** ${parsed.description}\n\nShould I submit this leave request?`,
-                      `Saya telah mengekstrak detail cuti Anda:\n\n• **Mulai:** ${parsed.start_date}\n• **Selesai:** ${parsed.end_date}\n• **Alasan:** ${parsed.description}\n\nHaruskah saya mengirimkan permintaan cuti ini?`
-                    ),
-                    [tMsg('Yes, Submit', 'Ya, Kirim'), optCancel]
-                  );
-                  return;
-                } else if (parsed.action === 'create_ticket') {
-                  setTaskData(parsed);
-                  setStep('confirm_ticket');
-                  addBotMessage(
-                    tMsg(
-                      `I've prepared your ticket:\n\n• **Type:** ${parsed.type}\n• **Details:** ${parsed.description}\n\nShould I submit this ticket to the Admins?`,
-                      `Saya telah menyiapkan tiket Anda:\n\n• **Tipe:** ${parsed.type}\n• **Detail:** ${parsed.description}\n\nHaruskah saya mengirimkan tiket ini ke Admin?`
-                    ),
-                    [tMsg('Yes, Submit', 'Ya, Kirim'), optCancel]
-                  );
-                  return;
-                }
-              }
-            } catch (e) {
-              // Fallback to normal text conversation
-            }
-
             addBotMessage(replyText);
           })
           .catch((err) => {
             setMessages((prev) => prev.filter((m) => m.text !== tMsg('Thinking... 🤔', 'Berpikir... 🤔')));
-            const errorMsg = err.response?.data?.detail || err.message || 'Unknown error';
             addBotMessage(
               tMsg(
-                `⚠️ **Smart Assistant Error:** ${errorMsg}\n\nI couldn't process your request. Try choosing an option below:`,
-                `⚠️ **Smart Assistant Error:** ${errorMsg}\n\nSaya tidak dapat memproses permintaan Anda. Coba pilih opsi di bawah:`
-              ),
-              [optCreate, optAnalysis, optSearch, optMore]
+                'Sorry, I encountered an error. Please try again.',
+                'Maaf, terjadi kesalahan. Silakan coba lagi.'
+              )
             );
           });
         return;

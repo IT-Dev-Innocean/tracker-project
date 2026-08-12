@@ -12,6 +12,41 @@ export const renderChatMessageContent = (text, isMe) => {
     return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
   });
 
+  // Parse Markdown Tables cleanly before replacing newlines
+  escaped = escaped.replace(/(?:^|\n)(\|.+?\|\n\|[-:| ]+\|\n(?:\|.+?\|\n?)+)/g, (match, tableBlock) => {
+    const lines = tableBlock.trim().split('\n');
+    if (lines.length < 3) return match;
+    const headerCells = lines[0].split('|').slice(1, -1).map((c) => c.trim());
+    const bodyRows = lines.slice(2).map((row) => row.split('|').slice(1, -1).map((c) => c.trim()));
+
+    let tableHtml = `<div class="overflow-x-auto my-2.5 rounded-lg border ${
+      isMe
+        ? 'border-indigo-400/40 bg-indigo-900/40 text-white'
+        : 'border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/90 text-neutral-900 dark:text-neutral-100'
+    }"><table class="w-full text-left text-[11px] border-collapse min-w-[320px]"><thead><tr class="border-b ${
+      isMe
+        ? 'border-indigo-400/40 bg-indigo-800/50 text-white'
+        : 'border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-200'
+    }">`;
+    headerCells.forEach((h) => {
+      tableHtml += `<th class="px-3 py-2 font-bold uppercase tracking-wider text-[10px]">${h}</th>`;
+    });
+    tableHtml += `</tr></thead><tbody>`;
+    bodyRows.forEach((row) => {
+      tableHtml += `<tr class="border-b last:border-0 ${
+        isMe
+          ? 'border-indigo-400/20 hover:bg-indigo-800/30'
+          : 'border-neutral-200/60 dark:border-neutral-800/60 hover:bg-neutral-100/50 dark:hover:bg-neutral-800/40'
+      }">`;
+      row.forEach((c) => {
+        tableHtml += `<td class="px-3 py-2 align-top whitespace-pre-wrap">${c}</td>`;
+      });
+      tableHtml += `</tr>`;
+    });
+    tableHtml += `</tbody></table></div>`;
+    return `\n${tableHtml}\n`;
+  });
+
   escaped = escaped
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

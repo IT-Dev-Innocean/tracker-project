@@ -2,6 +2,7 @@ import React from 'react';
 import ChatMessage from '../../ChatMessage';
 import { LoadingSpinner } from '../../Utils';
 import { Icon } from '../icons/Icon';
+import { useFeatureFlags } from '../../featureFlags';
 
 export default function SmartAssistantChat({
   messages,
@@ -40,6 +41,26 @@ export default function SmartAssistantChat({
   messagesEndRef,
   renderDiscardModal,
 }) {
+  const {
+    SMART_ASSISTANT_QUICK_TODO_ENABLED,
+    SMART_ASSISTANT_PLANNER_ENABLED,
+    SMART_ASSISTANT_MEETING_NOTES_ENABLED,
+  } = useFeatureFlags();
+
+  const hasSubFeatures =
+    SMART_ASSISTANT_QUICK_TODO_ENABLED ||
+    SMART_ASSISTANT_PLANNER_ENABLED ||
+    SMART_ASSISTANT_MEETING_NOTES_ENABLED;
+
+  const handleResetOrCreate = () => {
+    setMessages([]);
+    if (!hasSubFeatures) {
+      if (typeof startConversation === 'function') startConversation();
+    } else {
+      setAssistantMode('landing');
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col w-full h-full bg-white dark:bg-neutral-950 relative z-20">
       <style>{`
@@ -56,17 +77,18 @@ export default function SmartAssistantChat({
           onClick={() => {
             if (messages.length > 2) {
               setDiscardConfirmAction(() => () => {
-                setMessages([]);
-                setAssistantMode('landing');
+                handleResetOrCreate();
               });
               return;
             }
-            setMessages([]);
-            setAssistantMode('landing');
+            handleResetOrCreate();
           }}
-          className="text-[10px] font-bold text-neutral-400 hover:text-black dark:hover:text-white uppercase tracking-widest transition-colors flex items-center gap-1 w-16"
-        >
-          ◀ {tMsg('Menu', 'Menu')}
+          className="text-[10px] font-bold text-neutral-400 hover:text-black dark:hover:text-white uppercase tracking-widest transition-colors flex items-center gap-1">
+          {hasSubFeatures ? (
+            <>◀ {tMsg('Menu', 'Menu')}</>
+          ) : (
+            <>↺ {tMsg('New Chat', 'Chat Baru')}</>
+          )}
         </button>
         <div className="flex items-center gap-2 flex-1 justify-center">
           <select

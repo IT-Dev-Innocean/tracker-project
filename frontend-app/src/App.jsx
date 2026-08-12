@@ -2332,6 +2332,7 @@ function App() {
               className={`flex-1 flex-col overflow-hidden ${drawerTab === 'assistant' ? 'flex' : 'hidden'}`}>
               <SmartAssistant
               currentUser={currentUser}
+              workspaceRole={workspaceRole}
               selectedBoard={selectedBoard}
               teamMembers={teamMembers}
               categories={categories}
@@ -2362,6 +2363,7 @@ function App() {
               avatarsMap={avatarsMap}
               setIsProactiveAIOpen={setIsProactiveAIOpen}
               userDirectory={userDirectory}
+              leaves={leaves}
               formatDateMMM={formatDateMMM}
               setIsMomNotepadOpen={setIsMomNotepadOpen}
             />
