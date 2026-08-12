@@ -5042,22 +5042,22 @@ export default function useAppLogic() {
 
   const handleInviteTeam = (e) => {
     e.preventDefault();
-    if (!inviteInput.trim()) return;
-    setIsLoading(true);
+    if (!inviteInput.trim() || !selectedBoard?.id) return;
+    const inputVal = inviteInput.trim();
+
+    setInviteInput('');
+    setInviteSuggestions([]);
+    showNotification('Sending invitation...', 'info');
 
     axios
       .post(`/api/boards/${selectedBoard.id}/invite`, {
-        members_input: inviteInput.trim(),
+        members_input: inputVal,
       })
       .then((res) => {
-        setIsLoading(false);
-        showNotification(res.data.message, 'success');
-        setInviteInput('');
-        setInviteSuggestions([]);
+        showNotification(res.data.message || 'Invitation sent successfully!', 'success');
         fetchMyTeam();
       })
       .catch((err) => {
-        setIsLoading(false);
         showNotification(
           err.response?.data?.detail || 'Failed to invite user.',
           'error'
@@ -5067,18 +5067,17 @@ export default function useAppLogic() {
 
   const handleReinviteMember = (username) => {
     if (!selectedBoard?.id || !username) return;
-    setIsLoading(true);
+    showNotification(`Re-inviting ${username}...`, 'info');
+
     axios
       .post(`/api/boards/${selectedBoard.id}/invite`, {
         members_input: username,
       })
       .then((res) => {
-        setIsLoading(false);
-        showNotification(res.data.message, 'success');
+        showNotification(res.data.message || `Re-invited ${username} successfully`, 'success');
         fetchMyTeam();
       })
       .catch((err) => {
-        setIsLoading(false);
         showNotification(
           err.response?.data?.detail || 'Failed to re-invite user.',
           'error'

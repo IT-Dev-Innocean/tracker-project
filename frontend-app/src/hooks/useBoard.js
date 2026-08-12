@@ -32,57 +32,79 @@ export function useBoard({ isAuthenticated, currentUser, showNotification, setIs
       showNotification('Project name is required!', 'error');
       return;
     }
-    setIsLoading(true);
+    const tempId = `temp-${Date.now()}`;
+    const newBoardName = boardName.trim();
+    const tempBoard = {
+      id: tempId,
+      name: newBoardName,
+      created_at: new Date().toISOString(),
+      owner_username: currentUser?.username || '',
+    };
+
+    setBoards((prev) => [...prev, tempBoard]);
+    if (onSuccess) onSuccess(tempId);
+
     axios
-      .post('/api/boards', { name: boardName.trim() })
+      .post('/api/boards', { name: newBoardName })
       .then((res) => {
-        setIsLoading(false);
-        showNotification(res.data.message, 'success');
+        showNotification(res.data.message || 'Project created successfully.', 'success');
         fetchBoards();
-        if (onSuccess) onSuccess(res.data.board_id);
       })
       .catch((err) => {
-        setIsLoading(false);
+        setBoards((prev) => prev.filter((b) => b.id !== tempId));
         showNotification(err.response?.data?.detail || 'Failed to create project.', 'error');
       });
   };
 
   const handleUpdateBoard = (boardId, boardName, onSuccess) => {
     if (!boardName.trim()) return;
-    setIsLoading(true);
+    const newName = boardName.trim();
+    const previousBoards = boards;
+    const previousSelectedBoard = selectedBoard;
+
+    setBoards((prev) =>
+      prev.map((b) => (b.id === boardId ? { ...b, name: newName } : b))
+    );
+    if (selectedBoard?.id === boardId) {
+      setSelectedBoard((prev) => ({ ...prev, name: newName }));
+    }
+    if (onSuccess) onSuccess();
+
     axios
-      .put(`/api/boards/${boardId}`, { name: boardName.trim() })
+      .put(`/api/boards/${boardId}`, { name: newName })
       .then(() => {
-        setIsLoading(false);
         showNotification('Project updated successfully.', 'success');
-        fetchBoards();
-        if (selectedBoard?.id === boardId) {
-          setSelectedBoard(prev => ({ ...prev, name: boardName.trim() }));
-        }
-        if (onSuccess) onSuccess();
       })
       .catch((err) => {
-        setIsLoading(false);
+        setBoards(previousBoards);
+        if (previousSelectedBoard?.id === boardId) {
+          setSelectedBoard(previousSelectedBoard);
+        }
         showNotification(err.response?.data?.detail || 'Failed to update project.', 'error');
       });
   };
 
   const handleDeleteBoard = (boardId, onSuccess) => {
-    setIsLoading(true);
+    const previousBoards = boards;
+    const previousSelectedBoard = selectedBoard;
+
+    setBoards((prev) => prev.filter((b) => b.id !== boardId));
+    if (selectedBoard?.id === boardId) {
+      setSelectedBoard(null);
+      localStorage.removeItem('innocean_selected_board');
+    }
+    if (onSuccess) onSuccess();
+
     axios
       .delete(`/api/boards/${boardId}`)
       .then(() => {
-        setIsLoading(false);
         showNotification('Project deleted successfully.', 'success');
-        if (selectedBoard?.id === boardId) {
-          setSelectedBoard(null);
-          localStorage.removeItem('innocean_selected_board');
-        }
-        fetchBoards();
-        if (onSuccess) onSuccess();
       })
       .catch((err) => {
-        setIsLoading(false);
+        setBoards(previousBoards);
+        if (previousSelectedBoard?.id === boardId) {
+          setSelectedBoard(previousSelectedBoard);
+        }
         showNotification(err.response?.data?.detail || 'Failed to delete project.', 'error');
       });
   };
