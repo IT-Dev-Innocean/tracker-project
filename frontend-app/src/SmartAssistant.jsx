@@ -1034,7 +1034,14 @@ ${Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n\n') : taskData
         const userRole = (workspaceRole || '').toLowerCase();
         const isStaff = userRole === 'staff';
 
-        const sourceProjects = dbProjects.length > 0 ? dbProjects : (boards || []);
+        // Filter out private projects and 'to-do list' private boards (Public Projects ONLY)
+        const sourceProjects = (dbProjects.length > 0 ? dbProjects : (boards || [])).filter((b) => {
+          if (!b) return false;
+          const name = String(b.name || '').trim().toLowerCase();
+          const isPrivate = b.is_private === 1 || b.is_private === true;
+          return !isPrivate && name !== 'to-do list';
+        });
+
         const sourceTasks = allWorkspaceTasks.length > 0 ? allWorkspaceTasks : (tasks || []);
         const sourceClients = clients || [];
         const sourceUsers = dbUsers.length > 0 ? dbUsers : (userDirectory || []);
@@ -1195,6 +1202,7 @@ ${JSON.stringify(allTasksSummary, null, 2)}
 
 TERMINOLOGY DOMAIN NOTE:
 - In this application, there are NO "workspaces". The structure is strictly: Projects (Proyek) -> Tasks (Tugas) -> Subtasks (Sub-tugas).
+- PUBLIC PROJECTS ONLY: ALL valid projects in this app are PUBLIC. Private projects or 'To-do List' private boards do not exist/are not used in this app. You MUST NEVER mention or reference any 'To-do List' or private project. Only discuss active public projects from the database context!
 
 TASK ROLES SPECIFICATION (INNOCEAN TRACKER):
 - Requester / Main Assignee: The person who CREATED or REQUESTED the task (they do NOT execute the work).

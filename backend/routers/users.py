@@ -137,6 +137,29 @@ def update_profile(
     return {"message": "Profile updated successfully", "email_changed": False}
 
 
+@router.get("/api/users")
+def get_users_directory(
+    current_user: str = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    users = db.query(User).filter(User.account_status != "suspended").all()
+    can_manage = can_manage_workspace_users(db, current_user)
+    return {
+        "users": [
+            {
+                "username": u.username,
+                "full_name": u.full_name,
+                "email": u.email if can_manage else "Email hidden for privacy",
+                "job_position": u.job_position or "N/A",
+                "department": u.division_name or "N/A",
+                "division_name": u.division_name or "N/A",
+                "role": get_user_role(db, u.username),
+                "account_status": u.account_status,
+            }
+            for u in users
+        ]
+    }
+
+
 @router.get("/api/users/avatars")
 def get_all_avatars(
     current_user: str = Depends(get_current_user), db: Session = Depends(get_db)
