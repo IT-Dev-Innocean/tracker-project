@@ -4,6 +4,7 @@ import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { Icon } from '../icons/Icon';
 import { Avatar } from '../../SharedUI';
 import MultiUserSelect from '../MultiUserSelect';
+import { SUBTASK_DEPARTMENT_OPTIONS } from '../../utils/formSubtasks';
 
 function AssigneeTrigger({ selected, employees, avatarsMap, tMsg }) {
   if (!selected.length) {
@@ -294,60 +295,49 @@ export default function TaskDetailSubtasks({
 
                     <div className='flex-1 min-w-0 flex flex-col gap-2'>
                       <div className='flex items-center gap-2'>
-                        <input
-                          type='text'
+                        <select
                           value={nameValue}
                           disabled={
                             !isTaskAdmin ||
                             accountStatus === 'suspended' ||
                             anyDone
                           }
-                          onChange={(e) =>
-                            setDraftNames((prev) => ({
-                              ...prev,
-                              [key]: e.target.value,
-                            }))
-                          }
-                          onBlur={() => {
-                            const next = String(
-                              draftNames[key] ?? teamName ?? ''
-                            ).trim();
-                            if (!next || next === teamName) {
-                              setDraftNames((prev) => {
-                                const copy = { ...prev };
-                                delete copy[key];
-                                return copy;
-                              });
-                              return;
+                          onChange={(e) => {
+                            const next = e.target.value;
+                            if (next && next !== teamName) {
+                              if (handleRenameTeamGroup) {
+                                handleRenameTeamGroup(items, next);
+                              } else {
+                                items.forEach((st) =>
+                                  handleUpdateSubtaskName?.(
+                                    st.id,
+                                    st.is_done,
+                                    st.assignee,
+                                    next
+                                  )
+                                );
+                              }
                             }
-                            if (handleRenameTeamGroup) {
-                              handleRenameTeamGroup(items, next);
-                            } else {
-                              items.forEach((st) =>
-                                handleUpdateSubtaskName?.(
-                                  st.id,
-                                  st.is_done,
-                                  st.assignee,
-                                  next
-                                )
-                              );
-                            }
-                            setDraftNames((prev) => {
-                              const copy = { ...prev };
-                              delete copy[key];
-                              return copy;
-                            });
                           }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') e.currentTarget.blur();
-                          }}
-                          className={`w-full bg-transparent border-0 border-b border-neutral-200 dark:border-neutral-700 focus:border-indigo-500 outline-none text-xs font-bold px-0 py-1.5 ${
+                          className={`w-full bg-transparent border-0 border-b border-neutral-200 dark:border-neutral-700 focus:border-indigo-500 outline-none text-xs font-bold px-0 py-1.5 cursor-pointer ${
                             allDone
                               ? 'line-through text-neutral-400 dark:text-neutral-500'
                               : 'text-black dark:text-white'
-                          }`}
-                          placeholder={tMsg('Team name', 'Nama tim')}
-                        />
+                          }`}>
+                          <option value="" disabled className='dark:bg-neutral-900'>
+                            {tMsg('-- Select Department --', '-- Pilih Departemen --')}
+                          </option>
+                          {SUBTASK_DEPARTMENT_OPTIONS.map((dept) => (
+                            <option key={dept} value={dept} className='dark:bg-neutral-900'>
+                              {dept}
+                            </option>
+                          ))}
+                          {nameValue && !SUBTASK_DEPARTMENT_OPTIONS.includes(nameValue) && (
+                            <option value={nameValue} className='dark:bg-neutral-900'>
+                              {nameValue}
+                            </option>
+                          )}
+                        </select>
                         {isTaskAdmin && accountStatus !== 'suspended' && (
                           <button
                             type='button'
@@ -455,17 +445,20 @@ export default function TaskDetailSubtasks({
                 <label className='block text-[10px] font-bold uppercase tracking-widest text-neutral-400 mb-1.5'>
                   {tMsg('Team name', 'Nama tim')}
                 </label>
-                <input
-                  type='text'
+                <select
                   value={newSubtaskName}
                   onChange={(e) => setNewSubtaskName(e.target.value)}
-                  placeholder={tMsg(
-                    'Add a new team / sub-task...',
-                    'Tambah tim / sub-tugas baru...'
-                  )}
-                  className='w-full p-3.5 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-xl focus:bg-white dark:focus:bg-black focus:border-neutral-300 dark:focus:border-neutral-700 focus:outline-none text-sm font-medium placeholder-neutral-400 transition-all'
-                  autoFocus
-                />
+                  className='w-full p-3.5 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-xl focus:bg-white dark:focus:bg-black focus:border-neutral-300 dark:focus:border-neutral-700 focus:outline-none text-sm font-medium cursor-pointer transition-all'
+                  autoFocus>
+                  <option value="" disabled className='dark:bg-neutral-900'>
+                    {tMsg('-- Select Department --', '-- Pilih Departemen --')}
+                  </option>
+                  {SUBTASK_DEPARTMENT_OPTIONS.map((dept) => (
+                    <option key={dept} value={dept} className='dark:bg-neutral-900'>
+                      {dept}
+                    </option>
+                  ))}
+                </select>
               </div>
               <MultiUserSelect
                 hideLabel

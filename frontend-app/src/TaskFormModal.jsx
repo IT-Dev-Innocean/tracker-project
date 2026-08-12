@@ -13,7 +13,7 @@ import MultiUserSelect from './components/MultiUserSelect';
 import RoleUsersTrigger from './components/RoleUsersTrigger';
 import { useCloseAnimation, LoadingSpinner } from './Utils';
 import { useFeatureFlag } from './featureFlags';
-import { DEFAULT_FORM_TEAM_SUBTASKS } from './utils/formSubtasks';
+import { DEFAULT_FORM_TEAM_SUBTASKS, SUBTASK_DEPARTMENT_OPTIONS } from './utils/formSubtasks';
 
 export default function TaskFormModal({
   setIsFormOpen,
@@ -921,8 +921,7 @@ Format:
                         key={`team-slot-${i}`}
                         className='rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 p-3 flex flex-col gap-2 relative group/team'>
                         <div className='flex items-center gap-2'>
-                          <input
-                            type='text'
+                          <select
                             value={st.task_name || ''}
                             onChange={(e) => {
                               const next = [...formSubtasks];
@@ -939,9 +938,21 @@ Format:
                               }
                               setFormSubtasks(next);
                             }}
-                            className='w-full bg-transparent border-0 border-b border-neutral-200 dark:border-neutral-700 focus:border-indigo-500 outline-none text-xs font-bold text-black dark:text-white px-0 py-1.5'
-                            placeholder={tMsg('Team name', 'Nama tim')}
-                          />
+                            className='w-full bg-transparent border-0 border-b border-neutral-200 dark:border-neutral-700 focus:border-indigo-500 outline-none text-xs font-bold text-black dark:text-white px-0 py-1.5 cursor-pointer'>
+                            <option value="" disabled className='dark:bg-neutral-900'>
+                              {tMsg('-- Select Department --', '-- Pilih Departemen --')}
+                            </option>
+                            {SUBTASK_DEPARTMENT_OPTIONS.map((dept) => (
+                              <option key={dept} value={dept} className='dark:bg-neutral-900'>
+                                {dept}
+                              </option>
+                            ))}
+                            {st.task_name && !SUBTASK_DEPARTMENT_OPTIONS.includes(st.task_name) && (
+                              <option value={st.task_name} className='dark:bg-neutral-900'>
+                                {st.task_name}
+                              </option>
+                            )}
+                          </select>
                           <button
                             type='button'
                             onClick={() =>

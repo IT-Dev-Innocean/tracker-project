@@ -657,16 +657,40 @@ export default function ChatWorkspaceModal({
     else if (activeChat.type === 'task') endpoint = `/api/tasks/${activeChat.id}/comments`;
     else if (activeChat.type === 'dm') endpoint = `/api/dm/${activeChat.id}`;
 
+    if (!endpoint) return;
+
+    const pad = (n) => String(n).padStart(2, '0');
+    const now = new Date();
+    const localTimeStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(
+      now.getHours()
+    )}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const tempId = `temp-msg-${Date.now()}`;
+    const tempMsg = {
+      id: tempId,
+      username: currentUser,
+      sender: currentUser,
+      text: commentText,
+      timestamp: localTimeStr,
+      created_at: now.toISOString(),
+      reactions: {},
+      isPrivate: isPrivateAI,
+      privateUser: currentUser,
+    };
+
+    const previousMessages = messages;
+    setMessages((prev) => [...prev, tempMsg]);
+    setNewMessage('');
+    setReplyingTo(null);
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+
     axios
       .post(endpoint, { text: commentText })
       .then(() => {
-        setNewMessage('');
-        setReplyingTo(null);
         fetchMessages();
         if (activeChat.type === 'dm') fetchDmConversations();
-        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
       })
       .catch((err) => {
+        setMessages(previousMessages);
         const errorMsg = err.response?.data?.detail || tMsg('Failed to send message', 'Gagal mengirim pesan');
         if (showNotification) showNotification(errorMsg, 'error');
       });
@@ -717,17 +741,23 @@ export default function ChatWorkspaceModal({
     else if (activeChat.type === 'dm') endpoint = `/api/dm/${msgToDelete}`;
 
     if (!endpoint) return;
+
+    const previousMessages = messages;
+    const targetId = msgToDelete;
+
+    setMessages((prev) => prev.filter((m) => m.id !== targetId));
+    setMsgToDelete(null);
+    if (showNotification) showNotification(tMsg('Message deleted', 'Pesan dihapus'), 'success');
+
     axios
       .delete(endpoint)
       .then(() => {
         fetchMessages();
         if (activeChat.type === 'dm') fetchDmConversations();
-        if (showNotification) showNotification(tMsg('Message deleted', 'Pesan dihapus'), 'success');
-        setMsgToDelete(null);
       })
       .catch((err) => {
+        setMessages(previousMessages);
         if (showNotification) showNotification(tMsg('Failed to delete message', 'Gagal menghapus pesan'), 'error');
-        setMsgToDelete(null);
       });
   };
 
