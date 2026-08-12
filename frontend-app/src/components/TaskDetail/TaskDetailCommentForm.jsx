@@ -202,6 +202,7 @@ export default function TaskDetailCommentForm({
                   }
                 } else if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
+                  e.stopPropagation();
                   handleChatSubmit(e);
                   e.target.style.height = '44px';
                 }

@@ -1,10 +1,22 @@
+export const SUBTASK_DEPARTMENT_OPTIONS = [
+  'Account',
+  'BTL',
+  'Creative',
+  'CRM',
+  'Digital & Technology',
+  'Media',
+  'Planning',
+  'Resources & Coordination',
+  'RSD',
+];
+
 export const DEFAULT_FORM_TEAM_SUBTASKS = [
-  { task_name: 'Creative & Production', assignees: [] },
-  { task_name: 'Strategic', assignees: [] },
-  { task_name: 'Digital SosMed', assignees: [] },
-  { task_name: 'Digital CRM', assignees: [] },
+  { task_name: 'Creative', assignees: [] },
+  { task_name: 'Planning', assignees: [] },
+  { task_name: 'Digital & Technology', assignees: [] },
   { task_name: 'Media', assignees: [] },
   { task_name: 'BTL', assignees: [] },
+  { task_name: 'Account', assignees: [] },
 ];
 
 export const flattenFormSubtasksForApi = (teams = []) => {

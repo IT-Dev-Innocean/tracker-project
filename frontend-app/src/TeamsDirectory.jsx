@@ -342,7 +342,7 @@ export default function TeamsDirectory() {
             onChange={(e) => setDivisionFilter(e.target.value)}
             className="rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 px-3 py-2 text-xs font-bold outline-none"
           >
-            <option value="all">{tMsg('All Divisions', 'Semua Divisi')}</option>
+            <option value="all">{tMsg('All Departments', 'Semua Departemen')}</option>
             {divisionsList.map((divName) => (
               <option key={divName} value={divName}>
                 {divName}
@@ -368,7 +368,7 @@ export default function TeamsDirectory() {
                 <th className="px-4 py-3">{tMsg('Name', 'Nama')}</th>
                 <th className="px-4 py-3">{tMsg('Email', 'Email')}</th>
                 <th className="px-4 py-3">{tMsg('Job Position', 'Posisi Kerja')}</th>
-                <th className="px-4 py-3">{tMsg('Division Name', 'Nama Divisi')}</th>
+                <th className="px-4 py-3">{tMsg('Department', 'Departemen')}</th>
                 <th className="px-4 py-3">{tMsg('User Status', 'Status')}</th>
                 <th className="px-4 py-3 text-right">{tMsg('Actions', 'Tindakan')}</th>
               </tr>

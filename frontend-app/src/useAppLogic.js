@@ -3262,6 +3262,34 @@ export default function useAppLogic() {
     if (!name) return;
 
     const desired = [...new Set((nextAssignees || []).filter(Boolean))];
+    const prevSubtasks = subtasks;
+
+    // Optimistic update of subtasks state
+    setSubtasks((prev) => {
+      const itemIds = new Set(items.map((st) => st.id));
+      const remaining = prev.filter((st) => !itemIds.has(st.id));
+
+      let template = items[0] || { task_id: selectedTask.id, task_name: name, is_done: 0 };
+
+      if (desired.length === 0) {
+        return [...remaining, { ...template, id: items[0]?.id || `temp-st-${Date.now()}`, assignee: null }];
+      }
+
+      const updated = desired.map((username, idx) => {
+        const existing = items.find((st) => st.assignee === username) || items[idx];
+        return {
+          id: existing?.id || `temp-st-${Date.now()}-${idx}`,
+          task_id: selectedTask.id,
+          task_name: name,
+          is_done: existing?.is_done || 0,
+          ...existing,
+          assignee: username,
+        };
+      });
+
+      return [...remaining, ...updated];
+    });
+
     const withAssignee = items.filter((st) => st.assignee);
     const withoutAssignee = items.filter((st) => !st.assignee);
     const currentSet = new Set(withAssignee.map((st) => st.assignee));
@@ -3311,11 +3339,11 @@ export default function useAppLogic() {
     Promise.all(ops)
       .then(() => refreshSubtaskViews())
       .catch((err) => {
+        setSubtasks(prevSubtasks);
         showNotification(
           err.response?.data?.detail || 'Failed to update assignees!',
           'error'
         );
-        refreshSubtaskViews();
       });
   };
 
@@ -3491,24 +3519,45 @@ export default function useAppLogic() {
     if (e) e.preventDefault();
     const textToSubmit =
       typeof textOverride === 'string' ? textOverride : newComment;
-    if (!textToSubmit.trim()) return;
+    if (!textToSubmit.trim() || !selectedTask?.id) return;
+    const cleanText = textToSubmit.trim();
+
+    const pad = (n) => String(n).padStart(2, '0');
+    const now = new Date();
+    const localTimeStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(
+      now.getHours()
+    )}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const tempId = `temp-comment-${Date.now()}`;
+    const optimisticComment = {
+      id: tempId,
+      username: currentUser?.username || currentUser || '',
+      text: cleanText,
+      timestamp: localTimeStr,
+      created_at: now.toISOString(),
+      reactions: {},
+    };
+
+    const previousComments = comments;
+    setComments((prev) => [...prev, optimisticComment]);
+    setNewComment('');
+
     axios
       .post(`/api/tasks/${selectedTask.id}/comments`, {
-        text: textToSubmit.trim(),
+        text: cleanText,
       })
       .then(() => {
-        setNewComment('');
         fetchComments(selectedTask.id);
         setSelectedBoard((prev) =>
           prev ? { ...prev, deletion_date: null } : null
         );
       })
-      .catch((err) =>
+      .catch((err) => {
+        setComments(previousComments);
         showNotification(
           err.response?.data?.detail || 'Failed to add comment!',
           'error'
-        )
-      );
+        );
+      });
   };
 
   const handleAskAITaskChat = (
@@ -3571,15 +3620,23 @@ export default function useAppLogic() {
   };
 
   const confirmDeleteComment = () => {
-    if (!commentToDelete) return;
+    if (!commentToDelete || !selectedTask?.id) return;
+    const targetId = commentToDelete;
+    const previousComments = comments;
+
+    setComments((prev) => prev.filter((c) => c.id !== targetId));
+    setCommentToDelete(null);
+
     axios
-      .delete(`/api/tasks/${selectedTask.id}/comments/${commentToDelete}`)
+      .delete(`/api/tasks/${selectedTask.id}/comments/${targetId}`)
       .then(() => {
-        fetchComments(selectedTask.id);
         showNotification('Comment deleted', 'success');
-        setCommentToDelete(null);
+        fetchComments(selectedTask.id);
       })
-      .catch((err) => showNotification('Failed to delete comment', 'error'));
+      .catch((err) => {
+        setComments(previousComments);
+        showNotification('Failed to delete comment', 'error');
+      });
   };
 
   const handleToggleReaction = (commentId, emoji, isProjectChat = false) => {

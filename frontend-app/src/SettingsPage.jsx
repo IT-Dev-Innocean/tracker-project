@@ -230,8 +230,8 @@ export default function SettingsPage({
                 {tMsg('Complete Your Profile Information', 'Lengkapi Informasi Profil Anda')}
               </p>
               {tMsg(
-                'Please ensure your Job Position and Division Name are filled in. This information is required for task details and official reports.',
-                'Pastikan Posisi Pekerjaan dan Nama Divisi Anda terisi. Informasi ini diperlukan untuk detail tugas dan laporan resmi.'
+                'Please ensure your Job Position and Department are filled in. This information is required for task details and official reports.',
+                'Pastikan Posisi Pekerjaan dan Departemen Anda terisi. Informasi ini diperlukan untuk detail tugas dan laporan resmi.'
               )}
             </div>
           </div>
@@ -349,10 +349,10 @@ export default function SettingsPage({
                   </SettingItem>
 
                   <SettingItem
-                    title={tMsg('Division Name', 'Nama Divisi')}
+                    title={tMsg('Department', 'Departemen')}
                     description={tMsg(
-                      'Select your department or division name.',
-                      'Pilih nama departemen atau divisi Anda.'
+                      'Select your department.',
+                      'Pilih departemen Anda.'
                     )}
                   >
                     <select
@@ -362,9 +362,10 @@ export default function SettingsPage({
                       required
                     >
                       <option value="" disabled>
-                        {tMsg('-- Select Division --', '-- Pilih Divisi --')}
+                        {tMsg('-- Select Department --', '-- Pilih Departemen --')}
                       </option>
                       <option value="Account">Account</option>
+                      <option value="BOD">BOD</option>
                       <option value="BTL">BTL</option>
                       <option value="Creative">Creative</option>
                       <option value="CRM">CRM</option>

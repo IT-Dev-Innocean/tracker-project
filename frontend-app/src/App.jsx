@@ -1395,8 +1395,8 @@ function App() {
                   <Icon name='alert-triangle' className='w-4 h-4 shrink-0' />
                   <span>
                     {tMsg(
-                      'Action Required: Please complete your Job Position and Division Name in Profile Settings.',
-                      'Tindakan Diperlukan: Harap lengkapi Posisi Pekerjaan dan Nama Divisi Anda di Pengaturan Profil.'
+                      'Action Required: Please complete your Job Position and Department in Profile Settings.',
+                      'Tindakan Diperlukan: Harap lengkapi Posisi Pekerjaan dan Departemen Anda di Pengaturan Profil.'
                     )}
                   </span>
                   <button
