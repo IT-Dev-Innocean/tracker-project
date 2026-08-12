@@ -1409,7 +1409,7 @@ export default function TimesheetView({
               <div className='flex items-center gap-2 mt-0.5 text-[11px] font-medium text-indigo-600 dark:text-indigo-400 flex-wrap'>
                 <span>{profileData?.job_position || tMsg('No Position', 'Belum Ada Posisi')}</span>
                 <span className='text-neutral-300 dark:text-neutral-700'>•</span>
-                <span>{profileData?.division_name || tMsg('No Division', 'Belum Ada Divisi')}</span>
+                <span>{profileData?.division_name || tMsg('No Department', 'Belum Ada Departemen')}</span>
               </div>
             </div>
           </div>
