@@ -7,6 +7,7 @@ import SmartAssistantQuickTodo from './components/SmartAssistant/SmartAssistantQ
 import SmartAssistantPlanner from './components/SmartAssistant/SmartAssistantPlanner';
 import SmartAssistantChat from './components/SmartAssistant/SmartAssistantChat';
 import { Icon } from './components/icons/Icon';
+import { useFeatureFlags } from './featureFlags';
 
 export default function SmartAssistant({
   currentUser,
@@ -42,6 +43,17 @@ export default function SmartAssistant({
   chatBg,
   setIsMomNotepadOpen,
 }) {
+  const {
+    SMART_ASSISTANT_QUICK_TODO_ENABLED,
+    SMART_ASSISTANT_PLANNER_ENABLED,
+    SMART_ASSISTANT_MEETING_NOTES_ENABLED,
+  } = useFeatureFlags();
+
+  const hasSubFeatures =
+    SMART_ASSISTANT_QUICK_TODO_ENABLED ||
+    SMART_ASSISTANT_PLANNER_ENABLED ||
+    SMART_ASSISTANT_MEETING_NOTES_ENABLED;
+
   const [messages, setMessages] = useState([]);
   const [assistantMode, setAssistantMode] = useState('landing'); // 'landing', 'chat', 'quick_todo', 'planner'
   const [quickTasks, setQuickTasks] = useState([]);
@@ -115,7 +127,12 @@ export default function SmartAssistant({
   useEffect(() => {
     if (isOpen) {
       setTimeout(scrollToBottom, 100);
-      if (messages.length === 0 || localStorage.getItem('innocean_ai_offer_docs') === 'true') {
+      if (!hasSubFeatures) {
+        setAssistantMode('chat');
+        if (messages.length === 0) {
+          startConversation();
+        }
+      } else if (messages.length === 0 || localStorage.getItem('innocean_ai_offer_docs') === 'true') {
         if (localStorage.getItem('innocean_ai_offer_docs') === 'true') {
           setAssistantMode('chat');
           startConversation();
@@ -126,7 +143,7 @@ export default function SmartAssistant({
         setAssistantMode('chat');
       }
     }
-  }, [isOpen]);
+  }, [isOpen, hasSubFeatures]);
 
   useEffect(() => {
     if (scrollContainerRef.current) {

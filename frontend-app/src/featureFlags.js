@@ -25,6 +25,9 @@ export const DEFAULT_FEATURE_FLAGS = {
   TASK_CHAT_AI_COPILOT_ENABLED: true,
   PROACTIVE_AI_ENABLED: false,
   SMART_ASSISTANT_ENABLED: false,
+  SMART_ASSISTANT_QUICK_TODO_ENABLED: false,
+  SMART_ASSISTANT_PLANNER_ENABLED: false,
+  SMART_ASSISTANT_MEETING_NOTES_ENABLED: false,
 
   TASK_SCHEDULE_MEETING_UI_ENABLED: false,
   TASK_ADD_TO_CALENDAR_UI_ENABLED: false,
@@ -100,6 +103,21 @@ export const FEATURE_FLAG_META = [
         key: 'SMART_ASSISTANT_ENABLED',
         en: 'Smart Assistant Drawer',
         id: 'Smart Assistant Drawer',
+      },
+      {
+        key: 'SMART_ASSISTANT_QUICK_TODO_ENABLED',
+        en: 'Smart Assistant: Quick To-Do List',
+        id: 'Smart Assistant: To-Do List Cepat',
+      },
+      {
+        key: 'SMART_ASSISTANT_PLANNER_ENABLED',
+        en: 'Smart Assistant: AI Task Planner',
+        id: 'Smart Assistant: Perencana Tugas AI',
+      },
+      {
+        key: 'SMART_ASSISTANT_MEETING_NOTES_ENABLED',
+        en: 'Smart Assistant: Meeting Notes',
+        id: 'Smart Assistant: Catatan Rapat',
       },
     ],
   },
@@ -257,6 +275,12 @@ export const TASK_FORM_AI_ASSISTANT_ENABLED =
   DEFAULT_FEATURE_FLAGS.TASK_FORM_AI_ASSISTANT_ENABLED;
 export const TASK_COMMENT_AI_MENTION_ENABLED =
   DEFAULT_FEATURE_FLAGS.TASK_COMMENT_AI_MENTION_ENABLED;
+export const SMART_ASSISTANT_QUICK_TODO_ENABLED =
+  DEFAULT_FEATURE_FLAGS.SMART_ASSISTANT_QUICK_TODO_ENABLED;
+export const SMART_ASSISTANT_PLANNER_ENABLED =
+  DEFAULT_FEATURE_FLAGS.SMART_ASSISTANT_PLANNER_ENABLED;
+export const SMART_ASSISTANT_MEETING_NOTES_ENABLED =
+  DEFAULT_FEATURE_FLAGS.SMART_ASSISTANT_MEETING_NOTES_ENABLED;
 
 export const TASK_SCHEDULE_MEETING_UI_ENABLED =
   DEFAULT_FEATURE_FLAGS.TASK_SCHEDULE_MEETING_UI_ENABLED;
