@@ -130,6 +130,16 @@ def get_all_global_tasks(
         t_dict["subtask_assignees"] = ", ".join(
             [s.assignee for s in subtasks if s.assignee]
         )
+        t_dict["subtasks"] = [
+            {
+                "id": s.id,
+                "task_name": s.task_name,
+                "assignee": s.assignee or "",
+                "is_done": bool(s.is_done),
+                "department": getattr(s, "department", "") or "",
+            }
+            for s in subtasks
+        ]
         t_dict["subtask_details"] = "\n".join(
             [
                 f"[{'x' if s.is_done else ' '}] {s.task_name} (@{s.assignee or 'unassigned'})"
