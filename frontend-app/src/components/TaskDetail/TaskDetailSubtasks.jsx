@@ -82,6 +82,21 @@ function groupSubtasksByTeam(subtasks = []) {
       groups[indexByKey.get(key)].items.push(st);
     }
   });
+
+  // Sort groups consistently by SUBTASK_DEPARTMENT_OPTIONS order so card positions don't jump on assign
+  groups.sort((a, b) => {
+    const idxA = SUBTASK_DEPARTMENT_OPTIONS.findIndex(
+      (dept) => dept.toLowerCase() === a.key
+    );
+    const idxB = SUBTASK_DEPARTMENT_OPTIONS.findIndex(
+      (dept) => dept.toLowerCase() === b.key
+    );
+    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+    if (idxA !== -1) return -1;
+    if (idxB !== -1) return 1;
+    return a.key.localeCompare(b.key);
+  });
+
   return groups;
 }
 
@@ -211,221 +226,174 @@ export default function TaskDetailSubtasks({
           </div>
         </div>
       ) : (
-        <Droppable droppableId='subtask-list' type='subtask'>
-          {(provided) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-              className='mb-4 grid grid-cols-1 gap-3 pr-1'>
-              {teamGroups.map((group, index) => {
-                const { items, task_name: teamName, key } = group;
-                const assignees = [
-                  ...new Set(items.map((st) => st.assignee).filter(Boolean)),
-                ];
-                const allDone =
-                  items.length > 0 && items.every((st) => st.is_done === 1);
-                const canToggle =
-                  isTaskAdmin ||
-                  (!isSystemTicket &&
-                    items.some(
-                      (st) => !st.assignee || st.assignee === currentUser
-                    ));
-                const nameValue =
-                  draftNames[key] !== undefined ? draftNames[key] : teamName;
-                const anyDone = items.some((st) => st.is_done === 1);
+        <div className='mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3'>
+          {teamGroups.map((group) => {
+            const { items, task_name: teamName, key } = group;
+            const assignees = [
+              ...new Set(items.map((st) => st.assignee).filter(Boolean)),
+            ];
+            const allDone =
+              items.length > 0 && items.every((st) => st.is_done === 1);
+            const canToggle =
+              isTaskAdmin ||
+              (!isSystemTicket &&
+                items.some(
+                  (st) => !st.assignee || st.assignee === currentUser
+                ));
+            const nameValue =
+              draftNames[key] !== undefined ? draftNames[key] : teamName;
+            const anyDone = items.some((st) => st.is_done === 1);
 
-                const teamCard = (providedDrag, snapshot) => (
-                  <div
-                    ref={providedDrag.innerRef}
-                    {...providedDrag.draggableProps}
-                    className={`rounded-lg border bg-neutral-50 dark:bg-neutral-900/60 p-3 flex gap-2 group/team ${
-                      snapshot.isDragging
-                        ? 'shadow-lg border-indigo-500 dark:border-indigo-400 scale-[1.01] z-50'
-                        : 'border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'
-                    }`}>
-                    <div className='flex flex-col items-center gap-2 pt-1 shrink-0'>
-                      <div
-                        {...providedDrag.dragHandleProps}
-                        className={`cursor-grab active:cursor-grabbing text-neutral-300 hover:text-black dark:hover:text-white transition-colors ${
-                          !isTaskAdmin || accountStatus === 'suspended'
-                            ? 'opacity-0 pointer-events-none'
-                            : ''
-                        }`}>
-                        <Icon name='grip-vertical' className='w-4 h-4' />
-                      </div>
-                      <input
-                        type='checkbox'
-                        checked={allDone}
-                        disabled={!canToggle || accountStatus === 'suspended'}
-                        onChange={() => {
-                          const toggleable = items.filter(
-                            (st) =>
-                              isTaskAdmin ||
-                              (!isSystemTicket &&
-                                (!st.assignee || st.assignee === currentUser))
-                          );
-                          if (!toggleable.length) return;
-                          if (handleToggleTeamGroup) {
-                            handleToggleTeamGroup(toggleable);
-                          } else {
-                            toggleable.forEach((st) =>
-                              handleToggleSubtask?.(
-                                st.id,
-                                st.is_done,
-                                st.assignee
-                              )
-                            );
-                          }
-                        }}
-                        className={`w-5 h-5 text-black dark:text-white bg-transparent border-2 border-neutral-300 dark:border-neutral-600 rounded transition-colors ${
-                          canToggle
-                            ? 'cursor-pointer focus:ring-0'
-                            : 'cursor-not-allowed opacity-50'
-                        }`}
-                        title={
-                          allDone
-                            ? tMsg(
-                                'Mark team incomplete',
-                                'Tandai tim belum selesai'
-                              )
-                            : tMsg('Mark team complete', 'Tandai tim selesai')
-                        }
-                      />
-                    </div>
-
-                    <div className='flex-1 min-w-0 flex flex-col gap-2'>
-                      <div className='flex items-center gap-2'>
-                        <select
-                          value={nameValue}
-                          disabled={
-                            !isTaskAdmin ||
-                            accountStatus === 'suspended' ||
-                            anyDone
-                          }
-                          onChange={(e) => {
-                            const next = e.target.value;
-                            if (next && next !== teamName) {
-                              if (handleRenameTeamGroup) {
-                                handleRenameTeamGroup(items, next);
-                              } else {
-                                items.forEach((st) =>
-                                  handleUpdateSubtaskName?.(
-                                    st.id,
-                                    st.is_done,
-                                    st.assignee,
-                                    next
-                                  )
-                                );
-                              }
-                            }
-                          }}
-                          className={`w-full bg-transparent border-0 border-b border-neutral-200 dark:border-neutral-700 focus:border-indigo-500 outline-none text-xs font-bold px-0 py-1.5 cursor-pointer ${
-                            allDone
-                              ? 'line-through text-neutral-400 dark:text-neutral-500'
-                              : 'text-black dark:text-white'
-                          }`}>
-                          <option value="" disabled className='dark:bg-neutral-900'>
-                            {tMsg('-- Select Department --', '-- Pilih Departemen --')}
-                          </option>
-                          {SUBTASK_DEPARTMENT_OPTIONS.map((dept) => (
-                            <option key={dept} value={dept} className='dark:bg-neutral-900'>
-                              {dept}
-                            </option>
-                          ))}
-                          {nameValue && !SUBTASK_DEPARTMENT_OPTIONS.includes(nameValue) && (
-                            <option value={nameValue} className='dark:bg-neutral-900'>
-                              {nameValue}
-                            </option>
-                          )}
-                        </select>
-                        {isTaskAdmin && accountStatus !== 'suspended' && (
-                          <button
-                            type='button'
-                            onClick={() => {
-                              if (handleDeleteTeamGroup) {
-                                handleDeleteTeamGroup(items);
-                              } else {
-                                items.forEach((st) =>
-                                  handleDeleteSubtask?.(st.id)
-                                );
-                              }
-                            }}
-                            className='text-neutral-400 hover:text-red-500 opacity-100 sm:opacity-0 group-hover/team:opacity-100 transition-opacity shrink-0'
-                            title={tMsg('Remove team', 'Hapus tim')}>
-                            <Icon name='x' className='w-3.5 h-3.5' />
-                          </button>
-                        )}
-                      </div>
-
-                      <MultiUserSelect
-                        hideLabel
-                        label={tMsg('Employees', 'Karyawan')}
-                        icon='users'
-                        selected={assignees}
-                        disabled={
-                          !isTaskAdmin ||
-                          allDone ||
-                          accountStatus === 'suspended'
-                        }
-                        onChange={(users) => {
-                          if (
-                            !isTaskAdmin ||
-                            allDone ||
-                            accountStatus === 'suspended'
+            return (
+              <div
+                key={`team-${key}`}
+                className='rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 p-3 flex flex-col gap-2.5 relative group/team hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors'>
+                <div className='flex items-center gap-2.5 min-w-0'>
+                  <input
+                    type='checkbox'
+                    checked={allDone}
+                    disabled={!canToggle || accountStatus === 'suspended'}
+                    onChange={() => {
+                      const toggleable = items.filter(
+                        (st) =>
+                          isTaskAdmin ||
+                          (!isSystemTicket &&
+                            (!st.assignee || st.assignee === currentUser))
+                      );
+                      if (!toggleable.length) return;
+                      if (handleToggleTeamGroup) {
+                        handleToggleTeamGroup(toggleable);
+                      } else {
+                        toggleable.forEach((st) =>
+                          handleToggleSubtask?.(
+                            st.id,
+                            st.is_done,
+                            st.assignee
                           )
-                            return;
-                          if (handleSyncTeamAssignees) {
-                            handleSyncTeamAssignees(teamName, items, users);
-                          }
-                        }}
-                        employees={employees}
-                        placeholder={tMsg('Employee Names', 'Nama Karyawan')}
-                        tMsg={tMsg}
-                        teamMembers={teamMembers}
-                        renderSelected={(selected) => (
-                          <AssigneeTrigger
-                            selected={selected}
-                            employees={employees}
-                            avatarsMap={avatarsMap}
-                            tMsg={tMsg}
-                          />
-                        )}
-                      />
-                    </div>
-                  </div>
-                );
-
-                return (
-                  <Draggable
-                    key={`team-${key}`}
-                    draggableId={`team-${key}`}
-                    index={index}
-                    isDragDisabled={
-                      !isTaskAdmin || accountStatus === 'suspended'
-                    }>
-                    {(providedDrag, snapshot) =>
-                      snapshot.isDragging
-                        ? ReactDOM.createPortal(
-                            teamCard(providedDrag, snapshot),
-                            document.body
-                          )
-                        : teamCard(providedDrag, snapshot)
+                        );
+                      }
+                    }}
+                    className={`w-4 h-4 text-black dark:text-white bg-transparent border-2 border-neutral-300 dark:border-neutral-600 rounded transition-colors shrink-0 ${
+                      canToggle
+                        ? 'cursor-pointer focus:ring-0'
+                        : 'cursor-not-allowed opacity-50'
+                    }`}
+                    title={
+                      allDone
+                        ? tMsg('Mark team incomplete', 'Tandai tim belum selesai')
+                        : tMsg('Mark team complete', 'Tandai tim selesai')
                     }
-                  </Draggable>
-                );
-              })}
-              {provided.placeholder}
-              {teamGroups.length === 0 && (
-                <p className='text-[10px] uppercase tracking-widest text-neutral-400 dark:text-neutral-500 font-bold col-span-full'>
-                  {tMsg(
-                    'No sub-tasks yet. Add one below!',
-                    'Belum ada sub-tugas. Tambahkan di bawah!'
+                  />
+
+                  <select
+                    value={nameValue}
+                    disabled={
+                      !isTaskAdmin ||
+                      accountStatus === 'suspended' ||
+                      anyDone
+                    }
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      if (next && next !== teamName) {
+                        if (handleRenameTeamGroup) {
+                          handleRenameTeamGroup(items, next);
+                        } else {
+                          items.forEach((st) =>
+                            handleUpdateSubtaskName?.(
+                              st.id,
+                              st.is_done,
+                              st.assignee,
+                              next
+                            )
+                          );
+                        }
+                      }
+                    }}
+                    className={`w-full bg-transparent border-0 border-b border-neutral-200 dark:border-neutral-700 focus:border-indigo-500 outline-none text-xs font-bold px-0 py-1 cursor-pointer truncate ${
+                      allDone
+                        ? 'line-through text-neutral-400 dark:text-neutral-500'
+                        : 'text-black dark:text-white'
+                    }`}>
+                    <option value="" disabled className='dark:bg-neutral-900'>
+                      {tMsg('-- Select Department --', '-- Pilih Departemen --')}
+                    </option>
+                    {SUBTASK_DEPARTMENT_OPTIONS.map((dept) => (
+                      <option key={dept} value={dept} className='dark:bg-neutral-900'>
+                        {dept}
+                      </option>
+                    ))}
+                    {nameValue && !SUBTASK_DEPARTMENT_OPTIONS.includes(nameValue) && (
+                      <option value={nameValue} className='dark:bg-neutral-900'>
+                        {nameValue}
+                      </option>
+                    )}
+                  </select>
+
+                  {isTaskAdmin && accountStatus !== 'suspended' && (
+                    <button
+                      type='button'
+                      onClick={() => {
+                        if (handleDeleteTeamGroup) {
+                          handleDeleteTeamGroup(items);
+                        } else {
+                          items.forEach((st) =>
+                            handleDeleteSubtask?.(st.id)
+                          );
+                        }
+                      }}
+                      className='text-neutral-400 hover:text-red-500 opacity-100 sm:opacity-0 group-hover/team:opacity-100 transition-opacity shrink-0'
+                      title={tMsg('Remove team', 'Hapus tim')}>
+                      <Icon name='x' className='w-3.5 h-3.5' />
+                    </button>
                   )}
-                </p>
+                </div>
+
+                <MultiUserSelect
+                  hideLabel
+                  label={tMsg('Employees', 'Karyawan')}
+                  icon='users'
+                  selected={assignees}
+                  disabled={
+                    !isTaskAdmin ||
+                    allDone ||
+                    accountStatus === 'suspended'
+                  }
+                  onChange={(users) => {
+                    if (
+                      !isTaskAdmin ||
+                      allDone ||
+                      accountStatus === 'suspended'
+                    )
+                      return;
+                    if (handleSyncTeamAssignees) {
+                      handleSyncTeamAssignees(teamName, items, users);
+                    }
+                  }}
+                  employees={employees}
+                  placeholder={tMsg('Employee Names', 'Nama Karyawan')}
+                  tMsg={tMsg}
+                  teamMembers={teamMembers}
+                  renderSelected={(selected) => (
+                    <AssigneeTrigger
+                      selected={selected}
+                      employees={employees}
+                      avatarsMap={avatarsMap}
+                      tMsg={tMsg}
+                    />
+                  )}
+                />
+              </div>
+            );
+          })}
+          {teamGroups.length === 0 && (
+            <p className='text-[10px] uppercase tracking-widest text-neutral-400 dark:text-neutral-500 font-bold col-span-full'>
+              {tMsg(
+                'No sub-tasks yet. Add one below!',
+                'Belum ada sub-tugas. Tambahkan di bawah!'
               )}
-            </div>
+            </p>
           )}
-        </Droppable>
+        </div>
       )}
 
       {isTaskAdmin && accountStatus !== 'suspended' && !isPreviewMode && (

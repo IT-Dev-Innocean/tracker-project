@@ -3262,6 +3262,34 @@ export default function useAppLogic() {
     if (!name) return;
 
     const desired = [...new Set((nextAssignees || []).filter(Boolean))];
+    const prevSubtasks = subtasks;
+
+    // Optimistic update of subtasks state
+    setSubtasks((prev) => {
+      const itemIds = new Set(items.map((st) => st.id));
+      const remaining = prev.filter((st) => !itemIds.has(st.id));
+
+      let template = items[0] || { task_id: selectedTask.id, task_name: name, is_done: 0 };
+
+      if (desired.length === 0) {
+        return [...remaining, { ...template, id: items[0]?.id || `temp-st-${Date.now()}`, assignee: null }];
+      }
+
+      const updated = desired.map((username, idx) => {
+        const existing = items.find((st) => st.assignee === username) || items[idx];
+        return {
+          id: existing?.id || `temp-st-${Date.now()}-${idx}`,
+          task_id: selectedTask.id,
+          task_name: name,
+          is_done: existing?.is_done || 0,
+          ...existing,
+          assignee: username,
+        };
+      });
+
+      return [...remaining, ...updated];
+    });
+
     const withAssignee = items.filter((st) => st.assignee);
     const withoutAssignee = items.filter((st) => !st.assignee);
     const currentSet = new Set(withAssignee.map((st) => st.assignee));
@@ -3311,11 +3339,11 @@ export default function useAppLogic() {
     Promise.all(ops)
       .then(() => refreshSubtaskViews())
       .catch((err) => {
+        setSubtasks(prevSubtasks);
         showNotification(
           err.response?.data?.detail || 'Failed to update assignees!',
           'error'
         );
-        refreshSubtaskViews();
       });
   };
 
@@ -3511,7 +3539,7 @@ export default function useAppLogic() {
 
     const previousComments = comments;
     setComments((prev) => [...prev, optimisticComment]);
-    if (typeof textOverride !== 'string') setNewComment('');
+    setNewComment('');
 
     axios
       .post(`/api/tasks/${selectedTask.id}/comments`, {

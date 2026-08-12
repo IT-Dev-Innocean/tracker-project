@@ -578,6 +578,7 @@ export default function TaskDetailModal({
     }
 
     handleAddComment(e, finalComment);
+    handleCommentChange('');
     setReplyingTo(null);
   };
 
