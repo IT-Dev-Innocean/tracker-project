@@ -3140,6 +3140,20 @@ export default function useAppLogic() {
       Array.isArray(assignees) && assignees.length > 0
         ? [...new Set(assignees.filter(Boolean))]
         : [null];
+
+    const prevSubtasks = subtasks;
+    const tempItems = list.map((assignee, idx) => ({
+      id: `temp-st-${Date.now()}-${idx}`,
+      task_id: selectedTask.id,
+      task_name: name,
+      assignee: assignee || null,
+      is_done: 0,
+    }));
+
+    setSubtasks((prev) => [...prev, ...tempItems]);
+    setNewSubtaskName('');
+    setNewSubtaskAssignee('');
+
     return Promise.all(
       list.map((assignee) =>
         axios.post(`/api/tasks/${selectedTask.id}/subtasks`, {
@@ -3149,16 +3163,15 @@ export default function useAppLogic() {
       )
     )
       .then(() => {
-        setNewSubtaskName('');
-        setNewSubtaskAssignee('');
         refreshSubtaskViews();
       })
-      .catch((err) =>
+      .catch((err) => {
+        setSubtasks(prevSubtasks);
         showNotification(
           err.response?.data?.detail || 'Failed to add sub-task!',
           'error'
-        )
-      );
+        );
+      });
   };
 
   const handleAddSubtask = (e) => {
@@ -3228,14 +3241,19 @@ export default function useAppLogic() {
 
   const handleDeleteTeamGroup = (items) => {
     if (!items?.length) return;
+    const prevSubtasks = subtasks;
+    const ids = new Set(items.map((st) => st.id));
+    setSubtasks((prev) => prev.filter((st) => !ids.has(st.id)));
+
     Promise.all(items.map((st) => axios.delete(`/api/subtasks/${st.id}`)))
       .then(() => refreshSubtaskViews())
-      .catch((err) =>
+      .catch((err) => {
+        setSubtasks(prevSubtasks);
         showNotification(
           err.response?.data?.detail || 'Failed to delete sub-task!',
           'error'
-        )
-      );
+        );
+      });
   };
 
   const handleSyncTeamAssignees = (teamName, items, nextAssignees = []) => {
