@@ -1450,11 +1450,7 @@ function App() {
 
               <main
                 ref={scrollRef}
-                className={`flex-1 px-4 md:px-6 pb-4 pt-4 md:pt-0 flex flex-col min-h-0 ${
-                  viewMode === 'kanban'
-                    ? 'overflow-auto sm:overflow-x-auto sm:overflow-y-hidden'
-                    : 'overflow-auto'
-                } ${accountStatus === 'suspended' ? 'cursor-not-allowed' : ''} ${
+                className={`flex-1 px-4 md:px-6 pb-4 pt-4 md:pt-0 flex flex-col min-h-0 overflow-auto ${accountStatus === 'suspended' ? 'cursor-not-allowed' : ''} ${
                   timelineDrag
                     ? (timelineDrag.mode === 'both'
                         ? 'cursor-grabbing'
