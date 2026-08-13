@@ -339,7 +339,7 @@ Karena perubahan `render.yaml` mungkin belum di-push, buat service **manual** (b
 
 | Key | Value |
 |-----|--------|
-| `VITE_API_BASE_URL` | `https://innocean-tracker-staging.onrender.com` *(tanpa trailing slash)* |
+| `VITE_API_BASE_URL` | `https://innocean-tracker-staging.onrender.com` |
 | `VITE_GOOGLE_CLIENT_ID` | *(opsional)* |
 
 4. Deploy → catat URL `https://….vercel.app`.
