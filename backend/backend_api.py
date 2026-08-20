@@ -676,7 +676,7 @@ def run_startup_auto_nudge():
     finally:
         db.close()
 
-scheduler = BackgroundScheduler()
+scheduler = BackgroundScheduler(timezone=WIB)
 scheduler.add_job(run_auto_nudge, 'cron', hour=8, minute=0)
 scheduler.start()
 
