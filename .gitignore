@@ -63,3 +63,6 @@ frontend-app/playwright/.auth/
 *.bak
 *.tmp
 .cache/
+
+# VPS migrate keys (never commit)
+deploy/.secrets/
