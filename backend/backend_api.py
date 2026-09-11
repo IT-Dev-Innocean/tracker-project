@@ -83,6 +83,8 @@ def _build_cors_origins() -> list:
     origins = {
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5174",
         "https://iid-tracker.netlify.app",
     }
     for key in ("FRONTEND_URL", "FRONTEND_URLS"):
@@ -306,16 +308,17 @@ def accept_invite(
         .first()
     )
     if inv:
-        inv.status = "accepted"
+        inv.status = "accepted"  # type: ignore[assignment]
         db.commit()
         board = db.query(Board).filter(Board.id == inv.board_id).first()
         if board:
             create_notification(
                 db,
-                board.owner_username,
+                str(board.owner_username),
                 f"@{current_user} accepted your invitation to join project: {board.name}",
                 "info",
-                board.id,
+                # pyrefly: ignore [bad-argument-type]
+                int(board.id),
             )
     return {"message": "Invitation accepted"}
 
@@ -334,16 +337,17 @@ def decline_invite(
         .first()
     )
     if inv:
-        inv.status = "declined"
+        inv.status = "declined"  # type: ignore[assignment]
         db.commit()
         board = db.query(Board).filter(Board.id == inv.board_id).first()
         if board:
             create_notification(
                 db,
-                board.owner_username,
+                str(board.owner_username),
                 f"@{current_user} declined your invitation to join project: {board.name}",
                 "info",
-                board.id,
+                # pyrefly: ignore [bad-argument-type]
+                    int(board.id),
             )
     return {"message": "Invitation declined"}
 
@@ -381,7 +385,7 @@ def submit_feedback(
         .filter(Board.owner_username == "admin", Board.name == "System Feedback")
         .first()
     )
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # type: ignore[attr-defined]
     if not board:
         default_statuses = json.dumps(["To Do", "In Progress", "Done"])
         default_categories = json.dumps(
@@ -406,8 +410,8 @@ def submit_feedback(
         db.commit()
         db.refresh(board)
 
-    deadline_str = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d 17:00:00")
-    start_str = datetime.now().strftime("%Y-%m-%d")
+    deadline_str = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d 17:00:00")  # type: ignore[attr-defined]
+    start_str = datetime.now().strftime("%Y-%m-%d")  # type: ignore[attr-defined]
 
     # Generate tracking number based on count
     total_feedback = db.query(Request).filter(Request.board_id == board.id).count()
@@ -440,7 +444,8 @@ def submit_feedback(
             "admin",
             f"@{current_user} submitted a new system ticket ({ticket_num}).",
             "task_assigned",
-            new_task.id,
+            # pyrefly: ignore [bad-argument-type]
+            int(new_task.id),
         )
     return {"message": "Thank you! Your feedback has been placed in the Admin's queue."}
 
@@ -510,7 +515,7 @@ def submit_feedback(
 def run_auto_nudge():
     db = SessionLocal()
     try:
-        now_wib = datetime.now(WIB)
+        now_wib = datetime.now(WIB)  # type: ignore[attr-defined]
         today_wib = now_wib.replace(hour=0, minute=0, second=0, microsecond=0)
         now_str = now_wib.strftime("%Y-%m-%d")
 
@@ -552,7 +557,7 @@ def run_auto_nudge():
                 print(f"[Auto Nudge] ⏭️  Task ID={task.id} '{task.task_name}' — days_diff={days_diff}, tidak dalam jadwal nudge hari ini.")
                 continue
 
-            assignees = get_assignees(task.requester)
+            assignees = get_assignees(str(task.requester))
             targets = assignees.copy()
             if task.owner_username:
                 targets.add(task.owner_username)
@@ -607,7 +612,8 @@ def run_auto_nudge():
                 create_notification(
                     db, m,
                     f"Auto Nudge: {task.task_name} is {'overdue' if days_diff < 0 else 'due soon'}.",
-                    "auto_nudge", task.id
+                    # pyrefly: ignore [bad-argument-type]
+                    "auto_nudge", int(task.id)
                 )
 
             nudge_sent += 1
@@ -650,7 +656,7 @@ app.include_router(clients_router)
 
 def run_startup_auto_nudge():
     # Gunakan waktu WIB (Asia/Jakarta = UTC+7)
-    now_wib = datetime.now(WIB)
+    now_wib = datetime.now(WIB)  # type: ignore[attr-defined]
     print(f"[Auto Nudge Startup] Waktu server WIB saat ini: {now_wib.strftime('%Y-%m-%d %H:%M:%S')} WIB")
 
     # Hanya jalankan jika sudah lewat jam 08:00 WIB
