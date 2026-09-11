@@ -551,6 +551,7 @@ export default function Sidebar() {
                   setShowClientManage?.(false);
                   setShowTeams?.(true);
                   setSidebarNav?.('teams');
+                  setTeamsSubNav?.('people');
                   setIsMobileMenuOpen(false);
                   setIsProactiveAIOpen(false);
                 }}
@@ -725,39 +726,6 @@ export default function Sidebar() {
 
           {showTeams ? (
             <div className='mb-4'>
-              {!isCollapsed && (
-                <h3 className='px-3 mb-2 text-[10px] font-black text-neutral-400 dark:text-neutral-500 uppercase'>
-                  {tMsg('Directory', 'Direktori')}
-                </h3>
-              )}
-              <button
-                onClick={() => {
-                  setShowTeams?.(true);
-                  setSelectedBoard(null);
-                  setSidebarNav?.('teams');
-                  setTeamsSubNav?.('people');
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                  showTeams && (teamsSubNav === 'people' || !teamsSubNav)
-                    ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
-                    : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
-                } ${isCollapsed ? 'justify-center' : ''}`}
-                title={tMsg('All People', 'Semua Orang')}>
-                <div className='w-6 h-6 flex items-center justify-center'>
-                  <Icon name='user' className='w-5 h-5' />
-                </div>
-                {!isCollapsed && (
-                  <>
-                    <span className='text-sm truncate flex-1 text-left'>
-                      {tMsg('All People', 'Semua Orang')}
-                    </span>
-                    <span className='text-[10px] font-bold text-neutral-400'>
-                      {(userDirectory || []).length || 0}
-                    </span>
-                  </>
-                )}
-              </button>
-
               <button
                 onClick={() => {
                   setShowTeams?.(true);
@@ -770,13 +738,13 @@ export default function Sidebar() {
                     ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
                     : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
                 } ${isCollapsed ? 'justify-center' : ''}`}
-                title={tMsg('User Leave', 'Cuti Pengguna')}>
+                title={tMsg('Employees Leave', 'Cuti Karyawan')}>
                 <div className='w-6 h-6 flex items-center justify-center'>
                   <Icon name='calendar' className='w-5 h-5' />
                 </div>
                 {!isCollapsed && (
                   <span className='text-sm truncate flex-1 text-left'>
-                    {tMsg('User Leave', 'Cuti Pengguna')}
+                    {tMsg('Employees Leave', 'Cuti Karyawan')}
                   </span>
                 )}
               </button>

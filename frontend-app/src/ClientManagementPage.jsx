@@ -85,7 +85,7 @@ export default function ClientManagementPage() {
   const columnOptions = [
     { key: 'client_code', label: tMsg('Client Code', 'Kode Klien') },
     { key: 'client_name', label: tMsg('Client Name', 'Nama Klien') },
-    { key: 'created_by', label: tMsg('Created By', 'Dibuat Oleh') },
+    { key: 'created_by', label: tMsg('Project Requester', 'Project Requester') },
     { key: 'status', label: tMsg('Status', 'Status') },
     { key: 'actions', label: tMsg('Actions', 'Tindakan') },
   ];
@@ -390,9 +390,6 @@ export default function ClientManagementPage() {
         <div className='rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900'>
           <div className='px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-950 flex-wrap gap-4 rounded-t-2xl'>
             <div className='flex items-center gap-4 flex-wrap'>
-              <h3 className='font-bold text-black dark:text-white text-sm uppercase tracking-wider'>
-                {tMsg('Client Directory', 'Direktori Klien')}
-              </h3>
               {selectedClients.length > 0 && (
                 <button
                   type='button'
@@ -409,7 +406,7 @@ export default function ClientManagementPage() {
                   }
                   className='text-[10px] font-bold bg-red-500 text-white px-3 py-1.5 rounded-lg uppercase tracking-widest hover:bg-red-600 transition-colors shadow-sm'>
                   <Icon name='trash' className='w-3.5 h-3.5 inline mr-1' />
-                  {tMsg('Delete', 'Hapus')} ({selectedClients.length})
+                  {tMsg('Remove', 'Hapus')} ({selectedClients.length})
                 </button>
               )}
             </div>
@@ -535,7 +532,7 @@ export default function ClientManagementPage() {
                     )}
                     {isColVisible('created_by') && (
                       <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                        {tMsg('Created By', 'Dibuat Oleh')}
+                        {tMsg('Project Requester', 'Project Requester')}
                       </th>
                     )}
                     {isColVisible('status') && (
@@ -629,7 +626,7 @@ export default function ClientManagementPage() {
                               }
                               className='flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-900/20 dark:text-red-400 px-3 py-1.5 rounded-lg transition-all border border-red-200 dark:border-red-800/50'>
                               <Icon name='trash' className='w-3.5 h-3.5' />
-                              {tMsg('Delete', 'Hapus')}
+                              {tMsg('Remove', 'Hapus')}
                             </button>
                           </div>
                         </td>
@@ -833,8 +830,8 @@ export default function ClientManagementPage() {
                 disabled={isDeleting}
                 className='flex-1 px-4 py-3 rounded-full font-bold text-xs uppercase text-white bg-red-500 hover:bg-red-600'>
                 {isDeleting
-                  ? tMsg('Deleting...', 'Menghapus...')
-                  : tMsg('Confirm Delete', 'Konfirmasi Hapus')}
+                  ? tMsg('Removing...', 'Menghapus...')
+                  : tMsg('Confirm Remove', 'Konfirmasi Hapus')}
               </button>
             </div>
           </div>

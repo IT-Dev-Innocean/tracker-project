@@ -387,14 +387,14 @@ export default function TeamsDirectory() {
             </div>
             <h1 className='mt-1 text-2xl font-black text-black dark:text-white'>
               {activeTab === 'leaves'
-                ? tMsg('User Leave', 'Cuti Pengguna')
-                : tMsg('All People', 'Semua Orang')}
+                ? tMsg('Employees Leave', 'Cuti Karyawan')
+                : tMsg('Employees', 'Karyawan')}
             </h1>
             <p className='mt-1 text-sm text-neutral-500 dark:text-neutral-400'>
               {activeTab === 'people'
                 ? tMsg(
-                    'Invite and remove people across your workspace.',
-                    'Undang dan hapus orang di seluruh workspace Anda.'
+                    'Invite and manage employees across your workspace.',
+                    'Undang dan kelola karyawan di seluruh workspace Anda.'
                   )
                 : tMsg(
                     'View leaves submitted by users.',
