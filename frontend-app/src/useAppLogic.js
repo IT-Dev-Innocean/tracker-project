@@ -446,6 +446,7 @@ export default function useAppLogic() {
   useEffect(() => {
     if (!TIMESHEETS_UI_ENABLED) {
       if (showTimesheets) setShowTimesheets(false);
+      setUnsubmittedTimesheetsCount(0);
       return;
     }
     if (typeof window !== 'undefined') {
@@ -2239,6 +2240,12 @@ export default function useAppLogic() {
             ? profileData
             : null;
       if (!prof) return;
+
+      // If timesheets feature is disabled globally by admin, do not require or count unsubmitted timesheets
+      if (!TIMESHEETS_UI_ENABLED) {
+        setUnsubmittedTimesheetsCount(0);
+        return;
+      }
 
       // Role exemption: Admin & Superadmin do not have compulsory timesheet submission
       const isTimesheetExempt = Boolean(
