@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { useAppContext } from './hooks/useAppContext';
 import { HighlightText, LoadingSpinner } from './Utils';
@@ -10,6 +10,27 @@ const EMPTY_FORM = {
   client_code: '',
   client_name: '',
   status: 'active',
+};
+
+const CLIENT_COLUMN_STORAGE_KEY = 'innocean_client_visible_columns';
+const DEFAULT_VISIBLE_COLUMNS = {
+  client_code: true,
+  client_name: true,
+  created_by: true,
+  status: true,
+  actions: true,
+};
+
+const loadVisibleColumns = () => {
+  if (typeof window === 'undefined') return { ...DEFAULT_VISIBLE_COLUMNS };
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem(CLIENT_COLUMN_STORAGE_KEY) || '{}'
+    );
+    return { ...DEFAULT_VISIBLE_COLUMNS, ...saved };
+  } catch {
+    return { ...DEFAULT_VISIBLE_COLUMNS };
+  }
 };
 
 export default function ClientManagementPage() {
@@ -56,6 +77,57 @@ export default function ClientManagementPage() {
       localStorage.setItem('innocean_client_manage_per_page', String(next));
     }
   };
+
+  const [visibleColumns, setVisibleColumns] = useState(loadVisibleColumns);
+  const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
+  const columnsMenuRef = useRef(null);
+
+  const columnOptions = [
+    { key: 'client_code', label: tMsg('Client Code', 'Kode Klien') },
+    { key: 'client_name', label: tMsg('Client Name', 'Nama Klien') },
+    { key: 'created_by', label: tMsg('Created By', 'Dibuat Oleh') },
+    { key: 'status', label: tMsg('Status', 'Status') },
+    { key: 'actions', label: tMsg('Actions', 'Tindakan') },
+  ];
+
+  const isColVisible = (key) => visibleColumns[key] !== false;
+  const visibleDataCount = columnOptions.filter((col) =>
+    isColVisible(col.key)
+  ).length;
+
+  const persistVisibleColumns = (next) => {
+    setVisibleColumns(next);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CLIENT_COLUMN_STORAGE_KEY, JSON.stringify(next));
+    }
+  };
+
+  const toggleColumn = (key) => {
+    const currentlyVisible = isColVisible(key);
+    if (currentlyVisible && visibleDataCount <= 1) return;
+    persistVisibleColumns({
+      ...visibleColumns,
+      [key]: !currentlyVisible,
+    });
+  };
+
+  const resetColumns = () => {
+    persistVisibleColumns({ ...DEFAULT_VISIBLE_COLUMNS });
+  };
+
+  useEffect(() => {
+    if (!columnsMenuOpen) return;
+    const handleClickOutside = (event) => {
+      if (
+        columnsMenuRef.current &&
+        !columnsMenuRef.current.contains(event.target)
+      ) {
+        setColumnsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [columnsMenuOpen]);
 
   const loadClients = () => {
     setIsLoading(true);
@@ -315,8 +387,8 @@ export default function ClientManagementPage() {
           </button>
         </div>
 
-        <div className='overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900'>
-          <div className='px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-950 flex-wrap gap-4'>
+        <div className='rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900'>
+          <div className='px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-950 flex-wrap gap-4 rounded-t-2xl'>
             <div className='flex items-center gap-4 flex-wrap'>
               <h3 className='font-bold text-black dark:text-white text-sm uppercase tracking-wider'>
                 {tMsg('Client Directory', 'Direktori Klien')}
@@ -365,6 +437,63 @@ export default function ClientManagementPage() {
                 <option value='active'>{tMsg('Active', 'Aktif')}</option>
                 <option value='inactive'>{tMsg('Inactive', 'Nonaktif')}</option>
               </select>
+              <div className='relative' ref={columnsMenuRef}>
+                <button
+                  type='button'
+                  onClick={() => setColumnsMenuOpen((open) => !open)}
+                  className={`flex items-center gap-1.5 py-2 px-3 border outline-none text-xs font-bold rounded-xl transition-colors ${
+                    columnsMenuOpen || visibleDataCount < columnOptions.length
+                      ? 'bg-neutral-200 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-black dark:text-white'
+                      : 'bg-neutral-100 dark:bg-neutral-900 border-transparent text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800'
+                  }`}>
+                  <Icon name='sliders' className='w-3.5 h-3.5' />
+                  {tMsg('Columns', 'Kolom')}
+                  {visibleDataCount < columnOptions.length && (
+                    <span className='min-w-4 h-4 px-1 rounded-full bg-black dark:bg-white text-white dark:text-black text-[9px] leading-4 text-center'>
+                      {columnOptions.length - visibleDataCount}
+                    </span>
+                  )}
+                </button>
+                {columnsMenuOpen && (
+                  <div className='absolute right-0 top-full mt-2 z-30 w-56 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-xl'>
+                    <div className='px-3 py-2 border-b border-neutral-100 dark:border-neutral-800 text-[10px] font-black uppercase tracking-widest text-neutral-400'>
+                      {tMsg('Show / Hide Columns', 'Tampil / Sembunyi Kolom')}
+                    </div>
+                    <div className='p-1.5'>
+                      {columnOptions.map((col) => {
+                        const visible = isColVisible(col.key);
+                        const locked = visible && visibleDataCount <= 1;
+                        return (
+                          <button
+                            key={col.key}
+                            type='button'
+                            disabled={locked}
+                            onClick={() => toggleColumn(col.key)}
+                            className='flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-bold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-900 disabled:opacity-40 disabled:cursor-not-allowed'>
+                            <span>{col.label}</span>
+                            <Icon
+                              name={visible ? 'eye' : 'eye-off'}
+                              className={`w-3.5 h-3.5 ${
+                                visible
+                                  ? 'text-emerald-600 dark:text-emerald-400'
+                                  : 'text-neutral-400'
+                              }`}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className='border-t border-neutral-100 dark:border-neutral-800 p-1.5'>
+                      <button
+                        type='button'
+                        onClick={resetColumns}
+                        className='w-full rounded-lg px-2.5 py-2 text-left text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900'>
+                        {tMsg('Reset Columns', 'Atur Ulang Kolom')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -378,7 +507,7 @@ export default function ClientManagementPage() {
                 {tMsg('No clients found.', 'Tidak ada klien ditemukan.')}
               </div>
             ) : (
-              <table className='w-full min-w-3xl text-left border-collapse text-sm'>
+              <table className='w-full text-left border-collapse text-sm'>
                 <thead className='bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 sticky top-0 z-10'>
                   <tr>
                     <th className='px-6 py-4 border-b border-neutral-200 dark:border-neutral-700 w-10'>
@@ -394,21 +523,31 @@ export default function ClientManagementPage() {
                         onChange={handleSelectAllClients}
                       />
                     </th>
-                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                      {tMsg('Client Code', 'Kode Klien')}
-                    </th>
-                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                      {tMsg('Client Name', 'Nama Klien')}
-                    </th>
-                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                      {tMsg('Created By', 'Dibuat Oleh')}
-                    </th>
-                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-center'>
-                      {tMsg('Status', 'Status')}
-                    </th>
-                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-right'>
-                      {tMsg('Actions', 'Tindakan')}
-                    </th>
+                    {isColVisible('client_code') && (
+                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
+                        {tMsg('Client Code', 'Kode Klien')}
+                      </th>
+                    )}
+                    {isColVisible('client_name') && (
+                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
+                        {tMsg('Client Name', 'Nama Klien')}
+                      </th>
+                    )}
+                    {isColVisible('created_by') && (
+                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
+                        {tMsg('Created By', 'Dibuat Oleh')}
+                      </th>
+                    )}
+                    {isColVisible('status') && (
+                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-center'>
+                        {tMsg('Status', 'Status')}
+                      </th>
+                    )}
+                    {isColVisible('actions') && (
+                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-right'>
+                        {tMsg('Actions', 'Tindakan')}
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className='divide-y divide-neutral-200 dark:divide-neutral-800'>
@@ -424,67 +563,77 @@ export default function ClientManagementPage() {
                           onChange={() => handleToggleSelectClient(c.id)}
                         />
                       </td>
-                      <td className='px-6 py-4 font-mono text-sm font-bold text-neutral-800 dark:text-neutral-200 whitespace-nowrap'>
-                        {c.client_code ? (
-                          <HighlightText
-                            text={c.client_code}
-                            query={searchQuery}
-                          />
-                        ) : (
-                          <span className='text-neutral-300 dark:text-neutral-600 font-normal'>
-                            —
-                          </span>
-                        )}
-                      </td>
-                      <td className='px-6 py-4 font-bold text-black dark:text-white text-sm whitespace-nowrap'>
-                        <HighlightText
-                          text={c.client_name}
-                          query={searchQuery}
-                        />
-                      </td>
-                      <td className='px-6 py-4 text-sm font-medium text-neutral-700 dark:text-neutral-300 whitespace-nowrap'>
-                        {c.created_by ? (
-                          <>
-                            @
+                      {isColVisible('client_code') && (
+                        <td className='px-6 py-4 font-mono text-sm font-bold text-neutral-800 dark:text-neutral-200 whitespace-nowrap'>
+                          {c.client_code ? (
                             <HighlightText
-                              text={c.created_by}
+                              text={c.client_code}
                               query={searchQuery}
                             />
-                          </>
-                        ) : (
-                          <span className='text-neutral-300 dark:text-neutral-600'>
-                            —
-                          </span>
-                        )}
-                      </td>
-                      <td className='px-6 py-4 text-center whitespace-nowrap'>
-                        {statusBadge(c.status)}
-                      </td>
-                      <td className='px-6 py-4 text-right whitespace-nowrap'>
-                        <div className='flex justify-end gap-2'>
-                          <button
-                            type='button'
-                            onClick={() => openEditForm(c)}
-                            className='flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50! hover:text-indigo-700! hover:border-indigo-300! dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50 dark:hover:bg-indigo-900/40! dark:hover:text-indigo-300! dark:hover:border-indigo-700! px-3 py-1.5 rounded-lg transition-colors'>
-                            {tMsg('Edit', 'Ubah')}
-                          </button>
-                          <button
-                            type='button'
-                            onClick={() =>
-                              triggerDelete([
-                                {
-                                  id: c.id,
-                                  client_name: c.client_name,
-                                  client_code: c.client_code,
-                                },
-                              ])
-                            }
-                            className='flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-900/20 dark:text-red-400 px-3 py-1.5 rounded-lg transition-all border border-red-200 dark:border-red-800/50'>
-                            <Icon name='trash' className='w-3.5 h-3.5' />
-                            {tMsg('Delete', 'Hapus')}
-                          </button>
-                        </div>
-                      </td>
+                          ) : (
+                            <span className='text-neutral-300 dark:text-neutral-600 font-normal'>
+                              —
+                            </span>
+                          )}
+                        </td>
+                      )}
+                      {isColVisible('client_name') && (
+                        <td className='px-6 py-4 font-bold text-black dark:text-white text-sm whitespace-nowrap'>
+                          <HighlightText
+                            text={c.client_name}
+                            query={searchQuery}
+                          />
+                        </td>
+                      )}
+                      {isColVisible('created_by') && (
+                        <td className='px-6 py-4 text-sm font-medium text-neutral-700 dark:text-neutral-300 whitespace-nowrap'>
+                          {c.created_by ? (
+                            <>
+                              @
+                              <HighlightText
+                                text={c.created_by}
+                                query={searchQuery}
+                              />
+                            </>
+                          ) : (
+                            <span className='text-neutral-300 dark:text-neutral-600'>
+                              —
+                            </span>
+                          )}
+                        </td>
+                      )}
+                      {isColVisible('status') && (
+                        <td className='px-6 py-4 text-center whitespace-nowrap'>
+                          {statusBadge(c.status)}
+                        </td>
+                      )}
+                      {isColVisible('actions') && (
+                        <td className='px-6 py-4 text-right whitespace-nowrap'>
+                          <div className='flex justify-end gap-2'>
+                            <button
+                              type='button'
+                              onClick={() => openEditForm(c)}
+                              className='flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50! hover:text-indigo-700! hover:border-indigo-300! dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50 dark:hover:bg-indigo-900/40! dark:hover:text-indigo-300! dark:hover:border-indigo-700! px-3 py-1.5 rounded-lg transition-colors'>
+                              {tMsg('Edit', 'Ubah')}
+                            </button>
+                            <button
+                              type='button'
+                              onClick={() =>
+                                triggerDelete([
+                                  {
+                                    id: c.id,
+                                    client_name: c.client_name,
+                                    client_code: c.client_code,
+                                  },
+                                ])
+                              }
+                              className='flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-900/20 dark:text-red-400 px-3 py-1.5 rounded-lg transition-all border border-red-200 dark:border-red-800/50'>
+                              <Icon name='trash' className='w-3.5 h-3.5' />
+                              {tMsg('Delete', 'Hapus')}
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -493,7 +642,7 @@ export default function ClientManagementPage() {
           </div>
 
           {filteredClients.length > 0 && (
-            <div className='px-4 sm:px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
+            <div className='px-4 sm:px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-b-2xl'>
               <div className='flex items-center gap-2 flex-wrap'>
                 <span className='text-[10px] font-bold text-neutral-500 uppercase tracking-widest'>
                   {tMsg('Show', 'Tampilkan')}
