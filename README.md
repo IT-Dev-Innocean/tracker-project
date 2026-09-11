@@ -2,11 +2,11 @@
 
 Aplikasi internal project tracker (Kanban, timesheet, chat, AI assistant) dengan:
 
-| Layer | Stack | Hosting |
-|-------|--------|---------|
-| Backend | FastAPI + Uvicorn | [Render](https://render.com) |
-| Frontend | React + Vite | [Netlify](https://netlify.com) |
-| Database | PostgreSQL | [Neon](https://neon.tech) |
+| Layer | Stack | Hosting (production) | Hosting (staging) |
+|-------|--------|----------------------|-------------------|
+| Backend | FastAPI + Uvicorn | [Render](https://render.com) `innocean-tracker` (`main`) | Render `innocean-tracker-staging` (`staging`) |
+| Frontend | React + Vite | [Netlify](https://netlify.com) (`main`) | [Vercel](https://vercel.com) Hobby (`staging` only) |
+| Database | PostgreSQL | [Neon](https://neon.tech) production | **Sama** dengan production (`DATABASE_URL` pooled) |
 
 ```
 tracker-project/
@@ -31,6 +31,7 @@ tracker-project/
 - **Python** 3.10+ (disarankan 3.11/3.12)
 - **Node.js** 18+ (disarankan 20 LTS)
 - Akun [Neon](https://neon.tech), [Render](https://render.com), [Netlify](https://netlify.com)
+- Akun [Vercel](https://vercel.com) (staging frontend; Hobby hanya untuk preview sementara — ToS melarang commercial/internal jangka panjang)
 - Git + repo ini sudah di-push ke GitHub/GitLab
 
 ---
@@ -49,6 +50,14 @@ postgresql://USER:PASSWORD@ep-xxxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=r
 ```
 
 > **Tips:** Untuk Render, gunakan **pooled** connection string dari Neon (port `-pooler`) agar lebih tahan terhadap idle disconnect. Kode sudah memakai `pool_pre_ping` dan `pool_recycle=300`.
+
+### Neon untuk staging
+
+Staging **tidak** memakai database terpisah. Render staging memakai `DATABASE_URL` yang sama dengan production (pooled, host `-pooler`).
+
+Akibatnya: data login, board, dan timesheet di staging = data production. Jangan uji destructive (hapus board/user) di staging.
+
+Opsional nanti: `python scripts/create-neon-staging-branch.py` jika ingin memisahkan DB.
 
 ---
 
@@ -257,6 +266,107 @@ Lalu redeploy backend agar CORS mengizinkan domain Netlify.
 
 ---
 
+## 5.1 Staging (Vercel + Render terpisah)
+
+Jalur staging dipakai saat kuota **production deploy Netlify** habis, atau untuk uji UI/API tanpa menyentuh production.
+
+| Branch | Frontend | Backend | Database |
+|--------|----------|---------|----------|
+| `main` | Netlify (production) | `innocean-tracker` | Neon `production` (pooled `DATABASE_URL`) |
+| `staging` | Vercel (hanya branch ini) | `innocean-tracker-staging` | **Sama** — Neon `production` |
+
+> **Lisensi Vercel Hobby:** hanya personal/non-commercial. Untuk tool internal Innocean jangka panjang, upgrade ke Vercel Pro. Setup di bawah untuk preview sementara.
+
+### Ringkas
+
+```bash
+./scripts/setup-staging.sh
+```
+
+### A. Neon (poin 1) — selesai tanpa DB baru
+
+Tidak perlu buat branch/database Neon. Di Render staging, isi `DATABASE_URL` dengan nilai **yang sama** seperti production (pooled `-pooler` di `.env` lokal).
+
+Dashboard Neon cukup punya branch `production` (1/10). Script `create-neon-staging-branch.py` **jangan dijalankan** untuk setup ini.
+
+### B. Render service staging
+
+[`render.yaml`](render.yaml) mendefinisikan `innocean-tracker-staging` (branch `staging`, `buildFilter` backend-only). **Jangan** auto-`alembic` — DB shared dengan production.
+
+Karena perubahan `render.yaml` mungkin belum di-push, buat service **manual** (bukan Blueprint):
+
+1. Render → **New → Web Service** → repo `IT-Dev-Innocean/tracker-project`.
+2. Settings:
+
+| Setting | Value |
+|---------|--------|
+| **Name** | `innocean-tracker-staging` |
+| **Branch** | `staging` |
+| **Root Directory** | *(kosong)* |
+| **Runtime** | Python 3 |
+| **Instance type** | Free |
+| **Build Command** | `pip install -r backend/requirements.txt` |
+| **Start Command** | `cd backend && uvicorn backend_api:app --host 0.0.0.0 --port $PORT` |
+| **Included Paths** | `backend/**`, `Procfile`, `requirements.txt`, `runtime.txt`, `render.yaml`, `run-backend.sh` |
+
+3. Environment (staging). `DATABASE_URL` **sama** dengan production; `SECRET_KEY` **baru**; `FRONTEND_URL` sementara `http://localhost:5173` dulu (diganti URL Vercel di poin 3–4):
+
+| Key | Value |
+|-----|--------|
+| `DATABASE_URL` | **Sama** dengan production (pooled Neon) |
+| `SECRET_KEY` | Generate baru (`./scripts/setup-staging.sh`) — **jangan** copy production |
+| `FRONTEND_URL` | URL Vercel staging, mis. `https://your-app.vercel.app` (isi setelah langkah C) |
+| `GOOGLE_CLIENT_ID` / SMTP / AI keys | Sesuai kebutuhan staging |
+
+4. Setelah deploy: buka `{STAGING_BACKEND_URL}/` → JSON online.
+
+### C. Vercel frontend staging
+
+[`frontend-app/vercel.json`](frontend-app/vercel.json) sudah berisi SPA rewrite + `ignoreCommand` agar **hanya** commit di branch `staging` yang di-build.
+
+1. [vercel.com](https://vercel.com) → **Add New Project** → import repo GitHub.
+2. Settings:
+
+| Setting | Value |
+|---------|--------|
+| **Root Directory** | `frontend-app` |
+| **Framework** | Vite |
+| **Build Command** | `npm run build` |
+| **Output Directory** | `dist` |
+| **Production Branch** | `staging` |
+
+3. Environment Variables (Production):
+
+| Key | Value |
+|-----|--------|
+| `VITE_API_BASE_URL` | `https://innocean-tracker-staging.onrender.com` |
+| `VITE_GOOGLE_CLIENT_ID` | *(opsional)* |
+
+4. Deploy → catat URL `https://….vercel.app`.
+5. Kembali ke Render staging → set `FRONTEND_URL` ke URL itu → **Manual Deploy**.
+
+### D. CORS & Google OAuth
+
+- Backend staging membaca `FRONTEND_URL` (dan opsional `FRONTEND_URLS`) di `backend/backend_api.py`.
+- Google Cloud Console → OAuth Client → **Authorized JavaScript origins**: tambahkan URL Vercel staging.
+- Production Render **tidak** perlu origin Vercel selama staging memakai backend sendiri.
+
+### E. Alur kerja harian
+
+- Kerjakan / push ke **`staging`** → Vercel + Render staging auto-deploy (Git). Jangan tambah build hook Vercel di GitHub Actions (hindari double deploy).
+- Workflow [`.github/workflows/deploy-smart.yml`](.github/workflows/deploy-smart.yml) tetap hanya `main` → Netlify + Render production.
+- Setelah Netlify credit reset: merge `staging` → `main` untuk rilis production.
+- Di Netlify, biarkan Production Branch = `main`. Branch deploy dari `staging` biasanya 0 credit; boleh dimatikan jika mengganggu.
+
+### Checklist verifikasi staging
+
+1. Push ke `staging` → Vercel build **jalan**; push ke `main` → Vercel **Skipped** (`ignoreCommand`).
+2. Render staging health OK; **data = production** (shared DB — hati-hati uji hapus).
+3. Buka URL Vercel → login/API tanpa CORS error.
+4. Push frontend-only ke `staging` → Render staging **tidak** redeploy (`buildFilter`).
+
+---
+
 ## 6. Smart Deploy (Monorepo)
 
 Repo ini monorepo (`frontend-app/` + `backend/`). Deploy hanya di-trigger untuk bagian yang berubah.
@@ -265,8 +375,9 @@ Repo ini monorepo (`frontend-app/` + `backend/`). Deploy hanya di-trigger untuk 
 
 | Target | Path yang dipantau |
 |--------|-------------------|
-| **Netlify** (frontend) | `frontend-app/**`, `netlify.toml` |
-| **Render** (backend) | `backend/**`, `Procfile`, `requirements.txt`, `runtime.txt`, `render.yaml`, `run-backend.sh` |
+| **Netlify** (frontend prod, `main`) | `frontend-app/**`, `netlify.toml` |
+| **Vercel** (frontend staging, `staging`) | Root `frontend-app` + `ignoreCommand` hanya `staging` |
+| **Render** (backend prod/staging) | `backend/**`, `Procfile`, `requirements.txt`, `runtime.txt`, `render.yaml`, `run-backend.sh` |
 
 ### Opsi A — Auto-deploy platform (disarankan)
 
@@ -336,12 +447,14 @@ export RENDER_DEPLOY_HOOK_URL="https://api.render.com/deploy/srv-..."
 |--------|---------------|--------|
 | Backend crash saat start | `DATABASE_URL` / `SECRET_KEY` kosong | Isi env di Render |
 | `dialect does not support ... postgres://` | URL Neon pakai skema lama | Ganti prefix jadi `postgresql://` |
-| CORS error di browser | `FRONTEND_URL` tidak cocok | Samakan dengan URL Netlify (tanpa trailing slash) |
-| Frontend memanggil localhost di prod | `VITE_API_BASE_URL` belum di-set | Set di Netlify env lalu **Clear cache and deploy** |
+| CORS error di browser | `FRONTEND_URL` tidak cocok | Samakan dengan URL Netlify / Vercel staging (tanpa trailing slash) |
+| Frontend memanggil localhost di prod | `VITE_API_BASE_URL` belum di-set | Set di Netlify/Vercel env lalu redeploy |
 | DB connection reset | Neon idle / pool | Pakai pooled URL + pastikan `sslmode=require` |
 | Email verifikasi tidak terkirim | SMTP belum dikonfigurasi | Isi `SMTP_*` atau verifikasi manual via admin |
-| Render deploy saat hanya ubah frontend | Auto-deploy Render tanpa filter path | Set **Included Paths** di Render (lihat §6) |
+| Render deploy saat hanya ubah frontend | Auto-deploy Render tanpa filter path | Set **Included Paths** / `buildFilter` di `render.yaml` (lihat §6) |
 | Netlify deploy saat hanya ubah backend | Ignore build belum aktif | Pastikan `netlify.toml` sudah di-push |
+| Vercel build dari branch `main` | Production Branch / ignore salah | Production Branch = `staging`; cek `ignoreCommand` di `frontend-app/vercel.json` |
+| Staging mengubah data prod | Shared `DATABASE_URL` | Jangan uji hapus; pisahkan DB nanti jika perlu |
 
 ---
 
@@ -373,9 +486,10 @@ cd frontend-app && npm run build && npm run preview
 
 - Jangan commit file `.env`.
 - Ganti password `admin` / `admin123` di production.
-- Pakai `SECRET_KEY` yang berbeda antara lokal dan production.
-- Batasi CORS hanya ke domain Netlify via `FRONTEND_URL`.
+- Pakai `SECRET_KEY` yang berbeda antara lokal, staging, dan production.
+- Batasi CORS ke domain Netlify (prod) / Vercel (staging) via `FRONTEND_URL`.
 - Registrasi dibatasi ke email `@innocean.co.id` dan `@innocean.com`.
+- Vercel Hobby: jangan andalkan untuk hosting internal jangka panjang (ToS non-commercial).
 
 ---
 
