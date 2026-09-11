@@ -365,15 +365,35 @@ export default function SettingsPage({
                         {tMsg('-- Select Department --', '-- Pilih Departemen --')}
                       </option>
                       <option value="Account">Account</option>
-                      <option value="BOD">BOD</option>
-                      <option value="BTL">BTL</option>
-                      <option value="Creative">Creative</option>
-                      <option value="CRM">CRM</option>
-                      <option value="Digital & Technology">Digital & Technology</option>
-                      <option value="Media">Media</option>
                       <option value="Planning">Planning</option>
+                      <option value="Digital & Technology">Digital & Technology</option>
+                      <option value="Creative">Creative</option>
+                      <option value="Media">Media</option>
+                      <option value="BTL">BTL</option>
                       <option value="Resources & Coordination">Resources & Coordination</option>
                       <option value="RSD">RSD</option>
+                      <option value="HMS">HMS</option>
+                      <option value="HR & GA">HR & GA</option>
+                      <option value="Finance">Finance</option>
+                      {/* Preserve other options like BOD, Legal, etc. if selected */}
+                      {profileData.division_name &&
+                        ![
+                          'Account',
+                          'Planning',
+                          'Digital & Technology',
+                          'Creative',
+                          'Media',
+                          'BTL',
+                          'Resources & Coordination',
+                          'RSD',
+                          'HMS',
+                          'HR & GA',
+                          'Finance',
+                        ].includes(profileData.division_name) && (
+                          <option value={profileData.division_name}>
+                            {profileData.division_name}
+                          </option>
+                        )}
                     </select>
                   </SettingItem>
 

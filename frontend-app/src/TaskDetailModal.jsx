@@ -208,6 +208,7 @@ export default function TaskDetailModal({
             username: u.username,
             full_name: u.full_name || u.name || u.username,
             name: u.name || u.full_name || u.username,
+            division_name: u.division_name || '',
           }))
           .sort((a, b) =>
             String(a.full_name || a.username).localeCompare(
@@ -220,8 +221,28 @@ export default function TaskDetailModal({
             username,
             full_name: username,
             name: username,
+            division_name: '',
           }));
 
+  const isRcDivision = (div) => {
+    const clean = String(div || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+    return clean === 'rc' || clean === 'resourcescoordination';
+  };
+
+  const rcEmployees = React.useMemo(() => {
+    return allEmployees.filter((emp) => isRcDivision(emp.division_name));
+  }, [allEmployees]);
+
+  const requesterUsers = Array.isArray(editFormData.requester)
+    ? editFormData.requester
+    : editFormData.requester
+      ? String(editFormData.requester)
+          .split(',')
+          .map((u) => u.replace(/^@/, '').trim())
+          .filter(Boolean)
+      : [];
   const headOfProject = editFormData.head_of_project || [];
   const rcTeam = editFormData.rc_team || [];
 
@@ -727,113 +748,35 @@ export default function TaskDetailModal({
 
                   <div className='space-y-6'>
                     <div className='grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4 relative z-40'>
-                      <div className='group relative z-50'>
-                        <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
-                          <Icon name='user' className='w-4 h-4' />{' '}
-                          {tMsg(
-                            'Project Owner / Requester',
-                            'Project Owner / Peminta'
-                          )}
-                        </label>
-                        <div className='bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center relative h-12 sm:h-14'>
-                          <input
-                            type='text'
-                            value={editFormData.requester}
-                            onChange={(e) =>
-                              handleRequesterChange(
-                                e.target.value,
-                                setEditFormData,
-                                editFormData
-                              )
-                            }
-                            onKeyDown={(e) => {
-                              if (isMentioning) {
-                                const filtered = globalMentionOptions.filter(
-                                  (m) => m.toLowerCase().includes(mentionQuery)
-                                );
-                                if (e.key === 'ArrowDown') {
-                                  e.preventDefault();
-                                  setMentionIndex(
-                                    (prev) =>
-                                      (prev + 1) % (filtered.length || 1)
-                                  );
-                                } else if (e.key === 'ArrowUp') {
-                                  e.preventDefault();
-                                  setMentionIndex(
-                                    (prev) =>
-                                      (prev - 1 + filtered.length) %
-                                      (filtered.length || 1)
-                                  );
-                                } else if (
-                                  e.key === 'Enter' ||
-                                  e.key === 'Tab'
-                                ) {
-                                  e.preventDefault();
-                                  if (filtered.length > 0)
-                                    insertMention(
-                                      filtered[mentionIndex] || filtered[0],
-                                      setEditFormData,
-                                      editFormData
-                                    );
-                                } else if (e.key === 'Escape') {
-                                  e.preventDefault();
-                                  setIsMentioning(false);
-                                }
-                              }
-                            }}
-                            className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-normal text-black dark:text-white outline-none placeholder-neutral-400 placeholder:text-xs h-full'
-                            required
+                      <MultiUserSelect
+                        label={tMsg('Project Requester', 'Project Requester')}
+                        icon='user'
+                        selected={requesterUsers}
+                        onChange={(users) =>
+                          setEditFormData({
+                            ...editFormData,
+                            requester: users,
+                          })
+                        }
+                        employees={allEmployees}
+                        placeholder={tMsg(
+                          'Select Project Requester...',
+                          'Pilih Project Requester...'
+                        )}
+                        tMsg={tMsg}
+                        teamMembers={teamMembers}
+                        renderSelected={(selected, employees) => (
+                          <RoleUsersTrigger
+                            selected={selected}
+                            employees={employees}
+                            avatarsMap={avatarsMap}
                             placeholder={tMsg(
-                              'Select or type employee name...',
-                              'Pilih atau ketik nama karyawan...'
+                              'Select Project Requester...',
+                              'Pilih Project Requester...'
                             )}
-                            autoComplete='off'
                           />
-
-                          {isMentioning && (
-                            <div className='absolute left-0 top-full mt-2 w-full bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl z-50 max-h-40 overflow-y-auto py-2 mac-animate'>
-                              {globalMentionOptions.filter((m) =>
-                                m.toLowerCase().includes(mentionQuery)
-                              ).length > 0 ? (
-                                globalMentionOptions
-                                  .filter((m) =>
-                                    m.toLowerCase().includes(mentionQuery)
-                                  )
-                                  .map((m, idx) => (
-                                    <div
-                                      key={m}
-                                      className={`px-4 py-2.5 cursor-pointer text-xs text-black dark:text-white font-bold border-b border-neutral-100 dark:border-neutral-800/50 last:border-0 flex items-center gap-2 ${
-                                        mentionIndex === idx
-                                          ? 'bg-neutral-100 dark:bg-neutral-800'
-                                          : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'
-                                      }`}
-                                      onClick={() =>
-                                        insertMention(
-                                          m,
-                                          setEditFormData,
-                                          editFormData
-                                        )
-                                      }>
-                                      <span>@{m}</span>
-                                      {!teamMembers.includes(m) && (
-                                        <span className='text-[8px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest ml-auto'>
-                                          +Invite
-                                        </span>
-                                      )}
-                                    </div>
-                                  ))
-                              ) : (
-                                <div className='px-4 py-3 text-xs text-neutral-400 font-bold italic'>
-                                  {tMsg(
-                                    'No members found',
-                                    'Tidak ada anggota ditemukan'
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
+                        )}
+                      />
 
                       <MultiUserSelect
                         label={tMsg('Supervisor', 'Supervisor')}
@@ -865,32 +808,20 @@ export default function TaskDetailModal({
                         )}
                       />
 
-                      <MultiUserSelect
-                        label={tMsg('R&C Team', 'Tim R&C')}
-                        icon='users'
-                        selected={rcTeam}
-                        onChange={(users) =>
-                          setEditFormData({ ...editFormData, rc_team: users })
-                        }
-                        employees={allEmployees}
-                        placeholder={tMsg(
-                          'Select R&C Team...',
-                          'Pilih Tim R&C...'
-                        )}
-                        tMsg={tMsg}
-                        teamMembers={teamMembers}
-                        renderSelected={(selected, employees) => (
+                      <div className='group relative'>
+                        <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
+                          <Icon name='users' className='w-4 h-4' />{' '}
+                          {tMsg('R&C Team', 'Tim R&C')}
+                        </label>
+                        <div className='w-full bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent transition-all flex items-center h-12 sm:h-14 px-3.5'>
                           <RoleUsersTrigger
-                            selected={selected}
-                            employees={employees}
+                            selected={rcTeam.length > 0 ? rcTeam : rcEmployees.map((e) => e.username)}
+                            employees={rcEmployees.length > 0 ? rcEmployees : allEmployees}
                             avatarsMap={avatarsMap}
-                            placeholder={tMsg(
-                              'Select R&C Team...',
-                              'Pilih Tim R&C...'
-                            )}
+                            placeholder={tMsg('No R&C members', 'Tidak ada karyawan R&C')}
                           />
-                        )}
-                      />
+                        </div>
+                      </div>
                     </div>
 
                     <div className='grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-4 relative z-40'>

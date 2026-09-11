@@ -4,7 +4,10 @@ import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { Icon } from '../icons/Icon';
 import { Avatar } from '../../SharedUI';
 import MultiUserSelect from '../MultiUserSelect';
-import { SUBTASK_DEPARTMENT_OPTIONS } from '../../utils/formSubtasks';
+import {
+  SUBTASK_DEPARTMENT_OPTIONS,
+  filterEmployeesByDepartment,
+} from '../../utils/formSubtasks';
 
 function AssigneeTrigger({ selected, employees, avatarsMap, tMsg }) {
   if (!selected.length) {
@@ -177,11 +180,7 @@ export default function TaskDetailSubtasks({
 
   return (
     <div className='mt-10 pt-8 border-t border-neutral-200 dark:border-neutral-800'>
-      <div className='flex justify-between items-center mb-2'>
-        <h3 className='text-sm font-black uppercase tracking-wider text-black dark:text-white flex items-center gap-2'>
-          <Icon name='clipboard-list' className='w-4 h-4' />{' '}
-          {tMsg('Sub-task Checklist', 'Daftar Periksa Sub-tugas')}
-        </h3>
+      <div className='flex justify-end items-center mb-2'>
         <span className='text-xs font-bold text-neutral-500 dark:text-neutral-400 uppercase tracking-widest'>
           {doneCount}/{totalCount} ({progressPct}%)
         </span>
@@ -369,7 +368,7 @@ export default function TaskDetailSubtasks({
                       handleSyncTeamAssignees(teamName, items, users);
                     }
                   }}
-                  employees={employees}
+                  employees={filterEmployeesByDepartment(employees, teamName)}
                   placeholder={tMsg('Employee Names', 'Nama Karyawan')}
                   tMsg={tMsg}
                   teamMembers={teamMembers}
@@ -437,7 +436,10 @@ export default function TaskDetailSubtasks({
                   setAddAssignees(users);
                   setNewSubtaskAssignee?.(users[users.length - 1] || '');
                 }}
-                employees={employees}
+                employees={filterEmployeesByDepartment(
+                  employees,
+                  newSubtaskName
+                )}
                 placeholder={tMsg('Employee Names', 'Nama Karyawan')}
                 tMsg={tMsg}
                 teamMembers={teamMembers}

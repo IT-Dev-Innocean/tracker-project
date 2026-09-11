@@ -372,7 +372,7 @@ export default function useAppLogic() {
   const [newSubtaskAssignee, setNewSubtaskAssignee] = useState('');
   const [formData, setFormData] = useState({
     task_name: '',
-    requester: '',
+    requester: [],
     head_of_project: [],
     rc_team: [],
     category: 'Development',
@@ -4208,8 +4208,22 @@ export default function useAppLogic() {
     }
 
     setIsSubmitting(true);
+    const formatRequesterField = (req) => {
+      if (Array.isArray(req)) {
+        return req
+          .map((u) => {
+            const clean = String(u || '').trim();
+            return clean ? (clean.startsWith('@') ? clean : `@${clean}`) : '';
+          })
+          .filter(Boolean)
+          .join(', ');
+      }
+      return req || '';
+    };
+
     const formattedData = {
       ...formData,
+      requester: formatRequesterField(formData.requester),
       head_of_project: Array.isArray(formData.head_of_project)
         ? formData.head_of_project.join(',')
         : formData.head_of_project || '',
@@ -4229,7 +4243,7 @@ export default function useAppLogic() {
         setIsFormOpen(false);
         setFormData({
           task_name: '',
-          requester: '',
+          requester: [],
           head_of_project: [],
           rc_team: [],
           category: 'Development',
@@ -4429,7 +4443,7 @@ export default function useAppLogic() {
 
     setEditFormData({
       task_name: selectedTask.task_name,
-      requester: selectedTask.requester,
+      requester: parseUserList(selectedTask.requester),
       head_of_project: parseUserList(selectedTask.head_of_project),
       rc_team: parseUserList(selectedTask.rc_team),
       category: selectedTask.category,
@@ -4530,8 +4544,22 @@ export default function useAppLogic() {
 
     setIsSubmitting(true);
     const validDeadline = editFormData.deadline || getLocalToday();
+    const formatRequesterField = (req) => {
+      if (Array.isArray(req)) {
+        return req
+          .map((u) => {
+            const clean = String(u || '').trim();
+            return clean ? (clean.startsWith('@') ? clean : `@${clean}`) : '';
+          })
+          .filter(Boolean)
+          .join(', ');
+      }
+      return req || '';
+    };
+
     const payload = {
       ...editFormData,
+      requester: formatRequesterField(editFormData.requester),
       head_of_project: Array.isArray(editFormData.head_of_project)
         ? editFormData.head_of_project.join(',')
         : editFormData.head_of_project || '',

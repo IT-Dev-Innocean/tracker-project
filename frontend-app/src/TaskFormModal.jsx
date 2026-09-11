@@ -13,7 +13,11 @@ import MultiUserSelect from './components/MultiUserSelect';
 import RoleUsersTrigger from './components/RoleUsersTrigger';
 import { useCloseAnimation, LoadingSpinner } from './Utils';
 import { useFeatureFlag } from './featureFlags';
-import { DEFAULT_FORM_TEAM_SUBTASKS, SUBTASK_DEPARTMENT_OPTIONS } from './utils/formSubtasks';
+import {
+  DEFAULT_FORM_TEAM_SUBTASKS,
+  SUBTASK_DEPARTMENT_OPTIONS,
+  filterEmployeesByDepartment,
+} from './utils/formSubtasks';
 
 export default function TaskFormModal({
   setIsFormOpen,
@@ -57,57 +61,6 @@ export default function TaskFormModal({
   ); // 'ai' atau 'manual'
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGeneratingTask, setIsGeneratingTask] = useState(false);
-  const [requesterDropdownStyle, setRequesterDropdownStyle] = useState({});
-  const [isRequesterOpen, setIsRequesterOpen] = useState(false);
-  const requesterWrapperRef = useRef(null);
-  const requesterButtonRef = useRef(null);
-  const requesterDropdownRef = useRef(null);
-
-  const updateRequesterDropdownPosition = useCallback(() => {
-    if (!requesterButtonRef.current) return;
-    const rect = requesterButtonRef.current.getBoundingClientRect();
-    setRequesterDropdownStyle({
-      position: 'fixed',
-      top: rect.bottom + 8,
-      left: rect.left,
-      width: rect.width,
-      zIndex: 9999,
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!isRequesterOpen) return undefined;
-
-    updateRequesterDropdownPosition();
-
-    const handleClickOutside = (e) => {
-      if (
-        requesterWrapperRef.current?.contains(e.target) ||
-        requesterDropdownRef.current?.contains(e.target)
-      ) {
-        return;
-      }
-      setIsRequesterOpen(false);
-    };
-
-    const handleReposition = () => updateRequesterDropdownPosition();
-
-    document.addEventListener('mousedown', handleClickOutside);
-    window.addEventListener('scroll', handleReposition, true);
-    window.addEventListener('resize', handleReposition);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('scroll', handleReposition, true);
-      window.removeEventListener('resize', handleReposition);
-    };
-  }, [isRequesterOpen, updateRequesterDropdownPosition]);
-
-  const selectRequester = (username) => {
-    setFormData({ ...formData, requester: `@${username}` });
-    setIsRequesterOpen(false);
-    setIsMentioning?.(false);
-  };
 
   const [isGeneratingDesc, setIsGeneratingDesc] = useState(false);
   const handleGenerateDesc = async () => {
@@ -279,7 +232,7 @@ Format:
     setFormData((prev) => ({
       ...prev,
       task_name: '',
-      requester: '',
+      requester: [],
       head_of_project: [],
       rc_team: [],
       category: categories[0] || 'Development',
@@ -341,6 +294,7 @@ Format:
           username: u.username,
           full_name: u.full_name || u.name || u.username,
           name: u.name || u.full_name || u.username,
+          division_name: u.division_name || '',
         }))
         .sort((a, b) =>
           String(a.full_name || a.username).localeCompare(
@@ -355,64 +309,42 @@ Format:
         username,
         full_name: username,
         name: username,
+        division_name: '',
       }));
   }, [userDirectory, workspacePeople, teamMembers]);
 
+  const isRcDivision = (div) => {
+    const clean = String(div || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+    return clean === 'rc' || clean === 'resourcescoordination';
+  };
+
+  const rcEmployees = useMemo(() => {
+    return allEmployees.filter((emp) => isRcDivision(emp.division_name));
+  }, [allEmployees]);
+
+  // Default masukkan semua karyawan R&C jika rc_team masih kosong dan data karyawan R&C tersedia
+  useEffect(() => {
+    if (rcEmployees.length > 0 && (!formData.rc_team || formData.rc_team.length === 0)) {
+      const defaultRcUsernames = rcEmployees.map((e) => e.username);
+      setFormData((prev) => ({
+        ...prev,
+        rc_team: defaultRcUsernames,
+      }));
+    }
+  }, [rcEmployees]);
+
+  const requesterUsers = Array.isArray(formData.requester)
+    ? formData.requester
+    : formData.requester
+      ? String(formData.requester)
+          .split(',')
+          .map((u) => u.replace(/^@/, '').trim())
+          .filter(Boolean)
+      : [];
   const headOfProject = formData.head_of_project || [];
   const rcTeam = formData.rc_team || [];
-  const selectedRequesterUsername = String(formData.requester || '')
-    .replace(/^@/, '')
-    .trim();
-  const selectedRequesterEmployee = allEmployees.find(
-    (emp) => emp.username === selectedRequesterUsername
-  );
-  const requesterDisplayLabel = selectedRequesterEmployee
-    ? selectedRequesterEmployee.full_name || selectedRequesterEmployee.username
-    : selectedRequesterUsername
-      ? formData.requester
-      : tMsg('Select Requester...', 'Pilih Requester...');
-
-  const requesterDropdownMenu =
-    isRequesterOpen &&
-    createPortal(
-      <div
-        ref={requesterDropdownRef}
-        style={requesterDropdownStyle}
-        className='bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl max-h-48 overflow-y-auto py-2 mac-animate'>
-        {allEmployees.length > 0 ? (
-          allEmployees.map((emp) => {
-            const isSelected = selectedRequesterUsername === emp.username;
-            const isAutoInvite =
-              teamMembers.length > 0 && !teamMembers.includes(emp.username);
-            return (
-              <button
-                key={emp.username}
-                type='button'
-                onClick={() => selectRequester(emp.username)}
-                className={`flex w-full items-center gap-3 px-4 py-2.5 cursor-pointer text-left text-xs font-normal text-black dark:text-white ${
-                  isSelected
-                    ? 'bg-neutral-100 dark:bg-neutral-800'
-                    : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'
-                }`}>
-                <span className='truncate'>
-                  {emp.full_name || emp.name || emp.username}
-                </span>
-                {isAutoInvite && (
-                  <span className='text-[8px] bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-1.5 py-0.5 rounded font-bold uppercase tracking-widest ml-auto shrink-0'>
-                    +Invite
-                  </span>
-                )}
-              </button>
-            );
-          })
-        ) : (
-          <div className='px-4 py-3 text-xs text-neutral-400 uppercase tracking-widest font-normal'>
-            {tMsg('NO EMPLOYEES FOUND', 'TIDAK ADA KARYAWAN')}
-          </div>
-        )}
-      </div>,
-      document.body
-    );
 
   return (
     <div
@@ -531,43 +463,32 @@ Format:
 
               <div className='space-y-6'>
                 <div className='grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-4 relative z-40'>
-                  <div
-                    ref={requesterWrapperRef}
-                    className={`group tour-form-requester relative ${
-                      isRequesterOpen ? 'z-9998' : ''
-                    }`}>
-                    <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
-                      <Icon name='user' className='w-4 h-4' />{' '}
-                      {tMsg(
-                        'Project Owner / Requester',
-                        'Project Owner / Peminta'
-                      )}
-                    </label>
-                    <button
-                      ref={requesterButtonRef}
-                      type='button'
-                      onClick={() => setIsRequesterOpen((prev) => !prev)}
-                      className='w-full bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black transition-all flex items-center h-12 sm:h-14 px-3.5 text-left'>
-                      <span
-                        className={`text-xs font-normal truncate ${
-                          selectedRequesterUsername
-                            ? 'text-black dark:text-white'
-                            : 'text-neutral-400'
-                        }`}>
-                        {requesterDisplayLabel}
-                      </span>
-                    </button>
-                    <input
-                      type='text'
-                      value={formData.requester || ''}
-                      required
-                      tabIndex={-1}
-                      aria-hidden='true'
-                      className='sr-only'
-                      onChange={() => {}}
-                    />
-                    {requesterDropdownMenu}
-                  </div>
+                  <MultiUserSelect
+                    label={tMsg('Project Requester', 'Project Requester')}
+                    icon='user'
+                    selected={requesterUsers}
+                    onChange={(users) =>
+                      setFormData({ ...formData, requester: users })
+                    }
+                    employees={allEmployees}
+                    placeholder={tMsg(
+                      'Select Project Requester...',
+                      'Pilih Project Requester...'
+                    )}
+                    tMsg={tMsg}
+                    teamMembers={teamMembers}
+                    renderSelected={(selected, employees) => (
+                      <RoleUsersTrigger
+                        selected={selected}
+                        employees={employees}
+                        avatarsMap={avatarsMap}
+                        placeholder={tMsg(
+                          'Select Project Requester...',
+                          'Pilih Project Requester...'
+                        )}
+                      />
+                    )}
+                  />
                   <MultiUserSelect
                     label={tMsg('Supervisor', 'Supervisor')}
                     icon='users'
@@ -595,29 +516,20 @@ Format:
                     )}
                   />
 
-                  <MultiUserSelect
-                    label={tMsg('R&C Team', 'Tim R&C')}
-                    icon='users'
-                    selected={rcTeam}
-                    onChange={(users) =>
-                      setFormData({ ...formData, rc_team: users })
-                    }
-                    employees={allEmployees}
-                    placeholder={tMsg('Select R&C Team...', 'Pilih Tim R&C...')}
-                    tMsg={tMsg}
-                    teamMembers={teamMembers}
-                    renderSelected={(selected, employees) => (
+                  <div className='group relative'>
+                    <label className='text-xs font-bold text-neutral-500 group-focus-within:text-black dark:group-focus-within:text-white uppercase tracking-normal mb-2 flex items-center gap-2'>
+                      <Icon name='users' className='w-4 h-4' />{' '}
+                      {tMsg('R&C Team', 'Tim R&C')}
+                    </label>
+                    <div className='w-full bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent transition-all flex items-center h-12 sm:h-14 px-3.5'>
                       <RoleUsersTrigger
-                        selected={selected}
-                        employees={employees}
+                        selected={rcTeam}
+                        employees={rcEmployees.length > 0 ? rcEmployees : allEmployees}
                         avatarsMap={avatarsMap}
-                        placeholder={tMsg(
-                          'Select R&C Team...',
-                          'Pilih Tim R&C...'
-                        )}
+                        placeholder={tMsg('No R&C members', 'Tidak ada karyawan R&C')}
                       />
-                    )}
-                  />
+                    </div>
+                  </div>
                 </div>
 
                 <div className='grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 relative z-40'>
@@ -895,10 +807,6 @@ Format:
               </div>
 
               <div className='group pt-8 mt-8 border-t border-neutral-200 dark:border-neutral-800 tour-form-checklist'>
-                <label className='text-xs font-bold text-neutral-500 uppercase tracking-normal mb-2 flex items-center gap-2'>
-                  <Icon name='clipboard-list' className='w-4 h-4' />{' '}
-                  {tMsg('Sub-task Checklist', 'Daftar Periksa Sub-tugas')}
-                </label>
                 <p className='text-sm font-bold text-indigo-600 dark:text-indigo-400 mb-4'>
                   {tMsg(
                     'Brief assigned to and collaborated with:',
@@ -980,7 +888,10 @@ Format:
                             };
                             setFormSubtasks(next);
                           }}
-                          employees={allEmployees}
+                          employees={filterEmployeesByDepartment(
+                            allEmployees,
+                            st.task_name
+                          )}
                           placeholder={tMsg(
                             'Employee Names',
                             'Nama Karyawan'
