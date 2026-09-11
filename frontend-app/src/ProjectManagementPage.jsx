@@ -6,6 +6,29 @@ import { IconPlus } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import { excludeTodoListBoards } from './utils/boards';
 
+const PROJECT_COLUMN_STORAGE_KEY = 'innocean_project_visible_columns';
+const DEFAULT_VISIBLE_COLUMNS = {
+  project_number: true,
+  client_code: false,
+  name: true,
+  created_by: true,
+  billing_type: true,
+  owner_status: false,
+  actions: true,
+};
+
+const loadVisibleColumns = () => {
+  if (typeof window === 'undefined') return { ...DEFAULT_VISIBLE_COLUMNS };
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem(PROJECT_COLUMN_STORAGE_KEY) || '{}'
+    );
+    return { ...DEFAULT_VISIBLE_COLUMNS, ...saved };
+  } catch {
+    return { ...DEFAULT_VISIBLE_COLUMNS };
+  }
+};
+
 export default function ProjectManagementPage() {
   const {
     language,
@@ -38,7 +61,12 @@ export default function ProjectManagementPage() {
   const [newOwnerInput, setNewOwnerInput] = useState('');
   const [isTransferring, setIsTransferring] = useState(false);
   const [boardToEdit, setBoardToEdit] = useState(null);
-  const [editForm, setEditForm] = useState({ project_number: '', name: '', client_name: '' });
+  const [editForm, setEditForm] = useState({
+    project_number: '',
+    name: '',
+    client_name: '',
+    billing_type: 'Billable',
+  });
   const [clients, setClients] = useState([]);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -73,6 +101,87 @@ export default function ProjectManagementPage() {
       localStorage.setItem('innocean_project_manage_per_page', String(next));
     }
   };
+
+  const [visibleColumns, setVisibleColumns] = useState(loadVisibleColumns);
+  const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
+  const columnsMenuRef = useRef(null);
+
+  const columnOptions = [
+    { key: 'project_number', label: tMsg('Job Number', 'Nomor Job') },
+    { key: 'client_code', label: tMsg('Client Code', 'Kode Klien') },
+    { key: 'name', label: tMsg('Project Name', 'Nama Proyek') },
+    { key: 'created_by', label: tMsg('Project Requester', 'Project Requester') },
+    { key: 'billing_type', label: tMsg('Billing Type', 'Tipe Penagihan') },
+    { key: 'owner_status', label: tMsg('Owner Status', 'Status Pemilik') },
+    { key: 'actions', label: tMsg('Actions', 'Tindakan') },
+  ];
+
+  const isColVisible = (key) => visibleColumns[key] !== false;
+  const visibleDataCount = columnOptions.filter((col) =>
+    isColVisible(col.key)
+  ).length;
+
+  const persistVisibleColumns = (next) => {
+    setVisibleColumns(next);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(PROJECT_COLUMN_STORAGE_KEY, JSON.stringify(next));
+    }
+  };
+
+  const toggleColumn = (key) => {
+    const currentlyVisible = isColVisible(key);
+    if (currentlyVisible && visibleDataCount <= 1) return;
+    persistVisibleColumns({
+      ...visibleColumns,
+      [key]: !currentlyVisible,
+    });
+  };
+
+  const resetColumns = () => {
+    persistVisibleColumns({ ...DEFAULT_VISIBLE_COLUMNS });
+  };
+
+  useEffect(() => {
+    if (!columnsMenuOpen) return;
+    const handleClickOutside = (event) => {
+      if (
+        columnsMenuRef.current &&
+        !columnsMenuRef.current.contains(event.target)
+      ) {
+        setColumnsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [columnsMenuOpen]);
+
+  const [editClientSearch, setEditClientSearch] = useState('');
+  const [editClientDropdownOpen, setEditClientDropdownOpen] = useState(false);
+  const editClientDropdownRef = useRef(null);
+
+  useEffect(() => {
+    if (!editClientDropdownOpen) return;
+    const handleClickOutside = (e) => {
+      if (
+        editClientDropdownRef.current &&
+        !editClientDropdownRef.current.contains(e.target)
+      ) {
+        setEditClientDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [editClientDropdownOpen]);
+
+  const filteredEditClients = useMemo(() => {
+    const q = editClientSearch.trim().toLowerCase();
+    if (!q) return clients;
+    return clients.filter(
+      (c) =>
+        (c.client_name || '').toLowerCase().includes(q) ||
+        (c.client_code || '').toLowerCase().includes(q)
+    );
+  }, [clients, editClientSearch]);
 
   const ownerStatusBadge = (status) => {
     if (status === 'orphan') {
@@ -168,7 +277,8 @@ export default function ProjectManagementPage() {
         b.owner_username.toLowerCase().includes(q) ||
         (b.project_number || '').toLowerCase().includes(q) ||
         (b.client_code || '').toLowerCase().includes(q) ||
-        (b.client_name || '').toLowerCase().includes(q);
+        (b.client_name || '').toLowerCase().includes(q) ||
+        (b.billing_type || '').toLowerCase().includes(q);
       return matchFilter && matchSearch;
     });
   }, [manageBoards, projectFilter, projectSearchQuery]);
@@ -241,16 +351,26 @@ export default function ProjectManagementPage() {
 
   const openEditBoard = (board) => {
     setBoardToEdit(board);
+    setEditClientSearch('');
+    setEditClientDropdownOpen(false);
     setEditForm({
       project_number: board.project_number || '',
       name: board.name || '',
       client_name: board.client_name || '',
+      billing_type: board.billing_type || 'Billable',
     });
   };
 
   const closeEditBoard = () => {
     setBoardToEdit(null);
-    setEditForm({ project_number: '', name: '', client_name: '' });
+    setEditClientSearch('');
+    setEditClientDropdownOpen(false);
+    setEditForm({
+      project_number: '',
+      name: '',
+      client_name: '',
+      billing_type: 'Billable',
+    });
   };
 
   const executeEditBoard = () => {
@@ -261,6 +381,7 @@ export default function ProjectManagementPage() {
         name: editForm.name.trim(),
         project_number: editForm.project_number.trim() || null,
         client_name: editForm.client_name || null,
+        billing_type: editForm.billing_type || 'Billable',
       })
       .then((res) => {
         showNotification?.(
@@ -345,9 +466,6 @@ export default function ProjectManagementPage() {
         <div className='overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900'>
           <div className='px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-950 flex-wrap gap-4'>
             <div className='flex items-center gap-4 flex-wrap'>
-              <h3 className='font-bold text-black dark:text-white text-sm uppercase tracking-wider'>
-                {tMsg('Project Directory', 'Direktori Proyek')}
-              </h3>
               {selectedBoards.length > 0 && (
                 <button
                   onClick={() =>
@@ -362,7 +480,7 @@ export default function ProjectManagementPage() {
                   }
                   className='text-[10px] font-bold bg-red-500 text-white px-3 py-1.5 rounded-lg uppercase tracking-widest hover:bg-red-600 transition-colors shadow-sm'>
                   <Icon name='trash' className='w-3.5 h-3.5 inline mr-1' />
-                  {tMsg('Delete', 'Hapus')} ({selectedBoards.length})
+                  {tMsg('Remove', 'Hapus')} ({selectedBoards.length})
                 </button>
               )}
             </div>
@@ -396,6 +514,63 @@ export default function ProjectManagementPage() {
                 </option>
                 <option value='orphan'>{tMsg('Orphaned', 'Yatim')}</option>
               </select>
+              <div className='relative' ref={columnsMenuRef}>
+                <button
+                  type='button'
+                  onClick={() => setColumnsMenuOpen((open) => !open)}
+                  className={`flex items-center gap-1.5 py-2 px-3 border outline-none text-xs font-bold rounded-xl transition-colors ${
+                    columnsMenuOpen || visibleDataCount < columnOptions.length
+                      ? 'bg-neutral-200 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-black dark:text-white'
+                      : 'bg-neutral-100 dark:bg-neutral-900 border-transparent text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800'
+                  }`}>
+                  <Icon name='sliders' className='w-3.5 h-3.5' />
+                  {tMsg('Columns', 'Kolom')}
+                  {visibleDataCount < columnOptions.length && (
+                    <span className='min-w-4 h-4 px-1 rounded-full bg-black dark:bg-white text-white dark:text-black text-[9px] leading-4 text-center'>
+                      {columnOptions.length - visibleDataCount}
+                    </span>
+                  )}
+                </button>
+                {columnsMenuOpen && (
+                  <div className='absolute right-0 top-full mt-2 z-30 w-56 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-xl'>
+                    <div className='px-3 py-2 border-b border-neutral-100 dark:border-neutral-800 text-[10px] font-black uppercase tracking-widest text-neutral-400'>
+                      {tMsg('Show / Hide Columns', 'Tampil / Sembunyi Kolom')}
+                    </div>
+                    <div className='p-1.5'>
+                      {columnOptions.map((col) => {
+                        const visible = isColVisible(col.key);
+                        const locked = visible && visibleDataCount <= 1;
+                        return (
+                          <button
+                            key={col.key}
+                            type='button'
+                            disabled={locked}
+                            onClick={() => toggleColumn(col.key)}
+                            className='flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-bold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-900 disabled:opacity-40 disabled:cursor-not-allowed'>
+                            <span>{col.label}</span>
+                            <Icon
+                              name={visible ? 'eye' : 'eye-off'}
+                              className={`w-3.5 h-3.5 ${
+                                visible
+                                  ? 'text-emerald-600 dark:text-emerald-400'
+                                  : 'text-neutral-400'
+                              }`}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div className='border-t border-neutral-100 dark:border-neutral-800 p-1.5'>
+                      <button
+                        type='button'
+                        onClick={resetColumns}
+                        className='w-full rounded-lg px-2.5 py-2 text-left text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900'>
+                        {tMsg('Reset Columns', 'Atur Ulang Kolom')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
               <div className='flex items-center rounded-xl bg-neutral-100 dark:bg-neutral-900 p-1'>
                 <button
                   type='button'
@@ -500,8 +675,8 @@ export default function ProjectManagementPage() {
                             setNewOwnerInput('');
                           }}
                           className='p-2 rounded-lg text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-600! hover:text-white! hover:border-indigo-600! dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50 dark:hover:bg-indigo-500! dark:hover:text-white! dark:hover:border-indigo-500! transition-colors'
-                          title={tMsg('Transfer', 'Pindah')}
-                          aria-label={tMsg('Transfer', 'Pindah')}>
+                          title={tMsg('Handover', 'Handover')}
+                          aria-label={tMsg('Handover', 'Handover')}>
                           <Icon name='repeat' className='w-3.5 h-3.5' />
                         </button>
                         <button
@@ -513,8 +688,8 @@ export default function ProjectManagementPage() {
                             b.owner_username === 'admin'
                           }
                           className='p-2 rounded-lg text-red-700 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-900/20 dark:text-red-400 border border-red-200 dark:border-red-800/50 transition-all disabled:opacity-40'
-                          title={tMsg('Delete', 'Hapus')}
-                          aria-label={tMsg('Delete', 'Hapus')}>
+                          title={tMsg('Remove', 'Hapus')}
+                          aria-label={tMsg('Remove', 'Hapus')}>
                           <Icon name='trash' className='w-3.5 h-3.5' />
                         </button>
                       </div>
@@ -539,24 +714,41 @@ export default function ProjectManagementPage() {
                         onChange={handleSelectAllBoards}
                       />
                     </th>
-                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 whitespace-nowrap'>
-                      {tMsg('Project Number', 'Nomor Proyek')}
-                    </th>
-                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 whitespace-nowrap'>
-                      {tMsg('Client Code', 'Kode Klien')}
-                    </th>
-                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                      {tMsg('Project Name', 'Nama Proyek')}
-                    </th>
-                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                      {tMsg('Created By', 'Dibuat Oleh')}
-                    </th>
-                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-center'>
-                      {tMsg('Owner Status', 'Status Pemilik')}
-                    </th>
-                    <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-right'>
-                      {tMsg('Actions', 'Tindakan')}
-                    </th>
+                    {isColVisible('project_number') && (
+                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 whitespace-nowrap'>
+                        {tMsg('Job Number', 'Nomor Job')}
+                      </th>
+                    )}
+                    {isColVisible('client_code') && (
+                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 whitespace-nowrap'>
+                        {tMsg('Client Code', 'Kode Klien')}
+                      </th>
+                    )}
+                    {isColVisible('name') && (
+                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
+                        {tMsg('Project Name', 'Nama Proyek')}
+                      </th>
+                    )}
+                    {isColVisible('created_by') && (
+                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
+                        {tMsg('Project Requester', 'Project Requester')}
+                      </th>
+                    )}
+                    {isColVisible('billing_type') && (
+                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 whitespace-nowrap'>
+                        {tMsg('Billing Type', 'Tipe Penagihan')}
+                      </th>
+                    )}
+                    {isColVisible('owner_status') && (
+                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-center'>
+                        {tMsg('Owner Status', 'Status Pemilik')}
+                      </th>
+                    )}
+                    {isColVisible('actions') && (
+                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-right'>
+                        {tMsg('Actions', 'Tindakan')}
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className='divide-y divide-neutral-200 dark:divide-neutral-800'>
@@ -572,79 +764,105 @@ export default function ProjectManagementPage() {
                           onChange={() => handleToggleSelectBoard(b.id)}
                         />
                       </td>
-                      <td className='px-6 py-4 text-sm font-medium text-neutral-600 dark:text-neutral-300 whitespace-nowrap'>
-                        {b.project_number ? (
-                          <HighlightText
-                            text={b.project_number}
-                            query={projectSearchQuery}
-                          />
-                        ) : (
-                          <span className='text-neutral-300 dark:text-neutral-600'>
-                            —
-                          </span>
-                        )}
-                      </td>
-                      <td className='px-6 py-4 text-sm font-bold font-mono text-neutral-800 dark:text-neutral-200 whitespace-nowrap'>
-                        {b.client_code ? (
-                          <HighlightText
-                            text={b.client_code}
-                            query={projectSearchQuery}
-                          />
-                        ) : (
-                          <span className='text-neutral-300 dark:text-neutral-600 font-normal'>
-                            —
-                          </span>
-                        )}
-                      </td>
-                      <td className='px-6 py-4 font-bold text-black dark:text-white text-sm whitespace-nowrap'>
-                        <HighlightText
-                          text={b.name}
-                          query={projectSearchQuery}
-                        />
-                      </td>
-                      <td className='px-6 py-4 text-sm font-medium text-neutral-700 dark:text-neutral-300 whitespace-nowrap'>
-                        @
-                        <HighlightText
-                          text={b.owner_username}
-                          query={projectSearchQuery}
-                        />
-                      </td>
-                      <td className='px-6 py-4 text-center whitespace-nowrap'>
-                        {ownerStatusBadge(b.owner_status)}
-                      </td>
-                      <td className='px-6 py-4 text-right whitespace-nowrap'>
-                        <div className='flex justify-end gap-2'>
-                          {canManageProjects && (
-                            <button
-                              onClick={() => openEditBoard(b)}
-                              disabled={accountStatus === 'suspended'}
-                              className='flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-900/40! hover:text-white! hover:border-slate-700! dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-600! dark:hover:text-white! dark:hover:border-slate-600! px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40'>
-                              <Icon name='pencil' className='w-3.5 h-3.5' />
-                              {tMsg('Edit', 'Ubah')}
-                            </button>
+                      {isColVisible('project_number') && (
+                        <td className='px-6 py-4 text-sm font-medium text-neutral-600 dark:text-neutral-300 whitespace-nowrap'>
+                          {b.project_number ? (
+                            <HighlightText
+                              text={b.project_number}
+                              query={projectSearchQuery}
+                            />
+                          ) : (
+                            <span className='text-neutral-300 dark:text-neutral-600'>
+                              —
+                            </span>
                           )}
-                          <button
-                            onClick={() => {
-                              setBoardToTransfer(b);
-                              setNewOwnerInput('');
-                            }}
-                            className='flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-600! hover:text-white! hover:border-indigo-600! dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50 dark:hover:bg-indigo-500! dark:hover:text-white! dark:hover:border-indigo-500! px-3 py-1.5 rounded-lg transition-colors'>
-                            {tMsg('Transfer', 'Pindah')}
-                          </button>
-                          <button
-                            onClick={() =>
-                              triggerDelete([{ id: b.id, name: b.name }])
-                            }
-                            disabled={
-                              b.owner_username !== currentUser &&
-                              b.owner_username === 'admin'
-                            }
-                            className='flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-900/20 dark:text-red-400 px-3 py-1.5 rounded-lg transition-all border border-red-200 dark:border-red-800/50'>
-                            <Icon name='trash' className='w-3.5 h-3.5' />
-                            {tMsg('Delete', 'Hapus')}
-                          </button>
-                        </div>
-                      </td>
+                        </td>
+                      )}
+                      {isColVisible('client_code') && (
+                        <td className='px-6 py-4 text-sm font-bold font-mono text-neutral-800 dark:text-neutral-200 whitespace-nowrap'>
+                          {b.client_code ? (
+                            <HighlightText
+                              text={b.client_code}
+                              query={projectSearchQuery}
+                            />
+                          ) : (
+                            <span className='text-neutral-300 dark:text-neutral-600 font-normal'>
+                              —
+                            </span>
+                          )}
+                        </td>
+                      )}
+                      {isColVisible('name') && (
+                        <td className='px-6 py-4 font-bold text-black dark:text-white text-sm whitespace-nowrap'>
+                          <HighlightText
+                            text={b.name}
+                            query={projectSearchQuery}
+                          />
+                        </td>
+                      )}
+                      {isColVisible('created_by') && (
+                        <td className='px-6 py-4 text-sm font-medium text-neutral-700 dark:text-neutral-300 whitespace-nowrap'>
+                          @
+                          <HighlightText
+                            text={b.owner_username}
+                            query={projectSearchQuery}
+                          />
+                        </td>
+                      )}
+                      {isColVisible('billing_type') && (
+                        <td className='px-6 py-4 text-sm font-medium text-neutral-600 dark:text-neutral-300 whitespace-nowrap'>
+                          {b.billing_type ? (
+                            <HighlightText
+                              text={b.billing_type}
+                              query={projectSearchQuery}
+                            />
+                          ) : (
+                            <span className='text-neutral-300 dark:text-neutral-600'>
+                              —
+                            </span>
+                          )}
+                        </td>
+                      )}
+                      {isColVisible('owner_status') && (
+                        <td className='px-6 py-4 text-center whitespace-nowrap'>
+                          {ownerStatusBadge(b.owner_status)}
+                        </td>
+                      )}
+                      {isColVisible('actions') && (
+                        <td className='px-6 py-4 text-right whitespace-nowrap'>
+                          <div className='flex justify-end gap-2'>
+                            {canManageProjects && (
+                              <button
+                                onClick={() => openEditBoard(b)}
+                                disabled={accountStatus === 'suspended'}
+                                className='flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-900/40! hover:text-white! hover:border-slate-700! dark:bg-slate-900/40 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-600! dark:hover:text-white! dark:hover:border-slate-600! px-3 py-1.5 rounded-lg transition-colors disabled:opacity-40'>
+                                <Icon name='pencil' className='w-3.5 h-3.5' />
+                                {tMsg('Edit', 'Ubah')}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                setBoardToTransfer(b);
+                                setNewOwnerInput('');
+                              }}
+                              className='flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-600! hover:text-white! hover:border-indigo-600! dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50 dark:hover:bg-indigo-500! dark:hover:text-white! dark:hover:border-indigo-500! px-3 py-1.5 rounded-lg transition-colors'>
+                              {tMsg('Handover', 'Handover')}
+                            </button>
+                            <button
+                              onClick={() =>
+                                triggerDelete([{ id: b.id, name: b.name }])
+                              }
+                              disabled={
+                                b.owner_username !== currentUser &&
+                                b.owner_username === 'admin'
+                              }
+                              className='flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-900/20 dark:text-red-400 px-3 py-1.5 rounded-lg transition-all border border-red-200 dark:border-red-800/50'>
+                              <Icon name='trash' className='w-3.5 h-3.5' />
+                              {tMsg('Remove', 'Hapus')}
+                            </button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -752,30 +970,110 @@ export default function ProjectManagementPage() {
             </p>
             <div className='mb-4 text-left'>
               <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
-                {tMsg('Client', 'Klien')}
+                {tMsg('Client Name', 'Nama Klien')}
               </label>
-              <select
-                value={editForm.client_name}
-                onChange={(e) =>
-                  setEditForm((prev) => ({
-                    ...prev,
-                    client_name: e.target.value,
-                  }))
-                }
-                className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all'>
-                <option value=''>
-                  -- {tMsg('No Client (None)', 'Tanpa Klien')} --
-                </option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.client_name}>
-                    {c.client_name} {c.client_code ? `(${c.client_code})` : ''}
-                  </option>
-                ))}
-              </select>
+              <div className='relative' ref={editClientDropdownRef}>
+                <button
+                  type='button'
+                  onClick={() => setEditClientDropdownOpen((prev) => !prev)}
+                  className='group flex w-full items-center justify-between gap-2 p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold transition-all cursor-pointer text-left'>
+                  <span className={editForm.client_name ? 'text-black dark:text-white font-bold' : 'text-neutral-400 font-medium'}>
+                    {editForm.client_name || `-- ${tMsg('No Client (None)', 'Tanpa Klien')} --`}
+                  </span>
+                  <Icon
+                    name='chevron-down'
+                    className={`w-4 h-4 text-neutral-400 transition-transform ${
+                      editClientDropdownOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+
+                {editClientDropdownOpen && (
+                  <div className='absolute left-0 right-0 top-full mt-2 z-50 overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-2xl'>
+                    {/* Search Input Box */}
+                    <div className='p-2.5 border-b border-neutral-100 dark:border-neutral-800'>
+                      <div className='relative'>
+                        <Icon
+                          name='search'
+                          className='absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none'
+                        />
+                        <input
+                          type='text'
+                          value={editClientSearch}
+                          onChange={(e) => setEditClientSearch(e.target.value)}
+                          placeholder={tMsg('Search client...', 'Cari klien...')}
+                          className='w-full pl-8 pr-3 py-2 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-xl focus:border-neutral-300 dark:focus:border-neutral-700 outline-none text-xs font-semibold'
+                          autoFocus
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    </div>
+
+                    <div className='p-1.5 max-h-56 overflow-y-auto space-y-0.5'>
+                      <button
+                        type='button'
+                        onClick={() => {
+                          setEditForm((prev) => ({ ...prev, client_name: '' }));
+                          setEditClientDropdownOpen(false);
+                          setEditClientSearch('');
+                        }}
+                        className='flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 text-left transition-colors'>
+                        <span>-- {tMsg('No Client (None)', 'Tanpa Klien')} --</span>
+                        {!editForm.client_name && (
+                          <Icon name='check' className='w-3.5 h-3.5 text-neutral-400' />
+                        )}
+                      </button>
+
+                      {filteredEditClients.length === 0 ? (
+                        <div className='px-3 py-4 text-center text-xs text-neutral-400 italic'>
+                          {tMsg('No clients found', 'Tidak ada klien ditemukan')}
+                        </div>
+                      ) : (
+                        filteredEditClients.map((c) => {
+                          const isSelected = editForm.client_name === c.client_name;
+                          return (
+                            <button
+                              key={c.id || c.client_name}
+                              type='button'
+                              onClick={() => {
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  client_name: c.client_name,
+                                }));
+                                setEditClientDropdownOpen(false);
+                                setEditClientSearch('');
+                              }}
+                              className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-left transition-colors ${
+                                isSelected
+                                  ? 'bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white'
+                                  : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                              }`}>
+                              <span>
+                                {c.client_name}{' '}
+                                {c.client_code && (
+                                  <span className='text-[10px] font-mono text-neutral-400'>
+                                    ({c.client_code})
+                                  </span>
+                                )}
+                              </span>
+                              {isSelected && (
+                                <Icon
+                                  name='check'
+                                  className='w-3.5 h-3.5 text-black dark:text-white'
+                                />
+                              )}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className='mb-4 text-left'>
               <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
-                {tMsg('Project Number', 'Nomor Proyek')}
+                {tMsg('Job Number', 'Nomor Job')}
               </label>
               <input
                 type='text'
@@ -786,11 +1084,11 @@ export default function ProjectManagementPage() {
                     project_number: e.target.value,
                   }))
                 }
-                placeholder={tMsg('E.g. PRJ-001', 'Contoh: PRJ-001')}
+                placeholder='Mirroring from JobBag'
                 className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all'
               />
             </div>
-            <div className='mb-6 text-left'>
+            <div className='mb-4 text-left'>
               <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
                 {tMsg('Project Name', 'Nama Proyek')}
               </label>
@@ -800,11 +1098,28 @@ export default function ProjectManagementPage() {
                 onChange={(e) =>
                   setEditForm((prev) => ({ ...prev, name: e.target.value }))
                 }
-                placeholder='E.g. Website Redesign'
+                placeholder='Product Name - Campaign Name'
                 className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all'
                 required
                 autoFocus
               />
+            </div>
+            <div className='mb-6 text-left'>
+              <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
+                {tMsg('Billing Type', 'Tipe Penagihan')}
+              </label>
+              <select
+                value={editForm.billing_type || 'Billable'}
+                onChange={(e) =>
+                  setEditForm((prev) => ({
+                    ...prev,
+                    billing_type: e.target.value,
+                  }))
+                }
+                className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold transition-all cursor-pointer'>
+                <option value='Billable'>Billable</option>
+                <option value='Non - Billable'>Non - Billable</option>
+              </select>
             </div>
             <div className='flex gap-4'>
               <button

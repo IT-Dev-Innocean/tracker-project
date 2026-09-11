@@ -222,6 +222,7 @@ def get_boards(
             "is_private": getattr(b, "is_private", 0),
             "project_number": getattr(b, "project_number", None),
             "client_name": getattr(b, "client_name", None),
+            "billing_type": getattr(b, "billing_type", "Billable") or "Billable",
             "access_requests_count": requests_count,
         }
 
@@ -283,6 +284,9 @@ def create_board(
     project_number = (payload.project_number or "").strip() or None
     client_name = (payload.client_name or "").strip() or None
     client_code = (payload.client_code or "").strip() or None
+    billing_type = (payload.billing_type or "").strip() or "Billable"
+    if billing_type not in ("Billable", "Non - Billable", "Non-Billable"):
+        billing_type = "Billable"
 
     # Auto-create client directory entry when a new client name is used
     if client_name:
@@ -312,6 +316,7 @@ def create_board(
         is_private=is_private,
         project_number=project_number,
         client_name=client_name,
+        billing_type=billing_type,
     )
     db.add(new_board)
     db.commit()
@@ -322,6 +327,7 @@ def create_board(
         "board_name": new_board.name,
         "project_number": new_board.project_number,
         "client_name": new_board.client_name,
+        "billing_type": new_board.billing_type,
         "owner_username": new_board.owner_username,
     }
 
@@ -370,6 +376,9 @@ def update_board(
     board.name = name
     board.project_number = (payload.project_number or "").strip() or None
     board.client_name = (payload.client_name or "").strip() or None
+    if payload.billing_type is not None:
+        b_type = payload.billing_type.strip()
+        board.billing_type = b_type if b_type in ("Billable", "Non - Billable", "Non-Billable") else "Billable"
     db.commit()
     db.refresh(board)
     update_board_activity(db, board_id)
@@ -380,6 +389,7 @@ def update_board(
         "board_name": board.name,
         "project_number": board.project_number,
         "client_name": board.client_name,
+        "billing_type": board.billing_type,
     }
 
 

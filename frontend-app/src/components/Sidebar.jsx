@@ -559,13 +559,13 @@ export default function Sidebar() {
                     ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
                     : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
                 } ${isCollapsed ? 'justify-center' : ''}`}
-                title={tMsg('Teams', 'Tim')}>
+                title={tMsg('Employees', 'Karyawan')}>
                 <div className='w-6 h-6 flex items-center justify-center'>
                   <Icon name='users' className='w-5 h-5' />
                 </div>
                 {!isCollapsed && (
                   <span className='text-sm truncate flex-1 text-left'>
-                    {tMsg('Teams', 'Tim')}
+                    {tMsg('Employees', 'Karyawan')}
                   </span>
                 )}
                 {!isCollapsed && (

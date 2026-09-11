@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import * as Select from '@radix-ui/react-select';
 import { Avatar, SegmentedControl } from './SharedUI';
@@ -633,33 +633,72 @@ export function CreateBoardModal({
   setNewBoardClient,
   newBoardClientCode,
   setNewBoardClientCode,
+  newBoardBillingType = 'Billable',
+  setNewBoardBillingType,
   clients = [],
   language,
   isSubmitting,
 }) {
   const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
-  const [clientSelectValue, setClientSelectValue] = useState(
-    newBoardClient || CLIENT_SELECT_NONE
-  );
+  const [clientSearch, setClientSearch] = useState('');
+  const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
+  const clientDropdownRef = useRef(null);
+
   const [isClosing, close] = useCloseAnimation(() => {
     setIsCreateBoardOpen(false);
     setNewBoardName('');
     if (setNewBoardNumber) setNewBoardNumber('');
     if (setNewBoardClient) setNewBoardClient('');
+    if (setNewBoardBillingType) setNewBoardBillingType('Billable');
     setIsCreatingNewClient(false);
-    setClientSelectValue(CLIENT_SELECT_NONE);
+    setClientSearch('');
+    setIsClientDropdownOpen(false);
   });
   const tMsg = (en, id) => (language === 'id' ? id : en);
 
-  const handleClientSelectChange = (value) => {
-    setClientSelectValue(value);
-    if (value === CLIENT_SELECT_CREATE) {
-      setIsCreatingNewClient(true);
-      setNewBoardClient?.('');
-      return;
-    }
+  useEffect(() => {
+    if (!isClientDropdownOpen) return;
+    const handleClickOutside = (e) => {
+      if (
+        clientDropdownRef.current &&
+        !clientDropdownRef.current.contains(e.target)
+      ) {
+        setIsClientDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isClientDropdownOpen]);
+
+  const filteredClients = useMemo(() => {
+    const q = clientSearch.trim().toLowerCase();
+    if (!q) return clients;
+    return clients.filter(
+      (c) =>
+        (c.client_name || '').toLowerCase().includes(q) ||
+        (c.client_code || '').toLowerCase().includes(q)
+    );
+  }, [clients, clientSearch]);
+
+  const handleSelectExistingClient = (clientName) => {
     setIsCreatingNewClient(false);
-    setNewBoardClient?.(value === CLIENT_SELECT_NONE ? '' : value);
+    setNewBoardClient?.(clientName);
+    setIsClientDropdownOpen(false);
+    setClientSearch('');
+  };
+
+  const handleSelectCreateNew = () => {
+    setIsCreatingNewClient(true);
+    setNewBoardClient?.('');
+    setIsClientDropdownOpen(false);
+    setClientSearch('');
+  };
+
+  const handleClearClient = () => {
+    setIsCreatingNewClient(false);
+    setNewBoardClient?.('');
+    setIsClientDropdownOpen(false);
+    setClientSearch('');
   };
 
   return (
@@ -685,54 +724,102 @@ export function CreateBoardModal({
             <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
               {tMsg('Client Name', 'Nama Klien')}
             </label>
-            <Select.Root
-              value={clientSelectValue}
-              onValueChange={handleClientSelectChange}>
-              <Select.Trigger
-                autoFocus
-                className='group flex w-full items-center justify-between gap-2 p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold transition-all cursor-pointer data-placeholder:text-neutral-400'>
-                <Select.Value
-                  placeholder={`-- ${tMsg('Select Client', 'Pilih Klien')} --`}
+            <div className='relative' ref={clientDropdownRef}>
+              <button
+                type='button'
+                onClick={() => setIsClientDropdownOpen((prev) => !prev)}
+                className='group flex w-full items-center justify-between gap-2 p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold transition-all cursor-pointer text-left'>
+                <span className={newBoardClient || isCreatingNewClient ? 'text-black dark:text-white font-bold' : 'text-neutral-400 font-medium'}>
+                  {isCreatingNewClient
+                    ? `+ ${tMsg('Create New Client', 'Buat Klien Baru')}`
+                    : newBoardClient || `-- ${tMsg('Select Client', 'Pilih Klien')} --`}
+                </span>
+                <Icon
+                  name='chevron-down'
+                  className={`w-4 h-4 text-neutral-400 transition-transform ${
+                    isClientDropdownOpen ? 'rotate-180' : ''
+                  }`}
                 />
-                <Select.Icon>
-                  <Icon
-                    name='chevron-down'
-                    className='w-4 h-4 text-neutral-400 group-data-[state=open]:rotate-180 transition-transform'
-                  />
-                </Select.Icon>
-              </Select.Trigger>
-              <Select.Portal>
-                <Select.Content
-                  position='popper'
-                  sideOffset={6}
-                  className='z-80 overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-2xl w-(--radix-select-trigger-width) max-h-64'>
-                  <Select.Viewport className='p-1.5'>
-                    <Select.Item
-                      value={CLIENT_SELECT_NONE}
-                      className='relative flex cursor-pointer select-none items-center rounded-xl px-3 py-2.5 text-sm font-bold text-neutral-500 outline-none data-highlighted:bg-neutral-100 dark:data-highlighted:bg-neutral-900 data-[state=checked]:text-black dark:data-[state=checked]:text-white'>
-                      <Select.ItemText>
-                        -- {tMsg('Select Client', 'Pilih Klien')} --
-                      </Select.ItemText>
-                    </Select.Item>
-                    <Select.Item
-                      value={CLIENT_SELECT_CREATE}
-                      className='relative flex cursor-pointer select-none items-center rounded-xl px-3 py-2.5 text-sm font-bold text-indigo-600 dark:text-indigo-400 outline-none data-highlighted:bg-indigo-50 dark:data-highlighted:bg-indigo-950/40'>
-                      <Select.ItemText>
-                        + {tMsg('Create New Client', 'Buat Klien Baru')}
-                      </Select.ItemText>
-                    </Select.Item>
-                    {clients.map((c) => (
-                      <Select.Item
-                        key={c.id || c.client_name}
-                        value={c.client_name}
-                        className='relative flex cursor-pointer select-none items-center rounded-xl px-3 py-2.5 text-sm font-bold text-black dark:text-white outline-none data-highlighted:bg-neutral-100 dark:data-highlighted:bg-neutral-900'>
-                        <Select.ItemText>{c.client_name}</Select.ItemText>
-                      </Select.Item>
-                    ))}
-                  </Select.Viewport>
-                </Select.Content>
-              </Select.Portal>
-            </Select.Root>
+              </button>
+
+              {isClientDropdownOpen && (
+                <div className='absolute left-0 right-0 top-full mt-2 z-50 overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-2xl'>
+                  {/* Search Input Box */}
+                  <div className='p-2.5 border-b border-neutral-100 dark:border-neutral-800'>
+                    <div className='relative'>
+                      <Icon
+                        name='search'
+                        className='absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none'
+                      />
+                      <input
+                        type='text'
+                        value={clientSearch}
+                        onChange={(e) => setClientSearch(e.target.value)}
+                        placeholder={tMsg('Search client...', 'Cari klien...')}
+                        className='w-full pl-8 pr-3 py-2 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-xl focus:border-neutral-300 dark:focus:border-neutral-700 outline-none text-xs font-semibold'
+                        autoFocus
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </div>
+
+                  <div className='p-1.5 max-h-56 overflow-y-auto space-y-0.5'>
+                    <button
+                      type='button'
+                      onClick={handleClearClient}
+                      className='flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 text-left transition-colors'>
+                      <span>-- {tMsg('Select Client (None)', 'Pilih Klien (Kosong)')} --</span>
+                      {!newBoardClient && !isCreatingNewClient && (
+                        <Icon name='check' className='w-3.5 h-3.5 text-neutral-400' />
+                      )}
+                    </button>
+
+                    <button
+                      type='button'
+                      onClick={handleSelectCreateNew}
+                      className='flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-left transition-colors'>
+                      <span>+ {tMsg('Create New Client', 'Buat Klien Baru')}</span>
+                      {isCreatingNewClient && (
+                        <Icon name='check' className='w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400' />
+                      )}
+                    </button>
+
+                    {filteredClients.length === 0 ? (
+                      <div className='px-3 py-4 text-center text-xs text-neutral-400 italic'>
+                        {tMsg('No clients found', 'Tidak ada klien ditemukan')}
+                      </div>
+                    ) : (
+                      filteredClients.map((c) => {
+                        const isSelected = !isCreatingNewClient && newBoardClient === c.client_name;
+                        return (
+                          <button
+                            key={c.id || c.client_name}
+                            type='button'
+                            onClick={() => handleSelectExistingClient(c.client_name)}
+                            className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-left transition-colors ${
+                              isSelected
+                                ? 'bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white'
+                                : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                            }`}>
+                            <span>
+                              {c.client_name}{' '}
+                              {c.client_code && (
+                                <span className='text-[10px] font-mono text-neutral-400'>
+                                  ({c.client_code})
+                                </span>
+                              )}
+                            </span>
+                            {isSelected && (
+                              <Icon name='check' className='w-3.5 h-3.5 text-black dark:text-white' />
+                            )}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             {isCreatingNewClient && (
               <div className='mt-3 space-y-3'>
                 <input
@@ -761,17 +848,17 @@ export function CreateBoardModal({
           </div>
           <div className='mb-6'>
             <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
-              {tMsg('Project Number', 'Nomor Proyek')}
+              {tMsg('Job Number', 'Nomor Job')}
             </label>
             <input
               type='text'
               value={newBoardNumber || ''}
               onChange={(e) => setNewBoardNumber?.(e.target.value)}
-              placeholder={tMsg('E.g. PRJ-001', 'Contoh: PRJ-001')}
+              placeholder='Mirroring from JobBag'
               className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all'
             />
           </div>
-          <div className='mb-8'>
+          <div className='mb-6'>
             <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
               {tMsg('Project Name', 'Nama Proyek')}
             </label>
@@ -779,10 +866,22 @@ export function CreateBoardModal({
               type='text'
               value={newBoardName}
               onChange={(e) => setNewBoardName(e.target.value)}
-              placeholder='E.g. Website Redesign'
+              placeholder='Product Name - Campaign Name'
               className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all'
               required
             />
+          </div>
+          <div className='mb-8'>
+            <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
+              {tMsg('Billing Type', 'Tipe Penagihan')}
+            </label>
+            <select
+              value={newBoardBillingType || 'Billable'}
+              onChange={(e) => setNewBoardBillingType?.(e.target.value)}
+              className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold transition-all cursor-pointer'>
+              <option value='Billable'>Billable</option>
+              <option value='Non - Billable'>Non - Billable</option>
+            </select>
           </div>
           <div className='flex justify-end gap-4 mt-8 pt-8 border-t border-neutral-200 dark:border-neutral-800'>
             <button

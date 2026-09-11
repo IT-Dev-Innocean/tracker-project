@@ -464,6 +464,7 @@ def get_all_boards_admin(
                 "project_number": getattr(b, "project_number", None),
                 "client_name": b_client_name,
                 "client_code": b_client_code,
+                "billing_type": getattr(b, "billing_type", "Billable") or "Billable",
                 "owner_username": b.owner_username,
                 "owner_status": owner_status,
                 "created_at": b.created_at,
