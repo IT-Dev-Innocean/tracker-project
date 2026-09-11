@@ -618,6 +618,7 @@ export default function AppModals() {
           workspaceRole={workspaceRole}
           handleJoinProject={handleJoinProject}
           handleReinviteMember={handleReinviteMember}
+          userDirectory={userDirectory}
         />
       )}
       {isInvitesModalOpen && (

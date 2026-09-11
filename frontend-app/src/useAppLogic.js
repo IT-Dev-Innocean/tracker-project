@@ -5136,10 +5136,11 @@ export default function useAppLogic() {
     setIsTeamModalOpen(true);
   };
 
-  const handleInviteTeam = (e) => {
-    e.preventDefault();
-    if (!inviteInput.trim() || !selectedBoard?.id) return;
-    const inputVal = inviteInput.trim();
+  const handleInviteTeam = (e, customInput = null) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const rawVal = customInput !== null ? customInput : inviteInput;
+    if (!rawVal || !rawVal.trim() || !selectedBoard?.id) return;
+    const inputVal = rawVal.trim();
 
     setInviteInput('');
     setInviteSuggestions([]);
@@ -5213,8 +5214,10 @@ export default function useAppLogic() {
       const suggestions = userDirectory
         .filter((u) => {
           // Privacy Lock: Cegah kebocoran data untuk user yang belum terhubung
+          const fullName = (u.full_name || u.name || '').toLowerCase();
           const isExactMatch =
             u.username.toLowerCase() === query ||
+            fullName === query ||
             (u.email &&
               u.email !== 'Hidden for privacy' &&
               u.email !== 'Email hidden for privacy' &&
@@ -5222,6 +5225,7 @@ export default function useAppLogic() {
 
           if (u.is_connected || isSuperAdmin) {
             return (
+              fullName.includes(query) ||
               u.username.toLowerCase().includes(query) ||
               (u.email &&
                 u.email !== 'Hidden for privacy' &&

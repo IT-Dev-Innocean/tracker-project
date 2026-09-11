@@ -967,7 +967,13 @@ def invite_board_member(
     for identifier in raw_inputs:
         target = (
             db.query(User)
-            .filter(or_(User.username == identifier, User.email == identifier))
+            .filter(
+                or_(
+                    User.username == identifier,
+                    User.email == identifier,
+                    func.lower(User.full_name) == identifier.lower(),
+                )
+            )
             .first()
         )
         if not target:
@@ -995,28 +1001,36 @@ def invite_board_member(
                 errors.append(f"{identifier} (Already in project)")
                 continue
             elif existing_connection.status == "requesting":
-                errors.append(f"{identifier} (Requesting access currently)")
-                continue
-            else:
-                # Update existing pending or declined invitation to pending
-                existing_connection.status = "pending"
+                existing_connection.status = "accepted"
                 create_notification(
                     db,
                     target.username,
-                    f"@{current_user} invited you to project: {board.name}",
-                    "team_invite",
+                    f"@{current_user} added you to project: {board.name}",
+                    "info",
+                    board_id,
+                )
+                success_count += 1
+                continue
+            else:
+                # Update existing pending or declined invitation to accepted directly
+                existing_connection.status = "accepted"
+                create_notification(
+                    db,
+                    target.username,
+                    f"@{current_user} added you to project: {board.name}",
+                    "info",
                     board_id,
                 )
                 success_count += 1
                 continue
 
-        new_invite = BoardMember(board_id=board_id, member_username=target.username, status="pending")
+        new_invite = BoardMember(board_id=board_id, member_username=target.username, status="accepted")
         db.add(new_invite)
         create_notification(
             db,
             target.username,
-            f"@{current_user} invited you to project: {board.name}",
-            "team_invite",
+            f"@{current_user} added you to project: {board.name}",
+            "info",
             board_id,
         )
         success_count += 1
@@ -1028,7 +1042,7 @@ def invite_board_member(
             status_code=400, detail=f"Failed to invite. Issues: {', '.join(errors)}"
         )
 
-    msg = f"Successfully invited {success_count} user(s)."
+    msg = f"Successfully added {success_count} member(s) to the project."
     if errors:
         msg += f" Skipped: {', '.join(errors)}"
 
@@ -1063,9 +1077,20 @@ def manage_board(
     if not check_board_access(db, board_id, current_user):
         raise HTTPException(status_code=403)
     members = db.query(BoardMember).filter(BoardMember.board_id == board_id).all()
+    user_map = {
+        u.username: u.full_name
+        for u in db.query(User.username, User.full_name)
+        .filter(User.username.in_([m.member_username for m in members] + [current_user]))
+        .all()
+    }
     return {
         "team": [
-            {"id": m.id, "username": m.member_username, "status": m.status}
+            {
+                "id": m.id,
+                "username": m.member_username,
+                "full_name": user_map.get(m.member_username, m.member_username),
+                "status": m.status,
+            }
             for m in members
         ]
     }
