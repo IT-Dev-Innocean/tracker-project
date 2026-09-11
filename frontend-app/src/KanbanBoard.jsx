@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { IconPlus } from './SharedUI';
 import { Icon } from './components/icons/Icon';
@@ -85,6 +86,7 @@ export default function KanbanBoard({
   isKanbanDragging,
   workspaceRole,
   userDirectory = [],
+  isTasksLoading = false,
 }) {
   const [expandedArchives, setExpandedArchives] = useState({});
 
@@ -181,50 +183,50 @@ export default function KanbanBoard({
 
                 return (
                   <div
-                    id={isClone ? undefined : `task-card-${task.id}`}
                     ref={provided.innerRef}
                     {...provided.draggableProps}
                     {...provided.dragHandleProps}
-                    className={`task-card p-3.5 rounded-xl border mb-2.5 w-full max-w-full min-w-0 box-border ${
-                      hasUnreadNotif || isNewClone
-                        ? 'bg-white dark:bg-neutral-950 border-indigo-500 dark:border-indigo-400 ring-2 ring-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-all duration-300'
-                        : 'bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 transition-all duration-300'
-                    } ${
+                    className={`pb-2.5 w-full max-w-full min-w-0 box-border ${
                       isOriginalBeingDragged
-                        ? '!opacity-0 !shadow-none !border-transparent !bg-transparent'
-                        : snapshot.isDragging && isTrashHovered
-                          ? 'cursor-grabbing z-[99999] !opacity-0 !bg-transparent !border-transparent !shadow-none'
-                          : snapshot.isDragging
-                            ? 'shadow-2xl cursor-grabbing z-[99999] border-indigo-500 dark:border-indigo-400 ring-4 ring-indigo-500/30'
-                            : 'shadow-sm cursor-grab active:cursor-grabbing hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-700 transition-shadow transition-colors duration-200'
-                    } ${task.status === 'Done' || task.status === 'Rejected' ? 'opacity-50 hover:opacity-100' : ''} ${
-                      isClone ? 'rotate-3 scale-105' : ''
+                        ? 'opacity-0 !shadow-none !border-transparent !bg-transparent pointer-events-none'
+                        : ''
                     }`}
-                    onClick={() => setSelectedTask(task)}
                     style={{
                       ...provided.draggableProps.style,
-                      margin: isClone
-                        ? 0
-                        : provided.draggableProps.style?.margin,
-                      transform:
-                        snapshot.isDragging &&
-                        !isTrashHovered &&
-                        !isOriginalBeingDragged
-                          ? `${provided.draggableProps.style?.transform || ''} scale(1.05) rotate(3deg)`
-                          : provided.draggableProps.style?.transform,
-                      ...(cardTheme &&
-                      task.status !== 'Done' &&
-                      task.status !== 'Rejected' &&
-                      !(snapshot.isDragging && isTrashHovered) &&
-                      !isOriginalBeingDragged
-                        ? {
-                            background:
-                              cardTheme === 'sunset'
-                                ? 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)'
-                                : cardTheme,
-                          }
-                        : {}),
+                      margin: isClone ? 0 : provided.draggableProps.style?.margin,
                     }}>
+                    <div
+                      id={isClone ? undefined : `task-card-${task.id}`}
+                      className={`task-card p-3.5 rounded-xl border w-full h-full box-border ${
+                        hasUnreadNotif || isNewClone
+                          ? 'bg-white dark:bg-neutral-950 border-indigo-500 dark:border-indigo-400 ring-2 ring-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.4)] transition-shadow transition-colors duration-200'
+                          : 'bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 transition-shadow transition-colors duration-200'
+                      } ${
+                        snapshot.isDragging && isTrashHovered
+                          ? 'cursor-grabbing z-[99999] opacity-0'
+                          : snapshot.isDragging
+                            ? 'shadow-2xl cursor-grabbing z-[99999] border-indigo-500 dark:border-indigo-400 ring-4 ring-indigo-500/30'
+                            : 'shadow-sm cursor-grab active:cursor-grabbing hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-700'
+                      } ${task.status === 'Done' || task.status === 'Rejected' ? 'opacity-50 hover:opacity-100' : ''}`}
+                      onClick={() => setSelectedTask(task)}
+                      style={{
+                        transform:
+                          (snapshot.isDragging && !isTrashHovered && !isOriginalBeingDragged) || isClone
+                            ? 'scale(1.05) rotate(3deg)'
+                            : 'none',
+                        ...(cardTheme &&
+                        task.status !== 'Done' &&
+                        task.status !== 'Rejected' &&
+                        !(snapshot.isDragging && isTrashHovered) &&
+                        !isOriginalBeingDragged
+                          ? {
+                              background:
+                                cardTheme === 'sunset'
+                                  ? 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)'
+                                  : cardTheme,
+                            }
+                          : {}),
+                      }}>
                     <div className='flex justify-between items-center mb-2.5 pb-1'>
                       <div className='flex items-center gap-1.5 overflow-hidden'>
                         {task.board_name && task.board_name !== 'Unknown' && (
@@ -513,6 +515,7 @@ export default function KanbanBoard({
                       </div>
                     </div>
                   </div>
+                </div>
                 );
               };
 
@@ -529,7 +532,7 @@ export default function KanbanBoard({
                     <div
                       ref={providedCol.innerRef}
                       {...providedCol.draggableProps}
-                      className={`group/col bg-neutral-100/50 dark:bg-neutral-900/50 rounded-2xl w-[85vw] sm:w-[340px] flex-shrink-0 border border-neutral-200 dark:border-neutral-800 transition-all flex flex-col h-fit sm:h-full min-h-[400px] max-h-none sm:max-h-full ${
+                      className={`group/col bg-neutral-100/50 dark:bg-neutral-900/50 rounded-2xl w-[85vw] sm:w-[340px] flex-shrink-0 border border-neutral-200 dark:border-neutral-800 transition-all flex flex-col h-fit min-h-[400px] ${
                         snapshotCol.isDragging
                           ? 'shadow-2xl -rotate-2 bg-white dark:bg-neutral-800 z-50'
                           : 'shadow-sm'
@@ -560,8 +563,14 @@ export default function KanbanBoard({
                           ) : (
                             <span className='truncate'>{colName}</span>
                           )}
-                          <span className='bg-black text-white dark:bg-white dark:text-black px-2 py-0.5 rounded-sm text-[10px] shrink-0 shadow-sm'>
-                            {columnTasks.length}
+                          <span className='bg-black text-white dark:bg-white dark:text-black px-2 py-0.5 rounded-sm text-[10px] shrink-0 shadow-sm flex items-center gap-1 font-bold'>
+                            {isTasksLoading && columnTasks.length === 0 ? (
+                              <span className="text-amber-400 dark:text-amber-600 animate-pulse text-[9px] uppercase tracking-wider">
+                                {tMsg('Loading...', 'Memuat...')}
+                              </span>
+                            ) : (
+                              columnTasks.length
+                            )}
                           </span>
                         </div>
                         {canManageColumns &&
@@ -616,27 +625,31 @@ export default function KanbanBoard({
                                 {...provided.draggableProps}
                                 ref={provided.innerRef}></div>
                             );
-                          return renderTaskCardContent(
-                            task,
-                            provided,
-                            snapshot,
-                            true
+                          return createPortal(
+                            renderTaskCardContent(
+                              task,
+                              provided,
+                              snapshot,
+                              true
+                            ),
+                            document.body
                           );
                         }}>
                         {(providedTask, snapshotTask) => (
-                          <div className='flex flex-col flex-1 min-h-0 h-fit sm:h-full'>
+                          <div className='flex flex-col flex-1 min-h-0 h-fit'>
                             <div
                               ref={providedTask.innerRef}
                               {...providedTask.droppableProps}
-                              className={`kanban-column-scroll flex flex-col flex-1 overflow-y-visible ${
-                                isKanbanDragging
-                                  ? 'sm:overflow-y-visible'
-                                  : 'sm:overflow-y-auto'
-                              } custom-scrollbar px-3 sm:px-4 pt-4 pb-3 sm:pb-4 transition-colors rounded-b-2xl h-fit sm:h-full min-h-[150px] ${
+                              className={`kanban-column-scroll flex flex-col flex-1 overflow-visible px-3 sm:px-4 pt-4 pb-3 sm:pb-4 transition-colors rounded-b-2xl h-fit min-h-[150px] ${
                                 snapshotTask.isDraggingOver
                                   ? 'bg-neutral-200/50 dark:bg-neutral-800/50 ring-2 ring-indigo-500/20'
                                   : ''
                               }`}>
+                              {visibleTasks.length === 0 && !isTasksLoading && (
+                                <div className="py-6 text-center text-[11px] text-neutral-400 dark:text-neutral-500 font-medium italic border border-dashed border-neutral-200 dark:border-neutral-800 rounded-xl my-1 pointer-events-none select-none">
+                                  {tMsg('No tasks in this column', 'Belum ada tugas di kolom ini')}
+                                </div>
+                              )}
                               {visibleTasks.map((task, taskIndex) => {
                                 return (
                                   <Draggable
