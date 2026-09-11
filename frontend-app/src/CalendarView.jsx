@@ -396,11 +396,13 @@ export default function CalendarView({
                               const statusKey = (t.status || '').toLowerCase().trim();
                               if (statusKey === 'done')
                                 bgColor = 'bg-emerald-500 text-white';
-                              else if (statusKey === 'canceled' || statusKey === 'rejected')
+                              else if (statusKey === 'cancel' || statusKey === 'canceled' || statusKey === 'cancelled' || statusKey === 'rejected')
                                 bgColor = 'bg-slate-400 dark:bg-slate-500 text-white';
+                              else if (statusKey === 'on hold')
+                                bgColor = 'bg-amber-500 text-white';
                               else if (statusKey === 'in progress')
                                 bgColor = 'bg-blue-600 text-white';
-                              else if (statusKey === 'to do' || statusKey === 'pending')
+                              else if (statusKey === 'task list' || statusKey === 'to do' || statusKey === 'pending')
                                 bgColor = 'bg-orange-500 text-white';
 
                               const isFirst = cellDate.getTime() === t.start.getTime();

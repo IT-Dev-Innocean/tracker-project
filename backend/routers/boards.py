@@ -267,7 +267,7 @@ def create_board(
         )
 
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    default_statuses = json.dumps(["To Do", "In Progress", "Done"])
+    default_statuses = json.dumps(["Task List", "In Progress", "On Hold", "Cancel", "Done"])
     default_categories = json.dumps(
         [
             "Development",
@@ -696,7 +696,7 @@ def create_task(
             impact=task.impact or "Medium",
             etc=task.etc if task.etc is not None else 2,
             auto_nudge=True if task.auto_nudge else False,
-            status="To Do",
+            status="Task List",
             owner_username=current_user,
         )
         setattr(new_task, "recurring", task.recurring or "none")

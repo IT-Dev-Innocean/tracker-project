@@ -2110,15 +2110,15 @@ export default function useAppLogic() {
       .get(`/api/boards/${selectedBoard.id}/tasks`)
       .then((res) => {
         const incoming = res.data.tasks || [];
-        const pendingTasks = incoming.filter((t) => t.status === 'Pending');
-        if (pendingTasks.length > 0) {
+        const legacyTasks = incoming.filter((t) => t.status === 'Pending' || t.status === 'To Do');
+        if (legacyTasks.length > 0) {
           const migrated = incoming.map((t) =>
-            t.status === 'Pending' ? { ...t, status: 'To Do' } : t
+            t.status === 'Pending' || t.status === 'To Do' ? { ...t, status: 'Task List' } : t
           );
           handleNewTasks(migrated);
-          pendingTasks.forEach((t) =>
+          legacyTasks.forEach((t) =>
             axios
-              .put(`/api/tasks/${t.id}`, { status: 'To Do' })
+              .put(`/api/tasks/${t.id}`, { status: 'Task List' })
               .catch(console.error)
           );
         } else {
@@ -2484,7 +2484,10 @@ export default function useAppLogic() {
               cols.length === legacyDefaults.length &&
               cols.every((c, i) => c === legacyDefaults[i]);
             if (isLegacyExact) return [...DEFAULT_COLUMNS];
-            return cols.map((c) => (c === 'Pending' ? 'To Do' : c));
+            return cols.map((c) => {
+              if (c === 'Pending' || c === 'To Do') return 'Task List';
+              return c;
+            });
           };
 
           const rawDbCols = [...dbCols];
@@ -2510,9 +2513,9 @@ export default function useAppLogic() {
           const migratedFromLegacy =
             rawDbCols.length === legacyDefaults.length &&
             rawDbCols.every((c, i) => c === legacyDefaults[i]);
-          const renamedPending =
-            rawDbCols.includes('Pending') && finalCols.includes('To Do');
-          if (migratedFromLegacy || renamedPending) {
+          const renamedLegacyStatus =
+            (rawDbCols.includes('Pending') || rawDbCols.includes('To Do')) && finalCols.includes('Task List');
+          if (migratedFromLegacy || renamedLegacyStatus) {
             try {
               localStorage.setItem(
                 `innocean_columns_${selectedBoard.id}`,
@@ -6035,7 +6038,7 @@ export default function useAppLogic() {
         if (t.status === 'Done') {
           memberDetailedStats[person].done_etc += splitEtc;
         } else {
-          if (t.status !== 'Pending' && t.status !== 'To Do')
+          if (t.status !== 'Pending' && t.status !== 'To Do' && t.status !== 'Task List' && t.status !== 'On Hold' && t.status !== 'Cancel')
             memberDetailedStats[person].active_etc += splitEtc;
           if (t.priority_lvl === 'critical')
             memberDetailedStats[person].critical += 1;
