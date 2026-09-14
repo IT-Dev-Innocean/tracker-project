@@ -158,6 +158,14 @@ class ProfileUpdateModel(BaseModel):
     new_password: Optional[str] = None
 
 
+class AdminUserProfileUpdateModel(BaseModel):
+    username: str
+    full_name: str
+    email: str
+    job_position: Optional[str] = None
+    division_name: Optional[str] = None
+
+
 class SystemConfigModel(BaseModel):
     smtp_server: Optional[str] = None
     smtp_port: Optional[str] = None
