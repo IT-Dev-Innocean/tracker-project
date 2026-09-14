@@ -15,12 +15,13 @@ import {
 import { SUBTASK_DEPARTMENT_OPTIONS } from './utils/formSubtasks';
 
 const TEAMS_COLUMN_STORAGE_KEY = 'innocean_teams_visible_columns';
+const TEAMS_COLUMNS_VERSION = 2;
 const DEFAULT_VISIBLE_COLUMNS = {
   name: true,
   email: true,
   job_position: true,
   department: true,
-  status: true,
+  status: false,
   actions: true,
 };
 
@@ -30,7 +31,12 @@ const loadVisibleColumns = () => {
     const saved = JSON.parse(
       localStorage.getItem(TEAMS_COLUMN_STORAGE_KEY) || '{}'
     );
-    return { ...DEFAULT_VISIBLE_COLUMNS, ...saved };
+    const { v, ...savedColumns } = saved;
+    const merged = { ...DEFAULT_VISIBLE_COLUMNS, ...savedColumns };
+    if (v !== TEAMS_COLUMNS_VERSION) {
+      merged.status = DEFAULT_VISIBLE_COLUMNS.status;
+    }
+    return merged;
   } catch {
     return { ...DEFAULT_VISIBLE_COLUMNS };
   }
@@ -119,7 +125,10 @@ export default function TeamsDirectory() {
   const persistVisibleColumns = (next) => {
     setVisibleColumns(next);
     if (typeof window !== 'undefined') {
-      localStorage.setItem(TEAMS_COLUMN_STORAGE_KEY, JSON.stringify(next));
+      localStorage.setItem(
+        TEAMS_COLUMN_STORAGE_KEY,
+        JSON.stringify({ ...next, v: TEAMS_COLUMNS_VERSION })
+      );
     }
   };
 
@@ -298,24 +307,6 @@ export default function TeamsDirectory() {
           'error'
         );
       });
-  };
-
-  const handleFreeze = (username, freeze) => {
-    axios
-      .put('/api/admin/users/status', {
-        username,
-        status: freeze ? 'suspended' : 'active',
-      })
-      .then((res) => {
-        showNotification?.(res.data.message, 'success');
-        loadPeople();
-      })
-      .catch((err) =>
-        showNotification?.(
-          err.response?.data?.detail || 'Failed to update status',
-          'error'
-        )
-      );
   };
 
   const handleDelete = () => {
@@ -876,42 +867,20 @@ export default function TeamsDirectory() {
                                       {tMsg('Edit', 'Ubah')}
                                     </button>
                                   )}
-                                  {canAct ? (
-                                    <>
-                                      {person.account_status ===
-                                      'suspended' ? (
-                                        <button
-                                          type='button'
-                                          onClick={() =>
-                                            handleFreeze(person.username, false)
-                                          }
-                                          className='flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50! hover:text-indigo-700! hover:border-indigo-300! dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50 dark:hover:bg-indigo-900/40! dark:hover:text-indigo-300! dark:hover:border-indigo-700! px-3 py-1.5 rounded-lg transition-colors'>
-                                          {tMsg('Unfreeze', 'Cairkan')}
-                                        </button>
-                                      ) : (
-                                        <button
-                                          type='button'
-                                          onClick={() =>
-                                            handleFreeze(person.username, true)
-                                          }
-                                          className='flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50! hover:text-indigo-700! hover:border-indigo-300! dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50 dark:hover:bg-indigo-900/40! dark:hover:text-indigo-300! dark:hover:border-indigo-700! px-3 py-1.5 rounded-lg transition-colors'>
-                                          {tMsg('Freeze', 'Bekukan')}
-                                        </button>
-                                      )}
-                                      <button
-                                        type='button'
-                                        onClick={() =>
-                                          setConfirmDelete(person.username)
-                                        }
-                                        className='flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-900/20 dark:text-red-400 px-3 py-1.5 rounded-lg transition-all border border-red-200 dark:border-red-800/50'>
-                                        <Icon
-                                          name='trash'
-                                          className='w-3.5 h-3.5'
-                                        />
-                                        {tMsg('Delete', 'Hapus')}
-                                      </button>
-                                    </>
-                                  ) : null}
+                                  {canAct && (
+                                    <button
+                                      type='button'
+                                      onClick={() =>
+                                        setConfirmDelete(person.username)
+                                      }
+                                      className='flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-900/20 dark:text-red-400 px-3 py-1.5 rounded-lg transition-all border border-red-200 dark:border-red-800/50'>
+                                      <Icon
+                                        name='trash'
+                                        className='w-3.5 h-3.5'
+                                      />
+                                      {tMsg('Delete', 'Hapus')}
+                                    </button>
+                                  )}
                                 </div>
                               ) : (
                                 <span className='text-neutral-300 dark:text-neutral-600'>
