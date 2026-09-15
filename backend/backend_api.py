@@ -85,6 +85,8 @@ def _build_cors_origins() -> list:
         "http://127.0.0.1:5173",
         "http://localhost:5174",
         "http://127.0.0.1:5174",
+        "http://localhost:5374",
+        "http://127.0.0.1:5374",
         "https://iid-tracker.netlify.app",
     }
     for key in ("FRONTEND_URL", "FRONTEND_URLS"):
@@ -100,6 +102,7 @@ def _build_cors_origins() -> list:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_build_cors_origins(),
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

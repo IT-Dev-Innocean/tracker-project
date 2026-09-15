@@ -442,7 +442,7 @@ export default function ProjectManagementPage() {
               {tMsg('Projects', 'Proyek')}
             </div>
             <h1 className='mt-1 text-2xl font-black text-black dark:text-white'>
-              {tMsg('Project Management', 'Manajemen Proyek')}
+              {tMsg('Projects Directory', 'Direktori Proyek')}
             </h1>
             <p className='mt-1 text-sm text-neutral-500 dark:text-neutral-400'>
               {tMsg(

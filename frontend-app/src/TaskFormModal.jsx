@@ -324,16 +324,32 @@ Format:
     return allEmployees.filter((emp) => isRcDivision(emp.division_name));
   }, [allEmployees]);
 
-  // Default masukkan semua karyawan R&C jika rc_team masih kosong dan data karyawan R&C tersedia
+  const TARGET_RC_NAMES = ['vidi', 'ismi', 'namyra'];
+
+  const isDefaultRcEmployee = useCallback((emp) => {
+    const text = `${emp.username || ''} ${emp.full_name || ''} ${emp.name || ''}`.toLowerCase();
+    return TARGET_RC_NAMES.some((target) => text.includes(target));
+  }, []);
+
+  const defaultRcEmployees = useMemo(() => {
+    const matchedFromRc = rcEmployees.filter(isDefaultRcEmployee);
+    if (matchedFromRc.length > 0) return matchedFromRc;
+    return allEmployees.filter(isDefaultRcEmployee);
+  }, [rcEmployees, allEmployees, isDefaultRcEmployee]);
+
+  // Default masukkan employee bernama vidi, ismi, dan namyra jika rc_team masih kosong
   useEffect(() => {
-    if (rcEmployees.length > 0 && (!formData.rc_team || formData.rc_team.length === 0)) {
-      const defaultRcUsernames = rcEmployees.map((e) => e.username);
+    if (
+      defaultRcEmployees.length > 0 &&
+      (!formData.rc_team || formData.rc_team.length === 0)
+    ) {
+      const defaultRcUsernames = defaultRcEmployees.map((e) => e.username);
       setFormData((prev) => ({
         ...prev,
         rc_team: defaultRcUsernames,
       }));
     }
-  }, [rcEmployees]);
+  }, [defaultRcEmployees]);
 
   const requesterUsers = Array.isArray(formData.requester)
     ? formData.requester
