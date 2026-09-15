@@ -145,6 +145,29 @@ def test_privilege_escalation_admin_panel():
     app.dependency_overrides.clear()
 
 
+def test_admin_user_profile_update_requires_admin():
+    """AUDIT: Hanya Admin yang boleh mengedit profil karyawan dari Teams directory."""
+    from backend_api import get_current_user
+
+    app.dependency_overrides[get_current_user] = lambda: "normal_user"
+
+    response = client.put(
+        "/api/admin/users/profile",
+        json={
+            "username": "someone",
+            "full_name": "Someone",
+            "email": "someone@innocean.co.id",
+            "job_position": "Designer",
+            "division_name": "Creative",
+        },
+    )
+    assert response.status_code == 403, (
+        "Celah: Pengguna non-admin bisa mengedit data people directory!"
+    )
+
+    app.dependency_overrides.clear()
+
+
 def test_bola_task_deletion():
     """AUDIT: Memastikan pengguna tidak bisa menghapus tugas di proyek orang lain (BOLA/IDOR)"""
     from backend_api import get_current_user
