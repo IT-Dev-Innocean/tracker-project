@@ -222,6 +222,7 @@ def get_boards(
             "is_private": getattr(b, "is_private", 0),
             "project_number": getattr(b, "project_number", None),
             "client_name": getattr(b, "client_name", None),
+            "billing_type": getattr(b, "billing_type", "Billable") or "Billable",
             "access_requests_count": requests_count,
         }
 
@@ -266,7 +267,7 @@ def create_board(
         )
 
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    default_statuses = json.dumps(["To Do", "In Progress", "Done"])
+    default_statuses = json.dumps(["Task List", "In Progress", "On Hold", "Cancel", "Done"])
     default_categories = json.dumps(
         [
             "Development",
@@ -283,6 +284,9 @@ def create_board(
     project_number = (payload.project_number or "").strip() or None
     client_name = (payload.client_name or "").strip() or None
     client_code = (payload.client_code or "").strip() or None
+    billing_type = (payload.billing_type or "").strip() or "Billable"
+    if billing_type not in ("Billable", "Non - Billable", "Non-Billable"):
+        billing_type = "Billable"
 
     # Auto-create client directory entry when a new client name is used
     if client_name:
@@ -312,6 +316,7 @@ def create_board(
         is_private=is_private,
         project_number=project_number,
         client_name=client_name,
+        billing_type=billing_type,
     )
     db.add(new_board)
     db.commit()
@@ -322,6 +327,7 @@ def create_board(
         "board_name": new_board.name,
         "project_number": new_board.project_number,
         "client_name": new_board.client_name,
+        "billing_type": new_board.billing_type,
         "owner_username": new_board.owner_username,
     }
 
@@ -370,6 +376,9 @@ def update_board(
     board.name = name
     board.project_number = (payload.project_number or "").strip() or None
     board.client_name = (payload.client_name or "").strip() or None
+    if payload.billing_type is not None:
+        b_type = payload.billing_type.strip()
+        board.billing_type = b_type if b_type in ("Billable", "Non - Billable", "Non-Billable") else "Billable"
     db.commit()
     db.refresh(board)
     update_board_activity(db, board_id)
@@ -380,6 +389,7 @@ def update_board(
         "board_name": board.name,
         "project_number": board.project_number,
         "client_name": board.client_name,
+        "billing_type": board.billing_type,
     }
 
 
@@ -686,7 +696,7 @@ def create_task(
             impact=task.impact or "Medium",
             etc=task.etc if task.etc is not None else 2,
             auto_nudge=True if task.auto_nudge else False,
-            status="To Do",
+            status="Task List",
             owner_username=current_user,
         )
         setattr(new_task, "recurring", task.recurring or "none")
@@ -957,7 +967,13 @@ def invite_board_member(
     for identifier in raw_inputs:
         target = (
             db.query(User)
-            .filter(or_(User.username == identifier, User.email == identifier))
+            .filter(
+                or_(
+                    User.username == identifier,
+                    User.email == identifier,
+                    func.lower(User.full_name) == identifier.lower(),
+                )
+            )
             .first()
         )
         if not target:
@@ -985,28 +1001,36 @@ def invite_board_member(
                 errors.append(f"{identifier} (Already in project)")
                 continue
             elif existing_connection.status == "requesting":
-                errors.append(f"{identifier} (Requesting access currently)")
-                continue
-            else:
-                # Update existing pending or declined invitation to pending
-                existing_connection.status = "pending"
+                existing_connection.status = "accepted"
                 create_notification(
                     db,
                     target.username,
-                    f"@{current_user} invited you to project: {board.name}",
-                    "team_invite",
+                    f"@{current_user} added you to project: {board.name}",
+                    "info",
+                    board_id,
+                )
+                success_count += 1
+                continue
+            else:
+                # Update existing pending or declined invitation to accepted directly
+                existing_connection.status = "accepted"
+                create_notification(
+                    db,
+                    target.username,
+                    f"@{current_user} added you to project: {board.name}",
+                    "info",
                     board_id,
                 )
                 success_count += 1
                 continue
 
-        new_invite = BoardMember(board_id=board_id, member_username=target.username, status="pending")
+        new_invite = BoardMember(board_id=board_id, member_username=target.username, status="accepted")
         db.add(new_invite)
         create_notification(
             db,
             target.username,
-            f"@{current_user} invited you to project: {board.name}",
-            "team_invite",
+            f"@{current_user} added you to project: {board.name}",
+            "info",
             board_id,
         )
         success_count += 1
@@ -1018,7 +1042,7 @@ def invite_board_member(
             status_code=400, detail=f"Failed to invite. Issues: {', '.join(errors)}"
         )
 
-    msg = f"Successfully invited {success_count} user(s)."
+    msg = f"Successfully added {success_count} member(s) to the project."
     if errors:
         msg += f" Skipped: {', '.join(errors)}"
 
@@ -1053,9 +1077,20 @@ def manage_board(
     if not check_board_access(db, board_id, current_user):
         raise HTTPException(status_code=403)
     members = db.query(BoardMember).filter(BoardMember.board_id == board_id).all()
+    user_map = {
+        u.username: u.full_name
+        for u in db.query(User.username, User.full_name)
+        .filter(User.username.in_([m.member_username for m in members] + [current_user]))
+        .all()
+    }
     return {
         "team": [
-            {"id": m.id, "username": m.member_username, "status": m.status}
+            {
+                "id": m.id,
+                "username": m.member_username,
+                "full_name": user_map.get(m.member_username, m.member_username),
+                "status": m.status,
+            }
             for m in members
         ]
     }

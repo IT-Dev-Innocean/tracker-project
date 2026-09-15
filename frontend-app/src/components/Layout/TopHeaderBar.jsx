@@ -24,6 +24,7 @@ export default function TopHeaderBar() {
     SUBMIT_IDEA_UI_ENABLED,
     CONTACT_SUPPORT_UI_ENABLED,
     REPLAY_TOUR_UI_ENABLED,
+    TIMESHEETS_UI_ENABLED,
   } = useFeatureFlags();
   const {
     currentUser,
@@ -221,9 +222,9 @@ export default function TopHeaderBar() {
             <span className='text-[10px] font-semibold'>
               {tMsg('Notifications', 'Notifikasi')}
             </span>
-            {(unreadCount > 0 || unsubmittedTimesheetsCount > 0) && (
+            {(unreadCount > 0 || (TIMESHEETS_UI_ENABLED && unsubmittedTimesheetsCount > 0)) && (
               <span className='absolute top-0.5 right-1 bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border border-white dark:border-black scale-90 min-w-4 text-center leading-none'>
-                {unreadCount + (unsubmittedTimesheetsCount > 0 ? 1 : 0)}
+                {unreadCount + (TIMESHEETS_UI_ENABLED && unsubmittedTimesheetsCount > 0 ? 1 : 0)}
               </span>
             )}
           </button>
@@ -244,7 +245,7 @@ export default function TopHeaderBar() {
                 )}
               </div>
               <div className='overflow-y-auto flex-1'>
-                {unsubmittedTimesheetsCount > 0 && (
+                {TIMESHEETS_UI_ENABLED && unsubmittedTimesheetsCount > 0 && (
                   <div
                     onClick={() => {
                       setSelectedBoard?.(null);
@@ -277,7 +278,7 @@ export default function TopHeaderBar() {
                 )}
 
                 {notifications.length === 0 &&
-                unsubmittedTimesheetsCount === 0 ? (
+                (!TIMESHEETS_UI_ENABLED || unsubmittedTimesheetsCount === 0) ? (
                   <div className='p-8 text-center text-neutral-400 text-sm'>
                     <Icon
                       name='mail'

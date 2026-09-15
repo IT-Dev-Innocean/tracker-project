@@ -1,18 +1,27 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import * as Dialog from '@radix-ui/react-dialog';
+import * as Select from '@radix-ui/react-select';
 import { useAppContext } from './hooks/useAppContext';
 import { HighlightText, LoadingSpinner } from './Utils';
 import { Avatar, IconPlus } from './SharedUI';
 import { Icon } from './components/icons/Icon';
-import { ROLE_ADMIN, ROLE_PROJECT_OWNER, ROLE_STAFF } from './permissions';
+import {
+  ROLE_ADMIN,
+  ROLE_PROJECT_OWNER,
+  ROLE_STAFF,
+  canAccessAdmin,
+} from './permissions';
+import { SUBTASK_DEPARTMENT_OPTIONS } from './utils/formSubtasks';
 
 const TEAMS_COLUMN_STORAGE_KEY = 'innocean_teams_visible_columns';
+const TEAMS_COLUMNS_VERSION = 2;
 const DEFAULT_VISIBLE_COLUMNS = {
   name: true,
   email: true,
   job_position: true,
   department: true,
-  status: true,
+  status: false,
   actions: true,
 };
 
@@ -22,7 +31,12 @@ const loadVisibleColumns = () => {
     const saved = JSON.parse(
       localStorage.getItem(TEAMS_COLUMN_STORAGE_KEY) || '{}'
     );
-    return { ...DEFAULT_VISIBLE_COLUMNS, ...saved };
+    const { v, ...savedColumns } = saved;
+    const merged = { ...DEFAULT_VISIBLE_COLUMNS, ...savedColumns };
+    if (v !== TEAMS_COLUMNS_VERSION) {
+      merged.status = DEFAULT_VISIBLE_COLUMNS.status;
+    }
+    return merged;
   } catch {
     return { ...DEFAULT_VISIBLE_COLUMNS };
   }
@@ -46,6 +60,7 @@ export default function TeamsDirectory() {
     workspaceRole === ROLE_ADMIN ||
     workspaceRole === ROLE_PROJECT_OWNER ||
     isSuperAdmin;
+  const canEditPeople = canAccessAdmin(workspaceRole) || isSuperAdmin;
 
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +76,14 @@ export default function TeamsDirectory() {
   const [isInviting, setIsInviting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [editUser, setEditUser] = useState(null);
+  const [editForm, setEditForm] = useState({
+    full_name: '',
+    email: '',
+    job_position: '',
+    division_name: '',
+  });
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [peoplePerPage, setPeoplePerPage] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -102,7 +125,10 @@ export default function TeamsDirectory() {
   const persistVisibleColumns = (next) => {
     setVisibleColumns(next);
     if (typeof window !== 'undefined') {
-      localStorage.setItem(TEAMS_COLUMN_STORAGE_KEY, JSON.stringify(next));
+      localStorage.setItem(
+        TEAMS_COLUMN_STORAGE_KEY,
+        JSON.stringify({ ...next, v: TEAMS_COLUMNS_VERSION })
+      );
     }
   };
 
@@ -283,24 +309,6 @@ export default function TeamsDirectory() {
       });
   };
 
-  const handleFreeze = (username, freeze) => {
-    axios
-      .put('/api/admin/users/status', {
-        username,
-        status: freeze ? 'suspended' : 'active',
-      })
-      .then((res) => {
-        showNotification?.(res.data.message, 'success');
-        loadPeople();
-      })
-      .catch((err) =>
-        showNotification?.(
-          err.response?.data?.detail || 'Failed to update status',
-          'error'
-        )
-      );
-  };
-
   const handleDelete = () => {
     if (!confirmDelete) return;
     setIsDeleting(true);
@@ -319,6 +327,54 @@ export default function TeamsDirectory() {
         setIsDeleting(false);
         showNotification?.(
           err.response?.data?.detail || 'Failed to delete user',
+          'error'
+        );
+      });
+  };
+
+  const openEdit = (person) => {
+    if (!canEditPeople || person.username === 'admin') return;
+    setEditForm({
+      full_name: person.full_name || '',
+      email: person.email || '',
+      job_position: person.job_position || '',
+      division_name: person.division_name || '',
+    });
+    setEditUser(person);
+  };
+
+  const closeEdit = () => {
+    if (isSavingEdit) return;
+    setEditUser(null);
+  };
+
+  const handleEdit = (e) => {
+    e.preventDefault();
+    if (!editUser || !canEditPeople) return;
+    setIsSavingEdit(true);
+    axios
+      .put('/api/admin/users/profile', {
+        username: editUser.username,
+        full_name: editForm.full_name.trim(),
+        email: editForm.email.trim(),
+        job_position: editForm.job_position.trim(),
+        division_name: editForm.division_name.trim(),
+      })
+      .then((res) => {
+        showNotification?.(
+          res.data.message ||
+            tMsg('Profile updated.', 'Profil diperbarui.'),
+          'success'
+        );
+        setIsSavingEdit(false);
+        setEditUser(null);
+        loadPeople();
+      })
+      .catch((err) => {
+        setIsSavingEdit(false);
+        showNotification?.(
+          err.response?.data?.detail ||
+            tMsg('Failed to update profile', 'Gagal memperbarui profil'),
           'error'
         );
       });
@@ -387,14 +443,14 @@ export default function TeamsDirectory() {
             </div>
             <h1 className='mt-1 text-2xl font-black text-black dark:text-white'>
               {activeTab === 'leaves'
-                ? tMsg('User Leave', 'Cuti Pengguna')
-                : tMsg('All People', 'Semua Orang')}
+                ? tMsg('Employees Leave', 'Cuti Karyawan')
+                : tMsg('Employees', 'Karyawan')}
             </h1>
             <p className='mt-1 text-sm text-neutral-500 dark:text-neutral-400'>
               {activeTab === 'people'
                 ? tMsg(
-                    'Invite and remove people across your workspace.',
-                    'Undang dan hapus orang di seluruh workspace Anda.'
+                    'Invite and manage employees across your workspace.',
+                    'Undang dan kelola karyawan di seluruh workspace Anda.'
                   )
                 : tMsg(
                     'View leaves submitted by users.',
@@ -557,23 +613,20 @@ export default function TeamsDirectory() {
         {activeTab === 'people' && (
           <div className='rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900'>
             <div className='px-6 py-4 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-white dark:bg-neutral-950 flex-wrap gap-4 rounded-t-2xl'>
-              <h3 className='font-bold text-black dark:text-white text-sm uppercase tracking-wider'>
-                {tMsg('People Directory', 'Direktori Orang')}
-              </h3>
+              <div className='relative'>
+                <Icon
+                  name='search'
+                  className='absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none'
+                />
+                <input
+                  type='text'
+                  placeholder={tMsg('Search people...', 'Cari orang...')}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className='w-full sm:w-56 pl-8 pr-4 py-2 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-xl focus:border-neutral-400 outline-none text-xs font-medium'
+                />
+              </div>
               <div className='flex items-center gap-2 flex-wrap'>
-                <div className='relative'>
-                  <Icon
-                    name='search'
-                    className='absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none'
-                  />
-                  <input
-                    type='text'
-                    placeholder={tMsg('Search people...', 'Cari orang...')}
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    className='w-full sm:w-56 pl-8 pr-4 py-2 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-xl focus:border-neutral-400 outline-none text-xs font-medium'
-                  />
-                </div>
                 <select
                   value={divisionFilter}
                   onChange={(e) => setDivisionFilter(e.target.value)}
@@ -710,6 +763,7 @@ export default function TeamsDirectory() {
                       const isSelf = person.username === currentUser;
                       const isRootAdmin = person.username === 'admin';
                       const canAct = !isSelf && !isRootAdmin;
+                      const canEditPerson = canEditPeople && !isRootAdmin;
                       return (
                         <tr
                           key={person.username}
@@ -799,36 +853,34 @@ export default function TeamsDirectory() {
                           )}
                           {isColVisible('actions') && (
                             <td className='px-6 py-4 text-right whitespace-nowrap'>
-                              {canAct ? (
-                                <div className='flex justify-end gap-2'>
-                                  {person.account_status === 'suspended' ? (
+                              {canAct || canEditPerson ? (
+                                <div className='flex justify-end gap-2 flex-wrap'>
+                                  {canEditPerson && (
                                     <button
                                       type='button'
-                                      onClick={() =>
-                                        handleFreeze(person.username, false)
-                                      }
-                                      className='flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50! hover:text-indigo-700! hover:border-indigo-300! dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50 dark:hover:bg-indigo-900/40! dark:hover:text-indigo-300! dark:hover:border-indigo-700! px-3 py-1.5 rounded-lg transition-colors'>
-                                      {tMsg('Unfreeze', 'Cairkan')}
-                                    </button>
-                                  ) : (
-                                    <button
-                                      type='button'
-                                      onClick={() =>
-                                        handleFreeze(person.username, true)
-                                      }
-                                      className='flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-white border border-indigo-200 hover:bg-indigo-50! hover:text-indigo-700! hover:border-indigo-300! dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50 dark:hover:bg-indigo-900/40! dark:hover:text-indigo-300! dark:hover:border-indigo-700! px-3 py-1.5 rounded-lg transition-colors'>
-                                      {tMsg('Freeze', 'Bekukan')}
+                                      onClick={() => openEdit(person)}
+                                      className='flex items-center gap-1.5 text-xs font-bold text-neutral-700 bg-white border border-neutral-200 hover:bg-neutral-50 hover:text-black hover:border-neutral-300 dark:bg-neutral-900/40 dark:text-neutral-200 dark:border-neutral-700 dark:hover:bg-neutral-800 dark:hover:text-white px-3 py-1.5 rounded-lg transition-colors'>
+                                      <Icon
+                                        name='pencil'
+                                        className='w-3.5 h-3.5'
+                                      />
+                                      {tMsg('Edit', 'Ubah')}
                                     </button>
                                   )}
-                                  <button
-                                    type='button'
-                                    onClick={() =>
-                                      setConfirmDelete(person.username)
-                                    }
-                                    className='flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-900/20 dark:text-red-400 px-3 py-1.5 rounded-lg transition-all border border-red-200 dark:border-red-800/50'>
-                                    <Icon name='trash' className='w-3.5 h-3.5' />
-                                    {tMsg('Delete', 'Hapus')}
-                                  </button>
+                                  {canAct && (
+                                    <button
+                                      type='button'
+                                      onClick={() =>
+                                        setConfirmDelete(person.username)
+                                      }
+                                      className='flex items-center gap-1.5 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-500 hover:text-white dark:bg-red-900/20 dark:text-red-400 px-3 py-1.5 rounded-lg transition-all border border-red-200 dark:border-red-800/50'>
+                                      <Icon
+                                        name='trash'
+                                        className='w-3.5 h-3.5'
+                                      />
+                                      {tMsg('Delete', 'Hapus')}
+                                    </button>
+                                  )}
                                 </div>
                               ) : (
                                 <span className='text-neutral-300 dark:text-neutral-600'>
@@ -896,6 +948,193 @@ export default function TeamsDirectory() {
           </div>
         )}
       </div>
+
+      <Dialog.Root
+        open={Boolean(editUser) && canEditPeople}
+        onOpenChange={(open) => {
+          if (!open) closeEdit();
+        }}>
+        <Dialog.Portal>
+          <Dialog.Overlay className='fixed inset-0 z-50 bg-black/50 backdrop-blur-sm' />
+          <Dialog.Content
+            onEscapeKeyDown={(e) => {
+              if (isSavingEdit) e.preventDefault();
+            }}
+            onPointerDownOutside={(e) => {
+              if (isSavingEdit) e.preventDefault();
+            }}
+            className='fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-y-auto -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-neutral-200 bg-white p-6 shadow-2xl outline-none dark:border-neutral-800 dark:bg-neutral-950'>
+            <form onSubmit={handleEdit}>
+              <Dialog.Title className='text-xl font-black text-black dark:text-white mb-1'>
+                {tMsg('Edit Person', 'Ubah Data Orang')}
+              </Dialog.Title>
+              <Dialog.Description className='text-sm text-neutral-500 mb-5'>
+                {tMsg(
+                  'Update employee details for this workspace account.',
+                  'Perbarui data karyawan untuk akun workspace ini.'
+                )}
+              </Dialog.Description>
+
+              {editUser && (
+                <div className='mb-4 flex items-center gap-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5'>
+                  <Avatar
+                    name={editUser.username}
+                    url={avatarsMap[editUser.username] || editUser.avatar}
+                  />
+                  <div className='min-w-0'>
+                    <div className='truncate text-sm font-bold text-black dark:text-white'>
+                      {editUser.full_name || editUser.username}
+                    </div>
+                    <div className='truncate text-xs text-neutral-500'>
+                      @{editUser.username}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className='space-y-3'>
+                <div>
+                  <label className='mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-neutral-500'>
+                    {tMsg('Full Name', 'Nama Lengkap')}
+                  </label>
+                  <input
+                    required
+                    type='text'
+                    value={editForm.full_name}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, full_name: e.target.value }))
+                    }
+                    placeholder={tMsg('Full name', 'Nama lengkap')}
+                    className='w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 text-sm outline-none focus:border-neutral-400'
+                  />
+                </div>
+                <div>
+                  <label className='mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-neutral-500'>
+                    {tMsg('Email', 'Email')}
+                  </label>
+                  <input
+                    required
+                    type='email'
+                    value={editForm.email}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, email: e.target.value }))
+                    }
+                    placeholder='email@innocean.co.id'
+                    className='w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 text-sm outline-none focus:border-neutral-400'
+                  />
+                </div>
+                <div>
+                  <label className='mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-neutral-500'>
+                    {tMsg('Job Position', 'Posisi Kerja')}
+                  </label>
+                  <input
+                    required
+                    type='text'
+                    value={editForm.job_position}
+                    onChange={(e) =>
+                      setEditForm((f) => ({
+                        ...f,
+                        job_position: e.target.value,
+                      }))
+                    }
+                    placeholder={tMsg(
+                      'e.g. Senior Designer',
+                      'contoh: Senior Designer'
+                    )}
+                    className='w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 text-sm outline-none focus:border-neutral-400'
+                  />
+                </div>
+                <div>
+                  <label className='mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-neutral-500'>
+                    {tMsg('Department', 'Departemen')}
+                  </label>
+                  <Select.Root
+                    value={editForm.division_name || undefined}
+                    onValueChange={(value) =>
+                      setEditForm((f) => ({ ...f, division_name: value }))
+                    }>
+                    <Select.Trigger
+                      className='flex w-full items-center justify-between gap-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 text-left text-sm outline-none focus:border-neutral-400 data-placeholder:text-neutral-400'>
+                      <Select.Value
+                        placeholder={tMsg(
+                          'Select department',
+                          'Pilih departemen'
+                        )}
+                      />
+                      <Select.Icon>
+                        <Icon
+                          name='chevron-down'
+                          className='w-4 h-4 text-neutral-400'
+                        />
+                      </Select.Icon>
+                    </Select.Trigger>
+                    <Select.Portal>
+                      <Select.Content
+                        position='popper'
+                        sideOffset={6}
+                        className='z-60 max-h-64 w-(--radix-select-trigger-width) overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-xl'>
+                        <Select.Viewport className='p-1'>
+                          {SUBTASK_DEPARTMENT_OPTIONS.map((dept) => (
+                            <Select.Item
+                              key={dept}
+                              value={dept}
+                              className='flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm outline-none data-highlighted:bg-neutral-100 dark:data-highlighted:bg-neutral-900 data-[state=checked]:font-bold'>
+                              <Select.ItemText>{dept}</Select.ItemText>
+                              <Select.ItemIndicator>
+                                <Icon
+                                  name='check'
+                                  className='w-3.5 h-3.5 text-emerald-600'
+                                />
+                              </Select.ItemIndicator>
+                            </Select.Item>
+                          ))}
+                          {editForm.division_name &&
+                            !SUBTASK_DEPARTMENT_OPTIONS.includes(
+                              editForm.division_name
+                            ) && (
+                              <Select.Item
+                                value={editForm.division_name}
+                                className='flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm outline-none data-highlighted:bg-neutral-100 dark:data-highlighted:bg-neutral-900 data-[state=checked]:font-bold'>
+                                <Select.ItemText>
+                                  {editForm.division_name}
+                                </Select.ItemText>
+                                <Select.ItemIndicator>
+                                  <Icon
+                                    name='check'
+                                    className='w-3.5 h-3.5 text-emerald-600'
+                                  />
+                                </Select.ItemIndicator>
+                              </Select.Item>
+                            )}
+                        </Select.Viewport>
+                      </Select.Content>
+                    </Select.Portal>
+                  </Select.Root>
+                </div>
+              </div>
+
+              <div className='mt-6 flex gap-3'>
+                <Dialog.Close asChild>
+                  <button
+                    type='button'
+                    disabled={isSavingEdit}
+                    className='flex-1 rounded-full bg-neutral-100 dark:bg-neutral-900 py-3 text-xs font-bold uppercase disabled:opacity-50'>
+                    {tMsg('Cancel', 'Batal')}
+                  </button>
+                </Dialog.Close>
+                <button
+                  type='submit'
+                  disabled={isSavingEdit || !editForm.division_name}
+                  className='flex-1 rounded-full bg-black dark:bg-white py-3 text-xs font-bold uppercase text-white dark:text-black disabled:opacity-50'>
+                  {isSavingEdit
+                    ? tMsg('Saving…', 'Menyimpan…')
+                    : tMsg('Save Changes', 'Simpan Perubahan')}
+                </button>
+              </div>
+            </form>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
 
       {inviteOpen && (
         <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm'>

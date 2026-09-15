@@ -1,5 +1,5 @@
 /** Canonical default statuses */
-export const DEFAULT_STATUS_COLUMNS = ['To Do', 'In Progress', 'Done'];
+export const DEFAULT_STATUS_COLUMNS = ['Task List', 'In Progress', 'On Hold', 'Cancel', 'Done'];
 
 /** Palette matching the color picker reference (row1: 8, row2: 4) */
 export const STATUS_COLOR_PALETTE = [
@@ -18,22 +18,30 @@ export const STATUS_COLOR_PALETTE = [
 ];
 
 const DEFAULT_HEX_BY_KEY = {
+  task_list: '#F97316',
   to_do: '#F97316',
   in_progress: '#2563EB',
+  on_hold: '#EAB308',
+  cancel: '#9CA3AF',
   done: '#16A34A',
   rejected: '#EF4444',
 };
 
 const DEFAULT_KEY_BY_NAME = {
-  'to do': 'to_do',
-  pending: 'to_do',
+  'task list': 'task_list',
+  'to do': 'task_list',
+  pending: 'task_list',
   'in progress': 'in_progress',
+  'on hold': 'on_hold',
+  cancel: 'cancel',
+  canceled: 'cancel',
+  cancelled: 'cancel',
   done: 'done',
   rejected: 'rejected',
 };
 
 /** Color keys that identify protected default workflow columns */
-export const PROTECTED_STATUS_COLOR_KEYS = ['to_do', 'in_progress', 'done'];
+export const PROTECTED_STATUS_COLOR_KEYS = ['task_list', 'to_do', 'in_progress', 'on_hold', 'cancel', 'done'];
 
 const COLOR_STORAGE_KEY = 'innocean_status_label_colors';
 const ALIAS_STORAGE_KEY = 'innocean_status_color_aliases';

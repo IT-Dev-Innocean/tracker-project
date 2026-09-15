@@ -303,7 +303,7 @@ export default function TableList({
         ...quickAddData,
         id: tempId,
         timestamp: new Date().toISOString(),
-        status: 'To Do',
+        status: 'Task List',
         priority_lvl: 'normal',
         priority_str: 'NORMAL',
         subtask_total: 0,

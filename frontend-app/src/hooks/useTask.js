@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react';
 import axios from 'axios';
 
-const DEFAULT_COLUMNS = ['To Do', 'In Progress', 'Done'];
+import { DEFAULT_STATUS_COLUMNS } from '../utils/statusColors';
+
+const DEFAULT_COLUMNS = DEFAULT_STATUS_COLUMNS;
 const DEFAULT_CATEGORIES = ['Development', 'Design', 'Marketing', 'Research', 'Maintenance', 'Consulting', 'Other'];
 
 export function useTask({ isAuthenticated, selectedBoard, setSelectedBoard, currentUser, showNotification, setIsLoading }) {
@@ -46,7 +48,7 @@ export function useTask({ isAuthenticated, selectedBoard, setSelectedBoard, curr
   const [newSubtaskAssignee, setNewSubtaskAssignee] = useState('');
   const [formData, setFormData] = useState({
     description: '',
-    status: 'To Do',
+    status: 'Task List',
     category: 'Development',
     requester: '',
     etc: 0,
@@ -100,7 +102,7 @@ export function useTask({ isAuthenticated, selectedBoard, setSelectedBoard, curr
 
     const taskPayload = {
       description: taskData.description.trim(),
-      status: taskData.status || 'To Do',
+      status: taskData.status || 'Task List',
       category: taskData.category || 'Development',
       requester: taskData.requester.trim(),
       etc: Number(taskData.etc) || 0,

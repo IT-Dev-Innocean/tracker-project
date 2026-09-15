@@ -372,7 +372,7 @@ export default function useAppLogic() {
   const [newSubtaskAssignee, setNewSubtaskAssignee] = useState('');
   const [formData, setFormData] = useState({
     task_name: '',
-    requester: '',
+    requester: [],
     head_of_project: [],
     rc_team: [],
     category: 'Development',
@@ -446,6 +446,7 @@ export default function useAppLogic() {
   useEffect(() => {
     if (!TIMESHEETS_UI_ENABLED) {
       if (showTimesheets) setShowTimesheets(false);
+      setUnsubmittedTimesheetsCount(0);
       return;
     }
     if (typeof window !== 'undefined') {
@@ -497,6 +498,7 @@ export default function useAppLogic() {
   const [newBoardNumber, setNewBoardNumber] = useState('');
   const [newBoardClient, setNewBoardClient] = useState('');
   const [newBoardClientCode, setNewBoardClientCode] = useState('');
+  const [newBoardBillingType, setNewBoardBillingType] = useState('Billable');
   const [clients, setClients] = useState([]);
   const [isPrivateBoard, setIsPrivateBoard] = useState(false);
   const [boardToDelete, setBoardToDelete] = useState(null);
@@ -2108,15 +2110,15 @@ export default function useAppLogic() {
       .get(`/api/boards/${selectedBoard.id}/tasks`)
       .then((res) => {
         const incoming = res.data.tasks || [];
-        const pendingTasks = incoming.filter((t) => t.status === 'Pending');
-        if (pendingTasks.length > 0) {
+        const legacyTasks = incoming.filter((t) => t.status === 'Pending' || t.status === 'To Do');
+        if (legacyTasks.length > 0) {
           const migrated = incoming.map((t) =>
-            t.status === 'Pending' ? { ...t, status: 'To Do' } : t
+            t.status === 'Pending' || t.status === 'To Do' ? { ...t, status: 'Task List' } : t
           );
           handleNewTasks(migrated);
-          pendingTasks.forEach((t) =>
+          legacyTasks.forEach((t) =>
             axios
-              .put(`/api/tasks/${t.id}`, { status: 'To Do' })
+              .put(`/api/tasks/${t.id}`, { status: 'Task List' })
               .catch(console.error)
           );
         } else {
@@ -2239,6 +2241,12 @@ export default function useAppLogic() {
             ? profileData
             : null;
       if (!prof) return;
+
+      // If timesheets feature is disabled globally by admin, do not require or count unsubmitted timesheets
+      if (!TIMESHEETS_UI_ENABLED) {
+        setUnsubmittedTimesheetsCount(0);
+        return;
+      }
 
       // Role exemption: Admin & Superadmin do not have compulsory timesheet submission
       const isTimesheetExempt = Boolean(
@@ -2476,7 +2484,10 @@ export default function useAppLogic() {
               cols.length === legacyDefaults.length &&
               cols.every((c, i) => c === legacyDefaults[i]);
             if (isLegacyExact) return [...DEFAULT_COLUMNS];
-            return cols.map((c) => (c === 'Pending' ? 'To Do' : c));
+            return cols.map((c) => {
+              if (c === 'Pending' || c === 'To Do') return 'Task List';
+              return c;
+            });
           };
 
           const rawDbCols = [...dbCols];
@@ -2502,9 +2513,9 @@ export default function useAppLogic() {
           const migratedFromLegacy =
             rawDbCols.length === legacyDefaults.length &&
             rawDbCols.every((c, i) => c === legacyDefaults[i]);
-          const renamedPending =
-            rawDbCols.includes('Pending') && finalCols.includes('To Do');
-          if (migratedFromLegacy || renamedPending) {
+          const renamedLegacyStatus =
+            (rawDbCols.includes('Pending') || rawDbCols.includes('To Do')) && finalCols.includes('Task List');
+          if (migratedFromLegacy || renamedLegacyStatus) {
             try {
               localStorage.setItem(
                 `innocean_columns_${selectedBoard.id}`,
@@ -4200,8 +4211,22 @@ export default function useAppLogic() {
     }
 
     setIsSubmitting(true);
+    const formatRequesterField = (req) => {
+      if (Array.isArray(req)) {
+        return req
+          .map((u) => {
+            const clean = String(u || '').trim();
+            return clean ? (clean.startsWith('@') ? clean : `@${clean}`) : '';
+          })
+          .filter(Boolean)
+          .join(', ');
+      }
+      return req || '';
+    };
+
     const formattedData = {
       ...formData,
+      requester: formatRequesterField(formData.requester),
       head_of_project: Array.isArray(formData.head_of_project)
         ? formData.head_of_project.join(',')
         : formData.head_of_project || '',
@@ -4221,7 +4246,7 @@ export default function useAppLogic() {
         setIsFormOpen(false);
         setFormData({
           task_name: '',
-          requester: '',
+          requester: [],
           head_of_project: [],
           rc_team: [],
           category: 'Development',
@@ -4421,7 +4446,7 @@ export default function useAppLogic() {
 
     setEditFormData({
       task_name: selectedTask.task_name,
-      requester: selectedTask.requester,
+      requester: parseUserList(selectedTask.requester),
       head_of_project: parseUserList(selectedTask.head_of_project),
       rc_team: parseUserList(selectedTask.rc_team),
       category: selectedTask.category,
@@ -4522,8 +4547,22 @@ export default function useAppLogic() {
 
     setIsSubmitting(true);
     const validDeadline = editFormData.deadline || getLocalToday();
+    const formatRequesterField = (req) => {
+      if (Array.isArray(req)) {
+        return req
+          .map((u) => {
+            const clean = String(u || '').trim();
+            return clean ? (clean.startsWith('@') ? clean : `@${clean}`) : '';
+          })
+          .filter(Boolean)
+          .join(', ');
+      }
+      return req || '';
+    };
+
     const payload = {
       ...editFormData,
+      requester: formatRequesterField(editFormData.requester),
       head_of_project: Array.isArray(editFormData.head_of_project)
         ? editFormData.head_of_project.join(',')
         : editFormData.head_of_project || '',
@@ -5097,10 +5136,11 @@ export default function useAppLogic() {
     setIsTeamModalOpen(true);
   };
 
-  const handleInviteTeam = (e) => {
-    e.preventDefault();
-    if (!inviteInput.trim() || !selectedBoard?.id) return;
-    const inputVal = inviteInput.trim();
+  const handleInviteTeam = (e, customInput = null) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const rawVal = customInput !== null ? customInput : inviteInput;
+    if (!rawVal || !rawVal.trim() || !selectedBoard?.id) return;
+    const inputVal = rawVal.trim();
 
     setInviteInput('');
     setInviteSuggestions([]);
@@ -5174,8 +5214,10 @@ export default function useAppLogic() {
       const suggestions = userDirectory
         .filter((u) => {
           // Privacy Lock: Cegah kebocoran data untuk user yang belum terhubung
+          const fullName = (u.full_name || u.name || '').toLowerCase();
           const isExactMatch =
             u.username.toLowerCase() === query ||
+            fullName === query ||
             (u.email &&
               u.email !== 'Hidden for privacy' &&
               u.email !== 'Email hidden for privacy' &&
@@ -5183,6 +5225,7 @@ export default function useAppLogic() {
 
           if (u.is_connected || isSuperAdmin) {
             return (
+              fullName.includes(query) ||
               u.username.toLowerCase().includes(query) ||
               (u.email &&
                 u.email !== 'Hidden for privacy' &&
@@ -5742,6 +5785,7 @@ export default function useAppLogic() {
       project_number: newBoardNumber.trim() || null,
       client_name: newBoardClient.trim() || null,
       client_code: newBoardClientCode.trim() || null,
+      billing_type: newBoardBillingType || 'Billable',
     };
     axios
       .post('/api/boards', payload)
@@ -5759,6 +5803,7 @@ export default function useAppLogic() {
                 project_number:
                   created.project_number ?? payload.project_number,
                 client_name: created.client_name ?? payload.client_name,
+                billing_type: created.billing_type ?? payload.billing_type,
                 owner_username: currentUser,
                 role: 'owner',
                 total_tasks: 0,
@@ -5778,6 +5823,7 @@ export default function useAppLogic() {
         setNewBoardNumber('');
         setNewBoardClient('');
         setNewBoardClientCode('');
+        setNewBoardBillingType('Billable');
         setIsPrivateBoard(false);
         fetchBoards();
         fetchClients();
@@ -5996,7 +6042,7 @@ export default function useAppLogic() {
         if (t.status === 'Done') {
           memberDetailedStats[person].done_etc += splitEtc;
         } else {
-          if (t.status !== 'Pending' && t.status !== 'To Do')
+          if (t.status !== 'Pending' && t.status !== 'To Do' && t.status !== 'Task List' && t.status !== 'On Hold' && t.status !== 'Cancel')
             memberDetailedStats[person].active_etc += splitEtc;
           if (t.priority_lvl === 'critical')
             memberDetailedStats[person].critical += 1;
@@ -6099,6 +6145,8 @@ export default function useAppLogic() {
     setNewBoardClient,
     newBoardClientCode,
     setNewBoardClientCode,
+    newBoardBillingType,
+    setNewBoardBillingType,
     clients,
     boardToDelete,
     deleteBoardConfirmText,

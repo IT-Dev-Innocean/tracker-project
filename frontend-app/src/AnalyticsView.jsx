@@ -282,7 +282,7 @@ export default function AnalyticsView({
         if (t.status === 'Done') {
           memberDetailedStats[person].done += 1;
         } else {
-          if (t.status !== 'Pending' && t.status !== 'To Do') {
+          if (t.status !== 'Pending' && t.status !== 'To Do' && t.status !== 'Task List' && t.status !== 'On Hold' && t.status !== 'Cancel') {
             memberDetailedStats[person].active += 1;
           }
           if (t.priority_lvl === 'critical') memberDetailedStats[person].critical += 1;
@@ -703,7 +703,7 @@ export default function AnalyticsView({
                 </p>
                 <p className="font-bold text-[8px] opacity-50 uppercase tracking-widest mb-1">Logic / Method</p>
                 <p className="font-mono text-[9px] bg-black/20 dark:bg-black/5 p-1.5 rounded wrap-break-word">
-                  Count(Status ∉ ['Done', 'Rejected', 'Pending', 'To Do'])
+                  Count(Status ∉ ['Done', 'Rejected', 'Pending', 'To Do', 'Task List', 'On Hold', 'Cancel'])
                 </p>
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-slate-900 dark:border-b-white"></div>
               </div>
@@ -716,7 +716,11 @@ export default function AnalyticsView({
                   t.status !== 'Done' &&
                   t.status !== 'Rejected' &&
                   t.status !== 'Pending' &&
-                  t.status !== 'To Do'
+                  t.status !== 'To Do' &&
+                  t.status !== 'Task List' &&
+                  t.status !== 'On Hold' &&
+                  t.status !== 'Cancel' &&
+                  t.status !== 'Canceled'
               ).length
             }
           </p>
@@ -1373,10 +1377,12 @@ export default function AnalyticsView({
                       className={`h-3 rounded-full transition-all duration-1000 ${
                         status === 'Done'
                           ? 'bg-emerald-500'
-                          : status === 'Rejected'
+                          : status === 'Rejected' || status === 'Cancel' || status === 'Canceled'
                           ? 'bg-slate-400'
-                          : status === 'Pending' || status === 'To Do'
-                          ? 'bg-amber-500'
+                          : status === 'On Hold'
+                          ? 'bg-amber-400'
+                          : status === 'Pending' || status === 'To Do' || status === 'Task List'
+                          ? 'bg-orange-500'
                           : 'bg-blue-500'
                       }`}
                       style={{ width: `${pct}%` }}

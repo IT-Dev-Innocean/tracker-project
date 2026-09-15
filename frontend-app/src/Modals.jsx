@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import * as Select from '@radix-ui/react-select';
 import { Avatar, SegmentedControl } from './SharedUI';
 import { Icon } from './components/icons/Icon';
+import MultiUserSelect from './components/MultiUserSelect';
 import { useCloseAnimation, LoadingSpinner } from './Utils';
 import { STATUS_COLOR_PALETTE } from './utils/statusColors';
 import { useFeatureFlag } from './featureFlags';
@@ -421,12 +422,12 @@ export function RevokeMemberModal({
 }) {
   const tMsg = (en, id) => (language === 'id' ? id : en);
 
-  let title = tMsg('Revoke Access?', 'Cabut Akses?');
+  let title = tMsg('Delete Member?', 'Hapus Anggota?');
   let description = tMsg(
-    'Are you sure you want to revoke access for this member?',
-    'Apakah Anda yakin ingin mencabut akses untuk anggota ini?'
+    'Are you sure you want to delete this member from the project?',
+    'Apakah Anda yakin ingin menghapus anggota ini dari proyek?'
   );
-  let confirmText = tMsg('Revoke', 'Cabut');
+  let confirmText = tMsg('Delete', 'Hapus');
 
   if (isRequesting) {
     title = tMsg('Decline Request?', 'Tolak Permintaan?');
@@ -633,33 +634,72 @@ export function CreateBoardModal({
   setNewBoardClient,
   newBoardClientCode,
   setNewBoardClientCode,
+  newBoardBillingType = 'Billable',
+  setNewBoardBillingType,
   clients = [],
   language,
   isSubmitting,
 }) {
   const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
-  const [clientSelectValue, setClientSelectValue] = useState(
-    newBoardClient || CLIENT_SELECT_NONE
-  );
+  const [clientSearch, setClientSearch] = useState('');
+  const [isClientDropdownOpen, setIsClientDropdownOpen] = useState(false);
+  const clientDropdownRef = useRef(null);
+
   const [isClosing, close] = useCloseAnimation(() => {
     setIsCreateBoardOpen(false);
     setNewBoardName('');
     if (setNewBoardNumber) setNewBoardNumber('');
     if (setNewBoardClient) setNewBoardClient('');
+    if (setNewBoardBillingType) setNewBoardBillingType('Billable');
     setIsCreatingNewClient(false);
-    setClientSelectValue(CLIENT_SELECT_NONE);
+    setClientSearch('');
+    setIsClientDropdownOpen(false);
   });
   const tMsg = (en, id) => (language === 'id' ? id : en);
 
-  const handleClientSelectChange = (value) => {
-    setClientSelectValue(value);
-    if (value === CLIENT_SELECT_CREATE) {
-      setIsCreatingNewClient(true);
-      setNewBoardClient?.('');
-      return;
-    }
+  useEffect(() => {
+    if (!isClientDropdownOpen) return;
+    const handleClickOutside = (e) => {
+      if (
+        clientDropdownRef.current &&
+        !clientDropdownRef.current.contains(e.target)
+      ) {
+        setIsClientDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isClientDropdownOpen]);
+
+  const filteredClients = useMemo(() => {
+    const q = clientSearch.trim().toLowerCase();
+    if (!q) return clients;
+    return clients.filter(
+      (c) =>
+        (c.client_name || '').toLowerCase().includes(q) ||
+        (c.client_code || '').toLowerCase().includes(q)
+    );
+  }, [clients, clientSearch]);
+
+  const handleSelectExistingClient = (clientName) => {
     setIsCreatingNewClient(false);
-    setNewBoardClient?.(value === CLIENT_SELECT_NONE ? '' : value);
+    setNewBoardClient?.(clientName);
+    setIsClientDropdownOpen(false);
+    setClientSearch('');
+  };
+
+  const handleSelectCreateNew = () => {
+    setIsCreatingNewClient(true);
+    setNewBoardClient?.('');
+    setIsClientDropdownOpen(false);
+    setClientSearch('');
+  };
+
+  const handleClearClient = () => {
+    setIsCreatingNewClient(false);
+    setNewBoardClient?.('');
+    setIsClientDropdownOpen(false);
+    setClientSearch('');
   };
 
   return (
@@ -685,54 +725,102 @@ export function CreateBoardModal({
             <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
               {tMsg('Client Name', 'Nama Klien')}
             </label>
-            <Select.Root
-              value={clientSelectValue}
-              onValueChange={handleClientSelectChange}>
-              <Select.Trigger
-                autoFocus
-                className='group flex w-full items-center justify-between gap-2 p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold transition-all cursor-pointer data-placeholder:text-neutral-400'>
-                <Select.Value
-                  placeholder={`-- ${tMsg('Select Client', 'Pilih Klien')} --`}
+            <div className='relative' ref={clientDropdownRef}>
+              <button
+                type='button'
+                onClick={() => setIsClientDropdownOpen((prev) => !prev)}
+                className='group flex w-full items-center justify-between gap-2 p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold transition-all cursor-pointer text-left'>
+                <span className={newBoardClient || isCreatingNewClient ? 'text-black dark:text-white font-bold' : 'text-neutral-400 font-medium'}>
+                  {isCreatingNewClient
+                    ? `+ ${tMsg('Create New Client', 'Buat Klien Baru')}`
+                    : newBoardClient || `-- ${tMsg('Select Client', 'Pilih Klien')} --`}
+                </span>
+                <Icon
+                  name='chevron-down'
+                  className={`w-4 h-4 text-neutral-400 transition-transform ${
+                    isClientDropdownOpen ? 'rotate-180' : ''
+                  }`}
                 />
-                <Select.Icon>
-                  <Icon
-                    name='chevron-down'
-                    className='w-4 h-4 text-neutral-400 group-data-[state=open]:rotate-180 transition-transform'
-                  />
-                </Select.Icon>
-              </Select.Trigger>
-              <Select.Portal>
-                <Select.Content
-                  position='popper'
-                  sideOffset={6}
-                  className='z-80 overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-2xl w-(--radix-select-trigger-width) max-h-64'>
-                  <Select.Viewport className='p-1.5'>
-                    <Select.Item
-                      value={CLIENT_SELECT_NONE}
-                      className='relative flex cursor-pointer select-none items-center rounded-xl px-3 py-2.5 text-sm font-bold text-neutral-500 outline-none data-highlighted:bg-neutral-100 dark:data-highlighted:bg-neutral-900 data-[state=checked]:text-black dark:data-[state=checked]:text-white'>
-                      <Select.ItemText>
-                        -- {tMsg('Select Client', 'Pilih Klien')} --
-                      </Select.ItemText>
-                    </Select.Item>
-                    <Select.Item
-                      value={CLIENT_SELECT_CREATE}
-                      className='relative flex cursor-pointer select-none items-center rounded-xl px-3 py-2.5 text-sm font-bold text-indigo-600 dark:text-indigo-400 outline-none data-highlighted:bg-indigo-50 dark:data-highlighted:bg-indigo-950/40'>
-                      <Select.ItemText>
-                        + {tMsg('Create New Client', 'Buat Klien Baru')}
-                      </Select.ItemText>
-                    </Select.Item>
-                    {clients.map((c) => (
-                      <Select.Item
-                        key={c.id || c.client_name}
-                        value={c.client_name}
-                        className='relative flex cursor-pointer select-none items-center rounded-xl px-3 py-2.5 text-sm font-bold text-black dark:text-white outline-none data-highlighted:bg-neutral-100 dark:data-highlighted:bg-neutral-900'>
-                        <Select.ItemText>{c.client_name}</Select.ItemText>
-                      </Select.Item>
-                    ))}
-                  </Select.Viewport>
-                </Select.Content>
-              </Select.Portal>
-            </Select.Root>
+              </button>
+
+              {isClientDropdownOpen && (
+                <div className='absolute left-0 right-0 top-full mt-2 z-50 overflow-hidden rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-2xl'>
+                  {/* Search Input Box */}
+                  <div className='p-2.5 border-b border-neutral-100 dark:border-neutral-800'>
+                    <div className='relative'>
+                      <Icon
+                        name='search'
+                        className='absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none'
+                      />
+                      <input
+                        type='text'
+                        value={clientSearch}
+                        onChange={(e) => setClientSearch(e.target.value)}
+                        placeholder={tMsg('Search client...', 'Cari klien...')}
+                        className='w-full pl-8 pr-3 py-2 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-xl focus:border-neutral-300 dark:focus:border-neutral-700 outline-none text-xs font-semibold'
+                        autoFocus
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  </div>
+
+                  <div className='p-1.5 max-h-56 overflow-y-auto space-y-0.5'>
+                    <button
+                      type='button'
+                      onClick={handleClearClient}
+                      className='flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900 text-left transition-colors'>
+                      <span>-- {tMsg('Select Client (None)', 'Pilih Klien (Kosong)')} --</span>
+                      {!newBoardClient && !isCreatingNewClient && (
+                        <Icon name='check' className='w-3.5 h-3.5 text-neutral-400' />
+                      )}
+                    </button>
+
+                    <button
+                      type='button'
+                      onClick={handleSelectCreateNew}
+                      className='flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-left transition-colors'>
+                      <span>+ {tMsg('Create New Client', 'Buat Klien Baru')}</span>
+                      {isCreatingNewClient && (
+                        <Icon name='check' className='w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400' />
+                      )}
+                    </button>
+
+                    {filteredClients.length === 0 ? (
+                      <div className='px-3 py-4 text-center text-xs text-neutral-400 italic'>
+                        {tMsg('No clients found', 'Tidak ada klien ditemukan')}
+                      </div>
+                    ) : (
+                      filteredClients.map((c) => {
+                        const isSelected = !isCreatingNewClient && newBoardClient === c.client_name;
+                        return (
+                          <button
+                            key={c.id || c.client_name}
+                            type='button'
+                            onClick={() => handleSelectExistingClient(c.client_name)}
+                            className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold text-left transition-colors ${
+                              isSelected
+                                ? 'bg-neutral-100 dark:bg-neutral-900 text-black dark:text-white'
+                                : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-900'
+                            }`}>
+                            <span>
+                              {c.client_name}{' '}
+                              {c.client_code && (
+                                <span className='text-[10px] font-mono text-neutral-400'>
+                                  ({c.client_code})
+                                </span>
+                              )}
+                            </span>
+                            {isSelected && (
+                              <Icon name='check' className='w-3.5 h-3.5 text-black dark:text-white' />
+                            )}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             {isCreatingNewClient && (
               <div className='mt-3 space-y-3'>
                 <input
@@ -761,17 +849,17 @@ export function CreateBoardModal({
           </div>
           <div className='mb-6'>
             <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
-              {tMsg('Project Number', 'Nomor Proyek')}
+              {tMsg('Job Number', 'Nomor Job')}
             </label>
             <input
               type='text'
               value={newBoardNumber || ''}
               onChange={(e) => setNewBoardNumber?.(e.target.value)}
-              placeholder={tMsg('E.g. PRJ-001', 'Contoh: PRJ-001')}
+              placeholder='Mirroring from JobBag'
               className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all'
             />
           </div>
-          <div className='mb-8'>
+          <div className='mb-6'>
             <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
               {tMsg('Project Name', 'Nama Proyek')}
             </label>
@@ -779,10 +867,22 @@ export function CreateBoardModal({
               type='text'
               value={newBoardName}
               onChange={(e) => setNewBoardName(e.target.value)}
-              placeholder='E.g. Website Redesign'
+              placeholder='Product Name - Campaign Name'
               className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold placeholder-neutral-400 transition-all'
               required
             />
+          </div>
+          <div className='mb-8'>
+            <label className='block text-[10px] font-bold text-black dark:text-white mb-2 uppercase tracking-wider'>
+              {tMsg('Billing Type', 'Tipe Penagihan')}
+            </label>
+            <select
+              value={newBoardBillingType || 'Billable'}
+              onChange={(e) => setNewBoardBillingType?.(e.target.value)}
+              className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-2xl focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-bold transition-all cursor-pointer'>
+              <option value='Billable'>Billable</option>
+              <option value='Non - Billable'>Non - Billable</option>
+            </select>
           </div>
           <div className='flex justify-end gap-4 mt-8 pt-8 border-t border-neutral-200 dark:border-neutral-800'>
             <button
@@ -836,6 +936,7 @@ export function TeamModal({
   isSuperAdmin,
   workspaceRole,
   handleJoinProject,
+  userDirectory = [],
 }) {
   const [isClosing, close] = useCloseAnimation(() => setIsTeamModalOpen(false));
   const tMsg = (en, id) => (language === 'id' ? id : en);
@@ -848,6 +949,43 @@ export function TeamModal({
   const isAlreadyMember =
     selectedBoard?.owner_username === currentUser ||
     myTeam.some((m) => m.username === currentUser && m.status === 'accepted');
+
+  // Selected usernames for multiple invite
+  const [selectedInviteUsers, setSelectedInviteUsers] = useState([]);
+
+  // Filter available employees for invite (exclude current owner and existing members)
+  const availableEmployees = useMemo(() => {
+    return (userDirectory || []).filter((u) => {
+      if (u.username === currentUser) return false;
+      if (u.username === 'admin') return false;
+      if (u.username === selectedBoard?.owner_username) return false;
+      if (myTeam.some((m) => m.username === u.username)) return false;
+      return true;
+    });
+  }, [userDirectory, currentUser, selectedBoard?.owner_username, myTeam]);
+
+  // Helper to get display name
+  const getUserDisplayName = (username, fallbackName = '') => {
+    if (fallbackName && fallbackName !== username) return fallbackName;
+    const emp = (userDirectory || []).find((u) => u.username === username);
+    return emp?.full_name || emp?.name || fallbackName || username;
+  };
+
+  const ownerDisplayName = getUserDisplayName(
+    selectedBoard?.owner_username,
+    selectedBoard?.owner_name
+  );
+
+  const onSubmitInvite = (e) => {
+    if (e) e.preventDefault();
+    if (!selectedInviteUsers.length) return;
+    const inputVal = selectedInviteUsers.join(', ');
+    handleInviteTeam({
+      preventDefault: () => {},
+      target: { value: inputVal },
+    }, inputVal);
+    setSelectedInviteUsers([]);
+  };
 
   return (
     <div
@@ -874,84 +1012,34 @@ export function TeamModal({
         </div>
 
         {isOwner && (
-          <form onSubmit={handleInviteTeam} className='shrink-0 mt-4'>
-            <p className='text-sm text-neutral-500 dark:text-neutral-400 mb-6'>
+          <form onSubmit={onSubmitInvite} className='shrink-0 mt-4'>
+            <p className='text-sm text-neutral-500 dark:text-neutral-400 mb-4'>
               {tMsg(
-                'Invite by username or email. Use commas for multiple users.',
-                'Undang dengan nama pengguna atau email. Gunakan koma untuk mengundang lebih dari satu.'
+                'Search employee name to invite multiple members to this project.',
+                'Cari nama karyawan untuk mengundang beberapa anggota sekaligus ke proyek ini.'
               )}
             </p>
-            <div className='flex flex-col sm:flex-row gap-4 mb-8'>
-              <div className='relative flex-1'>
-                <input
-                  type='text'
-                  value={inviteInput}
-                  onChange={handleInviteInputChange}
-                  onKeyDown={(e) => {
-                    if (inviteSuggestions.length > 0) {
-                      if (e.key === 'ArrowDown') {
-                        e.preventDefault();
-                        setInviteIndex(
-                          (prev) => (prev + 1) % inviteSuggestions.length
-                        );
-                      } else if (e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        setInviteIndex(
-                          (prev) =>
-                            (prev - 1 + inviteSuggestions.length) %
-                            inviteSuggestions.length
-                        );
-                      } else if (e.key === 'Enter' || e.key === 'Tab') {
-                        e.preventDefault();
-                        applyInviteSuggestion(
-                          inviteSuggestions[inviteIndex].username
-                        );
-                      } else if (e.key === 'Escape') {
-                        e.preventDefault();
-                        setInviteSuggestions([]);
-                      }
-                    }
-                  }}
-                  placeholder='e.g. john, jane@innocean.co.id, mike...'
-                  className='w-full p-4 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-full focus:border-neutral-300 dark:focus:border-neutral-700 focus:bg-white dark:focus:bg-black focus:outline-none text-sm font-medium placeholder-neutral-400 transition-all'
-                  required
-                  autoComplete='off'
+            <div className='flex flex-col sm:flex-row items-center gap-3 mb-6'>
+              <div className='flex-1 w-full'>
+                <MultiUserSelect
+                  hideLabel={true}
+                  selected={selectedInviteUsers}
+                  onChange={setSelectedInviteUsers}
+                  employees={availableEmployees}
+                  placeholder={tMsg(
+                    'Search employee name...',
+                    'Cari nama karyawan...'
+                  )}
+                  tMsg={tMsg}
+                  className='w-full'
                 />
-
-                {inviteSuggestions.length > 0 && (
-                  <div className='absolute left-0 top-full mt-2 w-full bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl z-50 max-h-40 overflow-y-auto py-2'>
-                    {inviteSuggestions.map((u, idx) => (
-                      <div
-                        key={u.username}
-                        className={`px-4 py-3 cursor-pointer flex items-center justify-between border-b border-neutral-200 dark:border-neutral-800 last:border-0 transition-colors ${
-                          inviteIndex === idx
-                            ? 'bg-neutral-200 dark:bg-neutral-800'
-                            : 'hover:bg-neutral-200 dark:hover:bg-neutral-800'
-                        }`}
-                        onClick={() => applyInviteSuggestion(u.username)}>
-                        <div className='flex items-center gap-3'>
-                          <Avatar
-                            name={u.username}
-                            url={avatarsMap[u.username]}
-                            size='w-6 h-6'
-                            textClass='text-[8px]'
-                          />
-                          <span className='text-sm text-black dark:text-white font-bold'>
-                            @{u.username}
-                          </span>
-                        </div>
-                        <span className='text-xs text-neutral-400 truncate ml-4'>
-                          {u.email}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
               <button
                 type='submit'
-                className='w-full sm:w-auto px-10 py-4 rounded-full font-bold text-white bg-black hover:opacity-80 dark:bg-white dark:text-black shadow-md transition-all shrink-0 text-sm hover:-translate-y-0.5'>
+                disabled={selectedInviteUsers.length === 0}
+                className='w-full sm:w-auto px-8 py-3.5 rounded-2xl font-bold text-white bg-black hover:opacity-80 dark:bg-white dark:text-black shadow-md transition-all shrink-0 text-sm hover:-translate-y-0.5 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0'>
                 {tMsg('Invite', 'Undang')}
+                {selectedInviteUsers.length > 0 && ` (${selectedInviteUsers.length})`}
               </button>
             </div>
           </form>
@@ -976,7 +1064,7 @@ export function TeamModal({
                   />
                   <div>
                     <p className='font-bold text-sm text-black dark:text-white'>
-                      @{selectedBoard.owner_username}
+                      {ownerDisplayName}
                     </p>
                     <p className='text-xs font-medium text-indigo-600 dark:text-indigo-400 mt-0.5'>
                       {tMsg('Project Owner', 'Pemilik Proyek')}
@@ -991,107 +1079,113 @@ export function TeamModal({
                 {tMsg('No team members yet.', 'Belum ada anggota tim.')}
               </p>
             ) : (
-              myTeam.map((member) => (
-                <div
-                  key={member.id}
-                  className='flex justify-between items-center bg-neutral-50 dark:bg-neutral-900 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm'>
-                  <div className='flex items-center gap-4'>
-                    <Avatar
-                      name={member.username}
-                      url={avatarsMap[member.username]}
-                      size='w-10 h-10'
-                      textClass='text-sm'
-                    />
-                    <div>
-                      <p className='font-bold text-sm text-black dark:text-white'>
-                        @{member.username}
-                      </p>
-                      <p
-                        className={`text-xs font-medium capitalize ${
-                          member.status === 'accepted'
-                            ? 'text-black dark:text-white'
-                            : member.status === 'requesting'
-                              ? 'text-amber-500 dark:text-amber-400'
-                              : member.status === 'declined'
-                                ? 'text-red-500 dark:text-red-400'
-                                : 'text-neutral-500 dark:text-neutral-400'
-                        }`}>
-                        {member.status === 'requesting'
-                          ? tMsg('Requesting Access', 'Meminta Akses')
-                          : member.status === 'declined'
-                            ? tMsg('Declined Invitation', 'Menolak Undangan')
-                            : member.status === 'pending'
-                              ? tMsg('Pending Invite', 'Undangan Tertunda')
-                              : member.status}
-                      </p>
+              myTeam.map((member) => {
+                const memberDisplayName = getUserDisplayName(
+                  member.username,
+                  member.full_name
+                );
+                return (
+                  <div
+                    key={member.id}
+                    className='flex justify-between items-center bg-neutral-50 dark:bg-neutral-900 p-4 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm'>
+                    <div className='flex items-center gap-4'>
+                      <Avatar
+                        name={member.username}
+                        url={avatarsMap[member.username]}
+                        size='w-10 h-10'
+                        textClass='text-sm'
+                      />
+                      <div>
+                        <p className='font-bold text-sm text-black dark:text-white'>
+                          {memberDisplayName}
+                        </p>
+                        <p
+                          className={`text-xs font-medium capitalize ${
+                            member.status === 'accepted'
+                              ? 'text-black dark:text-white'
+                              : member.status === 'requesting'
+                                ? 'text-amber-500 dark:text-amber-400'
+                                : member.status === 'declined'
+                                  ? 'text-red-500 dark:text-red-400'
+                                  : 'text-neutral-500 dark:text-neutral-400'
+                          }`}>
+                          {member.status === 'requesting'
+                            ? tMsg('Requesting Access', 'Meminta Akses')
+                            : member.status === 'declined'
+                              ? tMsg('Declined Invitation', 'Menolak Undangan')
+                              : member.status === 'pending'
+                                ? tMsg('Pending Invite', 'Undangan Tertunda')
+                                : member.status}
+                        </p>
+                      </div>
                     </div>
+                    {isOwner ? (
+                      <div className='flex items-center gap-2'>
+                        {member.status === 'requesting' ? (
+                          <>
+                            <button
+                              onClick={() => handleAcceptAccessRequest(member.id)}
+                              className='text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-500 hover:text-white px-4 py-2.5 rounded-full transition-all border border-emerald-200 dark:border-emerald-800/50 shadow-sm'>
+                              {tMsg('Accept', 'Terima')}
+                            </button>
+                            <button
+                              onClick={() => handleRevokeMember(member.id)}
+                              className='text-xs font-bold text-red-500 bg-red-50 dark:bg-red-900/30 hover:bg-red-500 hover:text-white px-4 py-2.5 rounded-full transition-all border border-red-200 dark:border-red-800/50 shadow-sm'>
+                              {tMsg('Decline', 'Tolak')}
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            {(member.status === 'declined' || member.status === 'pending') && handleReinviteMember && (
+                              <button
+                                onClick={() => handleReinviteMember(member.username)}
+                                className='text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-600 hover:text-white px-4 py-2.5 rounded-full transition-all border border-indigo-100 dark:border-indigo-800/50 shadow-sm'
+                                title={tMsg('Send invitation again', 'Kirim ulang undangan')}>
+                                <Icon name='rotate-cw' className='w-3.5 h-3.5 inline mr-1' />
+                                {tMsg('Re-invite', 'Undang Ulang')}
+                              </button>
+                            )}
+                            {isRealOwner && member.status === 'accepted' && (
+                              <button
+                                onClick={() =>
+                                  handleTransferToMember(member.username)
+                                }
+                                className='text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-600 hover:text-white px-4 py-2.5 rounded-full transition-all border border-indigo-100 dark:border-indigo-800/50 shadow-sm'
+                                title={tMsg(
+                                  'Hand over ownership to this user',
+                                  'Serahkan kepemilikan ke pengguna ini'
+                                )}>
+                                <Icon
+                                  name='crown'
+                                  className='w-3.5 h-3.5 inline'
+                                />{' '}
+                                <span className='hidden sm:inline'>
+                                  {tMsg('Make Owner', 'Jadikan Pemilik')}
+                                </span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleRevokeMember(member.id)}
+                              className='text-xs font-bold text-red-500 bg-red-50 dark:bg-red-900/30 hover:bg-red-500 hover:text-white px-5 py-2.5 rounded-full transition-all border border-red-200 dark:border-red-800/50 shadow-sm'>
+                              {member.status === 'pending' || member.status === 'declined'
+                                ? tMsg('Remove', 'Hapus')
+                                : tMsg('Delete', 'Hapus')}
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      member.username === currentUser && (
+                        <button
+                          onClick={() => handleRevokeMember(member.id)}
+                          className='text-xs font-bold text-red-500 bg-red-50 dark:bg-red-900/30 hover:bg-red-500 hover:text-white px-5 py-2.5 rounded-full transition-all'>
+                          {tMsg('Leave Project', 'Keluar Proyek')}
+                        </button>
+                      )
+                    )}
                   </div>
-                  {isOwner ? (
-                    <div className='flex items-center gap-2'>
-                      {member.status === 'requesting' ? (
-                        <>
-                          <button
-                            onClick={() => handleAcceptAccessRequest(member.id)}
-                            className='text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-500 hover:text-white px-4 py-2.5 rounded-full transition-all border border-emerald-200 dark:border-emerald-800/50 shadow-sm'>
-                            {tMsg('Accept', 'Terima')}
-                          </button>
-                          <button
-                            onClick={() => handleRevokeMember(member.id)}
-                            className='text-xs font-bold text-red-500 bg-red-50 dark:bg-red-900/30 hover:bg-red-500 hover:text-white px-4 py-2.5 rounded-full transition-all border border-red-200 dark:border-red-800/50 shadow-sm'>
-                            {tMsg('Decline', 'Tolak')}
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          {(member.status === 'declined' || member.status === 'pending') && handleReinviteMember && (
-                            <button
-                              onClick={() => handleReinviteMember(member.username)}
-                              className='text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-600 hover:text-white px-4 py-2.5 rounded-full transition-all border border-indigo-100 dark:border-indigo-800/50 shadow-sm'
-                              title={tMsg('Send invitation again', 'Kirim ulang undangan')}>
-                              <Icon name='rotate-cw' className='w-3.5 h-3.5 inline mr-1' />
-                              {tMsg('Re-invite', 'Undang Ulang')}
-                            </button>
-                          )}
-                          {isRealOwner && member.status === 'accepted' && (
-                            <button
-                              onClick={() =>
-                                handleTransferToMember(member.username)
-                              }
-                              className='text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-600 hover:text-white px-4 py-2.5 rounded-full transition-all border border-indigo-100 dark:border-indigo-800/50 shadow-sm'
-                              title={tMsg(
-                                'Hand over ownership to this user',
-                                'Serahkan kepemilikan ke pengguna ini'
-                              )}>
-                              <Icon
-                                name='crown'
-                                className='w-3.5 h-3.5 inline'
-                              />{' '}
-                              <span className='hidden sm:inline'>
-                                {tMsg('Make Owner', 'Jadikan Pemilik')}
-                              </span>
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleRevokeMember(member.id)}
-                            className='text-xs font-bold text-red-500 bg-red-50 dark:bg-red-900/30 hover:bg-red-500 hover:text-white px-5 py-2.5 rounded-full transition-all border border-red-200 dark:border-red-800/50 shadow-sm'>
-                            {member.status === 'pending' || member.status === 'declined'
-                              ? tMsg('Remove', 'Hapus')
-                              : tMsg('Revoke', 'Cabut')}
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  ) : (
-                    member.username === currentUser && (
-                      <button
-                        onClick={() => handleRevokeMember(member.id)}
-                        className='text-xs font-bold text-red-500 bg-red-50 dark:bg-red-900/30 hover:bg-red-500 hover:text-white px-5 py-2.5 rounded-full transition-all'>
-                        {tMsg('Leave Project', 'Keluar Proyek')}
-                      </button>
-                    )
-                  )}
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

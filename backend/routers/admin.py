@@ -140,6 +140,58 @@ def get_all_users(
     }
 
 
+@router.put("/api/admin/users/profile")
+def update_user_profile_admin(
+    payload: AdminUserProfileUpdateModel,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not can_access_admin_menu(db, current_user):
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    username = (payload.username or "").strip()
+    if not username:
+        raise HTTPException(status_code=400, detail="Username is required")
+    if username == "admin":
+        raise HTTPException(status_code=400, detail="Cannot modify root admin")
+
+    full_name = (payload.full_name or "").strip()
+    email = (payload.email or "").strip().lower()
+    job_position = (payload.job_position or "").strip() or None
+    division_name = (payload.division_name or "").strip() or None
+
+    if not full_name:
+        raise HTTPException(status_code=400, detail="Full name is required")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    if not (email.endswith("@innocean.co.id") or email.endswith("@innocean.com")):
+        raise HTTPException(
+            status_code=400,
+            detail="Only @innocean.co.id or @innocean.com emails are allowed.",
+        )
+
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    existing_email = (
+        db.query(User)
+        .filter(User.email == email, User.username != username)
+        .first()
+    )
+    if existing_email:
+        raise HTTPException(
+            status_code=400, detail="Email is already in use by another account."
+        )
+
+    user.full_name = full_name
+    user.email = email
+    user.job_position = job_position
+    user.division_name = division_name
+    db.commit()
+    return {"message": f"User @{username} profile updated."}
+
+
 @router.put("/api/admin/users/timesheet-requirement")
 def set_user_timesheet_requirement(
     payload: UserTimesheetRequirementModel,
@@ -464,6 +516,7 @@ def get_all_boards_admin(
                 "project_number": getattr(b, "project_number", None),
                 "client_name": b_client_name,
                 "client_code": b_client_code,
+                "billing_type": getattr(b, "billing_type", "Billable") or "Billable",
                 "owner_username": b.owner_username,
                 "owner_status": owner_status,
                 "created_at": b.created_at,

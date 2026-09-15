@@ -72,7 +72,8 @@ export default function TaskDetailSidebar({
     TASK_SMART_NUDGE_UI_ENABLED ||
     TASK_AUTO_NUDGE_UI_ENABLED;
 
-  const requesterDisplay = formatUserList(selectedTask.requester, allEmployees);
+  const requesterUsers = extractUsernames(selectedTask.requester);
+  const requesterTitle = formatUserList(selectedTask.requester, allEmployees);
   const supervisorUsers = extractUsernames(selectedTask.head_of_project);
   const rcTeamUsers = extractUsernames(selectedTask.rc_team);
   const supervisorTitle = formatUserList(
@@ -86,14 +87,17 @@ export default function TaskDetailSidebar({
       <div className='grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6'>
         <div className='shrink-0 min-w-0'>
           <p className='text-xs uppercase tracking-normal font-bold text-neutral-500 dark:text-neutral-400 mb-1'>
-            {tMsg('Project Owner / Requester', 'Project Owner / Peminta')}
+            {tMsg('Project Requester', 'Project Requester')}
           </p>
-          <div className='flex flex-col gap-1.5 mt-1'>
-            <p
-              className='font-bold capitalize tracking-wide text-sm truncate leading-none'
-              title={requesterDisplay}>
-              {requesterDisplay}
-            </p>
+          <div className='flex flex-col gap-1.5 mt-0.5' title={requesterTitle}>
+            <RoleUsersTrigger
+              selected={requesterUsers}
+              employees={allEmployees}
+              avatarsMap={avatarsMap}
+              placeholder='-'
+              emptyClassName='font-bold capitalize tracking-wide text-sm text-black dark:text-white'
+              nameClassName='font-bold capitalize tracking-wide text-sm text-black dark:text-white truncate'
+            />
             {TASK_QUEUE_LABEL_UI_ENABLED &&
               queuePosition &&
               totalQueue &&

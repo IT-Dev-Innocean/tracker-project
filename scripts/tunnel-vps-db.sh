@@ -8,7 +8,6 @@
 #   3. Biarkan terminal ini terbuka, lalu restart ./run-backend.sh
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VPS_HOST="${VPS_HOST:-31.97.188.65}"
 LOCAL_PORT="${LOCAL_PORT:-5434}"
 REMOTE_PORT="${REMOTE_PORT:-5434}"

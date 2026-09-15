@@ -90,12 +90,14 @@ class BoardModel(BaseModel):
     project_number: Optional[str] = None
     client_name: Optional[str] = None
     client_code: Optional[str] = None
+    billing_type: Optional[str] = "Billable"
 
 
 class BoardUpdateModel(BaseModel):
     name: str
     project_number: Optional[str] = None
     client_name: Optional[str] = None
+    billing_type: Optional[str] = "Billable"
 
 
 class ClientCreateModel(BaseModel):
@@ -154,6 +156,14 @@ class ProfileUpdateModel(BaseModel):
     avatar: Optional[str] = None
     current_password: Optional[str] = None
     new_password: Optional[str] = None
+
+
+class AdminUserProfileUpdateModel(BaseModel):
+    username: str
+    full_name: str
+    email: str
+    job_position: Optional[str] = None
+    division_name: Optional[str] = None
 
 
 class SystemConfigModel(BaseModel):
