@@ -65,6 +65,7 @@ export const renderRichText = (text) => {
     .replace(/\*(.*?)\*/g, '<em class="italic">$1</em>')
     .replace(/__(.*?)__/g, '<u class="underline underline-offset-2">$1</u>')
     .replace(/\n- (.*?)(?=\n|$)/g, '<li class="ml-4 list-disc">$1</li>')
+    .replace(/@([\w.-]+)/g, '<span class="text-indigo-600 dark:text-indigo-400 font-semibold">@$1</span>')
     .replace(/\n/g, '<br/>');
 
   codeBlocks.forEach((code, i) => {

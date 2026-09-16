@@ -4,6 +4,7 @@ import { IconPerson, Avatar } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import MultiUserSelect from './components/MultiUserSelect';
 import RoleUsersTrigger from './components/RoleUsersTrigger';
+import MentionTextarea from './components/MentionTextarea';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import {
   HighlightText,
@@ -1028,24 +1029,29 @@ export default function TaskDetailModal({
                             </button>
                           )}
                         </div>
-                        <textarea
+                        <MentionTextarea
                           value={editFormData.description}
-                          onChange={(e) =>
+                          onChange={(description) =>
                             setEditFormData({
                               ...editFormData,
-                              description: e.target.value,
+                              description,
                             })
                           }
+                          employees={allEmployees}
+                          teamMembers={teamMembers}
+                          tMsg={tMsg}
+                          disabled={accountStatus === 'suspended'}
                           className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-sm font-medium text-black dark:text-white min-h-25 resize-y outline-none placeholder-neutral-400 leading-relaxed'
                           placeholder={tMsg(
-                            'Add details or notes...',
-                            'Tambahkan detail atau catatan...'
-                          )}></textarea>
+                            'Add details or notes... Use @ to mention someone',
+                            'Tambahkan detail atau catatan... Ketik @ untuk mention seseorang'
+                          )}
+                        />
                       </div>
                       <p className='text-[10px] text-neutral-400 mt-2 ml-4 font-medium italic'>
                         {tMsg(
-                          'Rich text supported: **bold**, *italic*, __underline__, and new lines starting with "- " for bullets.',
-                          'Dukungan teks kaya: **tebal**, *miring*, __garis bawah__, dan baris baru dengan "- " untuk poin.'
+                          'Rich text supported: **bold**, *italic*, __underline__, bullets with "- ", and @username mentions.',
+                          'Dukungan teks kaya: **tebal**, *miring*, __garis bawah__, poin dengan "- ", dan mention @username.'
                         )}
                       </p>
                     </div>
