@@ -17,6 +17,7 @@ import {
   setStatusLabelColor,
   STATUS_COLOR_PALETTE,
 } from './utils/statusColors';
+import { DEFAULT_JOB_TYPES, LEGACY_JOB_TYPES, mergeJobTypes } from './utils/jobTypes';
 import {
   useState,
   useEffect,
@@ -35,15 +36,7 @@ import { driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 
 const DEFAULT_COLUMNS = DEFAULT_STATUS_COLUMNS;
-const DEFAULT_CATEGORIES = [
-  'Development',
-  'Design',
-  'Marketing',
-  'Research',
-  'Maintenance',
-  'Consulting',
-  'Other',
-];
+const DEFAULT_CATEGORIES = DEFAULT_JOB_TYPES;
 const DAY_WIDTH = 45;
 let cachedGlobalTasks = null;
 let cachedGlobalTasksTime = 0;
@@ -375,7 +368,7 @@ export default function useAppLogic() {
     requester: [],
     head_of_project: [],
     rc_team: [],
-    category: 'Development',
+    category: DEFAULT_CATEGORIES[0],
     description: '',
     supporting_access: '',
     start_date: getLocalToday(),
@@ -2489,10 +2482,21 @@ export default function useAppLogic() {
               return c;
             });
           };
+          const normalizeJobTypes = (cats) => {
+            if (!cats?.length) return [...DEFAULT_CATEGORIES];
+            const isLegacyExact =
+              cats.length === LEGACY_JOB_TYPES.length &&
+              cats.every((c, i) => c === LEGACY_JOB_TYPES[i]);
+            if (isLegacyExact) return [...DEFAULT_CATEGORIES];
+            return mergeJobTypes(cats);
+          };
 
           const rawDbCols = [...dbCols];
+          const rawDbCats = [...dbCats];
           dbCols = normalizeStatusColumns(dbCols);
           localCols = normalizeStatusColumns(localCols);
+          dbCats = normalizeJobTypes(dbCats);
+          localCats = normalizeJobTypes(localCats);
 
           const mergedCols = [
             ...localCols.filter((c) => dbCols.includes(c)),
@@ -2515,11 +2519,18 @@ export default function useAppLogic() {
             rawDbCols.every((c, i) => c === legacyDefaults[i]);
           const renamedLegacyStatus =
             (rawDbCols.includes('Pending') || rawDbCols.includes('To Do')) && finalCols.includes('Task List');
-          if (migratedFromLegacy || renamedLegacyStatus) {
+          const migratedJobTypes =
+            rawDbCats.length === LEGACY_JOB_TYPES.length &&
+            rawDbCats.every((c, i) => c === LEGACY_JOB_TYPES[i]);
+          if (migratedFromLegacy || renamedLegacyStatus || migratedJobTypes) {
             try {
               localStorage.setItem(
                 `innocean_columns_${selectedBoard.id}`,
                 JSON.stringify(finalCols)
+              );
+              localStorage.setItem(
+                `innocean_categories_${selectedBoard.id}`,
+                JSON.stringify(finalCats)
               );
               syncBoardSettings(finalCols, finalCats);
             } catch (e) {}
@@ -4294,7 +4305,7 @@ export default function useAppLogic() {
       rc_team: Array.isArray(formData.rc_team)
         ? formData.rc_team.join(',')
         : formData.rc_team || '',
-      category: formData.category || categories[0] || 'Other',
+      category: formData.category || categories[0] || DEFAULT_CATEGORIES[0],
       deadline: `${formData.deadline} 17:00:00`,
       etc: formData.etc || 2,
       recurring: formData.recurring || 'none',
@@ -4310,7 +4321,7 @@ export default function useAppLogic() {
           requester: [],
           head_of_project: [],
           rc_team: [],
-          category: 'Development',
+          category: DEFAULT_CATEGORIES[0],
           description: '',
           supporting_access: '',
           start_date: getLocalToday(),
@@ -4370,7 +4381,7 @@ export default function useAppLogic() {
     const formattedData = {
       task_name: taskData.task_name.trim(),
       requester: taskData.requester || currentUser,
-      category: taskData.category || categories[0] || 'Other',
+      category: taskData.category || categories[0] || DEFAULT_CATEGORIES[0],
       description: '',
       supporting_access: '',
       start_date: nowStr,

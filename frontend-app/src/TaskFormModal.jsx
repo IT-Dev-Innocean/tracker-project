@@ -18,6 +18,7 @@ import {
   SUBTASK_DEPARTMENT_OPTIONS,
   filterEmployeesByDepartment,
 } from './utils/formSubtasks';
+import { DEFAULT_JOB_TYPES, mergeJobTypes } from './utils/jobTypes';
 
 export default function TaskFormModal({
   setIsFormOpen,
@@ -55,6 +56,11 @@ export default function TaskFormModal({
   const TASK_FORM_AI_ASSISTANT_ENABLED = useFeatureFlag('TASK_FORM_AI_ASSISTANT_ENABLED');
   const [isClosing, close] = useCloseAnimation(() => setIsFormOpen(false));
   const tMsg = (en, id) => (language === 'id' ? id : en);
+  const jobTypes = useMemo(
+    () => mergeJobTypes(categories),
+    [categories]
+  );
+  const defaultJobType = jobTypes[0] || DEFAULT_JOB_TYPES[0];
 
   const [formMode, setFormMode] = useState(
     TASK_FORM_AI_ASSISTANT_ENABLED ? 'ai' : 'manual'
@@ -104,7 +110,7 @@ The user wants to create a new task: "${aiPrompt}".
 2. "task_name" MUST ALWAYS be in English. "description" MUST be in the SAME LANGUAGE the user used (e.g., if the prompt is in Indonesian, write the description and notes in Indonesian).
 3. Break down the task into 3-5 actionable "subtasks".
 4. Determine the "requester" field. If the task is ASSIGNED TO someone, use an '@' prefix (e.g., "@budi"). If someone else REQUESTED the task for you to do, write their name WITHOUT the '@' prefix (e.g., "Robert"). If the user implies the task is for themselves to do, use "@${currentUser}".
-5. Find the closest "category" from: [${categories.join(
+5. Find the closest "category" from: [${jobTypes.join(
       ', '
     )}]. If nothing fits, create a new short relevant category name.
 6. Extract any URLs/links from the prompt into "supporting_access" (separated by newline).
@@ -148,7 +154,7 @@ Format:
         ...formData,
         task_name: parsed.task_name || '',
         requester: parsed.requester || formData.requester,
-        category: parsed.category || categories[0] || 'Other',
+        category: parsed.category || defaultJobType,
         description: parsed.description || '',
         supporting_access: parsed.supporting_access || '',
         start_date: parsed.start_date || formData.start_date,
@@ -235,7 +241,7 @@ Format:
       requester: [],
       head_of_project: [],
       rc_team: [],
-      category: categories[0] || 'Development',
+      category: defaultJobType,
       description: '',
       supporting_access: '',
       start_date: getLocalToday(),
@@ -557,7 +563,7 @@ Format:
                     <div className='flex gap-1.5 sm:gap-2'>
                       <div className='flex-1 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center min-w-0 h-12 sm:h-14'>
                         <select
-                          value={formData.category || categories[0] || ''}
+                          value={formData.category || defaultJobType}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
@@ -565,13 +571,13 @@ Format:
                             })
                           }
                           className='w-full h-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider truncate [&>option]:bg-white dark:[&>option]:bg-neutral-950'>
-                          {categories.map((c) => (
+                          {jobTypes.map((c) => (
                             <option key={c} value={c}>
                               {c}
                             </option>
                           ))}
                           {formData.category &&
-                            !categories.some(
+                            !jobTypes.some(
                               (c) =>
                                 c.toLowerCase() ===
                                 formData.category.toLowerCase()

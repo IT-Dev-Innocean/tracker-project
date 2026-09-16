@@ -20,6 +20,7 @@ import TaskDetailActivity from './components/TaskDetail/TaskDetailActivity';
 import TaskDetailComments from './components/TaskDetail/TaskDetailComments';
 import TaskDetailCommentForm from './components/TaskDetail/TaskDetailCommentForm';
 import { useFeatureFlags } from './featureFlags';
+import { DEFAULT_JOB_TYPES, mergeJobTypes } from './utils/jobTypes';
 export default function TaskDetailModal({
   tasks,
   selectedTask,
@@ -113,6 +114,8 @@ export default function TaskDetailModal({
     else setSelectedTask(null);
   });
   const tMsg = (en, id) => (language === 'id' ? id : en);
+  const jobTypes = mergeJobTypes(categories);
+  const defaultJobType = jobTypes[0] || DEFAULT_JOB_TYPES[0];
 
   const [replyingTo, setReplyingTo] = useState(null);
   const [isAddingLink, setIsAddingLink] = useState(false);
@@ -835,7 +838,7 @@ export default function TaskDetailModal({
                           <div className='flex-1 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center min-w-0 h-12 sm:h-14'>
                             <select
                               value={
-                                editFormData.category || categories[0] || ''
+                                editFormData.category || defaultJobType
                               }
                               onChange={(e) =>
                                 setEditFormData({
@@ -844,11 +847,21 @@ export default function TaskDetailModal({
                                 })
                               }
                               className='w-full h-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider truncate [&>option]:bg-white dark:[&>option]:bg-neutral-950'>
-                              {categories.map((c) => (
+                              {jobTypes.map((c) => (
                                 <option key={c} value={c}>
                                   {c}
                                 </option>
                               ))}
+                              {editFormData.category &&
+                                !jobTypes.some(
+                                  (c) =>
+                                    c.toLowerCase() ===
+                                    String(editFormData.category).toLowerCase()
+                                ) && (
+                                  <option value={editFormData.category}>
+                                    {editFormData.category}
+                                  </option>
+                                )}
                             </select>
                           </div>
                           <button
