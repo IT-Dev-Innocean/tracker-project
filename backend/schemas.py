@@ -54,6 +54,16 @@ class SubtaskToggleModel(BaseModel):
     is_done: int
     assignee: Optional[str] = None
     task_name: Optional[str] = None
+    is_started: Optional[int] = None
+
+
+class TeamStartModel(BaseModel):
+    team_name: str
+
+
+class TeamToggleDoneModel(BaseModel):
+    team_name: str
+    is_done: int
 
 
 class CommentModel(BaseModel):

@@ -114,6 +114,7 @@ export default function TaskDetailSubtasks({
   isSystemTicket,
   handleToggleTeamGroup,
   handleToggleSubtask,
+  handleStartTeamGroup,
   teamMembers,
   allEmployees = [],
   avatarsMap = {},
@@ -233,15 +234,23 @@ export default function TaskDetailSubtasks({
             ];
             const allDone =
               items.length > 0 && items.every((st) => st.is_done === 1);
+            const isStarted = items.some((st) => Number(st.is_started) === 1);
             const canToggle =
-              isTaskAdmin ||
-              (!isSystemTicket &&
-                items.some(
-                  (st) => !st.assignee || st.assignee === currentUser
-                ));
+              isStarted &&
+              (isTaskAdmin ||
+                (!isSystemTicket &&
+                  items.some(
+                    (st) => !st.assignee || st.assignee === currentUser
+                  )));
             const nameValue =
               draftNames[key] !== undefined ? draftNames[key] : teamName;
             const anyDone = items.some((st) => st.is_done === 1);
+            const canStart =
+              !isSystemTicket &&
+              accountStatus !== 'suspended' &&
+              assignees.some(
+                (u) => String(u).toLowerCase() === String(currentUser || '').toLowerCase()
+              );
 
             return (
               <div
@@ -253,6 +262,7 @@ export default function TaskDetailSubtasks({
                     checked={allDone}
                     disabled={!canToggle || accountStatus === 'suspended'}
                     onChange={() => {
+                      if (!isStarted) return;
                       const toggleable = items.filter(
                         (st) =>
                           isTaskAdmin ||
@@ -278,7 +288,12 @@ export default function TaskDetailSubtasks({
                         : 'cursor-not-allowed opacity-50'
                     }`}
                     title={
-                      allDone
+                      !isStarted
+                        ? tMsg(
+                            'Start this division before checking complete',
+                            'Klik Start dulu sebelum menandai selesai'
+                          )
+                        : allDone
                         ? tMsg('Mark team incomplete', 'Tandai tim belum selesai')
                         : tMsg('Mark team complete', 'Tandai tim selesai')
                     }
@@ -381,6 +396,29 @@ export default function TaskDetailSubtasks({
                     />
                   )}
                 />
+
+                {!allDone && !isStarted && (
+                  <button
+                    type='button'
+                    disabled={!canStart}
+                    onClick={() => handleStartTeamGroup?.(items)}
+                    className='mt-0.5 w-full h-9 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-black text-white dark:bg-white dark:text-black hover:opacity-80 disabled:hover:opacity-40'
+                    title={
+                      canStart
+                        ? tMsg('Start this division', 'Mulai divisi ini')
+                        : tMsg(
+                            'Only assigned members can start',
+                            'Hanya anggota yang ditugaskan yang dapat memulai'
+                          )
+                    }>
+                    {tMsg('Start', 'Mulai')}
+                  </button>
+                )}
+                {!allDone && isStarted && (
+                  <p className='text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-400'>
+                    {tMsg('Started', 'Sudah dimulai')}
+                  </p>
+                )}
               </div>
             );
           })}

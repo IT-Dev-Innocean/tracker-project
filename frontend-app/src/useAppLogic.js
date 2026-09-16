@@ -3159,6 +3159,7 @@ export default function useAppLogic() {
       task_name: name,
       assignee: assignee || null,
       is_done: 0,
+      is_started: 0,
     }));
 
     setSubtasks((prev) => [...prev, ...tempItems]);
@@ -3223,24 +3224,73 @@ export default function useAppLogic() {
       });
   };
 
-  const handleToggleTeamGroup = (items) => {
-    if (!items?.length) return;
-    const allDone = items.every((st) => st.is_done === 1);
-    const newStatus = allDone ? 0 : 1;
+  const applyAutoTaskStatus = (taskId, nextStatus) => {
+    if (!taskId || !nextStatus) return;
+    setSelectedTask((prev) =>
+      prev && prev.id === taskId ? { ...prev, status: nextStatus } : prev
+    );
+    setTasks((prev) =>
+      (prev || []).map((t) => (t.id === taskId ? { ...t, status: nextStatus } : t))
+    );
+  };
+
+  const handleStartTeamGroup = (items) => {
+    if (!items?.length || !selectedTask?.id) return;
     const prevSubtasks = subtasks;
     const ids = new Set(items.map((st) => st.id));
     setSubtasks((prev) =>
-      prev.map((st) => (ids.has(st.id) ? { ...st, is_done: newStatus } : st))
+      prev.map((st) => (ids.has(st.id) ? { ...st, is_started: 1 } : st))
     );
-    Promise.all(
-      items.map((st) =>
-        axios.put(`/api/subtasks/${st.id}`, {
-          is_done: newStatus,
-          assignee: st.assignee || null,
-        })
+    axios
+      .post(`/api/tasks/${selectedTask.id}/teams/start`, {
+        team_name: items[0].task_name || '',
+      })
+      .then((res) => {
+        applyAutoTaskStatus(selectedTask.id, res.data?.status);
+        refreshSubtaskViews();
+      })
+      .catch((err) => {
+        setSubtasks(prevSubtasks);
+        showNotification(
+          err.response?.data?.detail || 'Failed to start team!',
+          'error'
+        );
+      });
+  };
+
+  const handleToggleTeamGroup = (items) => {
+    if (!items?.length || !selectedTask?.id) return;
+    const allDone = items.every((st) => st.is_done === 1);
+    const newStatus = allDone ? 0 : 1;
+    const isStarted = items.some((st) => Number(st.is_started) === 1);
+    if (newStatus === 1 && !isStarted) {
+      showNotification(
+        tMsg(
+          'Start this division before marking it complete.',
+          'Klik Start dulu sebelum menandai selesai.'
+        ),
+        'error'
+      );
+      return;
+    }
+    const prevSubtasks = subtasks;
+    const ids = new Set(items.map((st) => st.id));
+    setSubtasks((prev) =>
+      prev.map((st) =>
+        ids.has(st.id)
+          ? { ...st, is_done: newStatus, is_started: newStatus === 1 ? 1 : st.is_started }
+          : st
       )
-    )
-      .then(() => refreshSubtaskViews())
+    );
+    axios
+      .put(`/api/tasks/${selectedTask.id}/teams/toggle-done`, {
+        team_name: items[0].task_name || '',
+        is_done: newStatus,
+      })
+      .then((res) => {
+        applyAutoTaskStatus(selectedTask.id, res.data?.status);
+        refreshSubtaskViews();
+      })
       .catch((err) => {
         setSubtasks(prevSubtasks);
         showNotification(
@@ -3360,6 +3410,17 @@ export default function useAppLogic() {
 
   const handleToggleSubtask = (subtaskId, currentStatus, currentAssignee) => {
     const newStatus = currentStatus === 1 ? 0 : 1;
+    const current = (subtasks || []).find((st) => st.id === subtaskId);
+    if (newStatus === 1 && current && Number(current.is_started) !== 1) {
+      showNotification(
+        tMsg(
+          'Start this division before marking it complete.',
+          'Klik Start dulu sebelum menandai selesai.'
+        ),
+        'error'
+      );
+      return;
+    }
     // Optimistic update — ubah UI langsung tanpa tunggu server
     const prevSubtasks = subtasks;
     setSubtasks((prev) =>
@@ -6325,6 +6386,7 @@ export default function useAppLogic() {
     handleAddTeamSubtasks,
     handleToggleSubtask,
     handleToggleTeamGroup,
+    handleStartTeamGroup,
     handleUpdateSubtaskAssignee,
     handleUpdateSubtaskName,
     handleRenameTeamGroup,

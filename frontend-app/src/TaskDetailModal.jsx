@@ -48,6 +48,7 @@ export default function TaskDetailModal({
   subtasks,
   handleToggleSubtask,
   handleToggleTeamGroup,
+  handleStartTeamGroup,
   handleUpdateSubtaskAssignee,
   handleUpdateSubtaskName,
   handleRenameTeamGroup,
@@ -1482,6 +1483,7 @@ export default function TaskDetailModal({
                     isSystemTicket={isSystemTicket}
                     handleToggleSubtask={handleToggleSubtask}
                     handleToggleTeamGroup={handleToggleTeamGroup}
+                    handleStartTeamGroup={handleStartTeamGroup}
                     handleUpdateSubtaskAssignee={handleUpdateSubtaskAssignee}
                     handleUpdateSubtaskName={handleUpdateSubtaskName}
                     handleRenameTeamGroup={handleRenameTeamGroup}
