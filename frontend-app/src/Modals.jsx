@@ -1099,24 +1099,24 @@ export function TeamModal({
                         <p className='font-bold text-sm text-black dark:text-white'>
                           {memberDisplayName}
                         </p>
-                        <p
-                          className={`text-xs font-medium capitalize ${
-                            member.status === 'accepted'
-                              ? 'text-black dark:text-white'
-                              : member.status === 'requesting'
+                        {member.status && member.status !== 'accepted' && (
+                          <p
+                            className={`text-xs font-medium capitalize ${
+                              member.status === 'requesting'
                                 ? 'text-amber-500 dark:text-amber-400'
                                 : member.status === 'declined'
                                   ? 'text-red-500 dark:text-red-400'
                                   : 'text-neutral-500 dark:text-neutral-400'
-                          }`}>
-                          {member.status === 'requesting'
-                            ? tMsg('Requesting Access', 'Meminta Akses')
-                            : member.status === 'declined'
-                              ? tMsg('Declined Invitation', 'Menolak Undangan')
-                              : member.status === 'pending'
-                                ? tMsg('Pending Invite', 'Undangan Tertunda')
-                                : member.status}
-                        </p>
+                            }`}>
+                            {member.status === 'requesting'
+                              ? tMsg('Requesting Access', 'Meminta Akses')
+                              : member.status === 'declined'
+                                ? tMsg('Declined Invitation', 'Menolak Undangan')
+                                : member.status === 'pending'
+                                  ? tMsg('Pending Invite', 'Undangan Tertunda')
+                                  : member.status}
+                          </p>
+                        )}
                       </div>
                     </div>
                     {isOwner ? (
