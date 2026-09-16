@@ -4,6 +4,7 @@ import { IconPerson, Avatar } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import MultiUserSelect from './components/MultiUserSelect';
 import RoleUsersTrigger from './components/RoleUsersTrigger';
+import MentionTextarea from './components/MentionTextarea';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import {
   HighlightText,
@@ -20,6 +21,7 @@ import TaskDetailActivity from './components/TaskDetail/TaskDetailActivity';
 import TaskDetailComments from './components/TaskDetail/TaskDetailComments';
 import TaskDetailCommentForm from './components/TaskDetail/TaskDetailCommentForm';
 import { useFeatureFlags } from './featureFlags';
+import { DEFAULT_JOB_TYPES, mergeJobTypes } from './utils/jobTypes';
 export default function TaskDetailModal({
   tasks,
   selectedTask,
@@ -48,6 +50,7 @@ export default function TaskDetailModal({
   subtasks,
   handleToggleSubtask,
   handleToggleTeamGroup,
+  handleStartTeamGroup,
   handleUpdateSubtaskAssignee,
   handleUpdateSubtaskName,
   handleRenameTeamGroup,
@@ -112,6 +115,8 @@ export default function TaskDetailModal({
     else setSelectedTask(null);
   });
   const tMsg = (en, id) => (language === 'id' ? id : en);
+  const jobTypes = mergeJobTypes(categories);
+  const defaultJobType = jobTypes[0] || DEFAULT_JOB_TYPES[0];
 
   const [replyingTo, setReplyingTo] = useState(null);
   const [isAddingLink, setIsAddingLink] = useState(false);
@@ -834,7 +839,7 @@ export default function TaskDetailModal({
                           <div className='flex-1 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center min-w-0 h-12 sm:h-14'>
                             <select
                               value={
-                                editFormData.category || categories[0] || ''
+                                editFormData.category || defaultJobType
                               }
                               onChange={(e) =>
                                 setEditFormData({
@@ -843,11 +848,21 @@ export default function TaskDetailModal({
                                 })
                               }
                               className='w-full h-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider truncate [&>option]:bg-white dark:[&>option]:bg-neutral-950'>
-                              {categories.map((c) => (
+                              {jobTypes.map((c) => (
                                 <option key={c} value={c}>
                                   {c}
                                 </option>
                               ))}
+                              {editFormData.category &&
+                                !jobTypes.some(
+                                  (c) =>
+                                    c.toLowerCase() ===
+                                    String(editFormData.category).toLowerCase()
+                                ) && (
+                                  <option value={editFormData.category}>
+                                    {editFormData.category}
+                                  </option>
+                                )}
                             </select>
                           </div>
                           <button
@@ -1014,24 +1029,29 @@ export default function TaskDetailModal({
                             </button>
                           )}
                         </div>
-                        <textarea
+                        <MentionTextarea
                           value={editFormData.description}
-                          onChange={(e) =>
+                          onChange={(description) =>
                             setEditFormData({
                               ...editFormData,
-                              description: e.target.value,
+                              description,
                             })
                           }
+                          employees={allEmployees}
+                          teamMembers={teamMembers}
+                          tMsg={tMsg}
+                          disabled={accountStatus === 'suspended'}
                           className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-sm font-medium text-black dark:text-white min-h-25 resize-y outline-none placeholder-neutral-400 leading-relaxed'
                           placeholder={tMsg(
-                            'Add details or notes...',
-                            'Tambahkan detail atau catatan...'
-                          )}></textarea>
+                            'Add details or notes... Use @ to mention someone',
+                            'Tambahkan detail atau catatan... Ketik @ untuk mention seseorang'
+                          )}
+                        />
                       </div>
                       <p className='text-[10px] text-neutral-400 mt-2 ml-4 font-medium italic'>
                         {tMsg(
-                          'Rich text supported: **bold**, *italic*, __underline__, and new lines starting with "- " for bullets.',
-                          'Dukungan teks kaya: **tebal**, *miring*, __garis bawah__, dan baris baru dengan "- " untuk poin.'
+                          'Rich text supported: **bold**, *italic*, __underline__, bullets with "- ", and @username mentions.',
+                          'Dukungan teks kaya: **tebal**, *miring*, __garis bawah__, poin dengan "- ", dan mention @username.'
                         )}
                       </p>
                     </div>
@@ -1482,6 +1502,7 @@ export default function TaskDetailModal({
                     isSystemTicket={isSystemTicket}
                     handleToggleSubtask={handleToggleSubtask}
                     handleToggleTeamGroup={handleToggleTeamGroup}
+                    handleStartTeamGroup={handleStartTeamGroup}
                     handleUpdateSubtaskAssignee={handleUpdateSubtaskAssignee}
                     handleUpdateSubtaskName={handleUpdateSubtaskName}
                     handleRenameTeamGroup={handleRenameTeamGroup}

@@ -85,6 +85,8 @@ def _build_cors_origins() -> list:
         "http://127.0.0.1:5173",
         "http://localhost:5174",
         "http://127.0.0.1:5174",
+        "http://localhost:5374",
+        "http://127.0.0.1:5374",
         "https://iid-tracker.netlify.app",
     }
     for key in ("FRONTEND_URL", "FRONTEND_URLS"):
@@ -100,6 +102,7 @@ def _build_cors_origins() -> list:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_build_cors_origins(),
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -390,13 +393,29 @@ def submit_feedback(
         default_statuses = json.dumps(["Task List", "In Progress", "On Hold", "Cancel", "Done"])
         default_categories = json.dumps(
             [
-                "Development",
-                "Design",
-                "Marketing",
-                "Research",
-                "Maintenance",
-                "Consulting",
-                "Other",
+                "Strategy & Planning",
+                "Research & Insights",
+                "Concept & Ideation",
+                "Client & Stakeholder Management",
+                "Project Management & Coordination",
+                "Content Development",
+                "Design & Creative Development",
+                "Production & Execution",
+                "Media Management",
+                "Technology Development",
+                "UX/UI & Experience Design",
+                "Data & Analytics",
+                "CRM & Customer Management",
+                "Activation & Experiential",
+                "Retail / Space Development",
+                "Vendor & Partner Management",
+                "Resource & Traffic Management",
+                "Administration & Documentation",
+                "Costing, Commercial & Financial Management",
+                "People & HR Management",
+                "Internal / Corporate Support",
+                "Training & Development",
+                "Business Development",
             ]
         )
         board = Board(

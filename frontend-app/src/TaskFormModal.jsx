@@ -11,6 +11,7 @@ import { IconPlus, Avatar } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import MultiUserSelect from './components/MultiUserSelect';
 import RoleUsersTrigger from './components/RoleUsersTrigger';
+import MentionTextarea from './components/MentionTextarea';
 import { useCloseAnimation, LoadingSpinner } from './Utils';
 import { useFeatureFlag } from './featureFlags';
 import {
@@ -18,6 +19,7 @@ import {
   SUBTASK_DEPARTMENT_OPTIONS,
   filterEmployeesByDepartment,
 } from './utils/formSubtasks';
+import { DEFAULT_JOB_TYPES, mergeJobTypes } from './utils/jobTypes';
 
 export default function TaskFormModal({
   setIsFormOpen,
@@ -55,6 +57,11 @@ export default function TaskFormModal({
   const TASK_FORM_AI_ASSISTANT_ENABLED = useFeatureFlag('TASK_FORM_AI_ASSISTANT_ENABLED');
   const [isClosing, close] = useCloseAnimation(() => setIsFormOpen(false));
   const tMsg = (en, id) => (language === 'id' ? id : en);
+  const jobTypes = useMemo(
+    () => mergeJobTypes(categories),
+    [categories]
+  );
+  const defaultJobType = jobTypes[0] || DEFAULT_JOB_TYPES[0];
 
   const [formMode, setFormMode] = useState(
     TASK_FORM_AI_ASSISTANT_ENABLED ? 'ai' : 'manual'
@@ -104,7 +111,7 @@ The user wants to create a new task: "${aiPrompt}".
 2. "task_name" MUST ALWAYS be in English. "description" MUST be in the SAME LANGUAGE the user used (e.g., if the prompt is in Indonesian, write the description and notes in Indonesian).
 3. Break down the task into 3-5 actionable "subtasks".
 4. Determine the "requester" field. If the task is ASSIGNED TO someone, use an '@' prefix (e.g., "@budi"). If someone else REQUESTED the task for you to do, write their name WITHOUT the '@' prefix (e.g., "Robert"). If the user implies the task is for themselves to do, use "@${currentUser}".
-5. Find the closest "category" from: [${categories.join(
+5. Find the closest "category" from: [${jobTypes.join(
       ', '
     )}]. If nothing fits, create a new short relevant category name.
 6. Extract any URLs/links from the prompt into "supporting_access" (separated by newline).
@@ -148,7 +155,7 @@ Format:
         ...formData,
         task_name: parsed.task_name || '',
         requester: parsed.requester || formData.requester,
-        category: parsed.category || categories[0] || 'Other',
+        category: parsed.category || defaultJobType,
         description: parsed.description || '',
         supporting_access: parsed.supporting_access || '',
         start_date: parsed.start_date || formData.start_date,
@@ -235,7 +242,7 @@ Format:
       requester: [],
       head_of_project: [],
       rc_team: [],
-      category: categories[0] || 'Development',
+      category: defaultJobType,
       description: '',
       supporting_access: '',
       start_date: getLocalToday(),
@@ -324,16 +331,32 @@ Format:
     return allEmployees.filter((emp) => isRcDivision(emp.division_name));
   }, [allEmployees]);
 
-  // Default masukkan semua karyawan R&C jika rc_team masih kosong dan data karyawan R&C tersedia
+  const TARGET_RC_NAMES = ['vidi', 'ismi', 'namyra'];
+
+  const isDefaultRcEmployee = useCallback((emp) => {
+    const text = `${emp.username || ''} ${emp.full_name || ''} ${emp.name || ''}`.toLowerCase();
+    return TARGET_RC_NAMES.some((target) => text.includes(target));
+  }, []);
+
+  const defaultRcEmployees = useMemo(() => {
+    const matchedFromRc = rcEmployees.filter(isDefaultRcEmployee);
+    if (matchedFromRc.length > 0) return matchedFromRc;
+    return allEmployees.filter(isDefaultRcEmployee);
+  }, [rcEmployees, allEmployees, isDefaultRcEmployee]);
+
+  // Default masukkan employee bernama vidi, ismi, dan namyra jika rc_team masih kosong
   useEffect(() => {
-    if (rcEmployees.length > 0 && (!formData.rc_team || formData.rc_team.length === 0)) {
-      const defaultRcUsernames = rcEmployees.map((e) => e.username);
+    if (
+      defaultRcEmployees.length > 0 &&
+      (!formData.rc_team || formData.rc_team.length === 0)
+    ) {
+      const defaultRcUsernames = defaultRcEmployees.map((e) => e.username);
       setFormData((prev) => ({
         ...prev,
         rc_team: defaultRcUsernames,
       }));
     }
-  }, [rcEmployees]);
+  }, [defaultRcEmployees]);
 
   const requesterUsers = Array.isArray(formData.requester)
     ? formData.requester
@@ -541,7 +564,7 @@ Format:
                     <div className='flex gap-1.5 sm:gap-2'>
                       <div className='flex-1 bg-neutral-100 dark:bg-neutral-900 rounded-2xl border border-transparent focus-within:border-neutral-300 dark:focus-within:border-neutral-700 focus-within:bg-white dark:focus-within:bg-black transition-all flex items-center min-w-0 h-12 sm:h-14'>
                         <select
-                          value={formData.category || categories[0] || ''}
+                          value={formData.category || defaultJobType}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
@@ -549,13 +572,13 @@ Format:
                             })
                           }
                           className='w-full h-full bg-transparent border-0 focus:ring-0 p-3.5 text-xs font-bold text-black dark:text-white cursor-pointer outline-none uppercase tracking-wider truncate [&>option]:bg-white dark:[&>option]:bg-neutral-950'>
-                          {categories.map((c) => (
+                          {jobTypes.map((c) => (
                             <option key={c} value={c}>
                               {c}
                             </option>
                           ))}
                           {formData.category &&
-                            !categories.some(
+                            !jobTypes.some(
                               (c) =>
                                 c.toLowerCase() ===
                                 formData.category.toLowerCase()
@@ -713,24 +736,28 @@ Format:
                         </button>
                       )}
                     </div>
-                    <textarea
+                    <MentionTextarea
                       value={formData.description}
-                      onChange={(e) =>
+                      onChange={(description) =>
                         setFormData({
                           ...formData,
-                          description: e.target.value,
+                          description,
                         })
                       }
+                      employees={allEmployees}
+                      teamMembers={teamMembers}
+                      tMsg={tMsg}
                       className='w-full bg-transparent border-0 focus:ring-0 p-3.5 text-sm font-medium text-black dark:text-white min-h-24 resize-y outline-none placeholder-neutral-400 leading-relaxed'
                       placeholder={tMsg(
-                        'Add details or notes...',
-                        'Tambahkan detail atau catatan...'
-                      )}></textarea>
+                        'Add details or notes... Use @ to mention someone',
+                        'Tambahkan detail atau catatan... Ketik @ untuk mention seseorang'
+                      )}
+                    />
                   </div>
                   <p className='text-[11px] text-neutral-400 mt-2 ml-4 font-normal italic'>
                     {tMsg(
-                      'Rich text supported: **bold**, *italic*, __underline__, and new lines starting with "- " for bullets.',
-                      'Dukungan teks kaya: **tebal**, *miring*, __garis bawah__, dan baris baru dengan "- " untuk poin.'
+                      'Rich text supported: **bold**, *italic*, __underline__, bullets with "- ", and @username mentions.',
+                      'Dukungan teks kaya: **tebal**, *miring*, __garis bawah__, poin dengan "- ", dan mention @username.'
                     )}
                   </p>
                 </div>

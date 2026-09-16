@@ -2,9 +2,10 @@ import { useState, useCallback } from 'react';
 import axios from 'axios';
 
 import { DEFAULT_STATUS_COLUMNS } from '../utils/statusColors';
+import { DEFAULT_JOB_TYPES } from '../utils/jobTypes';
 
 const DEFAULT_COLUMNS = DEFAULT_STATUS_COLUMNS;
-const DEFAULT_CATEGORIES = ['Development', 'Design', 'Marketing', 'Research', 'Maintenance', 'Consulting', 'Other'];
+const DEFAULT_CATEGORIES = DEFAULT_JOB_TYPES;
 
 export function useTask({ isAuthenticated, selectedBoard, setSelectedBoard, currentUser, showNotification, setIsLoading }) {
   const [tasks, setTasks] = useState([]);
@@ -49,7 +50,7 @@ export function useTask({ isAuthenticated, selectedBoard, setSelectedBoard, curr
   const [formData, setFormData] = useState({
     description: '',
     status: 'Task List',
-    category: 'Development',
+    category: DEFAULT_CATEGORIES[0],
     requester: '',
     etc: 0,
     impact: 'Medium',
@@ -103,7 +104,7 @@ export function useTask({ isAuthenticated, selectedBoard, setSelectedBoard, curr
     const taskPayload = {
       description: taskData.description.trim(),
       status: taskData.status || 'Task List',
-      category: taskData.category || 'Development',
+      category: taskData.category || DEFAULT_CATEGORIES[0],
       requester: taskData.requester.trim(),
       etc: Number(taskData.etc) || 0,
       impact: taskData.impact || 'Medium',

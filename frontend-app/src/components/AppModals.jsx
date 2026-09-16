@@ -93,6 +93,7 @@ export default function AppModals() {
     subtasks,
     handleToggleSubtask,
     handleToggleTeamGroup,
+    handleStartTeamGroup,
     handleUpdateSubtaskAssignee,
     handleUpdateSubtaskName,
     handleRenameTeamGroup,
@@ -418,6 +419,7 @@ export default function AppModals() {
           subtasks={subtasks}
           handleToggleSubtask={handleToggleSubtask}
           handleToggleTeamGroup={handleToggleTeamGroup}
+          handleStartTeamGroup={handleStartTeamGroup}
           handleUpdateSubtaskAssignee={handleUpdateSubtaskAssignee}
           handleUpdateSubtaskName={handleUpdateSubtaskName}
           handleRenameTeamGroup={handleRenameTeamGroup}
@@ -770,6 +772,7 @@ export default function AppModals() {
               subtasks={subtasks}
               handleToggleSubtask={handleToggleSubtask}
               handleToggleTeamGroup={handleToggleTeamGroup}
+              handleStartTeamGroup={handleStartTeamGroup}
               handleUpdateSubtaskAssignee={handleUpdateSubtaskAssignee}
               handleUpdateSubtaskName={handleUpdateSubtaskName}
               handleRenameTeamGroup={handleRenameTeamGroup}

@@ -6,6 +6,12 @@ import { useAppContext } from './hooks/useAppContext';
 import { HighlightText, LoadingSpinner } from './Utils';
 import { Avatar, IconPlus } from './SharedUI';
 import { Icon } from './components/icons/Icon';
+import TableColumnHeader from './components/TableColumnHeader';
+import {
+  applyColumnSortFilter,
+  uniqueColumnValues,
+  useColumnSortFilter,
+} from './hooks/useColumnSortFilter';
 import {
   ROLE_ADMIN,
   ROLE_PROJECT_OWNER,
@@ -107,6 +113,8 @@ export default function TeamsDirectory() {
   const [visibleColumns, setVisibleColumns] = useState(loadVisibleColumns);
   const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
   const columnsMenuRef = useRef(null);
+  const { sortKey, sortDir, toggleSort, columnFilters, setColumnFilter } =
+    useColumnSortFilter('name');
 
   const columnOptions = [
     { key: 'name', label: tMsg('Name', 'Nama') },
@@ -195,39 +203,74 @@ export default function TeamsDirectory() {
     return Array.from(set).sort();
   }, [people]);
 
-  const filtered = useMemo(() => {
+  const getPersonColumnValue = (user, key) => {
+    if (key === 'name') return user.full_name || user.username || '';
+    if (key === 'email') return user.email || '';
+    if (key === 'job_position') return user.job_position || '';
+    if (key === 'department') return user.division_name || '';
+    if (key === 'status') {
+      if (user.account_status === 'suspended') return 'frozen';
+      if (user.is_verified === 0) return 'unverified';
+      return 'active';
+    }
+    return '';
+  };
+
+  const formatPersonStatus = (value) => {
+    if (value === 'frozen') return tMsg('Frozen', 'Beku');
+    if (value === 'unverified') return tMsg('Unverified', 'Belum Verifikasi');
+    return tMsg('Active', 'Aktif');
+  };
+
+  const searchedPeople = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return (people || [])
-      .filter((user) => {
-        if (user.username === 'admin') return false;
-        if (
-          divisionFilter !== 'all' &&
-          (user.division_name || '') !== divisionFilter
-        )
-          return false;
-        if (statusFilter === 'active' && user.account_status !== 'active')
-          return false;
-        if (statusFilter === 'frozen' && user.account_status !== 'suspended')
-          return false;
-        if (statusFilter === 'unverified' && user.is_verified === 1)
-          return false;
-        if (!needle) return true;
-        return [
-          user.full_name,
-          user.username,
-          user.email,
-          user.job_position,
-          user.division_name,
-        ]
-          .filter(Boolean)
-          .some((value) => String(value).toLowerCase().includes(needle));
-      })
-      .sort((a, b) =>
-        String(a.full_name || a.username).localeCompare(
-          String(b.full_name || b.username)
-        )
-      );
+    return (people || []).filter((user) => {
+      if (user.username === 'admin') return false;
+      if (
+        divisionFilter !== 'all' &&
+        (user.division_name || '') !== divisionFilter
+      )
+        return false;
+      if (statusFilter === 'active' && user.account_status !== 'active')
+        return false;
+      if (statusFilter === 'frozen' && user.account_status !== 'suspended')
+        return false;
+      if (statusFilter === 'unverified' && user.is_verified === 1)
+        return false;
+      if (!needle) return true;
+      return [
+        user.full_name,
+        user.username,
+        user.email,
+        user.job_position,
+        user.division_name,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(needle));
+    });
   }, [people, query, divisionFilter, statusFilter]);
+
+  const uniqueValuesByColumn = useMemo(() => {
+    const keys = ['name', 'email', 'job_position', 'department', 'status'];
+    const map = {};
+    keys.forEach((key) => {
+      map[key] = uniqueColumnValues(searchedPeople, (row) =>
+        getPersonColumnValue(row, key)
+      );
+    });
+    return map;
+  }, [searchedPeople]);
+
+  const filtered = useMemo(
+    () =>
+      applyColumnSortFilter(searchedPeople, {
+        sortKey,
+        sortDir,
+        columnFilters,
+        getValue: getPersonColumnValue,
+      }),
+    [searchedPeople, sortKey, sortDir, columnFilters]
+  );
 
   const totalPages = Math.max(
     1,
@@ -241,7 +284,7 @@ export default function TeamsDirectory() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [query, divisionFilter, statusFilter, peoplePerPage]);
+  }, [query, divisionFilter, statusFilter, peoplePerPage, sortKey, sortDir, columnFilters]);
 
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
@@ -724,32 +767,93 @@ export default function TeamsDirectory() {
                 </div>
               ) : (
                 <table className='w-full text-left border-collapse text-sm'>
-                  <thead className='bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 sticky top-0 z-10'>
+                  <thead className='bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 sticky top-0 z-20'>
                     <tr>
                       {isColVisible('name') && (
-                        <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                          {tMsg('Name', 'Nama')}
-                        </th>
+                        <TableColumnHeader
+                          label={tMsg('Name', 'Nama')}
+                          columnKey='name'
+                          sortKey={sortKey}
+                          sortDir={sortDir}
+                          onSort={toggleSort}
+                          uniqueValues={uniqueValuesByColumn.name}
+                          selectedFilters={columnFilters.name}
+                          onFilterChange={(values) =>
+                            setColumnFilter('name', values)
+                          }
+                          tMsg={tMsg}
+                        />
                       )}
                       {isColVisible('email') && (
-                        <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                          {tMsg('Email', 'Email')}
-                        </th>
+                        <TableColumnHeader
+                          label={tMsg('Email', 'Email')}
+                          columnKey='email'
+                          sortKey={sortKey}
+                          sortDir={sortDir}
+                          onSort={toggleSort}
+                          uniqueValues={uniqueValuesByColumn.email}
+                          selectedFilters={columnFilters.email}
+                          onFilterChange={(values) =>
+                            setColumnFilter('email', values)
+                          }
+                          formatValue={(value) =>
+                            value || tMsg('(Blank)', '(Kosong)')
+                          }
+                          tMsg={tMsg}
+                        />
                       )}
                       {isColVisible('job_position') && (
-                        <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                          {tMsg('Job Position', 'Posisi Kerja')}
-                        </th>
+                        <TableColumnHeader
+                          label={tMsg('Job Position', 'Posisi Kerja')}
+                          columnKey='job_position'
+                          sortKey={sortKey}
+                          sortDir={sortDir}
+                          onSort={toggleSort}
+                          uniqueValues={uniqueValuesByColumn.job_position}
+                          selectedFilters={columnFilters.job_position}
+                          onFilterChange={(values) =>
+                            setColumnFilter('job_position', values)
+                          }
+                          formatValue={(value) =>
+                            value || tMsg('Not updated yet', 'Belum diupdate')
+                          }
+                          tMsg={tMsg}
+                        />
                       )}
                       {isColVisible('department') && (
-                        <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                          {tMsg('Department', 'Departemen')}
-                        </th>
+                        <TableColumnHeader
+                          label={tMsg('Department', 'Departemen')}
+                          columnKey='department'
+                          sortKey={sortKey}
+                          sortDir={sortDir}
+                          onSort={toggleSort}
+                          uniqueValues={uniqueValuesByColumn.department}
+                          selectedFilters={columnFilters.department}
+                          onFilterChange={(values) =>
+                            setColumnFilter('department', values)
+                          }
+                          formatValue={(value) =>
+                            value || tMsg('Not updated yet', 'Belum diupdate')
+                          }
+                          tMsg={tMsg}
+                        />
                       )}
                       {isColVisible('status') && (
-                        <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-center'>
-                          {tMsg('User Status', 'Status')}
-                        </th>
+                        <TableColumnHeader
+                          label={tMsg('User Status', 'Status')}
+                          columnKey='status'
+                          sortKey={sortKey}
+                          sortDir={sortDir}
+                          onSort={toggleSort}
+                          uniqueValues={uniqueValuesByColumn.status}
+                          selectedFilters={columnFilters.status}
+                          onFilterChange={(values) =>
+                            setColumnFilter('status', values)
+                          }
+                          formatValue={formatPersonStatus}
+                          align='center'
+                          tMsg={tMsg}
+                        />
                       )}
                       {isColVisible('actions') && (
                         <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-right'>

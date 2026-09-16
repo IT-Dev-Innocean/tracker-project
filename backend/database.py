@@ -85,6 +85,7 @@ class Subtask(Base):
     request_id = Column(Integer, index=True)
     task_name = Column(String(255))
     is_done = Column(Integer, default=0)
+    is_started = Column(Integer, default=0)
     assignee = Column(String(50), nullable=True)
     due_date = Column(DateTime, nullable=True)
     position = Column(Integer, default=0)
@@ -300,6 +301,21 @@ def setup_db():
                 )
                 conn.execute(
                     text("ALTER TABLE users ADD COLUMN IF NOT EXISTS division_name TEXT")
+                )
+                conn.execute(
+                    text(
+                        "ALTER TABLE subtasks ADD COLUMN IF NOT EXISTS is_started INTEGER DEFAULT 0"
+                    )
+                )
+        except Exception:
+            pass
+    else:
+        try:
+            with engine.begin() as conn:
+                conn.execute(
+                    text(
+                        "ALTER TABLE subtasks ADD COLUMN is_started INTEGER DEFAULT 0"
+                    )
                 )
         except Exception:
             pass

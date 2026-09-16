@@ -15,6 +15,93 @@ from routers.ai import generate_ai_text
 
 router = APIRouter()
 
+AUTO_STATUS_SKIP = {"On Hold", "Cancel", "Rejected"}
+# Auto-status: Start -> In Progress; all teams done -> Done.
+
+
+def _team_key(name):
+    return str(name or "").strip().lower() or "__unnamed__"
+
+
+def _notify_status_change(db, task, current_user, old_status, new_status):
+    if old_status == new_status:
+        return
+    log_activity(
+        db, task.id, f"**@{current_user}** changed status to **{new_status}**."
+    )
+    notif_type = "task_completed" if new_status == "Done" else "status_changed"
+    if current_user != task.owner_username and check_board_access(
+        db, task.board_id, task.owner_username
+    ):
+        create_notification(
+            db,
+            task.owner_username,
+            f"@{current_user} changed task status to {new_status}: {task.task_name or 'Untitled'}",
+            notif_type,
+            task.id,
+        )
+    assignees = get_assignees(task.requester)
+    for a in assignees:
+        if (
+            a != current_user
+            and a != task.owner_username
+            and db.query(User).filter(User.username == a).first()
+        ):
+            if has_task_read_access(db, task, a):
+                create_notification(
+                    db,
+                    a,
+                    f"@{current_user} changed task status to {new_status}: {task.task_name or 'Untitled'}",
+                    notif_type,
+                    task.id,
+                )
+
+
+def sync_task_status_from_subtasks(db, task, current_user):
+    if not task:
+        return
+    current_status = str(task.status or "")
+    if current_status in AUTO_STATUS_SKIP:
+        return
+
+    subs = db.query(Subtask).filter(Subtask.request_id == task.id).all()
+    if not subs:
+        return
+
+    groups = {}
+    for sub in subs:
+        groups.setdefault(_team_key(sub.task_name), []).append(sub)
+
+    all_groups_done = all(
+        items and all(int(st.is_done or 0) == 1 for st in items)
+        for items in groups.values()
+    )
+    any_started = any(int(getattr(st, "is_started", 0) or 0) == 1 for st in subs)
+    any_done = any(int(st.is_done or 0) == 1 for st in subs)
+
+    new_status = None
+    if all_groups_done:
+        new_status = "Done"
+    elif any_started or any_done:
+        new_status = "In Progress"
+
+    if not new_status or new_status == current_status:
+        return
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    task.status = new_status
+    task.completed_time = now_str if new_status == "Done" else None
+    if current_status != "Done" and new_status == "Done":
+        spawn_recurring_task(db, task)
+    db.commit()
+    _notify_status_change(db, task, current_user, current_status, new_status)
+
+
+def _subtasks_for_team(db, task_id, team_name):
+    wanted = _team_key(team_name)
+    subs = db.query(Subtask).filter(Subtask.request_id == task_id).all()
+    return [s for s in subs if _team_key(s.task_name) == wanted]
+
 @router.get("/api/tasks/all")
 def get_all_global_tasks(
     current_user: str = Depends(get_current_user), db: Session = Depends(get_db)
@@ -136,6 +223,7 @@ def get_all_global_tasks(
                 "task_name": s.task_name,
                 "assignee": s.assignee or "",
                 "is_done": bool(s.is_done),
+                "is_started": bool(getattr(s, "is_started", 0)),
                 "department": getattr(s, "department", "") or "",
             }
             for s in subtasks
@@ -782,6 +870,7 @@ def get_subtasks(
                 "id": s.id,
                 "task_name": s.task_name,
                 "is_done": s.is_done,
+                "is_started": int(getattr(s, "is_started", 0) or 0),
                 "assignee": s.assignee,
             }
             for s in subtasks
@@ -929,7 +1018,14 @@ def toggle_subtask(
         old_assignee = sub.assignee
         old_is_done = sub.is_done
         old_name = sub.task_name
+        if payload.is_done == 1 and int(getattr(sub, "is_started", 0) or 0) != 1:
+            raise HTTPException(
+                status_code=400,
+                detail="Start this division before marking it complete.",
+            )
         sub.is_done = payload.is_done
+        if payload.is_started is not None:
+            sub.is_started = 1 if payload.is_started else 0
         if payload.assignee is not None:
             sub.assignee = payload.assignee
         if payload.task_name is not None:
@@ -973,7 +1069,116 @@ def toggle_subtask(
                 )
 
         update_board_activity(db, task.board_id)
+        sync_task_status_from_subtasks(db, task, current_user)
     return {"message": "Subtask updated"}
+
+
+@router.post("/api/tasks/{task_id}/teams/start")
+def start_team(
+    task_id: int,
+    payload: TeamStartModel,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    task = db.query(Request).filter(Request.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if not has_task_read_access(db, task, current_user):
+        raise HTTPException(status_code=403, detail="Access denied")
+    if is_system_feedback_board(db, task.board_id) and not can_modify_system_ticket(
+        db, current_user
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Permission Denied: Only Admins can modify system tickets.",
+        )
+
+    items = _subtasks_for_team(db, task_id, payload.team_name)
+    if not items:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    assignees = {
+        str(st.assignee).lower()
+        for st in items
+        if st.assignee
+    }
+    if current_user.lower() not in assignees:
+        raise HTTPException(
+            status_code=403,
+            detail="Permission Denied: Only assigned team members can start this division.",
+        )
+
+    for st in items:
+        st.is_started = 1
+    db.commit()
+    log_activity(
+        db,
+        task_id,
+        f"**@{current_user}** started work on **{items[0].task_name}**.",
+    )
+    update_board_activity(db, task.board_id)
+    sync_task_status_from_subtasks(db, task, current_user)
+    return {"message": "Team started", "status": task.status}
+
+
+@router.put("/api/tasks/{task_id}/teams/toggle-done")
+def toggle_team_done(
+    task_id: int,
+    payload: TeamToggleDoneModel,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    task = db.query(Request).filter(Request.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if not has_task_read_access(db, task, current_user):
+        raise HTTPException(status_code=403, detail="Access denied")
+    if is_system_feedback_board(db, task.board_id) and not can_modify_system_ticket(
+        db, current_user
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Permission Denied: Only Admins can modify system tickets.",
+        )
+
+    items = _subtasks_for_team(db, task_id, payload.team_name)
+    if not items:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    is_admin = is_task_admin(db, task, current_user) or current_user in get_assignees(
+        task.requester
+    )
+    if not is_admin:
+        allowed = [
+            st
+            for st in items
+            if not st.assignee or str(st.assignee) == current_user
+        ]
+        if not allowed:
+            raise HTTPException(
+                status_code=403,
+                detail="Permission Denied: Cannot complete a team assigned to someone else.",
+            )
+        items = allowed
+
+    new_status = 1 if payload.is_done else 0
+    team_started = any(int(getattr(st, "is_started", 0) or 0) == 1 for st in items)
+    if new_status == 1 and not team_started:
+        raise HTTPException(
+            status_code=400,
+            detail="Start this division before marking it complete.",
+        )
+    for st in items:
+        st.is_done = new_status
+    db.commit()
+    log_activity(
+        db,
+        task_id,
+        f"**@{current_user}** marked sub-task **{items[0].task_name}** as **{'Done' if new_status else 'Pending'}**.",
+    )
+    update_board_activity(db, task.board_id)
+    sync_task_status_from_subtasks(db, task, current_user)
+    return {"message": "Team updated", "status": task.status}
 
 
 @router.delete("/api/subtasks/{subtask_id}")

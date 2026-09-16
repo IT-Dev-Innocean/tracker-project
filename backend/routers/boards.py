@@ -270,13 +270,29 @@ def create_board(
     default_statuses = json.dumps(["Task List", "In Progress", "On Hold", "Cancel", "Done"])
     default_categories = json.dumps(
         [
-            "Development",
-            "Design",
-            "Marketing",
-            "Research",
-            "Maintenance",
-            "Consulting",
-            "Other",
+            "Strategy & Planning",
+            "Research & Insights",
+            "Concept & Ideation",
+            "Client & Stakeholder Management",
+            "Project Management & Coordination",
+            "Content Development",
+            "Design & Creative Development",
+            "Production & Execution",
+            "Media Management",
+            "Technology Development",
+            "UX/UI & Experience Design",
+            "Data & Analytics",
+            "CRM & Customer Management",
+            "Activation & Experiential",
+            "Retail / Space Development",
+            "Vendor & Partner Management",
+            "Resource & Traffic Management",
+            "Administration & Documentation",
+            "Costing, Commercial & Financial Management",
+            "People & HR Management",
+            "Internal / Corporate Support",
+            "Training & Development",
+            "Business Development",
         ]
     )
     
