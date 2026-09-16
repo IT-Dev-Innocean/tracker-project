@@ -4,6 +4,12 @@ import { useAppContext } from './hooks/useAppContext';
 import { HighlightText, LoadingSpinner } from './Utils';
 import { IconPlus } from './SharedUI';
 import { Icon } from './components/icons/Icon';
+import TableColumnHeader from './components/TableColumnHeader';
+import {
+  applyColumnSortFilter,
+  uniqueColumnValues,
+  useColumnSortFilter,
+} from './hooks/useColumnSortFilter';
 import { canManageClients } from './permissions';
 
 const EMPTY_FORM = {
@@ -81,6 +87,8 @@ export default function ClientManagementPage() {
   const [visibleColumns, setVisibleColumns] = useState(loadVisibleColumns);
   const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
   const columnsMenuRef = useRef(null);
+  const { sortKey, sortDir, toggleSort, columnFilters, setColumnFilter } =
+    useColumnSortFilter();
 
   const columnOptions = [
     { key: 'client_code', label: tMsg('Client Code', 'Kode Klien') },
@@ -152,7 +160,20 @@ export default function ClientManagementPage() {
     else setIsLoading(false);
   }, []);
 
-  const filteredClients = useMemo(() => {
+  const getClientColumnValue = (row, key) => {
+    if (key === 'client_code') return row.client_code || '';
+    if (key === 'client_name') return row.client_name || '';
+    if (key === 'created_by') return row.created_by || '';
+    if (key === 'status') return row.status || 'active';
+    return '';
+  };
+
+  const formatClientStatus = (value) =>
+    value === 'inactive'
+      ? tMsg('Inactive', 'Nonaktif')
+      : tMsg('Active', 'Aktif');
+
+  const searchedClients = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return clients.filter((c) => {
       const matchStatus =
@@ -166,6 +187,28 @@ export default function ClientManagementPage() {
     });
   }, [clients, searchQuery, statusFilter]);
 
+  const uniqueValuesByColumn = useMemo(() => {
+    const keys = ['client_code', 'client_name', 'created_by', 'status'];
+    const map = {};
+    keys.forEach((key) => {
+      map[key] = uniqueColumnValues(searchedClients, (row) =>
+        getClientColumnValue(row, key)
+      );
+    });
+    return map;
+  }, [searchedClients]);
+
+  const filteredClients = useMemo(
+    () =>
+      applyColumnSortFilter(searchedClients, {
+        sortKey,
+        sortDir,
+        columnFilters,
+        getValue: getClientColumnValue,
+      }),
+    [searchedClients, sortKey, sortDir, columnFilters]
+  );
+
   const totalPages = Math.max(
     1,
     Math.ceil(filteredClients.length / clientsPerPage) || 1
@@ -178,7 +221,7 @@ export default function ClientManagementPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, clientsPerPage]);
+  }, [searchQuery, statusFilter, clientsPerPage, sortKey, sortDir, columnFilters]);
 
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
@@ -505,7 +548,7 @@ export default function ClientManagementPage() {
               </div>
             ) : (
               <table className='w-full text-left border-collapse text-sm'>
-                <thead className='bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 sticky top-0 z-10'>
+                <thead className='bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 sticky top-0 z-20'>
                   <tr>
                     <th className='px-6 py-4 border-b border-neutral-200 dark:border-neutral-700 w-10'>
                       <input
@@ -521,24 +564,69 @@ export default function ClientManagementPage() {
                       />
                     </th>
                     {isColVisible('client_code') && (
-                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                        {tMsg('Client Code', 'Kode Klien')}
-                      </th>
+                      <TableColumnHeader
+                        label={tMsg('Client Code', 'Kode Klien')}
+                        columnKey='client_code'
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={toggleSort}
+                        uniqueValues={uniqueValuesByColumn.client_code}
+                        selectedFilters={columnFilters.client_code}
+                        onFilterChange={(values) =>
+                          setColumnFilter('client_code', values)
+                        }
+                        tMsg={tMsg}
+                      />
                     )}
                     {isColVisible('client_name') && (
-                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                        {tMsg('Client Name', 'Nama Klien')}
-                      </th>
+                      <TableColumnHeader
+                        label={tMsg('Client Name', 'Nama Klien')}
+                        columnKey='client_name'
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={toggleSort}
+                        uniqueValues={uniqueValuesByColumn.client_name}
+                        selectedFilters={columnFilters.client_name}
+                        onFilterChange={(values) =>
+                          setColumnFilter('client_name', values)
+                        }
+                        tMsg={tMsg}
+                      />
                     )}
                     {isColVisible('created_by') && (
-                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                        {tMsg('Project Requester', 'Project Requester')}
-                      </th>
+                      <TableColumnHeader
+                        label={tMsg('Project Requester', 'Project Requester')}
+                        columnKey='created_by'
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={toggleSort}
+                        uniqueValues={uniqueValuesByColumn.created_by}
+                        selectedFilters={columnFilters.created_by}
+                        onFilterChange={(values) =>
+                          setColumnFilter('created_by', values)
+                        }
+                        formatValue={(value) =>
+                          value || tMsg('(Blank)', '(Kosong)')
+                        }
+                        tMsg={tMsg}
+                      />
                     )}
                     {isColVisible('status') && (
-                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-center'>
-                        {tMsg('Status', 'Status')}
-                      </th>
+                      <TableColumnHeader
+                        label={tMsg('Status', 'Status')}
+                        columnKey='status'
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={toggleSort}
+                        uniqueValues={uniqueValuesByColumn.status}
+                        selectedFilters={columnFilters.status}
+                        onFilterChange={(values) =>
+                          setColumnFilter('status', values)
+                        }
+                        formatValue={formatClientStatus}
+                        align='center'
+                        tMsg={tMsg}
+                      />
                     )}
                     {isColVisible('actions') && (
                       <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-right'>

@@ -4,6 +4,12 @@ import { useAppContext } from './hooks/useAppContext';
 import { HighlightText, LoadingSpinner } from './Utils';
 import { IconPlus } from './SharedUI';
 import { Icon } from './components/icons/Icon';
+import TableColumnHeader from './components/TableColumnHeader';
+import {
+  applyColumnSortFilter,
+  uniqueColumnValues,
+  useColumnSortFilter,
+} from './hooks/useColumnSortFilter';
 import { excludeTodoListBoards } from './utils/boards';
 
 const PROJECT_COLUMN_STORAGE_KEY = 'innocean_project_visible_columns';
@@ -105,6 +111,8 @@ export default function ProjectManagementPage() {
   const [visibleColumns, setVisibleColumns] = useState(loadVisibleColumns);
   const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
   const columnsMenuRef = useRef(null);
+  const { sortKey, sortDir, toggleSort, columnFilters, setColumnFilter } =
+    useColumnSortFilter();
 
   const columnOptions = [
     { key: 'project_number', label: tMsg('Job Number', 'Nomor Job') },
@@ -267,7 +275,25 @@ export default function ProjectManagementPage() {
     loadBoards(true);
   }, [boardIdsKey, loadBoards]);
 
-  const filteredBoards = useMemo(() => {
+  const getProjectColumnValue = (row, key) => {
+    if (key === 'project_number') return row.project_number || '';
+    if (key === 'client_code') return row.client_code || '';
+    if (key === 'name') return row.name || '';
+    if (key === 'created_by') return row.owner_username || '';
+    if (key === 'billing_type') return row.billing_type || '';
+    if (key === 'owner_status') return row.owner_status || 'active';
+    return '';
+  };
+
+  const formatOwnerStatus = (value) => {
+    if (value === 'orphan') return tMsg('Orphaned', 'Yatim');
+    if (value === 'pending_deletion')
+      return tMsg('Owner Deleting', 'Pemilik Dihapus');
+    if (value === 'suspended') return tMsg('Owner Frozen', 'Pemilik Beku');
+    return tMsg('Active', 'Aktif');
+  };
+
+  const searchedBoards = useMemo(() => {
     return manageBoards.filter((b) => {
       const matchFilter =
         projectFilter === 'all' || b.owner_status === projectFilter;
@@ -283,6 +309,35 @@ export default function ProjectManagementPage() {
     });
   }, [manageBoards, projectFilter, projectSearchQuery]);
 
+  const uniqueValuesByColumn = useMemo(() => {
+    const keys = [
+      'project_number',
+      'client_code',
+      'name',
+      'created_by',
+      'billing_type',
+      'owner_status',
+    ];
+    const map = {};
+    keys.forEach((key) => {
+      map[key] = uniqueColumnValues(searchedBoards, (row) =>
+        getProjectColumnValue(row, key)
+      );
+    });
+    return map;
+  }, [searchedBoards]);
+
+  const filteredBoards = useMemo(
+    () =>
+      applyColumnSortFilter(searchedBoards, {
+        sortKey,
+        sortDir,
+        columnFilters,
+        getValue: getProjectColumnValue,
+      }),
+    [searchedBoards, sortKey, sortDir, columnFilters]
+  );
+
   const totalPages = Math.max(
     1,
     Math.ceil(filteredBoards.length / projectsPerPage) || 1
@@ -295,7 +350,7 @@ export default function ProjectManagementPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [projectSearchQuery, projectFilter, projectsPerPage]);
+  }, [projectSearchQuery, projectFilter, projectsPerPage, sortKey, sortDir, columnFilters]);
 
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
@@ -699,7 +754,7 @@ export default function ProjectManagementPage() {
               </div>
             ) : (
               <table className='w-full min-w-3xl text-left border-collapse text-sm'>
-                <thead className='bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 sticky top-0 z-10'>
+                <thead className='bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 sticky top-0 z-20'>
                   <tr>
                     <th className='px-6 py-4 border-b border-neutral-200 dark:border-neutral-700 w-10'>
                       <input
@@ -715,34 +770,105 @@ export default function ProjectManagementPage() {
                       />
                     </th>
                     {isColVisible('project_number') && (
-                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 whitespace-nowrap'>
-                        {tMsg('Job Number', 'Nomor Job')}
-                      </th>
+                      <TableColumnHeader
+                        label={tMsg('Job Number', 'Nomor Job')}
+                        columnKey='project_number'
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={toggleSort}
+                        uniqueValues={uniqueValuesByColumn.project_number}
+                        selectedFilters={columnFilters.project_number}
+                        onFilterChange={(values) =>
+                          setColumnFilter('project_number', values)
+                        }
+                        formatValue={(value) =>
+                          value || tMsg('(Blank)', '(Kosong)')
+                        }
+                        tMsg={tMsg}
+                      />
                     )}
                     {isColVisible('client_code') && (
-                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 whitespace-nowrap'>
-                        {tMsg('Client Code', 'Kode Klien')}
-                      </th>
+                      <TableColumnHeader
+                        label={tMsg('Client Code', 'Kode Klien')}
+                        columnKey='client_code'
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={toggleSort}
+                        uniqueValues={uniqueValuesByColumn.client_code}
+                        selectedFilters={columnFilters.client_code}
+                        onFilterChange={(values) =>
+                          setColumnFilter('client_code', values)
+                        }
+                        formatValue={(value) =>
+                          value || tMsg('(Blank)', '(Kosong)')
+                        }
+                        tMsg={tMsg}
+                      />
                     )}
                     {isColVisible('name') && (
-                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                        {tMsg('Project Name', 'Nama Proyek')}
-                      </th>
+                      <TableColumnHeader
+                        label={tMsg('Project Name', 'Nama Proyek')}
+                        columnKey='name'
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={toggleSort}
+                        uniqueValues={uniqueValuesByColumn.name}
+                        selectedFilters={columnFilters.name}
+                        onFilterChange={(values) =>
+                          setColumnFilter('name', values)
+                        }
+                        tMsg={tMsg}
+                      />
                     )}
                     {isColVisible('created_by') && (
-                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700'>
-                        {tMsg('Project Requester', 'Project Requester')}
-                      </th>
+                      <TableColumnHeader
+                        label={tMsg('Project Requester', 'Project Requester')}
+                        columnKey='created_by'
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={toggleSort}
+                        uniqueValues={uniqueValuesByColumn.created_by}
+                        selectedFilters={columnFilters.created_by}
+                        onFilterChange={(values) =>
+                          setColumnFilter('created_by', values)
+                        }
+                        tMsg={tMsg}
+                      />
                     )}
                     {isColVisible('billing_type') && (
-                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 whitespace-nowrap'>
-                        {tMsg('Billing Type', 'Tipe Penagihan')}
-                      </th>
+                      <TableColumnHeader
+                        label={tMsg('Billing Type', 'Tipe Penagihan')}
+                        columnKey='billing_type'
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={toggleSort}
+                        uniqueValues={uniqueValuesByColumn.billing_type}
+                        selectedFilters={columnFilters.billing_type}
+                        onFilterChange={(values) =>
+                          setColumnFilter('billing_type', values)
+                        }
+                        formatValue={(value) =>
+                          value || tMsg('(Blank)', '(Kosong)')
+                        }
+                        tMsg={tMsg}
+                      />
                     )}
                     {isColVisible('owner_status') && (
-                      <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-center'>
-                        {tMsg('Owner Status', 'Status Pemilik')}
-                      </th>
+                      <TableColumnHeader
+                        label={tMsg('Owner Status', 'Status Pemilik')}
+                        columnKey='owner_status'
+                        sortKey={sortKey}
+                        sortDir={sortDir}
+                        onSort={toggleSort}
+                        uniqueValues={uniqueValuesByColumn.owner_status}
+                        selectedFilters={columnFilters.owner_status}
+                        onFilterChange={(values) =>
+                          setColumnFilter('owner_status', values)
+                        }
+                        formatValue={formatOwnerStatus}
+                        align='center'
+                        tMsg={tMsg}
+                      />
                     )}
                     {isColVisible('actions') && (
                       <th className='px-6 py-4 font-bold text-xs border-b border-neutral-200 dark:border-neutral-700 text-right'>
