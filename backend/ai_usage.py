@@ -11,24 +11,56 @@ from database import AIUsageLog, AppSetting, User
 
 WIB = pytz.timezone("Asia/Jakarta")
 
-DEFAULT_DAILY_LIMIT = 15
+DEFAULT_DAILY_LIMIT = 20
 AI_DEFAULT_LIMIT_KEY = "ai_default_daily_limit"
 AI_USER_LIMITS_KEY = "ai_user_daily_limits"
 AI_ENGINE_PLANS_KEY = "ai_engine_plans"
 
-GEMINI_MODEL = "gemini-2.5-flash"
+GEMINI_35_MODEL = "gemini-3.5-flash-lite"
+GEMINI_31_MODEL = "gemini-3.1-flash-lite"
 GROQ_MODEL = "openai/gpt-oss-120b"
 
+# Fallback order used by /api/ai/generate: next engine runs when the current
+# one is rate-limited, at its documented RPD, or otherwise unavailable.
+ENGINE_FALLBACK_ORDER = ("gemini_35", "gemini_31", "groq")
+
+# Older logs used a single "gemini" provider before the two Flash-Lite models.
+LEGACY_PROVIDER_MAP = {"gemini": "gemini_35"}
+
 # Documented request/day (RPD) and rate limits for the models we actually call.
+# Gemini Flash-Lite Free RPD varies by AI Studio project; 500 is the common
+# September 2026 Free Tier figure. Groq gpt-oss-120b Free is 1000 RPD.
 ENGINE_PLAN_CATALOG = {
-    "gemini": {
-        "model": GEMINI_MODEL,
+    "gemini_35": {
+        "model": GEMINI_35_MODEL,
+        "label": "Gemini 3.5 Flash-Lite",
         "plans": {
             "free": {
                 "id": "free",
                 "label": "Free",
-                "rpd": 250,
-                "rpm": 10,
+                "rpd": 500,
+                "rpm": 15,
+                "tpm": 250000,
+            },
+            "tier1": {
+                "id": "tier1",
+                "label": "Tier 1",
+                "rpd": 10000,
+                "rpm": 1000,
+                "tpm": 1000000,
+            },
+        },
+        "default_plan": "free",
+    },
+    "gemini_31": {
+        "model": GEMINI_31_MODEL,
+        "label": "Gemini 3.1 Flash-Lite",
+        "plans": {
+            "free": {
+                "id": "free",
+                "label": "Free",
+                "rpd": 500,
+                "rpm": 15,
                 "tpm": 250000,
             },
             "tier1": {
@@ -43,6 +75,7 @@ ENGINE_PLAN_CATALOG = {
     },
     "groq": {
         "model": GROQ_MODEL,
+        "label": "Groq GPT-OSS 120B",
         "plans": {
             "free": {
                 "id": "free",
@@ -279,6 +312,7 @@ def _resolve_engine_plan(engine: str, selection: dict) -> dict:
     spec = dict(plans.get(plan_id) or plans.get(catalog.get("default_plan")) or {})
     return {
         "engine": engine,
+        "label": catalog.get("label") or engine,
         "model": catalog.get("model"),
         "plan": spec.get("id") or plan_id,
         "plan_label": spec.get("label") or plan_id,
@@ -319,6 +353,68 @@ def _build_engine_usage(engine_counts: dict, db: Session) -> dict:
     return engines
 
 
+def normalize_provider_used(provider_used: str) -> str:
+    raw = str(provider_used or "none").strip().lower()
+    return LEGACY_PROVIDER_MAP.get(raw, raw or "none")
+
+
+def count_engine_success_today(db: Session, engine: str) -> int:
+    start = wib_today_start_naive_utc()
+    aliases = [engine]
+    for legacy, mapped in LEGACY_PROVIDER_MAP.items():
+        if mapped == engine:
+            aliases.append(legacy)
+    return (
+        db.query(func.count(AIUsageLog.id))
+        .filter(
+            AIUsageLog.created_at >= start,
+            AIUsageLog.status == "ok",
+            AIUsageLog.provider_used.in_(aliases),
+        )
+        .scalar()
+        or 0
+    )
+
+
+def engine_has_remaining_quota(db: Session, engine: str) -> bool:
+    if engine not in ENGINE_PLAN_CATALOG:
+        return False
+    selections = get_engine_plan_selections(db)
+    resolved = _resolve_engine_plan(engine, selections.get(engine) or {})
+    rpd = resolved.get("rpd")
+    if rpd is None or rpd == 0:
+        return True
+    return count_engine_success_today(db, engine) < rpd
+
+
+def combined_provider_rpd(db: Session, engine_counts: dict = None) -> dict:
+    selections = get_engine_plan_selections(db)
+    total = 0
+    unlimited = False
+    used = 0
+    remaining = 0
+    for engine in ENGINE_FALLBACK_ORDER:
+        resolved = _resolve_engine_plan(engine, selections.get(engine) or {})
+        if engine_counts is None:
+            engine_used = count_engine_success_today(db, engine)
+        else:
+            engine_used = int(engine_counts.get(engine) or 0)
+        used += engine_used
+        rpd = resolved.get("rpd")
+        if rpd is None or rpd == 0:
+            unlimited = True
+            continue
+        total += rpd
+        remaining += max(0, rpd - engine_used)
+    return {
+        "order": list(ENGINE_FALLBACK_ORDER),
+        "rpd_total": None if unlimited else total,
+        "used_today": used,
+        "remaining": None if unlimited else remaining,
+        "unlimited": unlimited,
+    }
+
+
 def log_ai_usage(db: Session, username: str, success: bool, status: str, provider_used: str = "none"):
     db.add(
         AIUsageLog(
@@ -343,14 +439,15 @@ def build_overview(db: Session) -> dict:
     )
     used_by_user = {}
     last_ok_by_user = {}
-    engine_counts = {"gemini": 0, "groq": 0}
+    engine_counts = {engine: 0 for engine in ENGINE_PLAN_CATALOG}
     for row in ok_rows:
         used_by_user[row.username] = used_by_user.get(row.username, 0) + 1
         prev = last_ok_by_user.get(row.username)
         if not prev or (row.created_at and row.created_at > prev):
             last_ok_by_user[row.username] = row.created_at
-        if row.provider_used in engine_counts:
-            engine_counts[row.provider_used] += 1
+        provider = normalize_provider_used(row.provider_used)
+        if provider in engine_counts:
+            engine_counts[provider] += 1
 
     last_any = {}
     last_rows = (
@@ -389,6 +486,16 @@ def build_overview(db: Session) -> dict:
             }
         )
 
+    capacity = combined_provider_rpd(db, engine_counts)
+    app_need_100 = None if default_limit == 0 else default_limit * 100
+    enough_for_100 = False
+    if default_limit == 0:
+        enough_for_100 = bool(capacity.get("unlimited"))
+    elif capacity.get("unlimited"):
+        enough_for_100 = True
+    elif capacity.get("rpd_total") is not None:
+        enough_for_100 = capacity["rpd_total"] >= app_need_100
+
     return {
         "default_daily_limit": default_limit,
         "today": {
@@ -397,6 +504,11 @@ def build_overview(db: Session) -> dict:
             "active_users": len(used_by_user),
             "users_at_limit": users_at_limit,
             "by_engine": engine_counts,
+        },
+        "capacity": {
+            **capacity,
+            "app_need_100_users": app_need_100,
+            "enough_for_100_users": enough_for_100,
         },
         "engines": _build_engine_usage(engine_counts, db),
         "users": user_payload,
