@@ -15,8 +15,10 @@ from database import AIConversation, get_db, get_security_log, set_security_log
 from schemas import *
 from dependencies import *
 from ai_usage import (
+    ENGINE_FALLBACK_ORDER,
     PUBLIC_PROVIDER,
     ai_message,
+    engine_has_remaining_quota,
     has_reached_daily_limit,
     log_ai_usage,
 )
@@ -25,6 +27,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 GROQ_MAX_PROMPT_CHARS = 24000
+GEMINI_MODELS = {
+    "gemini_35": "gemini-3.5-flash-lite",
+    "gemini_31": "gemini-3.1-flash-lite",
+}
 _HTML_TAG_RE = re.compile(r"<[^>]*>")
 _DEFAULT_TITLE = "New chat"
 
@@ -153,26 +159,27 @@ def generate_ai_text(
 
     final_prompt = payload.prompt or ""
 
-    def call_gemini():
-        if not gemini_api_key:
+    def call_gemini(engine: str):
+        model_id = GEMINI_MODELS.get(engine)
+        if not gemini_api_key or not model_id:
             raise Exception("missing_key")
         client = genai.Client(api_key=gemini_api_key.strip())
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=model_id,
                 contents=final_prompt,
                 config=types.GenerateContentConfig(
                     thinking_config=types.ThinkingConfig(thinking_budget=0),
                 ),
             )
-            return {"text": _extract_gemini_text(response), "engine": "gemini"}
+            return {"text": _extract_gemini_text(response), "engine": engine}
         except Exception as e:
             error_str = str(e)
             if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
                 raise Exception("rate_limited") from e
             raise
 
-    def call_llama():
+    def call_groq():
         if not groq_api_key:
             raise Exception("missing_key")
         if len(final_prompt) > GROQ_MAX_PROMPT_CHARS:
@@ -204,32 +211,35 @@ def generate_ai_text(
             raise Exception("empty_response")
         return {"text": text, "engine": "groq"}
 
-    if not gemini_api_key and not groq_api_key:
+    callers = {}
+    if gemini_api_key:
+        callers["gemini_35"] = lambda: call_gemini("gemini_35")
+        callers["gemini_31"] = lambda: call_gemini("gemini_31")
+    if groq_api_key:
+        callers["groq"] = call_groq
+
+    if not callers:
         log_ai_usage(db, current_user, success=False, status="error", provider_used="none")
         raise HTTPException(status_code=400, detail=ai_message("not_configured", lang))
 
     last_error = None
-    if gemini_api_key:
+    for engine in ENGINE_FALLBACK_ORDER:
+        caller = callers.get(engine)
+        if caller is None:
+            continue
+        if not engine_has_remaining_quota(db, engine):
+            last_error = Exception("rate_limited")
+            logger.warning("Skipping AI engine %s: documented daily quota reached", engine)
+            continue
         try:
-            result = call_gemini()
-            log_ai_usage(db, current_user, success=True, status="ok", provider_used="gemini")
+            result = caller()
+            log_ai_usage(db, current_user, success=True, status="ok", provider_used=result["engine"])
             return _public_result(result["text"])
         except HTTPException:
             raise
         except Exception as e:
             last_error = e
-            logger.warning("Primary AI engine failed: %s", e)
-
-    if groq_api_key:
-        try:
-            result = call_llama()
-            log_ai_usage(db, current_user, success=True, status="ok", provider_used="groq")
-            return _public_result(result["text"])
-        except HTTPException:
-            raise
-        except Exception as e:
-            last_error = e
-            logger.warning("Fallback AI engine failed: %s", e)
+            logger.warning("AI engine %s failed: %s", engine, e)
 
     log_ai_usage(db, current_user, success=False, status="error", provider_used="none")
     logger.error("AI generation failed for %s: %s", current_user, last_error)

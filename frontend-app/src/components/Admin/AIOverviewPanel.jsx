@@ -24,15 +24,21 @@ function formatCompactNumber(value, language) {
   if (!Number.isFinite(number)) return '—';
   if (number >= 1000000) {
     const compact = number / 1000000;
-    const text = Number.isInteger(compact) ? String(compact) : compact.toFixed(1).replace(/\.0$/, '');
+    const text = Number.isInteger(compact)
+      ? String(compact)
+      : compact.toFixed(1).replace(/\.0$/, '');
     return `${text}${language === 'id' ? ' jt' : 'M'}`;
   }
   if (number >= 1000) {
     const compact = number / 1000;
-    const text = Number.isInteger(compact) ? String(compact) : compact.toFixed(1).replace(/\.0$/, '');
+    const text = Number.isInteger(compact)
+      ? String(compact)
+      : compact.toFixed(1).replace(/\.0$/, '');
     return `${text}K`;
   }
-  return new Intl.NumberFormat(language === 'id' ? 'id-ID' : 'en-US').format(number);
+  return new Intl.NumberFormat(language === 'id' ? 'id-ID' : 'en-US').format(
+    number
+  );
 }
 
 function formatOverviewDate(value, language) {
@@ -51,7 +57,7 @@ export default function AIOverviewPanel({ language, showNotification }) {
   const tMsg = (en, id) => (language === 'id' ? id : en);
   const [isLoading, setIsLoading] = useState(true);
   const [overview, setOverview] = useState(null);
-  const [defaultLimit, setDefaultLimit] = useState(15);
+  const [defaultLimit, setDefaultLimit] = useState(20);
   const [isSavingDefault, setIsSavingDefault] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const [overrideDraft, setOverrideDraft] = useState({});
@@ -79,7 +85,7 @@ export default function AIOverviewPanel({ language, showNotification }) {
 
   const applyOverview = (data) => {
     setOverview(data);
-    setDefaultLimit(data?.default_daily_limit ?? 15);
+    setDefaultLimit(data?.default_daily_limit ?? 20);
     const nextDraft = {};
     (data?.users || []).forEach((user) => {
       nextDraft[user.username] =
@@ -243,12 +249,15 @@ export default function AIOverviewPanel({ language, showNotification }) {
   const handleSaveEnginePlan = async (engine, plan) => {
     setSavingEngine(engine);
     try {
-      const res = await axios.put('/api/admin/ai/limits', { engine_plans: { [engine]: plan } });
+      const res = await axios.put('/api/admin/ai/limits', {
+        engine_plans: { [engine]: plan },
+      });
       applyOverview(res.data);
     } catch (err) {
       if (showNotification) {
         showNotification(
-          err.response?.data?.detail || tMsg('Failed to save AI plan', 'Gagal menyimpan plan AI'),
+          err.response?.data?.detail ||
+            tMsg('Failed to save AI plan', 'Gagal menyimpan plan AI'),
           'error'
         );
       }
@@ -267,15 +276,21 @@ export default function AIOverviewPanel({ language, showNotification }) {
 
   const today = overview?.today || {};
   const engines = overview?.engines || {};
+  const capacity = overview?.capacity || {};
   const engineCards = [
     {
-      key: 'gemini',
-      title: 'Gemini',
-      data: engines.gemini || {},
+      key: 'gemini_35',
+      title: engines.gemini_35?.label || 'Gemini 3.5 Flash-Lite',
+      data: engines.gemini_35 || {},
+    },
+    {
+      key: 'gemini_31',
+      title: engines.gemini_31?.label || 'Gemini 3.1 Flash-Lite',
+      data: engines.gemini_31 || {},
     },
     {
       key: 'groq',
-      title: 'Groq',
+      title: engines.groq?.label || 'Groq GPT-OSS 120B',
       data: engines.groq || {},
     },
   ];
@@ -347,82 +362,108 @@ export default function AIOverviewPanel({ language, showNotification }) {
             </span>
           </div>
           <p className='text-[10px] font-bold uppercase tracking-widest text-neutral-400'>
-            {tMsg('Engine usage vs plan quota', 'Pemakaian engine vs kuota plan')}
+            {tMsg(
+              'Engine usage vs plan quota',
+              'Pemakaian engine vs kuota plan'
+            )}
           </p>
         </div>
-        <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
-        {engineCards.map((card) => {
-          const used = card.data.used_today || 0;
-          const unlimited = Boolean(card.data.unlimited);
-          const limit = card.data.rpd;
-          const remaining = unlimited ? null : card.data.remaining;
-          const percent = unlimited || !limit ? 0 : Math.min(100, Math.round((used / limit) * 100));
-          const atLimit = Boolean(card.data.at_limit);
-          const extraLimits = [
-            card.data.rpm ? `${formatCompactNumber(card.data.rpm, language)} RPM` : null,
-            card.data.tpm ? `${formatCompactNumber(card.data.tpm, language)} TPM` : null,
-            card.data.tpd ? `${formatCompactNumber(card.data.tpd, language)} TPD` : null,
-          ].filter(Boolean);
+        {/* {capacity.rpd_total ? (
+          <p className='mb-3 text-xs text-neutral-500 dark:text-neutral-400'>
+            {tMsg(
+              `Fallback order: 3.5 Flash-Lite → 3.1 Flash-Lite → Groq. Combined Free RPD ${formatCompactNumber(capacity.rpd_total, language)} vs ${formatCompactNumber(capacity.app_need_100_users, language)} needed for 100 users × ${overview?.default_daily_limit ?? 20} prompts.`,
+              `Urutan fallback: 3.5 Flash-Lite → 3.1 Flash-Lite → Groq. Gabungan Free RPD ${formatCompactNumber(capacity.rpd_total, language)} vs ${formatCompactNumber(capacity.app_need_100_users, language)} yang dibutuhkan untuk 100 pengguna × ${overview?.default_daily_limit ?? 20} prompt.`
+            )}
+          </p>
+        ) : null} */}
+        <div className='grid grid-cols-1 lg:grid-cols-3 gap-3'>
+          {engineCards.map((card, index) => {
+            const used = card.data.used_today || 0;
+            const unlimited = Boolean(card.data.unlimited);
+            const limit = card.data.rpd;
+            const remaining = unlimited ? null : card.data.remaining;
+            const percent =
+              unlimited || !limit
+                ? 0
+                : Math.min(100, Math.round((used / limit) * 100));
+            const atLimit = Boolean(card.data.at_limit);
+            const extraLimits = [
+              card.data.rpm
+                ? `${formatCompactNumber(card.data.rpm, language)} RPM`
+                : null,
+              card.data.tpm
+                ? `${formatCompactNumber(card.data.tpm, language)} TPM`
+                : null,
+              card.data.tpd
+                ? `${formatCompactNumber(card.data.tpd, language)} TPD`
+                : null,
+            ].filter(Boolean);
 
-          return (
-            <div
-              key={card.key}
-              className='rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-4 sm:p-5'
-            >
-              <div className='flex items-start justify-between gap-3'>
-                <div className='min-w-0'>
-                  <p className='text-[10px] font-black uppercase tracking-widest text-neutral-400'>
-                    {card.title}
-                  </p>
-                  <p className='mt-1 text-xs font-medium text-neutral-500 dark:text-neutral-400 truncate'>
-                    {card.data.model || '—'}
-                  </p>
+            return (
+              <div
+                key={card.key}
+                className='rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-4 sm:p-5'>
+                <div className='flex items-start justify-between gap-3'>
+                  <div className='min-w-0'>
+                    <p className='text-[10px] font-black uppercase tracking-widest text-neutral-400'>
+                      {index + 1}. {card.title}
+                    </p>
+                    <p className='mt-1 text-xs font-medium text-neutral-500 dark:text-neutral-400 truncate'>
+                      {card.data.model || '—'}
+                    </p>
+                  </div>
+                  <select
+                    value={card.data.plan || 'free'}
+                    disabled={savingEngine === card.key}
+                    onChange={(e) =>
+                      handleSaveEnginePlan(card.key, e.target.value)
+                    }
+                    className='shrink-0 py-1.5 px-2 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-lg outline-none text-[10px] font-bold uppercase tracking-widest'>
+                    {(card.data.available_plans || []).map((plan) => (
+                      <option key={plan.id} value={plan.id}>
+                        {plan.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <select
-                  value={card.data.plan || 'free'}
-                  disabled={savingEngine === card.key}
-                  onChange={(e) => handleSaveEnginePlan(card.key, e.target.value)}
-                  className='shrink-0 py-1.5 px-2 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-lg outline-none text-[10px] font-bold uppercase tracking-widest'
-                >
-                  {(card.data.available_plans || []).map((plan) => (
-                    <option key={plan.id} value={plan.id}>
-                      {plan.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <p className='mt-4 text-2xl font-black text-black dark:text-white'>
-                {formatCompactNumber(used, language)}
-                <span className='text-neutral-400 font-semibold text-base'>
-                  {' '}
-                  / {unlimited ? tMsg('unl', 'unl') : formatCompactNumber(limit, language)}
-                </span>
-              </p>
-              <p className='mt-1 text-xs text-neutral-500 dark:text-neutral-400'>
-                {unlimited
-                  ? tMsg('No daily request cap on this plan.', 'Tidak ada batas request harian di plan ini.')
-                  : tMsg(
-                      `${formatCompactNumber(remaining, language)} requests left today`,
-                      `${formatCompactNumber(remaining, language)} request tersisa hari ini`
-                    )}
-              </p>
-              <div className='mt-3 h-2 rounded-full bg-neutral-100 dark:bg-neutral-900 overflow-hidden'>
-                <div
-                  className={`h-full rounded-full transition-all ${
-                    atLimit ? 'bg-amber-500' : 'bg-indigo-500'
-                  }`}
-                  style={{ width: unlimited ? '0%' : `${percent}%` }}
-                />
-              </div>
-              {extraLimits.length > 0 ? (
-                <p className='mt-3 text-[10px] font-bold uppercase tracking-widest text-neutral-400'>
-                  {extraLimits.join(' · ')}
+                <p className='mt-4 text-2xl font-black text-black dark:text-white'>
+                  {formatCompactNumber(used, language)}
+                  <span className='text-neutral-400 font-semibold text-base'>
+                    {' '}
+                    /{' '}
+                    {unlimited
+                      ? tMsg('unl', 'unl')
+                      : formatCompactNumber(limit, language)}
+                  </span>
                 </p>
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
+                <p className='mt-1 text-xs text-neutral-500 dark:text-neutral-400'>
+                  {unlimited
+                    ? tMsg(
+                        'No daily request cap on this plan.',
+                        'Tidak ada batas request harian di plan ini.'
+                      )
+                    : tMsg(
+                        `${formatCompactNumber(remaining, language)} requests left today`,
+                        `${formatCompactNumber(remaining, language)} request tersisa hari ini`
+                      )}
+                </p>
+                <div className='mt-3 h-2 rounded-full bg-neutral-100 dark:bg-neutral-900 overflow-hidden'>
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      atLimit ? 'bg-amber-500' : 'bg-indigo-500'
+                    }`}
+                    style={{ width: unlimited ? '0%' : `${percent}%` }}
+                  />
+                </div>
+                {extraLimits.length > 0 ? (
+                  <p className='mt-3 text-[10px] font-bold uppercase tracking-widest text-neutral-400'>
+                    {extraLimits.join(' · ')}
+                  </p>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <div className='rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-4 sm:p-5'>
@@ -535,7 +576,7 @@ export default function AIOverviewPanel({ language, showNotification }) {
                         type='number'
                         min='0'
                         placeholder={String(
-                          overview?.default_daily_limit ?? 15
+                          overview?.default_daily_limit ?? 20
                         )}
                         value={overrideDraft[user.username] ?? ''}
                         onChange={(e) =>
