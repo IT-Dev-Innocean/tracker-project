@@ -1148,18 +1148,17 @@ def toggle_team_done(
     is_admin = is_task_admin(db, task, current_user) or current_user in get_assignees(
         task.requester
     )
+    assignees = {
+        str(st.assignee).lower()
+        for st in items
+        if st.assignee
+    }
     if not is_admin:
-        allowed = [
-            st
-            for st in items
-            if not st.assignee or str(st.assignee) == current_user
-        ]
-        if not allowed:
+        if assignees and current_user.lower() not in assignees:
             raise HTTPException(
                 status_code=403,
                 detail="Permission Denied: Cannot complete a team assigned to someone else.",
             )
-        items = allowed
 
     new_status = 1 if payload.is_done else 0
     team_started = any(int(getattr(st, "is_started", 0) or 0) == 1 for st in items)

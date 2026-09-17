@@ -3271,9 +3271,14 @@ export default function useAppLogic() {
 
   const handleToggleTeamGroup = (items) => {
     if (!items?.length || !selectedTask?.id) return;
-    const allDone = items.every((st) => st.is_done === 1);
+    const teamKey = String(items[0].task_name || '').trim().toLowerCase();
+    const teamItems = (subtasks || []).filter(
+      (st) => String(st.task_name || '').trim().toLowerCase() === teamKey
+    );
+    const group = teamItems.length > 0 ? teamItems : items;
+    const allDone = group.every((st) => st.is_done === 1);
     const newStatus = allDone ? 0 : 1;
-    const isStarted = items.some((st) => Number(st.is_started) === 1);
+    const isStarted = group.some((st) => Number(st.is_started) === 1);
     if (newStatus === 1 && !isStarted) {
       showNotification(
         tMsg(
@@ -3285,7 +3290,7 @@ export default function useAppLogic() {
       return;
     }
     const prevSubtasks = subtasks;
-    const ids = new Set(items.map((st) => st.id));
+    const ids = new Set(group.map((st) => st.id));
     setSubtasks((prev) =>
       prev.map((st) =>
         ids.has(st.id)
@@ -3295,7 +3300,7 @@ export default function useAppLogic() {
     );
     axios
       .put(`/api/tasks/${selectedTask.id}/teams/toggle-done`, {
-        team_name: items[0].task_name || '',
+        team_name: group[0].task_name || items[0].task_name || '',
         is_done: newStatus,
       })
       .then((res) => {
