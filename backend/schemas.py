@@ -4,6 +4,19 @@ from typing import List, Optional, Dict, Any
 class AIGenerateModel(BaseModel):
     prompt: str
     provider: Optional[str] = "auto"
+    language: Optional[str] = "en"
+
+
+class AIConversationCreateModel(BaseModel):
+    title: Optional[str] = None
+    messages: Optional[List[Any]] = None
+    state: Optional[Dict[str, Any]] = None
+
+
+class AIConversationUpdateModel(BaseModel):
+    title: Optional[str] = None
+    messages: Optional[List[Any]] = None
+    state: Optional[Dict[str, Any]] = None
 
 
 class RequestFormModel(BaseModel):
@@ -194,6 +207,12 @@ class SudoVerifyModel(BaseModel):
 
 class FeatureFlagsUpdateModel(BaseModel):
     flags: dict
+
+
+class AILimitsUpdateModel(BaseModel):
+    default_daily_limit: Optional[int] = None
+    user_limits: Optional[Dict[str, Optional[int]]] = None
+    engine_plans: Optional[Dict[str, str]] = None
 
 
 class AutoNudgeToggleModel(BaseModel):

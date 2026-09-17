@@ -13,6 +13,12 @@ axios.interceptors.response.clear();
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem('innocean_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  const url = String(config.url || '');
+  if (url.includes('/api/ai/generate') && config.data && typeof config.data === 'object') {
+    if (!config.data.language) {
+      config.data.language = localStorage.getItem('innocean_lang') === 'id' ? 'id' : 'en';
+    }
+  }
   return config;
 });
 

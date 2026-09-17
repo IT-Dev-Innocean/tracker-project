@@ -418,7 +418,7 @@ export default function TopHeaderBar() {
                     }}
                     disabled={accountStatus === 'suspended'}
                     className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                    <Icon name='sparkles' className='w-4 h-4' />{' '}
+                    <Icon iconify='carbon:ai-agent' className='w-4 h-4' />{' '}
                     {tMsg('Smart Assistant', 'Asisten Pintar AI')}
                   </button>
                 )}

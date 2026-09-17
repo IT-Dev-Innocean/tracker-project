@@ -533,7 +533,9 @@ export default function AnalyticsView({
       setAiInsight(
         errorDetail
           ? `⚠️ AI Error: ${errorDetail}`
-          : '⚠️ Failed to reach Gemini AI. Please ensure your Admin has configured the GEMINI_API_KEY in the server.'
+          : language === 'id'
+            ? '⚠️ Smart Assistant sedang tidak tersedia. Silakan coba lagi nanti atau hubungi administrator.'
+            : '⚠️ Smart Assistant is currently unavailable. Please try again later or contact an administrator.'
       );
     } finally {
       setIsGeneratingAi(false);
