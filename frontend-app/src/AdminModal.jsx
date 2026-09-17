@@ -10,6 +10,7 @@ import {
   applyServerFeatureFlags,
   resetFeatureFlagsToDefault,
 } from './featureFlags';
+import AIOverviewPanel from './components/Admin/AIOverviewPanel';
 
 export default function AdminModal({
   adminUsers,
@@ -295,6 +296,16 @@ export default function AdminModal({
               }`}
             >
               {tMsg('Feature Flags', 'Feature Flags')}
+            </button>
+            <button
+              onClick={() => setActiveTab('ai-overview')}
+              className={`shrink-0 pb-2 text-sm font-medium transition-colors ${
+                activeTab === 'ai-overview'
+                  ? 'border-b-2 border-black dark:border-white text-black dark:text-white font-bold'
+                  : 'text-neutral-400 hover:text-black dark:hover:text-white'
+              }`}
+            >
+              {tMsg('AI Overview', 'AI Overview')}
             </button>
             <button
               onClick={() => setActiveTab('approvers')}
@@ -1318,6 +1329,8 @@ export default function AdminModal({
               </button>
             </div>
           </div>
+        ) : activeTab === 'ai-overview' ? (
+          <AIOverviewPanel language={language} showNotification={showNotification} />
         ) : null}
       </div>
 

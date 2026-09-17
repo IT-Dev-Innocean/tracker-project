@@ -1,6 +1,7 @@
 import React from 'react';
 import { Icon } from '../icons/Icon';
 import { useFeatureFlags } from '../../featureFlags';
+import AssistantWelcome from './AssistantWelcome';
 
 export default function SmartAssistantLanding({
   currentUser,
@@ -18,23 +19,9 @@ export default function SmartAssistantLanding({
 
   return (
     <div className="flex-1 flex flex-col w-full h-full bg-white dark:bg-neutral-950 relative z-20 items-center justify-center p-6 text-center">
-      <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg mac-animate">
-        <Icon name="sparkles" className="w-8 h-8" />
-      </div>
-      <h2
-        className="text-2xl font-black text-black dark:text-white mb-2 mac-animate"
-        style={{ animationDelay: '100ms' }}
-      >
-        {tMsg('Hello', 'Halo')} @{currentUser}
-      </h2>
-      <p
-        className="text-sm text-neutral-500 font-medium mb-10 max-w-xs mx-auto mac-animate"
-        style={{ animationDelay: '150ms' }}
-      >
-        {tMsg('What would you like to do today?', 'Apa yang ingin Anda lakukan hari ini?')}
-      </p>
+      <AssistantWelcome currentUser={currentUser} tMsg={tMsg} />
 
-      <div className="flex flex-col gap-4 w-full max-w-sm mac-animate" style={{ animationDelay: '200ms' }}>
+      <div className="flex flex-col gap-4 w-full max-w-sm mac-animate mt-6" style={{ animationDelay: '200ms' }}>
         {SMART_ASSISTANT_QUICK_TODO_ENABLED && (
           <button
             onClick={() => setAssistantMode('quick_todo')}

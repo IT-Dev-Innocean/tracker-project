@@ -4,7 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import bcrypt
 import json
-from sqlalchemy import create_engine, Column, Integer, String, Text, text, DateTime, Boolean, Float
+from sqlalchemy import create_engine, Column, Integer, String, Text, text, DateTime, Boolean, Float, Index
 from datetime import datetime
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -210,6 +210,33 @@ class SecurityLog(Base):
     key = Column(String(255), primary_key=True, index=True)
     value = Column(Text, nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class AIUsageLog(Base):
+    __tablename__ = "ai_usage_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    success = Column(Integer, default=0)
+    status = Column(String(20), default="ok")  # ok | limit | error
+    provider_used = Column(String(20), nullable=True)  # gemini | groq | none
+    __table_args__ = (
+        Index("ix_ai_usage_logs_username_created_at", "username", "created_at"),
+    )
+
+
+class AIConversation(Base):
+    __tablename__ = "ai_conversations"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), index=True, nullable=False)
+    title = Column(String(120), nullable=False, default="New chat")
+    messages = Column(Text, nullable=True)
+    state = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, index=True)
+    __table_args__ = (
+        Index("ix_ai_conversations_username_updated_at", "username", "updated_at"),
+    )
 
 
 def get_security_log(db, key: str, default_value=None):
