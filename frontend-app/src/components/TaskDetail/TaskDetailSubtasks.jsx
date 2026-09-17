@@ -235,13 +235,16 @@ export default function TaskDetailSubtasks({
             const allDone =
               items.length > 0 && items.every((st) => st.is_done === 1);
             const isStarted = items.some((st) => Number(st.is_started) === 1);
+            const currentUserLc = String(currentUser || '').toLowerCase();
+            const assignedUsernames = assignees.map((u) =>
+              String(u).toLowerCase()
+            );
+            const isAssignedToTeam =
+              assignedUsernames.length === 0 ||
+              assignedUsernames.includes(currentUserLc);
             const canToggle =
               isStarted &&
-              (isTaskAdmin ||
-                (!isSystemTicket &&
-                  items.some(
-                    (st) => !st.assignee || st.assignee === currentUser
-                  )));
+              (isTaskAdmin || (!isSystemTicket && isAssignedToTeam));
             const nameValue =
               draftNames[key] !== undefined ? draftNames[key] : teamName;
             const anyDone = items.some((st) => st.is_done === 1);
@@ -262,18 +265,11 @@ export default function TaskDetailSubtasks({
                     checked={allDone}
                     disabled={!canToggle || accountStatus === 'suspended'}
                     onChange={() => {
-                      if (!isStarted) return;
-                      const toggleable = items.filter(
-                        (st) =>
-                          isTaskAdmin ||
-                          (!isSystemTicket &&
-                            (!st.assignee || st.assignee === currentUser))
-                      );
-                      if (!toggleable.length) return;
+                      if (!isStarted || !canToggle) return;
                       if (handleToggleTeamGroup) {
-                        handleToggleTeamGroup(toggleable);
+                        handleToggleTeamGroup(items);
                       } else {
-                        toggleable.forEach((st) =>
+                        items.forEach((st) =>
                           handleToggleSubtask?.(
                             st.id,
                             st.is_done,
