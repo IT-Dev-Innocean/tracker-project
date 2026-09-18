@@ -41,6 +41,15 @@ function formatCompactNumber(value, language) {
   );
 }
 
+function formatUsd(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return '$0.00';
+  return `$${number.toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 function formatOverviewDate(value, language) {
   if (!value) return '—';
   const date = new Date(`${value}T00:00:00+07:00`);
@@ -57,7 +66,7 @@ export default function AIOverviewPanel({ language, showNotification }) {
   const tMsg = (en, id) => (language === 'id' ? id : en);
   const [isLoading, setIsLoading] = useState(true);
   const [overview, setOverview] = useState(null);
-  const [defaultLimit, setDefaultLimit] = useState(20);
+  const [defaultLimit, setDefaultLimit] = useState(15);
   const [isSavingDefault, setIsSavingDefault] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const [overrideDraft, setOverrideDraft] = useState({});
@@ -85,7 +94,7 @@ export default function AIOverviewPanel({ language, showNotification }) {
 
   const applyOverview = (data) => {
     setOverview(data);
-    setDefaultLimit(data?.default_daily_limit ?? 20);
+    setDefaultLimit(data?.default_daily_limit ?? 15);
     const nextDraft = {};
     (data?.users || []).forEach((user) => {
       nextDraft[user.username] =
@@ -154,12 +163,13 @@ export default function AIOverviewPanel({ language, showNotification }) {
 
   const handleSaveDefault = async () => {
     const parsed = Number.parseInt(String(defaultLimit), 10);
-    if (Number.isNaN(parsed) || parsed < 0) {
+    const maxLimit = overview?.max_daily_limit ?? 20;
+    if (Number.isNaN(parsed) || parsed < 1 || parsed > maxLimit) {
       if (showNotification) {
         showNotification(
           tMsg(
-            'Default limit must be 0 or higher',
-            'Limit default harus 0 atau lebih'
+            `Default limit must be between 1 and ${maxLimit}`,
+            `Limit default harus antara 1 dan ${maxLimit}`
           ),
           'error'
         );
@@ -199,12 +209,13 @@ export default function AIOverviewPanel({ language, showNotification }) {
     let value = null;
     if (raw !== '') {
       const parsed = Number.parseInt(raw, 10);
-      if (Number.isNaN(parsed) || parsed < 0) {
+      const maxLimit = overview?.max_daily_limit ?? 20;
+      if (Number.isNaN(parsed) || parsed < 1 || parsed > maxLimit) {
         if (showNotification) {
           showNotification(
             tMsg(
-              'User limit must be 0 or higher',
-              'Limit pengguna harus 0 atau lebih'
+              `User limit must be between 1 and ${maxLimit}`,
+              `Limit pengguna harus antara 1 dan ${maxLimit}`
             ),
             'error'
           );
@@ -277,6 +288,25 @@ export default function AIOverviewPanel({ language, showNotification }) {
   const today = overview?.today || {};
   const engines = overview?.engines || {};
   const capacity = overview?.capacity || {};
+  const groqBudget = overview?.groq_budget || {};
+  const geminiInfo = overview?.gemini || {};
+  const providerDist = overview?.provider_distribution || {};
+  const taskDist = today.by_task_type || {};
+  const groqThreshold = groqBudget.threshold || 'ok';
+  const groqPercent = Math.min(
+    100,
+    Math.round((Number(groqBudget.usage_ratio) || 0) * 1000) / 10
+  );
+  const groqBarClass =
+    groqThreshold === 'hard_limit'
+      ? 'bg-red-500'
+      : groqThreshold === 'critical'
+        ? 'bg-orange-500'
+        : groqThreshold === 'high'
+          ? 'bg-amber-500'
+          : groqThreshold === 'warning'
+            ? 'bg-yellow-400'
+            : 'bg-indigo-500';
   const engineCardMeta = {
     groq: 'Groq GPT-OSS 120B',
     gemini_35: 'Gemini 3.5 Flash-Lite',
@@ -285,7 +315,7 @@ export default function AIOverviewPanel({ language, showNotification }) {
   const engineOrder = (capacity.order || []).filter((key) => engineCardMeta[key]);
   const engineCards = (engineOrder.length
     ? engineOrder
-    : ['groq', 'gemini_35', 'gemini_31']
+    : ['gemini_31', 'gemini_35', 'groq']
   ).map((key) => ({
     key,
     title: engines[key]?.label || engineCardMeta[key],
@@ -306,8 +336,8 @@ export default function AIOverviewPanel({ language, showNotification }) {
             </h3>
             <p className='mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed'>
               {tMsg(
-                'Monitor Smart Assistant usage for today (WIB) and set a daily prompt limit per user. 0 means unlimited.',
-                'Pantau pemakaian Smart Assistant hari ini (WIB) dan atur limit prompt harian per pengguna. 0 berarti tanpa batas.'
+                'Monitor Smart Assistant usage for today (WIB), Groq monthly spend, and per-user prompt limits. Default is 15 prompts/day. Maximum configurable limit is 20.',
+                'Pantau pemakaian Smart Assistant hari ini (WIB), belanja Groq bulanan, dan limit prompt per pengguna. Default 15 prompt/hari. Limit maksimum yang dapat diatur adalah 20.'
               )}
             </p>
           </div>
@@ -346,6 +376,137 @@ export default function AIOverviewPanel({ language, showNotification }) {
             </p>
           </div>
         ))}
+      </div>
+
+      <div className='rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-4 sm:p-5'>
+        <div className='flex items-start justify-between gap-3 flex-wrap'>
+          <div>
+            <h4 className='text-xs font-black uppercase tracking-wider text-black dark:text-white'>
+              {tMsg('Groq usage', 'Pemakaian Groq')}
+            </h4>
+            <p className='mt-1 text-xs text-neutral-500 dark:text-neutral-400'>
+              {tMsg(
+                `GPT-OSS 120B estimated spend for ${groqBudget.month || tMsg('this month', 'bulan ini')}. Pay-as-you-go — not a fixed subscription.`,
+                `Estimasi belanja GPT-OSS 120B untuk ${groqBudget.month || tMsg('this month', 'bulan ini')}. Pay-as-you-go — bukan langganan tetap.`
+              )}
+            </p>
+          </div>
+          <span
+            className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${
+              groqThreshold === 'ok'
+                ? 'bg-neutral-100 dark:bg-neutral-900 text-neutral-500'
+                : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-400'
+            }`}>
+            {groqThreshold === 'hard_limit'
+              ? tMsg('Hard limit', 'Batas keras')
+              : groqThreshold === 'critical'
+                ? tMsg('Critical 90%+', 'Kritis 90%+')
+                : groqThreshold === 'high'
+                  ? tMsg('High 75%+', 'Tinggi 75%+')
+                  : groqThreshold === 'warning'
+                    ? tMsg('Warning 50%+', 'Peringatan 50%+')
+                    : tMsg('Healthy', 'Aman')}
+          </span>
+        </div>
+        <div className='mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3'>
+          {[
+            {
+              label: tMsg('Estimated spend', 'Estimasi belanja'),
+              value: formatUsd(groqBudget.spent_usd),
+            },
+            {
+              label: tMsg('Monthly budget', 'Anggaran bulanan'),
+              value: formatUsd(groqBudget.monthly_budget_usd),
+            },
+            {
+              label: tMsg('Remaining', 'Sisa'),
+              value: formatUsd(groqBudget.remaining_usd),
+            },
+            {
+              label: tMsg('Usage', 'Pemakaian'),
+              value: `${groqPercent}%`,
+            },
+          ].map((item) => (
+            <div key={item.label}>
+              <p className='text-[10px] font-black uppercase tracking-widest text-neutral-400'>
+                {item.label}
+              </p>
+              <p className='mt-1 text-lg font-black text-black dark:text-white'>
+                {item.value}
+              </p>
+            </div>
+          ))}
+        </div>
+        <div className='mt-3 h-2 rounded-full bg-neutral-100 dark:bg-neutral-900 overflow-hidden'>
+          <div
+            className={`h-full rounded-full transition-all ${groqBarClass}`}
+            style={{ width: `${Math.min(100, groqPercent)}%` }}
+          />
+        </div>
+      </div>
+
+      <div className='grid grid-cols-1 lg:grid-cols-2 gap-3'>
+        <div className='rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-4 sm:p-5'>
+          <h4 className='text-xs font-black uppercase tracking-wider text-black dark:text-white'>
+            {tMsg('Provider usage', 'Pemakaian provider')}
+          </h4>
+          <p className='mt-3 text-sm font-bold text-black dark:text-white'>
+            Gemini {providerDist.gemini || 0}%
+            <span className='text-neutral-400 font-medium'>
+              {' '}
+              · {providerDist.gemini_count || 0}
+            </span>
+          </p>
+          <p className='mt-1 text-sm font-bold text-black dark:text-white'>
+            Groq {providerDist.groq || 0}%
+            <span className='text-neutral-400 font-medium'>
+              {' '}
+              · {providerDist.groq_count || 0}
+            </span>
+          </p>
+          <p className='mt-3 text-xs text-neutral-500 dark:text-neutral-400'>
+            {tMsg(
+              `Gemini requests today: ${geminiInfo.used_today || 0}${
+                geminiInfo.rpd_total
+                  ? ` / ${geminiInfo.rpd_total} documented daily quota`
+                  : ''
+              }. ${geminiInfo.quota_note || 'Subject to provider quota and rate limits.'}`,
+              `Request Gemini hari ini: ${geminiInfo.used_today || 0}${
+                geminiInfo.rpd_total
+                  ? ` / ${geminiInfo.rpd_total} kuota harian terdokumentasi`
+                  : ''
+              }. Kuota Gemini tetap terbatas oleh provider.`
+            )}
+          </p>
+          <p className='mt-2 text-[10px] font-bold uppercase tracking-widest text-neutral-400'>
+            {tMsg('Errors', 'Error')} {today.errors || 0}
+            {' · '}
+            {tMsg('Rate limits', 'Rate limit')} {today.rate_limits || 0}
+          </p>
+        </div>
+        <div className='rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-4 sm:p-5'>
+          <h4 className='text-xs font-black uppercase tracking-wider text-black dark:text-white'>
+            {tMsg('Task distribution', 'Distribusi tugas')}
+          </h4>
+          <div className='mt-3 space-y-2'>
+            {Object.keys(taskDist).length === 0 ? (
+              <p className='text-xs text-neutral-500'>
+                {tMsg('No AI task types recorded today.', 'Belum ada tipe tugas AI hari ini.')}
+              </p>
+            ) : (
+              Object.entries(taskDist)
+                .sort((a, b) => Number(b[1]) - Number(a[1]))
+                .map(([name, count]) => (
+                  <div key={name} className='flex items-center justify-between gap-3'>
+                    <p className='text-xs font-semibold text-black dark:text-white truncate'>
+                      {String(name).replace(/_/g, ' ')}
+                    </p>
+                    <p className='text-xs font-black text-neutral-500'>{count}</p>
+                  </div>
+                ))
+            )}
+          </div>
+        </div>
       </div>
 
       <div>
@@ -469,14 +630,15 @@ export default function AIOverviewPanel({ language, showNotification }) {
         </h4>
         <p className='mt-1 text-xs text-neutral-500 dark:text-neutral-400'>
           {tMsg(
-            'Applies to users without a custom override. Use 0 for unlimited.',
-            'Berlaku untuk pengguna tanpa override. Gunakan 0 untuk tanpa batas.'
+            'Applies to users without a custom override. Allowed range: 1–20.',
+            'Berlaku untuk pengguna tanpa override. Rentang yang diizinkan: 1–20.'
           )}
         </p>
         <div className='mt-3 flex flex-col sm:flex-row gap-3 sm:items-center'>
           <input
             type='number'
-            min='0'
+            min='1'
+            max={overview?.max_daily_limit ?? 20}
             value={defaultLimit}
             onChange={(e) => setDefaultLimit(e.target.value)}
             className='w-full sm:w-40 px-4 py-2.5 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-xl focus:border-indigo-500 focus:bg-white dark:focus:bg-black outline-none text-sm font-medium'
@@ -571,9 +733,10 @@ export default function AIOverviewPanel({ language, showNotification }) {
                     <div className='flex items-center gap-2'>
                       <input
                         type='number'
-                        min='0'
+                        min='1'
+                        max={overview?.max_daily_limit ?? 20}
                         placeholder={String(
-                          overview?.default_daily_limit ?? 20
+                          overview?.default_daily_limit ?? 15
                         )}
                         value={overrideDraft[user.username] ?? ''}
                         onChange={(e) =>

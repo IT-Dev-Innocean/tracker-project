@@ -5,6 +5,8 @@ class AIGenerateModel(BaseModel):
     prompt: str
     provider: Optional[str] = "auto"
     language: Optional[str] = "en"
+    task_type: Optional[str] = None
+    request_id: Optional[str] = None
 
 
 class AIConversationCreateModel(BaseModel):

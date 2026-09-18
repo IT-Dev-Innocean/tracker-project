@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import SmartAssistantLanding from './components/SmartAssistant/SmartAssistantLanding';
 import SmartAssistantQuickTodo from './components/SmartAssistant/SmartAssistantQuickTodo';
@@ -11,6 +11,33 @@ import { useFeatureFlags } from './featureFlags';
 import { resolveAssistantLanguage } from './utils/assistantLanguage';
 import { useAssistantConversations } from './hooks/useAssistantConversations';
 import { buildAssistantRecommendations } from './utils/assistantRecommendations';
+import { generateAI, fetchAIUsage, AI_TASK_TYPES } from './api/aiClient';
+
+const MAX_AI_CONTEXT_TASKS = 80;
+
+function compactTaskForAI(task, boardMap) {
+  const subtasks = (task.subtasks || []).slice(0, 8).map((st) => ({
+    title: st.task_name,
+    assignee: st.assignee || null,
+    done: !!st.is_done,
+  }));
+  return {
+    id: task.id,
+    title: task.task_name,
+    status: task.status,
+    assignee: task.main_assignee || task.requester || null,
+    deadline: task.deadline,
+    project: boardMap[String(task.board_id)] || task.board_name || null,
+    ...(subtasks.length ? { subtasks } : {}),
+  };
+}
+
+function prioritizeTasksForAI(tasks) {
+  const list = Array.isArray(tasks) ? tasks : [];
+  const open = list.filter((t) => String(t.status || '').toLowerCase() !== 'done');
+  const done = list.filter((t) => String(t.status || '').toLowerCase() === 'done');
+  return [...open, ...done].slice(0, MAX_AI_CONTEXT_TASKS);
+}
 
 export default function SmartAssistant({
   currentUser,
@@ -59,9 +86,17 @@ export default function SmartAssistant({
   const [dbProjects, setDbProjects] = useState([]);
   const [dbUsers, setDbUsers] = useState([]);
   const [dbLeaves, setDbLeaves] = useState([]);
+  const [aiUsage, setAiUsage] = useState(null);
+
+  const loadAiUsage = useCallback(() => {
+    fetchAIUsage(language)
+      .then((res) => setAiUsage(res.data))
+      .catch(() => {});
+  }, [language]);
 
   useEffect(() => {
     if (isOpen) {
+      loadAiUsage();
       Promise.allSettled([
         axios.get('/api/boards'),
         axios.get('/api/tasks/all'),
@@ -91,7 +126,20 @@ export default function SmartAssistant({
         }
       });
     }
-  }, [isOpen]);
+  }, [isOpen, loadAiUsage]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onUsage = (event) => {
+      if (event?.detail) {
+        setAiUsage(event.detail);
+        return;
+      }
+      loadAiUsage();
+    };
+    window.addEventListener('ai_usage_updated', onUsage);
+    return () => window.removeEventListener('ai_usage_updated', onUsage);
+  }, [isOpen, loadAiUsage]);
 
   const hasSubFeatures =
     SMART_ASSISTANT_QUICK_TODO_ENABLED ||
@@ -554,14 +602,15 @@ Use this exact array format:
 Meeting Notes:
 ${Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n\n') : taskData.raw_notes}`;
 
-        axios
-          .post('/api/ai/generate', {
-            prompt,
-            provider: 'auto',
+        generateAI(
+          prompt,
+          AI_TASK_TYPES.MULTI_TASK_REASONING,
+          {
             language: aiLanguage(
               Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n') : taskData.raw_notes
             ),
-          })
+          }
+        )
           .then((res) => {
             setMessages((prev) => prev.filter((m) => !m.text.includes('⏳')));
             try {
@@ -1074,7 +1123,7 @@ ${Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n\n') : taskData
               )}. Write a 3 sentence professional and insightful summary directly addressing the user "@${currentUser}". You can use markdown bold. Include emojis. Please respond strictly in ${
                 language === 'id' ? 'Indonesian' : 'English'
               }.`;
-              const res = await axios.post('/api/ai/generate', { prompt, provider: 'auto', language: aiLanguage() });
+              const res = await generateAI(prompt, AI_TASK_TYPES.PROJECT_ANALYSIS, { language: aiLanguage() });
 
               addBotMessage(
                 `📊 **${workspaceName} ${lblQuickAnalysis}**\n\n` +
@@ -1243,42 +1292,30 @@ ${Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n\n') : taskData
           });
 
           const myProjects = sourceProjects.map((b) => ({
-            project_name: b.name,
-            project_owner: b.owner_username || b.owner || 'N/A',
-            project_code: b.project_number || b.id,
+            name: b.name,
+            owner: b.owner_username || b.owner || null,
+            code: b.project_number || b.id,
           }));
 
-          const taskSummaryList = myTasks.map((t) => ({
-            title: t.task_name,
-            project_name: boardMap[String(t.board_id)] || t.board_name || 'Global',
-            category: t.category,
-            status: t.status,
-            priority: t.priority_lvl || 'medium',
-            created_or_requested_by: t.requester || t.main_assignee || 'N/A', // Creator/Requester (Does not do the work)
-            supervisors_knowing: Array.isArray(t.head_of_project) ? t.head_of_project.join(', ') : (t.head_of_project || 'N/A'), // Supervisors knowing about the task
-            rc_monitoring_team: Array.isArray(t.rc_team) ? t.rc_team.join(', ') : (t.rc_team || 'N/A'), // PIC Monitoring team
-            start_date: t.start_date || t.timestamp,
-            deadline: t.deadline,
-            is_done: t.status === 'Done',
-            assigned_doers_in_subtasks: (t.subtasks && t.subtasks.length > 0)
-              ? t.subtasks.map((st) => ({
-                  subtask_title: st.task_name,
-                  doer_assigned: st.assignee || 'Unassigned',
-                  department: st.department || 'N/A',
-                  is_done: !!st.is_done,
-                }))
-              : (t.subtask_assignees || t.subtask_details || 'None'),
+          const taskSummaryList = prioritizeTasksForAI(myTasks).map((t) =>
+            compactTaskForAI(t, boardMap)
+          );
+
+          const leaveSummary = myLeaves.slice(0, 40).map((l) => ({
+            type: l.leave_type || l.type || 'Leave',
+            start: l.start_date || l.date,
+            end: l.end_date || l.date,
           }));
 
           dbContextSummary = `
 USER ROLE: Staff (@${currentUser})
 ROLE SECURITY BOUNDARY: You MUST ONLY provide information about @${currentUser}'s own assigned tasks and leave records. Do NOT leak private details of other employees or unassigned projects.
 
-1. DATABASE - MY TASKS (${taskSummaryList.length} total):
+1. DATABASE - MY TASKS (${taskSummaryList.length} shown):
 ${JSON.stringify(taskSummaryList)}
 
-2. DATABASE - MY LEAVE RECORDS (${myLeaves.length} total):
-${JSON.stringify(myLeaves)}
+2. DATABASE - MY LEAVE RECORDS (${leaveSummary.length} shown):
+${JSON.stringify(leaveSummary)}
 
 3. DATABASE - ACCESSIBLE PROJECTS:
 ${JSON.stringify(myProjects)}
@@ -1288,54 +1325,33 @@ ${JSON.stringify(myProjects)}
           const projectsSummary = sourceProjects.map((b) => ({
             id: b.id,
             name: b.name,
-            owner: b.owner_username || b.owner || 'N/A',
-            project_code: b.project_number || b.id,
-            is_archived: !!b.deletion_date,
+            owner: b.owner_username || b.owner || null,
+            code: b.project_number || b.id,
           }));
 
-          const clientsSummary = sourceClients.map((c) => ({
-            client_name: c.client_name || c.name,
-            client_code: c.client_code || c.code,
+          const clientsSummary = sourceClients.slice(0, 80).map((c) => ({
+            name: c.client_name || c.name,
+            code: c.client_code || c.code,
             status: c.status || 'active',
           }));
 
-          const teamsSummary = sourceUsers.map((u) => ({
+          const teamsSummary = sourceUsers.slice(0, 120).map((u) => ({
             username: u.username,
-            full_name: u.full_name,
+            name: u.full_name,
             role: u.role,
-            job_position: u.job_position || u.position || u.title || 'N/A', // Job Position / Jabatan
-            department: u.department || u.division_name || u.division || 'N/A', // Department / Divisi
-            is_active: u.status !== 'suspended',
+            dept: u.department || u.division_name || u.division || null,
           }));
 
-          const leavesSummary = sourceLeaves.map((l) => ({
+          const leavesSummary = sourceLeaves.slice(0, 80).map((l) => ({
             user: l.username || l.user,
             type: l.leave_type || l.type || 'Leave',
-            start_date: l.start_date || l.date,
-            end_date: l.end_date || l.date,
-            reason: l.reason || l.description,
-            status: l.status || 'Approved',
+            start: l.start_date || l.date,
+            end: l.end_date || l.date,
           }));
 
-          const allTasksSummary = sourceTasks.map((t) => ({
-            title: t.task_name,
-            project_name: boardMap[String(t.board_id)] || t.board_name || 'Global',
-            status: t.status,
-            category: t.category,
-            priority: t.priority_lvl || 'medium',
-            created_or_requested_by: t.requester || t.main_assignee || 'N/A', // Creator (Not worker)
-            supervisors_knowing: Array.isArray(t.head_of_project) ? t.head_of_project.join(', ') : (t.head_of_project || 'N/A'), // Supervisors knowing about the task
-            rc_monitoring_team: Array.isArray(t.rc_team) ? t.rc_team.join(', ') : (t.rc_team || 'N/A'), // PIC Monitoring team
-            deadline: t.deadline,
-            assigned_doers_in_subtasks: (t.subtasks && t.subtasks.length > 0)
-              ? t.subtasks.map((st) => ({
-                  subtask_title: st.task_name,
-                  doer_assigned: st.assignee || 'Unassigned',
-                  department: st.department || 'N/A',
-                  is_done: !!st.is_done,
-                }))
-              : (t.subtask_assignees || t.subtask_details || 'None'),
-          }));
+          const allTasksSummary = prioritizeTasksForAI(sourceTasks).map((t) =>
+            compactTaskForAI(t, boardMap)
+          );
 
           dbContextSummary = `
 USER ROLE: Manager / Admin / Owner / BOD (@${currentUser})
@@ -1353,7 +1369,7 @@ ${JSON.stringify(teamsSummary)}
 4. DATABASE - LEAVE TEAMS PAGE (${leavesSummary.length} leave records):
 ${JSON.stringify(leavesSummary)}
 
-5. DATABASE - TASKS SUMMARY FOR ALL PROJECTS (${allTasksSummary.length} total tasks):
+5. DATABASE - TASKS SUMMARY FOR ALL PROJECTS (${allTasksSummary.length} shown):
 ${JSON.stringify(allTasksSummary)}
 `;
         }
@@ -1405,8 +1421,7 @@ CRITICAL RULES:
    - If User Role is Manager/Admin/Owner/BOD, provide comprehensive project insights, team workloads, project health, or performance summaries as requested.
 5. Language: Respond in the exact language used by the user (Indonesian/English). Keep answers warm, professional, clear, and formatted in markdown.`;
 
-        axios
-          .post('/api/ai/generate', { prompt, provider: 'auto', language: aiLanguage(data) })
+        generateAI(prompt, AI_TASK_TYPES.AI_AGENT, { language: aiLanguage(data) })
           .then((res) => {
             setMessages((prev) => prev.filter((m) => m.text !== tMsg('Thinking... 🤔', 'Berpikir... 🤔')));
             const replyText = (res.data?.text || '').trim();
@@ -1483,7 +1498,7 @@ CRITICAL RULES:
           const prompt = `You are a professional Project Manager AI. Please organize the following raw meeting notes into a structured Minutes of Meeting (MoM) in the same language as the notes provided. Include these sections: 1. Executive Summary, 2. Key Discussion Points, 3. Action Items (Tasks to be done, clearly bulleted with recommended assignees if mentioned). Use markdown for professional formatting.${contextStr} Here are the raw notes:\n\n"${combinedNotes}"`;
 
           axios
-            .post('/api/ai/generate', { prompt, provider: 'auto', language: aiLanguage(combinedNotes) })
+          generateAI(prompt, AI_TASK_TYPES.SUMMARIZE_TASK, { language: aiLanguage(combinedNotes) })
             .then((res) => {
               setMessages((prev) =>
                 prev.filter(
@@ -1530,8 +1545,7 @@ Generate 1 or 2 short follow-up questions the user could ask the participants to
 Return ONLY a valid JSON array of strings. Do not use markdown formatting. Example: ["Siapa yang akan mengerjakan ini?", "Kapan tenggat waktunya?"]
 Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal words) that the user used in their notes.`;
 
-        axios
-          .post('/api/ai/generate', { prompt, provider: 'auto', language: aiLanguage(data) })
+        generateAI(prompt, AI_TASK_TYPES.SIMPLE_QA, { language: aiLanguage(data) })
           .then((res) => {
             try {
               let jsonStr = res.data.text
@@ -1869,7 +1883,7 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
           addBotMessage(tMsg('Drafting description with AI... ⏳', 'Membuat deskripsi dengan AI... ⏳'));
           const prompt = `Write a short, professional, and structured task description (brief) for a project. Write it in the same language as the task title ("${taskData.task_name}"). The task title is "${taskData.task_name}", category is "${taskData.category}". Output 2 to 3 concise bullet points outlining expected deliverables or steps. Do not include greetings.`;
           axios
-            .post('/api/ai/generate', { prompt, provider: 'auto', language: aiLanguage(taskData.task_name) })
+          generateAI(prompt, AI_TASK_TYPES.GENERATE_DESCRIPTION, { language: aiLanguage(taskData.task_name) })
             .then((res) => {
               setMessages((prev) =>
                 prev.filter(
@@ -2290,12 +2304,9 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
 
         const prompt = `You are the official Smart Assistant for INNOCEAN Tracker. The user asked for documentation about "${taskData.doc_topic}". \nHere is the core context about this feature: "${taskData.doc_context}"\nPlease provide a very simple, brief, and beginner-friendly explanation (maximum 2-3 short sentences). Make it easy for a layperson to understand. Use an analogy if helpful. Respond strictly in ${targetLang}.`;
 
-        axios
-          .post('/api/ai/generate', {
-            prompt,
-            provider: 'auto',
-            language: targetLang.toLowerCase().startsWith('indones') ? 'id' : 'en',
-          })
+        generateAI(prompt, AI_TASK_TYPES.SIMPLE_QA, {
+          language: targetLang.toLowerCase().startsWith('indones') ? 'id' : 'en',
+        })
           .then((res) => {
             setMessages((prev) => prev.filter((m) => !m.text.includes('⏳')));
             const reply = res.data.text.trim();
@@ -2342,12 +2353,9 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
           }"\nPlease expand on this context to provide a comprehensive, professional, and in-depth guide. Use markdown for styling (bold, bullet points, step-by-step if applicable). Respond strictly in ${
             taskData.doc_lang || 'English'
           }.`;
-          axios
-            .post('/api/ai/generate', {
-              prompt,
-              provider: 'auto',
-              language: String(taskData.doc_lang || '').toLowerCase().startsWith('indones') ? 'id' : aiLanguage(),
-            })
+          generateAI(prompt, AI_TASK_TYPES.SIMPLE_QA, {
+            language: String(taskData.doc_lang || '').toLowerCase().startsWith('indones') ? 'id' : aiLanguage(),
+          })
             .then((res) => {
               setMessages((prev) => prev.filter((m) => !m.text.includes('⏳')));
               const reply = res.data.text.trim();
@@ -2532,7 +2540,9 @@ JSON SCHEMA:
 USER REQUEST:
 """${plannerPrompt}"""`;
 
-      const resAi = await axios.post('/api/ai/generate', { prompt: aiPrompt, provider: 'auto', language: aiLanguage(plannerPrompt) });
+      const resAi = await generateAI(aiPrompt, AI_TASK_TYPES.MULTI_TASK_REASONING, {
+        language: aiLanguage(plannerPrompt),
+      });
       let jsonStr = resAi.data.text
         .trim()
         .replace(/```json/gi, '')
@@ -2812,6 +2822,7 @@ USER REQUEST:
         messages.some((msg) => msg.sender === 'user' || msg.sender === 'bot')
       }
       tMsg={tMsg}
+      usage={aiUsage}
       sidebar={(closeSidebar) => (
       <SmartAssistantSidebar
         conversations={conversations}
@@ -2831,6 +2842,7 @@ USER REQUEST:
         onDelete={handleDeleteConversation}
         isLoading={isLoadingList}
         tMsg={tMsg}
+        usage={aiUsage}
       />
     )}>
       {assistantBody}

@@ -18,12 +18,29 @@ axios.interceptors.request.use((config) => {
     if (!config.data.language) {
       config.data.language = localStorage.getItem('innocean_lang') === 'id' ? 'id' : 'en';
     }
+    const headers = config.headers || {};
+    if (!headers['X-Idempotency-Key'] && !headers['x-idempotency-key']) {
+      const key =
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `ai-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      headers['X-Idempotency-Key'] = key;
+      config.headers = headers;
+    }
   }
   return config;
 });
 
 axios.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    const url = String(response?.config?.url || '');
+    if (url.includes('/api/ai/generate') && response?.data?.usage) {
+      window.dispatchEvent(
+        new CustomEvent('ai_usage_updated', { detail: response.data.usage })
+      );
+    }
+    return response;
+  },
   (error) => {
     if (error.response && error.response.status === 401) {
       const detail = (error.response.data?.detail || '').toLowerCase();
@@ -41,6 +58,13 @@ axios.interceptors.response.use(
         localStorage.removeItem('innocean_selected_board');
         window.dispatchEvent(new Event('auth_error'));
       }
+    }
+    if (
+      error.response &&
+      error.response.status === 429 &&
+      String(error.config?.url || '').includes('/api/ai/')
+    ) {
+      window.dispatchEvent(new Event('ai_usage_updated'));
     }
     return Promise.reject(error);
   }
