@@ -277,23 +277,20 @@ export default function AIOverviewPanel({ language, showNotification }) {
   const today = overview?.today || {};
   const engines = overview?.engines || {};
   const capacity = overview?.capacity || {};
-  const engineCards = [
-    {
-      key: 'gemini_35',
-      title: engines.gemini_35?.label || 'Gemini 3.5 Flash-Lite',
-      data: engines.gemini_35 || {},
-    },
-    {
-      key: 'gemini_31',
-      title: engines.gemini_31?.label || 'Gemini 3.1 Flash-Lite',
-      data: engines.gemini_31 || {},
-    },
-    {
-      key: 'groq',
-      title: engines.groq?.label || 'Groq GPT-OSS 120B',
-      data: engines.groq || {},
-    },
-  ];
+  const engineCardMeta = {
+    groq: 'Groq GPT-OSS 120B',
+    gemini_35: 'Gemini 3.5 Flash-Lite',
+    gemini_31: 'Gemini 3.1 Flash-Lite',
+  };
+  const engineOrder = (capacity.order || []).filter((key) => engineCardMeta[key]);
+  const engineCards = (engineOrder.length
+    ? engineOrder
+    : ['groq', 'gemini_35', 'gemini_31']
+  ).map((key) => ({
+    key,
+    title: engines[key]?.label || engineCardMeta[key],
+    data: engines[key] || {},
+  }));
 
   return (
     <div className='space-y-5'>
@@ -371,8 +368,8 @@ export default function AIOverviewPanel({ language, showNotification }) {
         {/* {capacity.rpd_total ? (
           <p className='mb-3 text-xs text-neutral-500 dark:text-neutral-400'>
             {tMsg(
-              `Fallback order: 3.5 Flash-Lite → 3.1 Flash-Lite → Groq. Combined Free RPD ${formatCompactNumber(capacity.rpd_total, language)} vs ${formatCompactNumber(capacity.app_need_100_users, language)} needed for 100 users × ${overview?.default_daily_limit ?? 20} prompts.`,
-              `Urutan fallback: 3.5 Flash-Lite → 3.1 Flash-Lite → Groq. Gabungan Free RPD ${formatCompactNumber(capacity.rpd_total, language)} vs ${formatCompactNumber(capacity.app_need_100_users, language)} yang dibutuhkan untuk 100 pengguna × ${overview?.default_daily_limit ?? 20} prompt.`
+              `Fallback order: Groq → 3.5 Flash-Lite → 3.1 Flash-Lite. Combined Free RPD ${formatCompactNumber(capacity.rpd_total, language)} vs ${formatCompactNumber(capacity.app_need_100_users, language)} needed for 100 users × ${overview?.default_daily_limit ?? 20} prompts.`,
+              `Urutan fallback: Groq → 3.5 Flash-Lite → 3.1 Flash-Lite. Gabungan Free RPD ${formatCompactNumber(capacity.rpd_total, language)} vs ${formatCompactNumber(capacity.app_need_100_users, language)} yang dibutuhkan untuk 100 pengguna × ${overview?.default_daily_limit ?? 20} prompt.`
             )}
           </p>
         ) : null} */}

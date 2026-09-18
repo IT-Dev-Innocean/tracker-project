@@ -3,7 +3,7 @@ import axios from 'axios';
 import { renderRichText } from '../../Utils';
 import { Icon } from '../icons/Icon';
 
-const AI_MODEL = 'auto'; // Use auto-fallback: Gemini first, then Groq if Gemini fails
+const AI_MODEL = 'auto'; // Use auto-fallback: Groq first, then Gemini Flash-Lite
 
 export default function MoMNotepadModal({
   onClose,

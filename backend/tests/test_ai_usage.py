@@ -62,6 +62,7 @@ class AIUsageTests(unittest.TestCase):
             self.assertEqual(free_engines["groq"]["plan"], "free")
             self.assertEqual(free_engines["groq"]["rpd"], 1000)
             capacity = free_response.json()["capacity"]
+            self.assertEqual(capacity["order"], ["groq", "gemini_35", "gemini_31"])
             self.assertEqual(capacity["rpd_total"], 2000)
             self.assertEqual(capacity["app_need_100_users"], 2000)
             self.assertTrue(capacity["enough_for_100_users"])
@@ -161,74 +162,6 @@ class AIUsageTests(unittest.TestCase):
         os.environ["GEMINI_API_KEY"] = "test-gemini-key"
         os.environ["GROQ_API_KEY"] = "test-groq-key"
 
-        models_mock = MagicMock()
-
-        def generate_content(*args, **kwargs):
-            model = kwargs.get("model") or (args[0] if args else None)
-            if model == "gemini-3.5-flash-lite":
-                raise Exception("429 RESOURCE_EXHAUSTED")
-            if model == "gemini-3.1-flash-lite":
-                raise Exception("429 RESOURCE_EXHAUSTED")
-            raise AssertionError(f"unexpected model {model}")
-
-        models_mock.generate_content.side_effect = generate_content
-        mock_client_cls.return_value.models = models_mock
-        groq_response = MagicMock()
-        groq_response.status_code = 200
-        groq_response.json.return_value = {
-            "choices": [{"message": {"content": "fallback from groq"}}]
-        }
-        groq_response.raise_for_status.return_value = None
-        mock_post.return_value = groq_response
-
-        db = SessionLocal()
-        try:
-            db.query(AIUsageLog).filter(AIUsageLog.username == username).delete()
-            db.commit()
-            set_security_log(db, f"ai_generate:{username}", 0)
-            response = client.post("/api/ai/generate", json={"prompt": "hello", "language": "en"})
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.json().get("text"), "fallback from groq")
-            called_models = [
-                (call.kwargs.get("model") or (call.args[0] if call.args else None))
-                for call in models_mock.generate_content.call_args_list
-            ]
-            self.assertEqual(
-                called_models,
-                ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"],
-            )
-            mock_post.assert_called_once()
-            log = (
-                db.query(AIUsageLog)
-                .filter(AIUsageLog.username == username, AIUsageLog.status == "ok")
-                .order_by(AIUsageLog.id.desc())
-                .first()
-            )
-            self.assertIsNotNone(log)
-            self.assertEqual(log.provider_used, "groq")
-        finally:
-            db.query(AIUsageLog).filter(AIUsageLog.username == username).delete()
-            db.commit()
-            db.close()
-            if original_gemini is None:
-                os.environ.pop("GEMINI_API_KEY", None)
-            else:
-                os.environ["GEMINI_API_KEY"] = original_gemini
-            if original_groq is None:
-                os.environ.pop("GROQ_API_KEY", None)
-            else:
-                os.environ["GROQ_API_KEY"] = original_groq
-
-    @patch("routers.ai.requests.post")
-    @patch("routers.ai.genai.Client")
-    def test_ai_generate_uses_second_gemini_when_first_is_limited(self, mock_client_cls, mock_post):
-        username = "ai_fallback_gemini_user"
-        app.dependency_overrides[get_current_user] = lambda: username
-        original_gemini = os.environ.get("GEMINI_API_KEY")
-        original_groq = os.environ.get("GROQ_API_KEY")
-        os.environ["GEMINI_API_KEY"] = "test-gemini-key"
-        os.environ["GROQ_API_KEY"] = "test-groq-key"
-
         class FakeResponse:
             text = "ok from 3.1"
             candidates = []
@@ -245,6 +178,75 @@ class AIUsageTests(unittest.TestCase):
 
         models_mock.generate_content.side_effect = generate_content
         mock_client_cls.return_value.models = models_mock
+        groq_response = MagicMock()
+        groq_response.status_code = 429
+        mock_post.return_value = groq_response
+
+        db = SessionLocal()
+        try:
+            db.query(AIUsageLog).filter(AIUsageLog.username == username).delete()
+            db.commit()
+            set_security_log(db, f"ai_generate:{username}", 0)
+            response = client.post("/api/ai/generate", json={"prompt": "hello", "language": "en"})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json().get("text"), "ok from 3.1")
+            mock_post.assert_called_once()
+            called_models = [
+                (call.kwargs.get("model") or (call.args[0] if call.args else None))
+                for call in models_mock.generate_content.call_args_list
+            ]
+            self.assertEqual(
+                called_models,
+                ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"],
+            )
+            log = (
+                db.query(AIUsageLog)
+                .filter(AIUsageLog.username == username, AIUsageLog.status == "ok")
+                .order_by(AIUsageLog.id.desc())
+                .first()
+            )
+            self.assertIsNotNone(log)
+            self.assertEqual(log.provider_used, "gemini_31")
+        finally:
+            db.query(AIUsageLog).filter(AIUsageLog.username == username).delete()
+            db.commit()
+            db.close()
+            if original_gemini is None:
+                os.environ.pop("GEMINI_API_KEY", None)
+            else:
+                os.environ["GEMINI_API_KEY"] = original_gemini
+            if original_groq is None:
+                os.environ.pop("GROQ_API_KEY", None)
+            else:
+                os.environ["GROQ_API_KEY"] = original_groq
+
+    @patch("routers.ai.requests.post")
+    @patch("routers.ai.genai.Client")
+    def test_ai_generate_uses_gemini_35_when_groq_is_limited(self, mock_client_cls, mock_post):
+        username = "ai_fallback_gemini_user"
+        app.dependency_overrides[get_current_user] = lambda: username
+        original_gemini = os.environ.get("GEMINI_API_KEY")
+        original_groq = os.environ.get("GROQ_API_KEY")
+        os.environ["GEMINI_API_KEY"] = "test-gemini-key"
+        os.environ["GROQ_API_KEY"] = "test-groq-key"
+
+        class FakeResponse:
+            text = "ok from 3.5"
+            candidates = []
+
+        models_mock = MagicMock()
+
+        def generate_content(*args, **kwargs):
+            model = kwargs.get("model") or (args[0] if args else None)
+            if model == "gemini-3.5-flash-lite":
+                return FakeResponse()
+            raise AssertionError(f"unexpected model {model}")
+
+        models_mock.generate_content.side_effect = generate_content
+        mock_client_cls.return_value.models = models_mock
+        groq_response = MagicMock()
+        groq_response.status_code = 429
+        mock_post.return_value = groq_response
 
         db = SessionLocal()
         try:
@@ -253,15 +255,20 @@ class AIUsageTests(unittest.TestCase):
             set_security_log(db, f"ai_generate:{username}", 0)
             response = client.post("/api/ai/generate", json={"prompt": "hello"})
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.json().get("text"), "ok from 3.1")
-            mock_post.assert_not_called()
+            self.assertEqual(response.json().get("text"), "ok from 3.5")
+            mock_post.assert_called_once()
+            called_models = [
+                (call.kwargs.get("model") or (call.args[0] if call.args else None))
+                for call in models_mock.generate_content.call_args_list
+            ]
+            self.assertEqual(called_models, ["gemini-3.5-flash-lite"])
             log = (
                 db.query(AIUsageLog)
                 .filter(AIUsageLog.username == username, AIUsageLog.status == "ok")
                 .order_by(AIUsageLog.id.desc())
                 .first()
             )
-            self.assertEqual(log.provider_used, "gemini_31")
+            self.assertEqual(log.provider_used, "gemini_35")
         finally:
             db.query(AIUsageLog).filter(AIUsageLog.username == username).delete()
             db.commit()

@@ -22,7 +22,7 @@ GROQ_MODEL = "openai/gpt-oss-120b"
 
 # Fallback order used by /api/ai/generate: next engine runs when the current
 # one is rate-limited, at its documented RPD, or otherwise unavailable.
-ENGINE_FALLBACK_ORDER = ("gemini_35", "gemini_31", "groq")
+ENGINE_FALLBACK_ORDER = ("groq", "gemini_35", "gemini_31")
 
 # Older logs used a single "gemini" provider before the two Flash-Lite models.
 LEGACY_PROVIDER_MAP = {"gemini": "gemini_35"}

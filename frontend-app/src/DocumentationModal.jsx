@@ -659,8 +659,8 @@ const getDocData = (tMsg, isSuperAdmin) => {
           id: 'ai-fallback',
           title: tMsg('AI Auto-Fallback System', 'Sistem Cadangan AI Otomatis'),
           content: tMsg(
-            'The Smart Assistant is powered by a dual-engine architecture. If the primary AI (Google Gemini) is busy or reaches its API limit, the system instantly and silently routes your request to a secondary AI (GPT-OSS 120B) so your workflow is never interrupted.',
-            'Asisten Pintar didukung oleh arsitektur mesin ganda. Jika AI utama (Google Gemini) sibuk atau mencapai batas API-nya, sistem akan secara instan merutekan permintaan Anda ke AI cadangan (GPT-OSS 120B) sehingga alur kerja Anda tidak pernah terputus.'
+            'The Smart Assistant automatically tries the next available engine if the current one is busy or reaches its API limit, so your workflow is never interrupted.',
+            'Asisten Pintar secara otomatis mencoba mesin berikutnya jika yang sedang dipakai sibuk atau mencapai batas API-nya, sehingga alur kerja Anda tidak terputus.'
           ),
         },
       ],

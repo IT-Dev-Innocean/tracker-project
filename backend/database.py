@@ -219,7 +219,7 @@ class AIUsageLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
     success = Column(Integer, default=0)
     status = Column(String(20), default="ok")  # ok | limit | error
-    provider_used = Column(String(20), nullable=True)  # gemini_35 | gemini_31 | groq | none
+    provider_used = Column(String(20), nullable=True)  # groq | gemini_35 | gemini_31 | none
     __table_args__ = (
         Index("ix_ai_usage_logs_username_created_at", "username", "created_at"),
     )
