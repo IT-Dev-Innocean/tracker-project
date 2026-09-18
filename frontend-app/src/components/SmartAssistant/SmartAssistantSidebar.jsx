@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Icon } from '../icons/Icon';
+import AIUsageMeter from './AIUsageMeter';
 
 function formatUpdatedAt(value, tMsg) {
   if (!value) return '';
@@ -29,6 +30,7 @@ export default function SmartAssistantSidebar({
   onDelete,
   isLoading,
   tMsg,
+  usage = null,
 }) {
   const searchRef = useRef(null);
 
@@ -161,6 +163,7 @@ export default function SmartAssistantSidebar({
           })
         )}
       </div>
+      <AIUsageMeter usage={usage} tMsg={tMsg} />
     </div>
   );
 }

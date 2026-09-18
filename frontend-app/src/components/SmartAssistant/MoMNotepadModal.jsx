@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
+import { generateAI, AI_TASK_TYPES } from '../../api/aiClient';
 import { renderRichText } from '../../Utils';
 import { Icon } from '../icons/Icon';
-
-const AI_MODEL = 'auto'; // Use auto-fallback: Groq first, then Gemini Flash-Lite
 
 export default function MoMNotepadModal({
   onClose,
@@ -315,7 +314,7 @@ Generate the MoM with EXACTLY these sections:
 4. Action Items (daftar tugas yang perlu dilakukan)`;
 
       // Step 1: Generate MoM document
-      const momRes = await axios.post('/api/ai/generate', { prompt: momPrompt, provider: AI_MODEL });
+      const momRes = await generateAI(momPrompt, AI_TASK_TYPES.SUMMARIZE_TASK);
       setGeneratedMoM(momRes.data.text);
 
       // Wait at least 1.5s between AI calls to avoid the 1-second rate limit
@@ -343,7 +342,7 @@ ${momRes.data.text}
 If no action items found, return []. JSON Schema:
 [{"task_name":"judul task singkat max 6 kata","requester":"@username","category":"Development|Design|Marketing|Research|Maintenance|Consulting|Other","deadline":"YYYY-MM-DD","description":"deskripsi singkat"}]`;
 
-        const extractRes = await axios.post('/api/ai/generate', { prompt: extractPrompt, provider: AI_MODEL });
+        const extractRes = await generateAI(extractPrompt, AI_TASK_TYPES.MULTI_TASK_REASONING);
         let raw = extractRes.data.text.trim().replace(/```json/gi, '').replace(/```/g, '').trim();
         const si2 = raw.indexOf('[');
         const ei2 = raw.lastIndexOf(']') + 1;

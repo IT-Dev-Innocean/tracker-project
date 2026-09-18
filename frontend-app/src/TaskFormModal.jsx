@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
+import { generateAI, AI_TASK_TYPES } from './api/aiClient';
 import { IconPlus, Avatar } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import MultiUserSelect from './components/MultiUserSelect';
@@ -85,7 +86,7 @@ export default function TaskFormModal({
         ? `\n\nUser's initial brief/draft:\n${formData.description}`
         : '';
       const prompt = `Write a professional, structured task description (brief) in markdown format. The task title is "${formData.task_name}", category is "${formData.category}". Please respond in the same language as the task title.${baseDesc}`;
-      const res = await axios.post('/api/ai/generate', { prompt });
+      const res = await generateAI(prompt, AI_TASK_TYPES.GENERATE_DESCRIPTION);
       setFormData({ ...formData, description: res.data.text });
     } catch (err) {
       alert(
@@ -135,10 +136,7 @@ Format:
 }`;
 
     try {
-      const res = await axios.post('/api/ai/generate', {
-        prompt: promptStr,
-        provider: 'auto',
-      });
+      const res = await generateAI(promptStr, AI_TASK_TYPES.MULTI_TASK_REASONING);
       let jsonStr = res.data.text
         .trim()
         .replace(/```json/gi, '')
@@ -207,10 +205,7 @@ Format:
       }". Description: "${
         formData.description || ''
       }". Return ONLY a number (e.g. 2.5, 4, 10). Do not include any other text.`;
-      const res = await axios.post('/api/ai/generate', {
-        prompt,
-        provider: 'auto',
-      });
+      const res = await generateAI(prompt, AI_TASK_TYPES.SIMPLE_QA);
       const match = res.data.text.match(/[\d.]+/);
       const val = match ? parseFloat(match[0]) : NaN;
       if (!isNaN(val)) {

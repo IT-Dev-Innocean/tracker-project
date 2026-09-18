@@ -1,36 +1,19 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Header
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, func
 from datetime import datetime
 import json
-import logging
-import os
 import re
-import time
-import requests
-from google import genai
-from google.genai import types
+from typing import Optional
 
-from database import AIConversation, get_db, get_security_log, set_security_log
+from database import AIConversation, get_db
 from schemas import *
 from dependencies import *
-from ai_usage import (
-    ENGINE_FALLBACK_ORDER,
-    PUBLIC_PROVIDER,
-    ai_message,
-    engine_has_remaining_quota,
-    has_reached_daily_limit,
-    log_ai_usage,
-)
+from ai_usage import build_user_usage
+from services.ai.service import generate_ai
 
-logger = logging.getLogger(__name__)
 router = APIRouter()
 
-GROQ_MAX_PROMPT_CHARS = 24000
-GEMINI_MODELS = {
-    "gemini_35": "gemini-3.5-flash-lite",
-    "gemini_31": "gemini-3.1-flash-lite",
-}
 _HTML_TAG_RE = re.compile(r"<[^>]*>")
 _DEFAULT_TITLE = "New chat"
 
@@ -109,141 +92,32 @@ def _owned_conversation(db: Session, username: str, conversation_id: int):
     return row
 
 
-def _public_result(text: str):
-    return {"text": text, "provider": PUBLIC_PROVIDER}
-
-
-def _extract_gemini_text(response) -> str:
-    text = (getattr(response, "text", None) or "").strip()
-    if text:
-        return text
-    parts = []
-    for candidate in getattr(response, "candidates", None) or []:
-        content = getattr(candidate, "content", None)
-        for part in getattr(content, "parts", None) or []:
-            if getattr(part, "thought", False):
-                continue
-            piece = getattr(part, "text", None)
-            if piece:
-                parts.append(piece)
-    text = "\n".join(parts).strip()
-    if text:
-        return text
-    raise Exception("empty_response")
+@router.get("/api/ai/usage")
+def get_ai_usage(
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    language: Optional[str] = Query(None),
+):
+    return build_user_usage(db, current_user, language)
 
 
 @router.post("/api/ai/generate")
 def generate_ai_text(
-    payload: AIGenerateModel, current_user: str = Depends(get_current_user), db: Session = Depends(get_db)
+    payload: AIGenerateModel,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    x_idempotency_key: Optional[str] = Header(default=None, alias="X-Idempotency-Key"),
 ):
-    lang = getattr(payload, "language", None)
-    if has_reached_daily_limit(db, current_user):
-        log_ai_usage(db, current_user, success=False, status="limit", provider_used="none")
-        raise HTTPException(status_code=429, detail=ai_message("daily_limit", lang))
-
-    now_time = time.time()
-    last_generate_time = get_security_log(db, f"ai_generate:{current_user}", 0) or 0
-    try:
-        last_generate_time = float(last_generate_time)
-    except (TypeError, ValueError):
-        last_generate_time = 0
-    if (now_time - last_generate_time) < 1:
-        raise HTTPException(
-            status_code=429,
-            detail=ai_message("wait_one_second", lang),
-        )
-    set_security_log(db, f"ai_generate:{current_user}", now_time)
-
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    gemini_api_key = os.getenv("GEMINI_API_KEY")
-
-    final_prompt = payload.prompt or ""
-
-    def call_gemini(engine: str):
-        model_id = GEMINI_MODELS.get(engine)
-        if not gemini_api_key or not model_id:
-            raise Exception("missing_key")
-        client = genai.Client(api_key=gemini_api_key.strip())
-        try:
-            response = client.models.generate_content(
-                model=model_id,
-                contents=final_prompt,
-                config=types.GenerateContentConfig(
-                    thinking_config=types.ThinkingConfig(thinking_budget=0),
-                ),
-            )
-            return {"text": _extract_gemini_text(response), "engine": engine}
-        except Exception as e:
-            error_str = str(e)
-            if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
-                raise Exception("rate_limited") from e
-            raise
-
-    def call_groq():
-        if not groq_api_key:
-            raise Exception("missing_key")
-        if len(final_prompt) > GROQ_MAX_PROMPT_CHARS:
-            raise Exception("prompt_too_large")
-        headers = {
-            "Authorization": f"Bearer {groq_api_key.strip()}",
-            "Content-Type": "application/json",
-        }
-        data = {
-            "model": "openai/gpt-oss-120b",
-            "messages": [{"role": "user", "content": final_prompt}],
-        }
-        response = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers=headers,
-            json=data,
-            timeout=45,
-        )
-        if response.status_code == 429:
-            raise Exception("rate_limited")
-        if response.status_code in (400, 413):
-            raise Exception("prompt_too_large")
-        response.raise_for_status()
-        content = (
-            response.json().get("choices") or [{}]
-        )[0].get("message", {}).get("content")
-        text = (content or "").strip()
-        if not text:
-            raise Exception("empty_response")
-        return {"text": text, "engine": "groq"}
-
-    callers = {}
-    if gemini_api_key:
-        callers["gemini_35"] = lambda: call_gemini("gemini_35")
-        callers["gemini_31"] = lambda: call_gemini("gemini_31")
-    if groq_api_key:
-        callers["groq"] = call_groq
-
-    if not callers:
-        log_ai_usage(db, current_user, success=False, status="error", provider_used="none")
-        raise HTTPException(status_code=400, detail=ai_message("not_configured", lang))
-
-    last_error = None
-    for engine in ENGINE_FALLBACK_ORDER:
-        caller = callers.get(engine)
-        if caller is None:
-            continue
-        if not engine_has_remaining_quota(db, engine):
-            last_error = Exception("rate_limited")
-            logger.warning("Skipping AI engine %s: documented daily quota reached", engine)
-            continue
-        try:
-            result = caller()
-            log_ai_usage(db, current_user, success=True, status="ok", provider_used=result["engine"])
-            return _public_result(result["text"])
-        except HTTPException:
-            raise
-        except Exception as e:
-            last_error = e
-            logger.warning("AI engine %s failed: %s", engine, e)
-
-    log_ai_usage(db, current_user, success=False, status="error", provider_used="none")
-    logger.error("AI generation failed for %s: %s", current_user, last_error)
-    raise HTTPException(status_code=503, detail=ai_message("unavailable", lang))
+    # Client-supplied provider/model is ignored. Routing is server-side only.
+    return generate_ai(
+        db,
+        current_user,
+        payload.prompt or "",
+        task_type=getattr(payload, "task_type", None),
+        language=getattr(payload, "language", None),
+        idempotency_key=x_idempotency_key or getattr(payload, "request_id", None),
+        request_id=getattr(payload, "request_id", None),
+    )
 
 
 @router.get("/api/ai/conversations")

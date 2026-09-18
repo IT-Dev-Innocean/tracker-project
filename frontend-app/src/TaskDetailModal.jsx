@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { generateAI, AI_TASK_TYPES } from './api/aiClient';
 import { IconPerson, Avatar } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import MultiUserSelect from './components/MultiUserSelect';
@@ -325,7 +326,7 @@ export default function TaskDetailModal({
         ? `\n\nUser's initial brief/draft:\n${editFormData.description}`
         : '';
       const prompt = `Write a professional, structured task description (brief) in markdown format. The task title is "${editFormData.task_name}", category is "${editFormData.category}". Please respond in the same language as the task title.${baseDesc}`;
-      const res = await axios.post('/api/ai/generate', { prompt });
+      const res = await generateAI(prompt, AI_TASK_TYPES.GENERATE_DESCRIPTION);
       setEditFormData({ ...editFormData, description: res.data.text });
     } catch (err) {
       const errorMsg =

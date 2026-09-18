@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../icons/Icon';
+import AIUsageMeter from './AIUsageMeter';
 
 const EXPANDED_KEY = 'innocean_assistant_expanded';
 
@@ -10,6 +11,7 @@ export default function SmartAssistantShell({
   showNewChat = false,
   tMsg,
   sidebar,
+  usage = null,
   children,
 }) {
   const [isExpanded, setIsExpanded] = useState(() => {
@@ -86,6 +88,7 @@ export default function SmartAssistantShell({
             <p className="text-sm font-black text-black dark:text-white truncate">
               {tMsg('Smart Assistant', 'Smart Assistant')}
             </p>
+            <AIUsageMeter usage={usage} tMsg={tMsg} compact />
           </div>
           {showNewChat && (
             <button

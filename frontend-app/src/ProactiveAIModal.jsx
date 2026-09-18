@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { generateAI, AI_TASK_TYPES } from './api/aiClient';
 import { useCloseAnimation, LoadingSpinner } from './Utils';
 import { Avatar } from './SharedUI';
 import { Icon } from './components/icons/Icon';
@@ -171,10 +172,7 @@ JSON SCHEMA:
 
 USER REQUEST:
 """${prompt}"""`;
-      const resAi = await axios.post('/api/ai/generate', {
-        prompt: aiPrompt,
-        provider: 'auto',
-      });
+      const resAi = await generateAI(aiPrompt, AI_TASK_TYPES.MULTI_TASK_REASONING);
       let jsonStr = resAi.data.text
         .trim()
         .replace(/```json/gi, '')

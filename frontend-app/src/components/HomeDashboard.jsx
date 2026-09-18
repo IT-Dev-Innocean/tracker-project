@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import { generateAI, AI_TASK_TYPES } from '../api/aiClient';
 import { useAppContext } from '../contexts/AppContext';
 import { isUserAssigned, getTaskAssignee } from '../useAppLogic';
 import { Avatar } from '../SharedUI';
@@ -476,11 +476,7 @@ export default function HomeDashboard() {
           : `All recent messages have been read. `) +
         `Use a professional, motivating tone. If there are overload warnings, mention them directly. Reply in ${language === 'id' ? 'Indonesian' : 'English'}.`;
 
-      const response = await axios.post('/api/ai/generate', {
-        prompt: prompt,
-        task_context: '',
-        board_id: 'global',
-      });
+      const response = await generateAI(prompt, AI_TASK_TYPES.SIMPLE_SUMMARY);
       const summaryText = response.data.text;
       setAiSummary(summaryText);
       sessionStorage.setItem('aiWorkloadSnapshot', summaryText);
