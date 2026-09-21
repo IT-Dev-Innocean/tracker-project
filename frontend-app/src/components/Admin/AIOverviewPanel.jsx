@@ -324,10 +324,11 @@ export default function AIOverviewPanel({ language, showNotification }) {
     gemini_35: 'Gemini 3.5 Flash-Lite',
     gemini_31: 'Gemini 3.1 Flash-Lite',
   };
-  const engineOrder = (capacity.order || []).filter((key) => engineCardMeta[key]);
-  const engineCards = (engineOrder.length
-    ? engineOrder
-    : ['gemini_31', 'gemini_35', 'groq']
+  const engineOrder = (capacity.order || []).filter(
+    (key) => engineCardMeta[key]
+  );
+  const engineCards = (
+    engineOrder.length ? engineOrder : ['gemini_31', 'gemini_35', 'groq']
   ).map((key) => ({
     key,
     title: engines[key]?.label || engineCardMeta[key],
@@ -440,7 +441,10 @@ export default function AIOverviewPanel({ language, showNotification }) {
                 },
                 {
                   label: tMsg('Requests this month', 'Request bulan ini'),
-                  value: formatCompactNumber(groqBudget.requests || 0, language),
+                  value: formatCompactNumber(
+                    groqBudget.requests || 0,
+                    language
+                  ),
                 },
                 {
                   label: tMsg('Daily quota', 'Kuota harian'),
@@ -530,17 +534,24 @@ export default function AIOverviewPanel({ language, showNotification }) {
           <div className='mt-3 space-y-2'>
             {Object.keys(taskDist).length === 0 ? (
               <p className='text-xs text-neutral-500'>
-                {tMsg('No AI task types recorded today.', 'Belum ada tipe tugas AI hari ini.')}
+                {tMsg(
+                  'No AI task types recorded today.',
+                  'Belum ada tipe tugas AI hari ini.'
+                )}
               </p>
             ) : (
               Object.entries(taskDist)
                 .sort((a, b) => Number(b[1]) - Number(a[1]))
                 .map(([name, count]) => (
-                  <div key={name} className='flex items-center justify-between gap-3'>
+                  <div
+                    key={name}
+                    className='flex items-center justify-between gap-3'>
                     <p className='text-xs font-semibold text-black dark:text-white truncate'>
                       {String(name).replace(/_/g, ' ')}
                     </p>
-                    <p className='text-xs font-black text-neutral-500'>{count}</p>
+                    <p className='text-xs font-black text-neutral-500'>
+                      {count}
+                    </p>
                   </div>
                 ))
             )}

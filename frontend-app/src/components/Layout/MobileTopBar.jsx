@@ -44,6 +44,7 @@ export default function MobileTopBar() {
     setIsMobileProfileOpen,
     currentUser,
     avatarsMap,
+    profileData,
     workspaceRole,
     isSuperAdmin,
     setIsSettingsOpen,
@@ -66,6 +67,14 @@ export default function MobileTopBar() {
 
   const isSmartAssistantEnabled = useFeatureFlag('SMART_ASSISTANT_ENABLED');
   const tMsg = (en, id) => (language === 'id' ? id : en);
+  const firstName = (() => {
+    const full = (profileData?.full_name || '').trim();
+    if (full) return full.split(/\s+/)[0];
+    const raw = String(currentUser || '').trim();
+    if (!raw) return '';
+    const first = raw.split(/[._\s-]/)[0];
+    return first.charAt(0).toUpperCase() + first.slice(1);
+  })();
   const role = isSuperAdmin ? 'admin' : workspaceRole;
   const roleLabel =
     role === 'admin'
@@ -226,15 +235,15 @@ export default function MobileTopBar() {
           <button
             onClick={() => setIsMobileProfileOpen(!isMobileProfileOpen)}
             className='theme-interactive flex flex-col items-center gap-0.5 p-1 -mr-1 rounded-lg transition-colors tour-account-menu-mobile text-slate-600 dark:text-slate-400'
-            title={`${currentUser} · ${roleLabel}`}>
+            title={`${firstName || currentUser} · ${roleLabel}`}>
             <Avatar
               name={currentUser}
               url={avatarsMap[currentUser]}
               size='w-8 h-8'
               textClass='text-xs'
             />
-            <span className='text-[10px] font-semibold leading-none max-w-14 truncate mt-2'>
-              {roleLabel}
+            <span className='text-[10px] font-semibold leading-none max-w-20 truncate mt-2'>
+              {firstName || roleLabel}
             </span>
           </button>
           {isMobileProfileOpen && (
