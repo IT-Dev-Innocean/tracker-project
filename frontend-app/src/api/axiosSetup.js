@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearPersistedNav } from '../utils/navPersistence';
 
 const rawBaseURL =
   import.meta.env.VITE_API_BASE_URL ||
@@ -56,6 +57,7 @@ axios.interceptors.response.use(
         localStorage.removeItem('innocean_token');
         localStorage.removeItem('innocean_username');
         localStorage.removeItem('innocean_selected_board');
+        clearPersistedNav();
         window.dispatchEvent(new Event('auth_error'));
       }
     }

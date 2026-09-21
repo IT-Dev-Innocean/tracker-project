@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useGoogleLogin, useGoogleOneTapLogin, googleLogout } from '@react-oauth/google';
+import { clearPersistedNav } from '../utils/navPersistence';
 
 export function useAuth({ showNotification, setIsLoading, language, onClearSession }) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -75,6 +76,7 @@ export function useAuth({ showNotification, setIsLoading, language, onClearSessi
       localStorage.removeItem('innocean_token');
       localStorage.removeItem('innocean_username');
       localStorage.removeItem('innocean_selected_board');
+      clearPersistedNav();
       
       // Set session expired indicator
       sessionStorage.setItem('innocean_session_expired', 'true');
