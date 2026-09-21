@@ -11,7 +11,7 @@ from database import get_db, User, Request, Subtask, Board, BoardMember, LeaveDa
 from schemas import *
 from dependencies import *
 from utils import *
-from routers.ai import generate_ai_text
+from services.ai.service import generate_ai
 
 router = APIRouter()
 
@@ -1400,7 +1400,7 @@ def ai_task_reply(
     for c in comments:
         clean_text, _ = parse_comment_text(c.text)
         if c.username != "System":
-            history += f"@{c.username}: {clean_text}\n"
+            history += f"@{c.username}: {(clean_text or '')[:400]}\n"
 
     # Dapatkan status sub-tugas
     subtasks = (
@@ -1412,9 +1412,10 @@ def ai_task_reply(
     subtasks_str = "\n".join(
         [
             f"- [{'x' if s.is_done else ' '}] {s.task_name} (@{s.assignee or 'unassigned'})"
-            for s in subtasks
+            for s in subtasks[:20]
         ]
     )
+    description = (task.description or "")[:1200]
 
     prompt = f"""You are 'Smart Assistant 🤖', an AI project manager for INNOCEAN Tracker.
 You are assisting the team within a specific task.
@@ -1424,7 +1425,7 @@ Title: {task.task_name}
 Category: {task.category}
 Status: {task.status}
 Deadline: {task.deadline}
-Description: {task.description}
+Description: {description}
 Sub-tasks:
 {subtasks_str}
 
@@ -1442,10 +1443,13 @@ If the user asks to conceptualize a program, workflow, architecture, or flowchar
 IMPORTANT LIMITATION: In this specific task chat, you CANNOT create new tasks, create leaves, or perform system actions. If the user asks you to do these, politely decline and advise them to use the main 'Smart Assistant' menu (the floating button) instead.
 Use markdown for formatting. Do not wrap your response in JSON. Respond in the same language as the user's message."""
 
-    payload_req = AIGenerateModel(prompt=prompt, provider="auto")
-
     try:
-        ai_response = generate_ai_text(payload=payload_req, current_user=current_user, db=db)
+        ai_response = generate_ai(
+            db,
+            current_user,
+            prompt,
+            task_type="COMPLEX_TASK_ANALYSIS",
+        )
         ai_response_text = ai_response["text"]
     except HTTPException as he:
         raise he

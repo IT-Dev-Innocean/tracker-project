@@ -1728,7 +1728,7 @@ function App() {
               className='fixed bottom-6 right-6 md:bottom-10 md:right-10 z-60 w-14 h-14 bg-black dark:bg-white text-white dark:text-black rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.3)] dark:shadow-[0_10px_30px_rgba(255,255,255,0.2)] flex items-center justify-center transition-all duration-300 hover:scale-110 hover:-translate-y-1 group'
               title={tMsg('Smart Assistant', 'Asisten Pintar AI')}>
               <Icon
-                name='sparkles'
+                iconify='carbon:ai-agent'
                 className='w-7 h-7 group-hover:rotate-12 transition-transform'
               />
               <span className='absolute -top-1 -right-1 flex h-4 w-4'>
@@ -1737,36 +1737,35 @@ function App() {
               </span>
             </button>
           )}
-        {/* Transparent Dark Overlay & Smooth Slide-in Drawer */}
+        {/* Transparent Dark Overlay & Smooth Slide-in Drawer (Team Chat only) */}
         <div
           className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-85 transition-opacity duration-300 ${
-            isProjectChatOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            isProjectChatOpen && drawerTab === 'team'
+              ? 'opacity-100'
+              : 'opacity-0 pointer-events-none'
           }`}
           onClick={() => setIsProjectChatOpen(false)}></div>
         <div
           className={`fixed inset-0 sm:inset-auto sm:bottom-28 sm:right-10 w-full sm:w-100 xl:w-112.5 sm:h-[calc(100vh-160px)] sm:max-h-200 bg-white dark:bg-neutral-950 sm:shadow-2xl sm:border border-neutral-200 dark:border-neutral-800 z-90 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] origin-bottom-right sm:rounded-4xl overflow-hidden ${
-            isProjectChatOpen
+            isProjectChatOpen && drawerTab === 'team'
               ? 'opacity-100 scale-100 translate-y-0'
               : 'opacity-0 scale-90 translate-y-10 pointer-events-none'
           }`}>
           <div className='flex border-b border-neutral-200 dark:border-neutral-800 shrink-0 bg-white dark:bg-neutral-950'>
-            <button
-              onClick={() => setDrawerTab('assistant')}
-              className='flex-1 py-4 text-[10px] sm:text-xs uppercase tracking-wider transition-colors font-black text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 bg-indigo-50/30 dark:bg-indigo-900/10'>
-              <Icon name='sparkles' className='w-3.5 h-3.5 inline-block mr-1' />{' '}
-              Assistant
-            </button>
+            <div className='flex-1 py-4 px-4 text-[10px] sm:text-xs uppercase tracking-wider font-black text-indigo-600 dark:text-indigo-400'>
+              <Icon name='message-circle' className='w-3.5 h-3.5 inline-block mr-1' />{' '}
+              Team Chat
+            </div>
             <button
               onClick={() => setIsProjectChatOpen(false)}
-              className='px-4 text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors border-b-2 border-transparent'>
+              className='px-4 text-neutral-400 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors'>
               <Icon name='x' className='w-4 h-4' />
             </button>
           </div>
 
           {/* Team Chat Tab */}
           {selectedBoard && selectedBoard.id !== 'global' && (
-            <div
-              className={`flex-1 flex-col overflow-hidden relative ${drawerTab === 'team' ? 'flex' : 'hidden'}`}>
+            <div className='flex-1 flex flex-col overflow-hidden relative'>
               <div className='px-4 py-3 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 flex flex-col gap-3 shrink-0 z-20'>
                 <div className='flex justify-between items-center'>
                   <p className='text-[10px] font-bold text-neutral-500 uppercase tracking-widest truncate flex items-center gap-2'>
@@ -2323,51 +2322,46 @@ function App() {
               </div>
             </div>
           )}
-
-          {/* Assistant Tab */}
-          {isSmartAssistantEnabled && (
-            <div
-              className={`flex-1 flex-col overflow-hidden ${drawerTab === 'assistant' ? 'flex' : 'hidden'}`}>
-              <SmartAssistant
-              currentUser={currentUser}
-              workspaceRole={workspaceRole}
-              selectedBoard={selectedBoard}
-              teamMembers={teamMembers}
-              categories={categories}
-              fetchTasks={fetchTasks}
-              fetchLeaves={fetchLeaves}
-              showNotification={showNotification}
-              accountStatus={accountStatus}
-              isDarkMode={isDarkMode}
-              setIsDarkMode={setIsDarkMode}
-              setIsLeaveModalOpen={setIsLeaveModalOpen}
-              setIsExportModalOpen={setIsExportModalOpen}
-              setIsFeedbackOpen={setIsFeedbackOpen}
-              setIsDocsOpen={setIsDocsOpen}
-              setGlobalSearchQuery={setGlobalSearchQuery}
-              setIsGlobalSearchOpen={setIsGlobalSearchOpen}
-              tasks={tasks}
-              setSelectedTask={setSelectedTask}
-              setSelectedBoard={setSelectedBoard}
-              setIsEditing={setIsEditing}
-              chatBg={chatBg}
-              setIsDeleteConfirmOpen={setIsDeleteConfirmOpen}
-              openTeamModal={openTeamModal}
-              isOpen={isProjectChatOpen && drawerTab === 'assistant'}
-              closeDrawer={() => setIsProjectChatOpen(false)}
-              startDriverTour={startTour}
-              boards={boards}
-              language={language}
-              avatarsMap={avatarsMap}
-              setIsProactiveAIOpen={setIsProactiveAIOpen}
-              userDirectory={userDirectory}
-              leaves={leaves}
-              formatDateMMM={formatDateMMM}
-              setIsMomNotepadOpen={setIsMomNotepadOpen}
-            />
-          </div>
-          )}
         </div>
+        {isSmartAssistantEnabled && (
+          <SmartAssistant
+            currentUser={currentUser}
+            workspaceRole={workspaceRole}
+            selectedBoard={selectedBoard}
+            teamMembers={teamMembers}
+            categories={categories}
+            fetchTasks={fetchTasks}
+            fetchLeaves={fetchLeaves}
+            showNotification={showNotification}
+            accountStatus={accountStatus}
+            isDarkMode={isDarkMode}
+            setIsDarkMode={setIsDarkMode}
+            setIsLeaveModalOpen={setIsLeaveModalOpen}
+            setIsExportModalOpen={setIsExportModalOpen}
+            setIsFeedbackOpen={setIsFeedbackOpen}
+            setIsDocsOpen={setIsDocsOpen}
+            setGlobalSearchQuery={setGlobalSearchQuery}
+            setIsGlobalSearchOpen={setIsGlobalSearchOpen}
+            tasks={tasks}
+            setSelectedTask={setSelectedTask}
+            setSelectedBoard={setSelectedBoard}
+            setIsEditing={setIsEditing}
+            chatBg={chatBg}
+            setIsDeleteConfirmOpen={setIsDeleteConfirmOpen}
+            openTeamModal={openTeamModal}
+            isOpen={isProjectChatOpen && drawerTab === 'assistant'}
+            closeDrawer={() => setIsProjectChatOpen(false)}
+            startDriverTour={startTour}
+            boards={boards}
+            language={language}
+            avatarsMap={avatarsMap}
+            setIsProactiveAIOpen={setIsProactiveAIOpen}
+            userDirectory={userDirectory}
+            leaves={leaves}
+            formatDateMMM={formatDateMMM}
+            setIsMomNotepadOpen={setIsMomNotepadOpen}
+          />
+        )}
       </div>
     </DragDropContext>
   );

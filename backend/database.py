@@ -4,7 +4,19 @@ from pathlib import Path
 from dotenv import load_dotenv
 import bcrypt
 import json
-from sqlalchemy import create_engine, Column, Integer, String, Text, text, DateTime, Boolean, Float
+from sqlalchemy import (
+    create_engine,
+    Column,
+    Integer,
+    String,
+    Text,
+    text,
+    DateTime,
+    Boolean,
+    Float,
+    Index,
+    UniqueConstraint,
+)
 from datetime import datetime
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -212,6 +224,81 @@ class SecurityLog(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class AIUsageLog(Base):
+    __tablename__ = "ai_usage_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    success = Column(Integer, default=0)
+    status = Column(String(20), default="ok")  # ok | limit | error
+    provider_used = Column(String(32), nullable=True)  # groq | gemini_35 | gemini_31 | none
+    request_id = Column(String(64), index=True, nullable=True)
+    task_type = Column(String(64), nullable=True)
+    model = Column(String(80), nullable=True)
+    input_tokens = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
+    cached_input_tokens = Column(Integer, default=0)
+    estimated_cost = Column(Float, default=0.0)
+    error_type = Column(String(40), nullable=True)
+    latency_ms = Column(Integer, default=0)
+    counts_as_prompt = Column(Integer, default=0)
+    __table_args__ = (
+        Index("ix_ai_usage_logs_username_created_at", "username", "created_at"),
+        Index("ix_ai_usage_logs_created_provider", "created_at", "provider_used"),
+        Index("ix_ai_usage_logs_created_task_type", "created_at", "task_type"),
+        Index("ix_ai_usage_logs_created_status", "created_at", "status"),
+    )
+
+
+class AIUserDailyUsage(Base):
+    __tablename__ = "ai_user_daily_usage"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), nullable=False)
+    usage_date = Column(String(10), nullable=False)
+    prompt_count = Column(Integer, default=0)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    __table_args__ = (
+        UniqueConstraint("username", "usage_date", name="uq_ai_user_daily_usage_user_date"),
+        Index("ix_ai_user_daily_usage_date", "usage_date"),
+    )
+
+
+class AIUsageDailyStat(Base):
+    __tablename__ = "ai_usage_daily_stats"
+    id = Column(Integer, primary_key=True, index=True)
+    usage_date = Column(String(10), nullable=False)
+    provider = Column(String(32), nullable=False)
+    task_type = Column(String(64), nullable=False, default="SIMPLE_QA")
+    request_count = Column(Integer, default=0)
+    prompt_count = Column(Integer, default=0)
+    input_tokens = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
+    cached_input_tokens = Column(Integer, default=0)
+    estimated_cost = Column(Float, default=0.0)
+    error_count = Column(Integer, default=0)
+    rate_limit_count = Column(Integer, default=0)
+    __table_args__ = (
+        UniqueConstraint(
+            "usage_date", "provider", "task_type", name="uq_ai_usage_daily_stats_date_provider_task"
+        ),
+        Index("ix_ai_usage_daily_stats_date", "usage_date"),
+    )
+
+
+class AIConversation(Base):
+    __tablename__ = "ai_conversations"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), index=True, nullable=False)
+    title = Column(String(120), nullable=False, default="New chat")
+    messages = Column(Text, nullable=True)
+    state = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, index=True)
+    __table_args__ = (
+        Index("ix_ai_conversations_username_updated_at", "username", "updated_at"),
+    )
+
+
 def get_security_log(db, key: str, default_value=None):
     log = db.query(SecurityLog).filter(SecurityLog.key == key).first()
     if log and log.value:
@@ -320,6 +407,8 @@ def setup_db():
         except Exception:
             pass
 
+    _ensure_ai_usage_schema()
+
     db = SessionLocal()
     try:
         # Seed feature flags row if missing
@@ -368,6 +457,47 @@ def setup_db():
                 db.commit()
     finally:
         db.close()
+
+
+def _ensure_ai_usage_schema():
+    """Add AI usage columns/indexes on existing databases (create_all will not alter)."""
+    log_columns = [
+        ("request_id", "VARCHAR(64)"),
+        ("task_type", "VARCHAR(64)"),
+        ("model", "VARCHAR(80)"),
+        ("input_tokens", "INTEGER DEFAULT 0"),
+        ("output_tokens", "INTEGER DEFAULT 0"),
+        ("cached_input_tokens", "INTEGER DEFAULT 0"),
+        ("estimated_cost", "FLOAT DEFAULT 0"),
+        ("error_type", "VARCHAR(40)"),
+        ("latency_ms", "INTEGER DEFAULT 0"),
+        ("counts_as_prompt", "INTEGER DEFAULT 0"),
+    ]
+    for name, ddl in log_columns:
+        try:
+            with engine.begin() as conn:
+                if _IS_SQLITE:
+                    conn.execute(text(f"ALTER TABLE ai_usage_logs ADD COLUMN {name} {ddl}"))
+                else:
+                    conn.execute(
+                        text(
+                            f"ALTER TABLE ai_usage_logs ADD COLUMN IF NOT EXISTS {name} {ddl}"
+                        )
+                    )
+        except Exception:
+            pass
+    if not _IS_SQLITE:
+        for stmt in (
+            "CREATE INDEX IF NOT EXISTS ix_ai_usage_logs_request_id ON ai_usage_logs (request_id)",
+            "CREATE INDEX IF NOT EXISTS ix_ai_usage_logs_created_provider ON ai_usage_logs (created_at, provider_used)",
+            "CREATE INDEX IF NOT EXISTS ix_ai_usage_logs_created_task_type ON ai_usage_logs (created_at, task_type)",
+            "CREATE INDEX IF NOT EXISTS ix_ai_usage_logs_created_status ON ai_usage_logs (created_at, status)",
+        ):
+            try:
+                with engine.begin() as conn:
+                    conn.execute(text(stmt))
+            except Exception:
+                pass
 
 
 def get_leave_dates(db):

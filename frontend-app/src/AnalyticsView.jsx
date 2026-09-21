@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import axios from 'axios';
+import { generateAI, AI_TASK_TYPES } from './api/aiClient';
 import DOMPurify from 'dompurify';
 import { Avatar } from './SharedUI';
 import { Icon } from './components/icons/Icon';
@@ -525,7 +525,7 @@ export default function AnalyticsView({
     }.`;
 
     try {
-      const res = await axios.post('/api/ai/generate', { prompt });
+      const res = await generateAI(prompt, AI_TASK_TYPES.PROJECT_ANALYSIS);
       setAiInsight(res.data.text);
       setAiProvider(res.data.provider || 'AI');
     } catch (err) {
@@ -533,7 +533,9 @@ export default function AnalyticsView({
       setAiInsight(
         errorDetail
           ? `⚠️ AI Error: ${errorDetail}`
-          : '⚠️ Failed to reach Gemini AI. Please ensure your Admin has configured the GEMINI_API_KEY in the server.'
+          : language === 'id'
+            ? '⚠️ Smart Assistant sedang tidak tersedia. Silakan coba lagi nanti atau hubungi administrator.'
+            : '⚠️ Smart Assistant is currently unavailable. Please try again later or contact an administrator.'
       );
     } finally {
       setIsGeneratingAi(false);

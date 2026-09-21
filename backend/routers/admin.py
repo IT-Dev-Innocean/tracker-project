@@ -110,6 +110,78 @@ def update_feature_flags(
     }
 
 
+@router.get("/api/admin/ai/overview")
+def get_ai_overview(
+    current_user: str = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    if not can_access_admin_menu(db, current_user):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    from ai_usage import build_overview
+
+    return build_overview(db)
+
+
+@router.put("/api/admin/ai/limits")
+def update_ai_limits(
+    payload: AILimitsUpdateModel,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not can_access_admin_menu(db, current_user):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    from ai_usage import (
+        MAX_DAILY_LIMIT,
+        build_overview,
+        get_default_daily_limit,
+        merge_user_limit_overrides,
+        save_engine_plan_selections,
+        set_default_daily_limit,
+    )
+
+    if payload.default_daily_limit is not None:
+        if payload.default_daily_limit < 1 or payload.default_daily_limit > MAX_DAILY_LIMIT:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Default daily limit must be between 1 and {MAX_DAILY_LIMIT}",
+            )
+        set_default_daily_limit(db, payload.default_daily_limit)
+
+    if payload.user_limits is not None:
+        cleaned = {}
+        for username, raw in payload.user_limits.items():
+            key = str(username or "").strip()
+            if not key:
+                continue
+            if raw is None:
+                cleaned[key] = None
+                continue
+            try:
+                value = int(raw)
+            except (TypeError, ValueError):
+                raise HTTPException(status_code=400, detail=f"Invalid limit for @{key}")
+            if value < 1 or value > MAX_DAILY_LIMIT:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Limit for @{key} must be between 1 and {MAX_DAILY_LIMIT}",
+                )
+            cleaned[key] = value
+        merge_user_limit_overrides(db, cleaned)
+
+    if payload.engine_plans is not None:
+        updates = {}
+        for engine, plan_id in payload.engine_plans.items():
+            key = str(engine or "").strip().lower()
+            if not key:
+                continue
+            updates[key] = {"plan": str(plan_id or "").strip().lower()}
+        save_engine_plan_selections(db, updates)
+
+    overview = build_overview(db)
+    overview["message"] = "AI limits updated successfully!"
+    overview["default_daily_limit"] = get_default_daily_limit(db)
+    return overview
+
+
 @router.get("/api/admin/users")
 def get_all_users(
     current_user: str = Depends(get_current_user), db: Session = Depends(get_db)

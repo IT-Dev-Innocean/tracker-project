@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { HighlightText, LoadingSpinner } from './Utils';
 import { Icon } from './components/icons/Icon';
@@ -10,6 +10,11 @@ import {
   applyServerFeatureFlags,
   resetFeatureFlagsToDefault,
 } from './featureFlags';
+import AIOverviewPanel from './components/Admin/AIOverviewPanel';
+import {
+  readPersistedAdminTab,
+  writePersistedAdminTab,
+} from './utils/navPersistence';
 
 export default function AdminModal({
   adminUsers,
@@ -62,7 +67,7 @@ export default function AdminModal({
     }
   };
 
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState(() => readPersistedAdminTab());
   const [adminBoards, setAdminBoards] = useState([]);
   const [isBoardsLoading, setIsBoardsLoading] = useState(false);
   const [projectFilter, setProjectFilter] = useState('all');
@@ -77,6 +82,10 @@ export default function AdminModal({
     getAllFeatureFlags()
   );
   const [isSavingFlags, setIsSavingFlags] = useState(false);
+
+  useEffect(() => {
+    writePersistedAdminTab(activeTab);
+  }, [activeTab]);
 
   const filteredUsers = adminUsers.filter(
     (u) =>
@@ -295,6 +304,16 @@ export default function AdminModal({
               }`}
             >
               {tMsg('Feature Flags', 'Feature Flags')}
+            </button>
+            <button
+              onClick={() => setActiveTab('ai-overview')}
+              className={`shrink-0 pb-2 text-sm font-medium transition-colors ${
+                activeTab === 'ai-overview'
+                  ? 'border-b-2 border-black dark:border-white text-black dark:text-white font-bold'
+                  : 'text-neutral-400 hover:text-black dark:hover:text-white'
+              }`}
+            >
+              {tMsg('AI Overview', 'AI Overview')}
             </button>
             <button
               onClick={() => setActiveTab('approvers')}
@@ -1318,6 +1337,8 @@ export default function AdminModal({
               </button>
             </div>
           </div>
+        ) : activeTab === 'ai-overview' ? (
+          <AIOverviewPanel language={language} showNotification={showNotification} />
         ) : null}
       </div>
 

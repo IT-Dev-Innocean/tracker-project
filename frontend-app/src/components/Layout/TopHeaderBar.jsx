@@ -198,7 +198,7 @@ export default function TopHeaderBar() {
           )}
         </button>
 
-        <button
+        {/* <button
           type='button'
           onClick={() => {
             setExportMode('global');
@@ -210,7 +210,7 @@ export default function TopHeaderBar() {
           <span className='text-[10px] font-semibold'>
             {tMsg('Export', 'Ekspor')}
           </span>
-        </button>
+        </button> */}
 
         <div className='relative'>
           <button
@@ -222,9 +222,13 @@ export default function TopHeaderBar() {
             <span className='text-[10px] font-semibold'>
               {tMsg('Notifications', 'Notifikasi')}
             </span>
-            {(unreadCount > 0 || (TIMESHEETS_UI_ENABLED && unsubmittedTimesheetsCount > 0)) && (
+            {(unreadCount > 0 ||
+              (TIMESHEETS_UI_ENABLED && unsubmittedTimesheetsCount > 0)) && (
               <span className='absolute top-0.5 right-1 bg-red-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full border border-white dark:border-black scale-90 min-w-4 text-center leading-none'>
-                {unreadCount + (TIMESHEETS_UI_ENABLED && unsubmittedTimesheetsCount > 0 ? 1 : 0)}
+                {unreadCount +
+                  (TIMESHEETS_UI_ENABLED && unsubmittedTimesheetsCount > 0
+                    ? 1
+                    : 0)}
               </span>
             )}
           </button>
@@ -331,11 +335,19 @@ export default function TopHeaderBar() {
                                 : 'text-neutral-600 dark:text-neutral-400'
                             }`}>
                             {(() => {
-                              let msgText = n.message ? n.message.replace(/<!--TASK_ID:\d+-->/g, '') : '';
-                              if (formatDateMMM && msgText.includes('Your timesheet for period')) {
-                                msgText = msgText.replace(/period (\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/, (_, d1, d2) => {
-                                  return `period ${formatDateMMM(d1)} to ${formatDateMMM(d2)}`;
-                                });
+                              let msgText = n.message
+                                ? n.message.replace(/<!--TASK_ID:\d+-->/g, '')
+                                : '';
+                              if (
+                                formatDateMMM &&
+                                msgText.includes('Your timesheet for period')
+                              ) {
+                                msgText = msgText.replace(
+                                  /period (\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/,
+                                  (_, d1, d2) => {
+                                    return `period ${formatDateMMM(d1)} to ${formatDateMMM(d2)}`;
+                                  }
+                                );
                               }
                               return msgText;
                             })()}
@@ -418,7 +430,7 @@ export default function TopHeaderBar() {
                     }}
                     disabled={accountStatus === 'suspended'}
                     className='w-full text-left px-4 py-3 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-slate-700 dark:text-slate-300 transition-colors'>
-                    <Icon name='sparkles' className='w-4 h-4' />{' '}
+                    <Icon iconify='carbon:ai-agent' className='w-4 h-4' />{' '}
                     {tMsg('Smart Assistant', 'Asisten Pintar AI')}
                   </button>
                 )}

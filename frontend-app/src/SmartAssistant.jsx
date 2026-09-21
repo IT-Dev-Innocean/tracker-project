@@ -1,13 +1,43 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import axios from 'axios';
-import ChatMessage from './ChatMessage';
-import { LoadingSpinner } from './Utils';
 import SmartAssistantLanding from './components/SmartAssistant/SmartAssistantLanding';
 import SmartAssistantQuickTodo from './components/SmartAssistant/SmartAssistantQuickTodo';
 import SmartAssistantPlanner from './components/SmartAssistant/SmartAssistantPlanner';
 import SmartAssistantChat from './components/SmartAssistant/SmartAssistantChat';
+import SmartAssistantShell from './components/SmartAssistant/SmartAssistantShell';
+import SmartAssistantSidebar from './components/SmartAssistant/SmartAssistantSidebar';
 import { Icon } from './components/icons/Icon';
 import { useFeatureFlags } from './featureFlags';
+import { resolveAssistantLanguage } from './utils/assistantLanguage';
+import { useAssistantConversations } from './hooks/useAssistantConversations';
+import { buildAssistantRecommendations } from './utils/assistantRecommendations';
+import { generateAI, fetchAIUsage, AI_TASK_TYPES } from './api/aiClient';
+
+const MAX_AI_CONTEXT_TASKS = 80;
+
+function compactTaskForAI(task, boardMap) {
+  const subtasks = (task.subtasks || []).slice(0, 8).map((st) => ({
+    title: st.task_name,
+    assignee: st.assignee || null,
+    done: !!st.is_done,
+  }));
+  return {
+    id: task.id,
+    title: task.task_name,
+    status: task.status,
+    assignee: task.main_assignee || task.requester || null,
+    deadline: task.deadline,
+    project: boardMap[String(task.board_id)] || task.board_name || null,
+    ...(subtasks.length ? { subtasks } : {}),
+  };
+}
+
+function prioritizeTasksForAI(tasks) {
+  const list = Array.isArray(tasks) ? tasks : [];
+  const open = list.filter((t) => String(t.status || '').toLowerCase() !== 'done');
+  const done = list.filter((t) => String(t.status || '').toLowerCase() === 'done');
+  return [...open, ...done].slice(0, MAX_AI_CONTEXT_TASKS);
+}
 
 export default function SmartAssistant({
   currentUser,
@@ -56,9 +86,17 @@ export default function SmartAssistant({
   const [dbProjects, setDbProjects] = useState([]);
   const [dbUsers, setDbUsers] = useState([]);
   const [dbLeaves, setDbLeaves] = useState([]);
+  const [aiUsage, setAiUsage] = useState(null);
+
+  const loadAiUsage = useCallback(() => {
+    fetchAIUsage(language)
+      .then((res) => setAiUsage(res.data))
+      .catch(() => {});
+  }, [language]);
 
   useEffect(() => {
     if (isOpen) {
+      loadAiUsage();
       Promise.allSettled([
         axios.get('/api/boards'),
         axios.get('/api/tasks/all'),
@@ -88,12 +126,46 @@ export default function SmartAssistant({
         }
       });
     }
-  }, [isOpen]);
+  }, [isOpen, loadAiUsage]);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onUsage = (event) => {
+      if (event?.detail) {
+        setAiUsage(event.detail);
+        return;
+      }
+      loadAiUsage();
+    };
+    window.addEventListener('ai_usage_updated', onUsage);
+    return () => window.removeEventListener('ai_usage_updated', onUsage);
+  }, [isOpen, loadAiUsage]);
 
   const hasSubFeatures =
     SMART_ASSISTANT_QUICK_TODO_ENABLED ||
     SMART_ASSISTANT_PLANNER_ENABLED ||
     SMART_ASSISTANT_MEETING_NOTES_ENABLED;
+
+  const {
+    conversations,
+    activeId,
+    setActiveId,
+    searchQuery,
+    setSearchQuery,
+    isSearchOpen,
+    setIsSearchOpen,
+    isLoadingList,
+    skipSaveRef,
+    fetchConversations,
+    loadConversation,
+    saveConversation,
+    deleteConversation,
+    beginSkipSave,
+    endSkipSave,
+  } = useAssistantConversations({ enabled: Boolean(isOpen) });
+
+  const activeIdRef = useRef(activeId);
+  activeIdRef.current = activeId;
 
   const [messages, setMessages] = useState([]);
   const [assistantMode, setAssistantMode] = useState('landing'); // 'landing', 'chat', 'quick_todo', 'planner'
@@ -116,12 +188,11 @@ export default function SmartAssistant({
   const [isMentioning, setIsMentioning] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionIndex, setMentionIndex] = useState(0);
-  const [aiProvider, setAiProvider] = useState('Smart Assistant');
-  const [selectedModel, setSelectedModel] = useState('auto');
   const messagesEndRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const plannerEndRef = useRef(null);
   const prevBoardRef = useRef(selectedBoard?.id);
+  const hydratedOpenRef = useRef(false);
   const [noteSuggestions, setNoteSuggestions] = useState([]);
 
   const globalMentionOptions =
@@ -168,23 +239,8 @@ export default function SmartAssistant({
   useEffect(() => {
     if (isOpen) {
       setTimeout(scrollToBottom, 100);
-      if (!hasSubFeatures) {
-        setAssistantMode('chat');
-        if (messages.length === 0) {
-          startConversation();
-        }
-      } else if (messages.length === 0 || localStorage.getItem('innocean_ai_offer_docs') === 'true') {
-        if (localStorage.getItem('innocean_ai_offer_docs') === 'true') {
-          setAssistantMode('chat');
-          startConversation();
-        } else {
-          setAssistantMode('landing');
-        }
-      } else {
-        setAssistantMode('chat');
-      }
     }
-  }, [isOpen, hasSubFeatures]);
+  }, [isOpen]);
 
   useEffect(() => {
     if (scrollContainerRef.current) {
@@ -258,6 +314,11 @@ export default function SmartAssistant({
   };
 
   const tMsg = (en, id) => (language === 'id' ? id : en);
+  const aiLanguage = (userText) => resolveAssistantLanguage(language, userText);
+  const recommendations = useMemo(
+    () => buildAssistantRecommendations({ tMsg }),
+    [language]
+  );
   const optCreate = tMsg('Create Task', 'Tugas Baru');
   const optAnalysis = tMsg('Analysis', 'Analisis');
   const optSearch = tMsg('Search', 'Cari');
@@ -289,10 +350,6 @@ export default function SmartAssistant({
     setMessages([]);
     setTaskData({});
     setStep('idle');
-    const isGlobal = !selectedBoard || selectedBoard.id === 'global';
-    const projectName = isGlobal
-      ? tMsg('All Projects (Global)', 'Semua Proyek (Global)')
-      : `${tMsg('Project', 'Proyek')}: ${selectedBoard?.name}`;
 
     if (localStorage.getItem('innocean_ai_offer_docs') === 'true') {
       localStorage.removeItem('innocean_ai_offer_docs');
@@ -303,27 +360,177 @@ export default function SmartAssistant({
         ),
         [optTour, optExplore]
       );
+    }
+  };
+
+  const stripAssistantText = (text) =>
+    String(text || '')
+      .replace(/<[^>]*>?/gm, '')
+      .replace(/\*\*(.*?)\*\*/g, '$1')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const titleFromMessages = (msgs) => {
+    const userMsg = (msgs || []).find((m) => m.sender === 'user');
+    const title = stripAssistantText(userMsg?.text);
+    return title ? title.slice(0, 80) : tMsg('New chat', 'Chat baru');
+  };
+
+  const resetDraftState = () => {
+    setMessages([]);
+    setTaskData({});
+    setStep('idle');
+    setQuickTasks([]);
+    setQuickTaskInput('');
+    setPlannedTasks([]);
+    setPlannerPrompt('');
+    setInputValue('');
+    setIsMentioning(false);
+    setNoteSuggestions([]);
+  };
+
+  const applyConversation = (detail) => {
+    beginSkipSave();
+    setActiveId(detail.id);
+    setMessages(Array.isArray(detail.messages) ? detail.messages : []);
+    const state = detail.state && typeof detail.state === 'object' ? detail.state : {};
+    setAssistantMode(state.assistantMode || 'chat');
+    setStep(state.step || 'idle');
+    setTaskData(state.taskData || {});
+    setQuickTasks(Array.isArray(state.quickTasks) ? state.quickTasks : []);
+    setPlannedTasks(Array.isArray(state.plannedTasks) ? state.plannedTasks : []);
+    setPlannerPrompt(state.plannerPrompt || '');
+    setQuickTargetBoardId(state.quickTargetBoardId || '');
+    setPlannerTargetBoardId(state.plannerTargetBoardId || '');
+    setInputValue('');
+    setIsMentioning(false);
+    endSkipSave();
+  };
+
+  const handleNewChat = () => {
+    beginSkipSave();
+    setActiveId(null);
+    resetDraftState();
+    if (hasSubFeatures && localStorage.getItem('innocean_ai_offer_docs') !== 'true') {
+      setAssistantMode('landing');
+      endSkipSave();
       return;
     }
-
-    addBotMessage(
-      tMsg(
-        `Hi **@${currentUser}**! I'm your Smart Assistant for **${projectName}**.\n\nHow can I help you today? Feel free to ask about tasks, project progress, team availability, or any questions!`,
-        `Hai **@${currentUser}**! Saya Asisten Pintar untuk **${projectName}**.\n\nAda yang bisa saya bantu hari ini? Anda dapat bertanya seputar tugas, progres proyek, ketersediaan tim, atau topik apa pun!`
-      )
-    );
+    startConversation();
+    endSkipSave();
   };
+
+  const handleHeaderNewChat = () => {
+    beginSkipSave();
+    setActiveId(null);
+    resetDraftState();
+    startConversation();
+    endSkipSave();
+  };
+
+  const handleSelectConversation = async (id) => {
+    if (id === activeIdRef.current) return;
+    const detail = await loadConversation(id);
+    if (detail) applyConversation(detail);
+  };
+
+  const handleDeleteConversation = async (id) => {
+    try {
+      await deleteConversation(id);
+      if (id === activeIdRef.current) handleNewChat();
+    } catch {
+      showNotification(tMsg('Could not delete chat', 'Gagal menghapus chat'), 'error');
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      hydratedOpenRef.current = false;
+      return undefined;
+    }
+    if (hydratedOpenRef.current) return undefined;
+    hydratedOpenRef.current = true;
+
+    let cancelled = false;
+    (async () => {
+      const list = await fetchConversations(searchQuery);
+      if (cancelled) return;
+      const storedId = activeIdRef.current;
+      if (storedId) {
+        const exists = (list || []).some((item) => item.id === storedId);
+        if (exists) {
+          const detail = await loadConversation(storedId);
+          if (!cancelled && detail) {
+            applyConversation(detail);
+            return;
+          }
+        }
+        if (!cancelled) setActiveId(null);
+      }
+      if (cancelled) return;
+      if (localStorage.getItem('innocean_ai_offer_docs') === 'true') {
+        startConversation();
+        return;
+      }
+      if (messages.length === 0) {
+        if (!hasSubFeatures) startConversation();
+        else setAssistantMode('landing');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || skipSaveRef.current) return undefined;
+    const hasUser = messages.some((m) => m.sender === 'user');
+    if (!hasUser) return undefined;
+    const timer = window.setTimeout(async () => {
+      if (skipSaveRef.current) return;
+      try {
+        const saved = await saveConversation({
+          id: activeIdRef.current,
+          title: titleFromMessages(messages),
+          messages,
+          state: {
+            assistantMode,
+            step,
+            taskData,
+            quickTasks,
+            plannedTasks,
+            plannerPrompt,
+            quickTargetBoardId,
+            plannerTargetBoardId,
+          },
+        });
+        if (saved?.id && saved.id !== activeIdRef.current) {
+          beginSkipSave();
+          setActiveId(saved.id);
+          endSkipSave();
+        }
+        fetchConversations(searchQuery);
+      } catch {
+        // Keep the in-progress thread even if autosave fails.
+      }
+    }, 500);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, assistantMode, step, taskData, quickTasks, plannedTasks, plannerPrompt, isOpen]);
 
   const startQuickNote = (isFromChat = false) => {
     setIsMomNotepadOpen(true);
     closeDrawer();
   };
 
-  const handleUserReply = (text) => {
+  const handleUserReply = (text, options = {}) => {
     if (!text.trim()) return;
     addUserMessage(text);
     setInputValue('');
     setIsMentioning(false);
+    const stayInChat = Boolean(options.stayInChat);
 
     const nextStep = (currentStep, data) => {
       const textLower = data.toLowerCase();
@@ -395,10 +602,16 @@ Use this exact array format:
 Meeting Notes:
 ${Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n\n') : taskData.raw_notes}`;
 
-        axios
-          .post('/api/ai/generate', { prompt, provider: selectedModel })
+        generateAI(
+          prompt,
+          AI_TASK_TYPES.MULTI_TASK_REASONING,
+          {
+            language: aiLanguage(
+              Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n') : taskData.raw_notes
+            ),
+          }
+        )
           .then((res) => {
-            if (res.data.provider) setAiProvider(res.data.provider);
             setMessages((prev) => prev.filter((m) => !m.text.includes('⏳')));
             try {
               let jsonStr = res.data.text.trim();
@@ -910,8 +1123,7 @@ ${Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n\n') : taskData
               )}. Write a 3 sentence professional and insightful summary directly addressing the user "@${currentUser}". You can use markdown bold. Include emojis. Please respond strictly in ${
                 language === 'id' ? 'Indonesian' : 'English'
               }.`;
-              const res = await axios.post('/api/ai/generate', { prompt, provider: selectedModel });
-              const providerName = res.data.provider || 'AI';
+              const res = await generateAI(prompt, AI_TASK_TYPES.PROJECT_ANALYSIS, { language: aiLanguage() });
 
               addBotMessage(
                 `📊 **${workspaceName} ${lblQuickAnalysis}**\n\n` +
@@ -921,13 +1133,14 @@ ${Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n\n') : taskData
                   `• ${lblCompleted}: **${done} (${doneEtc}h)**\n` +
                   `• ${lblCritical}: **${critical}**\n` +
                   `• ${lblBottleneck}: **${bottleneckTasks}**\n\n` +
-                  `✨ **${providerName} ${lblInsight}:**\n${res.data.text}`,
+                  `✨ **Smart Assistant ${lblInsight}:**\n${res.data.text}`,
                 [optStartOver, optClose]
               );
               setStep('end');
             } catch (err) {
-              // Fallback to Rule-Based if Gemini API is not configured
-              const errorDetail = err.response?.data?.detail || 'Gemini AI is currently unavailable';
+              const errorDetail =
+                err.response?.data?.detail ||
+                tMsg('Smart Assistant is currently unavailable', 'Smart Assistant sedang tidak tersedia');
               addBotMessage(
                 `📊 **${workspaceName} ${lblQuickAnalysis}**\n\n` +
                   `• ${lblHealth}: **${projectHealth}%**\n` +
@@ -1009,7 +1222,8 @@ ${Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n\n') : taskData
         // Pattern: message contains numbered or bulleted list items
         const hasListPattern = /[\n,;]\s*(?:\d+[.)\s]|[-•*]\s)/.test(data);
 
-        const isBulkTaskIntent = isBulkTaskKeyword || hasMultipleMentions || hasMultipleCommaItems || hasListPattern;
+        const isBulkTaskIntent =
+          !stayInChat && (isBulkTaskKeyword || hasMultipleMentions || hasMultipleCommaItems || hasListPattern);
 
         if (isBulkTaskIntent) {
           // Pre-fill the planner prompt with the user's message and redirect
@@ -1078,118 +1292,85 @@ ${Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n\n') : taskData
           });
 
           const myProjects = sourceProjects.map((b) => ({
-            project_name: b.name,
-            project_owner: b.owner_username || b.owner || 'N/A',
-            project_code: b.project_number || b.id,
+            name: b.name,
+            owner: b.owner_username || b.owner || null,
+            code: b.project_number || b.id,
           }));
 
-          const taskSummaryList = myTasks.map((t) => ({
-            title: t.task_name,
-            project_name: boardMap[String(t.board_id)] || t.board_name || 'Global',
-            category: t.category,
-            status: t.status,
-            priority: t.priority_lvl || 'medium',
-            created_or_requested_by: t.requester || t.main_assignee || 'N/A', // Creator/Requester (Does not do the work)
-            supervisors_knowing: Array.isArray(t.head_of_project) ? t.head_of_project.join(', ') : (t.head_of_project || 'N/A'), // Supervisors knowing about the task
-            rc_monitoring_team: Array.isArray(t.rc_team) ? t.rc_team.join(', ') : (t.rc_team || 'N/A'), // PIC Monitoring team
-            start_date: t.start_date || t.timestamp,
-            deadline: t.deadline,
-            is_done: t.status === 'Done',
-            assigned_doers_in_subtasks: (t.subtasks && t.subtasks.length > 0)
-              ? t.subtasks.map((st) => ({
-                  subtask_title: st.task_name,
-                  doer_assigned: st.assignee || 'Unassigned',
-                  department: st.department || 'N/A',
-                  is_done: !!st.is_done,
-                }))
-              : (t.subtask_assignees || t.subtask_details || 'None'),
+          const taskSummaryList = prioritizeTasksForAI(myTasks).map((t) =>
+            compactTaskForAI(t, boardMap)
+          );
+
+          const leaveSummary = myLeaves.slice(0, 40).map((l) => ({
+            type: l.leave_type || l.type || 'Leave',
+            start: l.start_date || l.date,
+            end: l.end_date || l.date,
           }));
 
           dbContextSummary = `
 USER ROLE: Staff (@${currentUser})
 ROLE SECURITY BOUNDARY: You MUST ONLY provide information about @${currentUser}'s own assigned tasks and leave records. Do NOT leak private details of other employees or unassigned projects.
 
-1. DATABASE - MY TASKS (${taskSummaryList.length} total):
-${JSON.stringify(taskSummaryList, null, 2)}
+1. DATABASE - MY TASKS (${taskSummaryList.length} shown):
+${JSON.stringify(taskSummaryList)}
 
-2. DATABASE - MY LEAVE RECORDS (${myLeaves.length} total):
-${JSON.stringify(myLeaves, null, 2)}
+2. DATABASE - MY LEAVE RECORDS (${leaveSummary.length} shown):
+${JSON.stringify(leaveSummary)}
 
 3. DATABASE - ACCESSIBLE PROJECTS:
-${JSON.stringify(myProjects, null, 2)}
+${JSON.stringify(myProjects)}
 `;
         } else {
           // Manager / Admin / Owner / BOD Role: Full access to Projects, Clients, Teams & Leave Teams
           const projectsSummary = sourceProjects.map((b) => ({
             id: b.id,
             name: b.name,
-            owner: b.owner_username || b.owner || 'N/A',
-            project_code: b.project_number || b.id,
-            is_archived: !!b.deletion_date,
+            owner: b.owner_username || b.owner || null,
+            code: b.project_number || b.id,
           }));
 
-          const clientsSummary = sourceClients.map((c) => ({
-            client_name: c.client_name || c.name,
-            client_code: c.client_code || c.code,
+          const clientsSummary = sourceClients.slice(0, 80).map((c) => ({
+            name: c.client_name || c.name,
+            code: c.client_code || c.code,
             status: c.status || 'active',
           }));
 
-          const teamsSummary = sourceUsers.map((u) => ({
+          const teamsSummary = sourceUsers.slice(0, 120).map((u) => ({
             username: u.username,
-            full_name: u.full_name,
+            name: u.full_name,
             role: u.role,
-            job_position: u.job_position || u.position || u.title || 'N/A', // Job Position / Jabatan
-            department: u.department || u.division_name || u.division || 'N/A', // Department / Divisi
-            is_active: u.status !== 'suspended',
+            dept: u.department || u.division_name || u.division || null,
           }));
 
-          const leavesSummary = sourceLeaves.map((l) => ({
+          const leavesSummary = sourceLeaves.slice(0, 80).map((l) => ({
             user: l.username || l.user,
             type: l.leave_type || l.type || 'Leave',
-            start_date: l.start_date || l.date,
-            end_date: l.end_date || l.date,
-            reason: l.reason || l.description,
-            status: l.status || 'Approved',
+            start: l.start_date || l.date,
+            end: l.end_date || l.date,
           }));
 
-          const allTasksSummary = sourceTasks.map((t) => ({
-            title: t.task_name,
-            project_name: boardMap[String(t.board_id)] || t.board_name || 'Global',
-            status: t.status,
-            category: t.category,
-            priority: t.priority_lvl || 'medium',
-            created_or_requested_by: t.requester || t.main_assignee || 'N/A', // Creator (Not worker)
-            supervisors_knowing: Array.isArray(t.head_of_project) ? t.head_of_project.join(', ') : (t.head_of_project || 'N/A'), // Supervisors knowing about the task
-            rc_monitoring_team: Array.isArray(t.rc_team) ? t.rc_team.join(', ') : (t.rc_team || 'N/A'), // PIC Monitoring team
-            deadline: t.deadline,
-            assigned_doers_in_subtasks: (t.subtasks && t.subtasks.length > 0)
-              ? t.subtasks.map((st) => ({
-                  subtask_title: st.task_name,
-                  doer_assigned: st.assignee || 'Unassigned',
-                  department: st.department || 'N/A',
-                  is_done: !!st.is_done,
-                }))
-              : (t.subtask_assignees || t.subtask_details || 'None'),
-          }));
+          const allTasksSummary = prioritizeTasksForAI(sourceTasks).map((t) =>
+            compactTaskForAI(t, boardMap)
+          );
 
           dbContextSummary = `
 USER ROLE: Manager / Admin / Owner / BOD (@${currentUser})
 ROLE SECURITY SCOPE: Full workspace-wide read access to Projects Page, Clients Page, Teams Page, and Leave Teams Page.
 
 1. DATABASE - PROJECTS PAGE (${projectsSummary.length} projects):
-${JSON.stringify(projectsSummary, null, 2)}
+${JSON.stringify(projectsSummary)}
 
 2. DATABASE - CLIENTS PAGE (${clientsSummary.length} clients):
-${JSON.stringify(clientsSummary, null, 2)}
+${JSON.stringify(clientsSummary)}
 
 3. DATABASE - TEAMS PAGE (${teamsSummary.length} members):
-${JSON.stringify(teamsSummary, null, 2)}
+${JSON.stringify(teamsSummary)}
 
 4. DATABASE - LEAVE TEAMS PAGE (${leavesSummary.length} leave records):
-${JSON.stringify(leavesSummary, null, 2)}
+${JSON.stringify(leavesSummary)}
 
-5. DATABASE - TASKS SUMMARY FOR ALL PROJECTS (${allTasksSummary.length} total tasks):
-${JSON.stringify(allTasksSummary, null, 2)}
+5. DATABASE - TASKS SUMMARY FOR ALL PROJECTS (${allTasksSummary.length} shown):
+${JSON.stringify(allTasksSummary)}
 `;
         }
 
@@ -1240,21 +1421,25 @@ CRITICAL RULES:
    - If User Role is Manager/Admin/Owner/BOD, provide comprehensive project insights, team workloads, project health, or performance summaries as requested.
 5. Language: Respond in the exact language used by the user (Indonesian/English). Keep answers warm, professional, clear, and formatted in markdown.`;
 
-        axios
-          .post('/api/ai/generate', { prompt, provider: selectedModel })
+        generateAI(prompt, AI_TASK_TYPES.AI_AGENT, { language: aiLanguage(data) })
           .then((res) => {
-            if (res.data.provider) setAiProvider(res.data.provider);
             setMessages((prev) => prev.filter((m) => m.text !== tMsg('Thinking... 🤔', 'Berpikir... 🤔')));
-            const replyText = res.data.text.trim();
+            const replyText = (res.data?.text || '').trim();
+            if (!replyText) {
+              throw new Error('empty_response');
+            }
             addBotMessage(replyText);
           })
           .catch((err) => {
             setMessages((prev) => prev.filter((m) => m.text !== tMsg('Thinking... 🤔', 'Berpikir... 🤔')));
+            const detail = err.response?.data?.detail;
             addBotMessage(
-              tMsg(
-                'Sorry, I encountered an error. Please try again.',
-                'Maaf, terjadi kesalahan. Silakan coba lagi.'
-              )
+              typeof detail === 'string' && detail
+                ? detail
+                : tMsg(
+                    'Sorry, I encountered an error. Please try again.',
+                    'Maaf, terjadi kesalahan. Silakan coba lagi.'
+                  )
             );
           });
         return;
@@ -1313,9 +1498,8 @@ CRITICAL RULES:
           const prompt = `You are a professional Project Manager AI. Please organize the following raw meeting notes into a structured Minutes of Meeting (MoM) in the same language as the notes provided. Include these sections: 1. Executive Summary, 2. Key Discussion Points, 3. Action Items (Tasks to be done, clearly bulleted with recommended assignees if mentioned). Use markdown for professional formatting.${contextStr} Here are the raw notes:\n\n"${combinedNotes}"`;
 
           axios
-            .post('/api/ai/generate', { prompt, provider: selectedModel })
+          generateAI(prompt, AI_TASK_TYPES.SUMMARIZE_TASK, { language: aiLanguage(combinedNotes) })
             .then((res) => {
-              if (res.data.provider) setAiProvider(res.data.provider);
               setMessages((prev) =>
                 prev.filter(
                   (m) =>
@@ -1361,8 +1545,7 @@ Generate 1 or 2 short follow-up questions the user could ask the participants to
 Return ONLY a valid JSON array of strings. Do not use markdown formatting. Example: ["Siapa yang akan mengerjakan ini?", "Kapan tenggat waktunya?"]
 Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal words) that the user used in their notes.`;
 
-        axios
-          .post('/api/ai/generate', { prompt, provider: selectedModel })
+        generateAI(prompt, AI_TASK_TYPES.SIMPLE_QA, { language: aiLanguage(data) })
           .then((res) => {
             try {
               let jsonStr = res.data.text
@@ -1700,9 +1883,8 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
           addBotMessage(tMsg('Drafting description with AI... ⏳', 'Membuat deskripsi dengan AI... ⏳'));
           const prompt = `Write a short, professional, and structured task description (brief) for a project. Write it in the same language as the task title ("${taskData.task_name}"). The task title is "${taskData.task_name}", category is "${taskData.category}". Output 2 to 3 concise bullet points outlining expected deliverables or steps. Do not include greetings.`;
           axios
-            .post('/api/ai/generate', { prompt, provider: selectedModel })
+          generateAI(prompt, AI_TASK_TYPES.GENERATE_DESCRIPTION, { language: aiLanguage(taskData.task_name) })
             .then((res) => {
-              if (res.data.provider) setAiProvider(res.data.provider);
               setMessages((prev) =>
                 prev.filter(
                   (m) => m.text !== tMsg('Drafting description with AI... ⏳', 'Membuat deskripsi dengan AI... ⏳')
@@ -2096,7 +2278,7 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
             'Account: Manage profile, export CSV data globally or per project, toggle Dark Mode, submit feedback, or view system specs from the top right Account menu.';
         else if (data === 'Assistant')
           baseContext =
-            'Assistant: Smart Assistant is a Multi-AI helper (Gemini/GPT-OSS) that can draft tasks, summarize notes, answer docs, and extract meeting notes into actionable tasks.';
+            'Assistant: Smart Assistant is the built-in tracker AI that can draft tasks, summarize notes, answer docs, and extract meeting notes into actionable tasks.';
         else if (data === 'Tickets')
           baseContext =
             "Tickets: Users can submit System Feedback or Contact Support via the Account menu. These auto-generate a ticket ID (e.g. TKT-0001) which can be tracked in the 'My Tickets' panel.";
@@ -2122,10 +2304,10 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
 
         const prompt = `You are the official Smart Assistant for INNOCEAN Tracker. The user asked for documentation about "${taskData.doc_topic}". \nHere is the core context about this feature: "${taskData.doc_context}"\nPlease provide a very simple, brief, and beginner-friendly explanation (maximum 2-3 short sentences). Make it easy for a layperson to understand. Use an analogy if helpful. Respond strictly in ${targetLang}.`;
 
-        axios
-          .post('/api/ai/generate', { prompt, provider: selectedModel })
+        generateAI(prompt, AI_TASK_TYPES.SIMPLE_QA, {
+          language: targetLang.toLowerCase().startsWith('indones') ? 'id' : 'en',
+        })
           .then((res) => {
-            if (res.data.provider) setAiProvider(res.data.provider);
             setMessages((prev) => prev.filter((m) => !m.text.includes('⏳')));
             const reply = res.data.text.trim();
             addBotMessage(
@@ -2171,10 +2353,10 @@ Respond strictly in the EXACT SAME LANGUAGE and tone (including slang/informal w
           }"\nPlease expand on this context to provide a comprehensive, professional, and in-depth guide. Use markdown for styling (bold, bullet points, step-by-step if applicable). Respond strictly in ${
             taskData.doc_lang || 'English'
           }.`;
-          axios
-            .post('/api/ai/generate', { prompt, provider: selectedModel })
+          generateAI(prompt, AI_TASK_TYPES.SIMPLE_QA, {
+            language: String(taskData.doc_lang || '').toLowerCase().startsWith('indones') ? 'id' : aiLanguage(),
+          })
             .then((res) => {
-              if (res.data.provider) setAiProvider(res.data.provider);
               setMessages((prev) => prev.filter((m) => !m.text.includes('⏳')));
               const reply = res.data.text.trim();
               addBotMessage(
@@ -2358,7 +2540,9 @@ JSON SCHEMA:
 USER REQUEST:
 """${plannerPrompt}"""`;
 
-      const resAi = await axios.post('/api/ai/generate', { prompt: aiPrompt, provider: selectedModel });
+      const resAi = await generateAI(aiPrompt, AI_TASK_TYPES.MULTI_TASK_REASONING, {
+        language: aiLanguage(plannerPrompt),
+      });
       let jsonStr = resAi.data.text
         .trim()
         .replace(/```json/gi, '')
@@ -2537,8 +2721,9 @@ USER REQUEST:
     setIsMentioning(false);
   };
 
+  let assistantBody;
   if (assistantMode === 'landing') {
-    return (
+    assistantBody = (
       <SmartAssistantLanding
         currentUser={currentUser}
         tMsg={tMsg}
@@ -2548,10 +2733,8 @@ USER REQUEST:
         renderDiscardModal={renderDiscardModal}
       />
     );
-  }
-
-  if (assistantMode === 'quick_todo') {
-    return (
+  } else if (assistantMode === 'quick_todo') {
+    assistantBody = (
       <SmartAssistantQuickTodo
         selectedBoard={selectedBoard}
         boards={boards}
@@ -2570,10 +2753,8 @@ USER REQUEST:
         renderDiscardModal={renderDiscardModal}
       />
     );
-  }
-
-  if (assistantMode === 'planner') {
-    return (
+  } else if (assistantMode === 'planner') {
+    assistantBody = (
       <SmartAssistantPlanner
         boards={boards}
         plannerTargetBoardId={plannerTargetBoardId}
@@ -2595,45 +2776,76 @@ USER REQUEST:
         renderDiscardModal={renderDiscardModal}
       />
     );
+  } else {
+    assistantBody = (
+      <SmartAssistantChat
+        messages={messages}
+        tMsg={tMsg}
+        language={language}
+        chatBg={chatBg}
+        scrollContainerRef={scrollContainerRef}
+        currentUser={currentUser}
+        getLocalTimestamp={getLocalTimestamp}
+        avatarsMap={avatarsMap}
+        showNotification={showNotification}
+        handleUserReply={handleUserReply}
+        step={step}
+        currentBotMessage={currentBotMessage}
+        optCancel={optCancel}
+        noteSuggestions={noteSuggestions}
+        setInputValue={setInputValue}
+        inputValue={inputValue}
+        handleInputChange={handleInputChange}
+        isMentioning={isMentioning}
+        globalMentionOptions={globalMentionOptions}
+        mentionQuery={mentionQuery}
+        mentionIndex={mentionIndex}
+        setMentionIndex={setMentionIndex}
+        insertMention={insertMention}
+        setIsMentioning={setIsMentioning}
+        accountStatus={accountStatus}
+        teamMembers={teamMembers}
+        messagesEndRef={messagesEndRef}
+        renderDiscardModal={renderDiscardModal}
+        recommendations={recommendations}
+      />
+    );
   }
 
   return (
-    <SmartAssistantChat
-      messages={messages}
-      setDiscardConfirmAction={setDiscardConfirmAction}
-      setMessages={setMessages}
-      setAssistantMode={setAssistantMode}
+    <SmartAssistantShell
+      isOpen={isOpen}
+      onClose={closeDrawer}
+      onNewChat={handleHeaderNewChat}
+      showNewChat={
+        assistantMode === 'chat' &&
+        messages.some((msg) => msg.sender === 'user' || msg.sender === 'bot')
+      }
       tMsg={tMsg}
-      selectedModel={selectedModel}
-      setSelectedModel={setSelectedModel}
-      language={language}
-      aiProvider={aiProvider}
-      startConversation={startConversation}
-      chatBg={chatBg}
-      scrollContainerRef={scrollContainerRef}
-      currentUser={currentUser}
-      getLocalTimestamp={getLocalTimestamp}
-      avatarsMap={avatarsMap}
-      showNotification={showNotification}
-      handleUserReply={handleUserReply}
-      step={step}
-      currentBotMessage={currentBotMessage}
-      optCancel={optCancel}
-      noteSuggestions={noteSuggestions}
-      setInputValue={setInputValue}
-      inputValue={inputValue}
-      handleInputChange={handleInputChange}
-      isMentioning={isMentioning}
-      globalMentionOptions={globalMentionOptions}
-      mentionQuery={mentionQuery}
-      mentionIndex={mentionIndex}
-      setMentionIndex={setMentionIndex}
-      insertMention={insertMention}
-      setIsMentioning={setIsMentioning}
-      accountStatus={accountStatus}
-      teamMembers={teamMembers}
-      messagesEndRef={messagesEndRef}
-      renderDiscardModal={renderDiscardModal}
-    />
+      usage={aiUsage}
+      sidebar={(closeSidebar) => (
+      <SmartAssistantSidebar
+        conversations={conversations}
+        activeId={activeId}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        isSearchOpen={isSearchOpen}
+        onToggleSearch={() => setIsSearchOpen((prev) => !prev)}
+        onNewChat={() => {
+          handleNewChat();
+          closeSidebar();
+        }}
+        onSelect={(id) => {
+          handleSelectConversation(id);
+          closeSidebar();
+        }}
+        onDelete={handleDeleteConversation}
+        isLoading={isLoadingList}
+        tMsg={tMsg}
+        usage={aiUsage}
+      />
+    )}>
+      {assistantBody}
+    </SmartAssistantShell>
   );
 }

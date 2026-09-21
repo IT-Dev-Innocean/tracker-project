@@ -11,6 +11,18 @@ import {
   flattenFormSubtasksForApi,
 } from './utils/formSubtasks';
 import {
+  clearPersistedNav,
+  isMenuOnlyNav,
+  readPersistedNav,
+  writePersistedNav,
+} from './utils/navPersistence';
+import {
+  canAccessAdmin,
+  canAccessMyTasksMenu,
+  canManageClients,
+  canManageProjects,
+} from './permissions';
+import {
   bindStatusColorAlias,
   DEFAULT_STATUS_COLUMNS,
   getStatusLabelColor,
@@ -292,6 +304,12 @@ export default function useAppLogic() {
       return '';
     return localStorage.getItem('innocean_username') || '';
   });
+  const persistedNav = useMemo(
+    () => readPersistedNav(currentUser || ''),
+    // Restore once per mount from the saved username/session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [showAuthForm, setShowAuthForm] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -347,7 +365,9 @@ export default function useAppLogic() {
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterAssignee, setFilterAssignee] = useState('All');
-  const [showMyTasks, setShowMyTasks] = useState(false);
+  const [showMyTasks, setShowMyTasks] = useState(
+    () => Boolean(persistedNav.showMyTasks)
+  );
   const [showOverdueOnly, setShowOverdueOnly] = useState(false);
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
   const [showHasSubtasks, setShowHasSubtasks] = useState(false);
@@ -425,16 +445,26 @@ export default function useAppLogic() {
   const [showTimesheets, setShowTimesheets] = useState(() => {
     // Feature hidden from UI; keep state/API wiring for a quick re-enable later.
     if (!TIMESHEETS_UI_ENABLED) return false;
-    if (typeof window !== 'undefined')
+    if (typeof window !== 'undefined') {
+      if (persistedNav.showTimesheets) return true;
       return localStorage.getItem('innocean_show_timesheets') === 'true';
+    }
     return false;
   });
-  const [showTeams, setShowTeams] = useState(false);
-  const [teamsSubNav, setTeamsSubNav] = useState('people'); // people | leaves
-  const [showAdmin, setShowAdmin] = useState(false);
-  const [showProjectManage, setShowProjectManage] = useState(false);
-  const [showClientManage, setShowClientManage] = useState(false);
-  const [sidebarNav, setSidebarNav] = useState('home'); // home | projects | clients | teams | admin
+  const [showTeams, setShowTeams] = useState(() => Boolean(persistedNav.showTeams));
+  const [teamsSubNav, setTeamsSubNav] = useState(
+    () => persistedNav.teamsSubNav || 'people'
+  );
+  const [showAdmin, setShowAdmin] = useState(() => Boolean(persistedNav.showAdmin));
+  const [showProjectManage, setShowProjectManage] = useState(
+    () => Boolean(persistedNav.showProjectManage)
+  );
+  const [showClientManage, setShowClientManage] = useState(
+    () => Boolean(persistedNav.showClientManage)
+  );
+  const [sidebarNav, setSidebarNav] = useState(
+    () => persistedNav.sidebarNav || 'home'
+  );
 
   useEffect(() => {
     if (!TIMESHEETS_UI_ENABLED) {
@@ -446,6 +476,34 @@ export default function useAppLogic() {
       localStorage.setItem('innocean_show_timesheets', String(showTimesheets));
     }
   }, [showTimesheets, TIMESHEETS_UI_ENABLED]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    writePersistedNav(
+      {
+        sidebarNav,
+        showAdmin,
+        showProjectManage,
+        showClientManage,
+        showTeams,
+        showTimesheets,
+        showMyTasks,
+        teamsSubNav,
+      },
+      currentUser || ''
+    );
+  }, [
+    isAuthenticated,
+    currentUser,
+    sidebarNav,
+    showAdmin,
+    showProjectManage,
+    showClientManage,
+    showTeams,
+    showTimesheets,
+    showMyTasks,
+    teamsSubNav,
+  ]);
   const [isNotifClosing, setIsNotifClosing] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState(null);
   const [memberToRevoke, setMemberToRevoke] = useState(null);
@@ -454,25 +512,34 @@ export default function useAppLogic() {
   const [myTeam, setMyTeam] = useState([]);
   const [boards, setBoards] = useState([]);
   const [selectedBoard, setSelectedBoard] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('innocean_selected_board');
-      if (!saved || saved === 'null' || saved === 'undefined') return null;
+    if (typeof window === 'undefined') return null;
+    if (persistedNav.showMyTasks || persistedNav.sidebarNav === 'my_tasks') {
       try {
-        const parsed = JSON.parse(saved);
-        if (!MASTER_VIEW_UI_ENABLED && parsed?.id === 'global') return null;
-        if (
-          !TODO_LIST_UI_ENABLED &&
-          parsed?.name?.toLowerCase() === 'to-do list' &&
-          parsed?.is_private
-        ) {
-          return null;
-        }
-        return parsed;
+        const saved = localStorage.getItem('innocean_selected_board');
+        const parsed = saved ? JSON.parse(saved) : null;
+        if (parsed?.id === 'global') return parsed;
       } catch {
+        // fall through to a virtual My Tasks board
+      }
+      return { id: 'global', name: 'My Tasks' };
+    }
+    if (isMenuOnlyNav(persistedNav)) return null;
+    const saved = localStorage.getItem('innocean_selected_board');
+    if (!saved || saved === 'null' || saved === 'undefined') return null;
+    try {
+      const parsed = JSON.parse(saved);
+      if (!MASTER_VIEW_UI_ENABLED && parsed?.id === 'global') return null;
+      if (
+        !TODO_LIST_UI_ENABLED &&
+        parsed?.name?.toLowerCase() === 'to-do list' &&
+        parsed?.is_private
+      ) {
         return null;
       }
+      return parsed;
+    } catch {
+      return null;
     }
-    return null;
   });
 
   useEffect(() => {
@@ -683,6 +750,7 @@ export default function useAppLogic() {
   const [accountStatus, setAccountStatus] = useState('active');
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [workspaceRole, setWorkspaceRole] = useState('staff'); // admin | project_owner | manager | staff
+  const [roleHydrated, setRoleHydrated] = useState(false);
   useEffect(() => {
     if (workspaceRole === 'staff' && viewMode === 'analytics') {
       setViewMode('kanban');
@@ -1976,6 +2044,7 @@ export default function useAppLogic() {
       localStorage.removeItem('innocean_docs_open');
       localStorage.removeItem('innocean_chat_ws_open');
       localStorage.removeItem('innocean_changelog_open');
+      clearPersistedNav();
 
       // Gunakan reload untuk memastikan seluruh memori cache/state React benar-benar bersih
       // Spinner loading akan menutupi transisi ini dengan mulus
@@ -2004,6 +2073,7 @@ export default function useAppLogic() {
       localStorage.removeItem('innocean_docs_open');
       localStorage.removeItem('innocean_chat_ws_open');
       localStorage.removeItem('innocean_changelog_open');
+      clearPersistedNav();
 
       // Set session expired indicator in sessionStorage to show notification on fresh load
       sessionStorage.setItem('innocean_session_expired', 'true');
@@ -2300,11 +2370,59 @@ export default function useAppLogic() {
           res.data.role ||
             (res.data.is_superadmin === 1 ? 'admin' : 'staff')
         );
+        setRoleHydrated(true);
         setProfileData({ ...res.data, current_password: '', new_password: '' });
         fetchTimesheetUnsubmittedCount(res.data);
       })
-      .catch(console.error);
+      .catch((err) => {
+        console.error(err);
+      });
   };
+
+  useEffect(() => {
+    if (!roleHydrated) return;
+    const isAdminUser = canAccessAdmin(workspaceRole) || isSuperAdmin;
+    const canProjects = canManageProjects(workspaceRole) || isSuperAdmin;
+    const canClients = canManageClients(workspaceRole) || isSuperAdmin;
+    const canTeams =
+      workspaceRole === 'admin' ||
+      workspaceRole === 'project_owner' ||
+      isSuperAdmin;
+    let nextNav = sidebarNav;
+    if (showAdmin && !isAdminUser) {
+      setShowAdmin(false);
+      if (nextNav === 'admin') nextNav = 'home';
+    }
+    if (showProjectManage && !canProjects) {
+      setShowProjectManage(false);
+      if (nextNav === 'projects') nextNav = 'home';
+    }
+    if (showClientManage && !canClients) {
+      setShowClientManage(false);
+      if (nextNav === 'clients') nextNav = 'home';
+    }
+    if (showTeams && !canTeams) {
+      setShowTeams(false);
+      if (nextNav === 'teams') nextNav = 'home';
+    }
+    if (showMyTasks && !canAccessMyTasksMenu(workspaceRole)) {
+      setShowMyTasks(false);
+      if (selectedBoard?.id === 'global') setSelectedBoard(null);
+      if (nextNav === 'my_tasks') nextNav = 'home';
+    }
+    if (nextNav !== sidebarNav) setSidebarNav(nextNav);
+  }, [
+    roleHydrated,
+    workspaceRole,
+    isSuperAdmin,
+    showAdmin,
+    showProjectManage,
+    showClientManage,
+    showTeams,
+    showMyTasks,
+    sidebarNav,
+    selectedBoard?.id,
+  ]);
 
   useEffect(() => {
     if (isAuthenticated) {
