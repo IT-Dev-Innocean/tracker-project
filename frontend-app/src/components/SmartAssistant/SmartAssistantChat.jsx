@@ -231,8 +231,11 @@ export default function SmartAssistantChat({
                   resetInputHeight(e.target);
                 }
               }}
-              placeholder={language === 'id' ? 'Ketik pesan...' : 'Type a message...'}
-              className="w-full py-4 px-5 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl text-sm font-medium text-black dark:text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all disabled:opacity-50 resize-none max-h-[300px] custom-scrollbar shadow-sm"
+              placeholder={tMsg(
+                'Ask Smart Assistant about any task',
+                'Tanya semua task apapun ke Smart Assistant'
+              )}
+              className="w-full py-4 px-5 pb-11 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-3xl text-sm font-medium text-black dark:text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all disabled:opacity-50 resize-none max-h-[300px] custom-scrollbar shadow-sm placeholder:text-neutral-400 dark:placeholder:text-neutral-500"
               style={{ minHeight: `${INPUT_MIN_HEIGHT}px` }}
               rows="3"
               onInput={(e) => {
@@ -241,6 +244,17 @@ export default function SmartAssistantChat({
               }}
               autoFocus
             />
+          )}
+          {!currentBotMessage?.isDate && (
+            <button
+              type="submit"
+              tabIndex={-1}
+              aria-label={tMsg('Press Enter to send', 'Tekan Enter untuk mengirim')}
+              className="absolute bottom-3.5 right-3.5 pointer-events-none flex items-center gap-1 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-neutral-400 dark:text-neutral-500"
+            >
+              <span>Enter</span>
+              <Icon iconify="lucide:corner-down-left" className="w-3 h-3" />
+            </button>
           )}
           {isMentioning && accountStatus !== 'suspended' && (
             <div className="absolute left-0 bottom-full mb-2 w-full min-w-[200px] bg-white/95 dark:bg-neutral-950/95 backdrop-blur-xl border border-neutral-200 dark:border-neutral-800 shadow-2xl rounded-2xl z-50 max-h-40 overflow-y-auto py-2 mac-animate">
