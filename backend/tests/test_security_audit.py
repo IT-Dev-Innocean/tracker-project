@@ -168,6 +168,28 @@ def test_admin_user_profile_update_requires_admin():
     app.dependency_overrides.clear()
 
 
+def test_add_employee_requires_admin():
+    """AUDIT: Hanya Admin yang boleh menambahkan karyawan dari Teams directory."""
+    from backend_api import get_current_user
+
+    app.dependency_overrides[get_current_user] = lambda: "normal_user"
+
+    response = client.post(
+        "/api/admin/users",
+        json={
+            "full_name": "New Employee",
+            "email": "new.employee@innocean.co.id",
+            "job_position": "Designer",
+            "division_name": "Creative",
+        },
+    )
+    assert response.status_code == 403, (
+        "Celah: Pengguna non-admin bisa menambahkan karyawan!"
+    )
+
+    app.dependency_overrides.clear()
+
+
 def test_bola_task_deletion():
     """AUDIT: Memastikan pengguna tidak bisa menghapus tugas di proyek orang lain (BOLA/IDOR)"""
     from backend_api import get_current_user
