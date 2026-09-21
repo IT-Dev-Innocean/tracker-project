@@ -782,6 +782,8 @@ function App() {
           notification={notification}
           isInstallable={isInstallable}
           handleInstallClick={handleInstallClick}
+          language={language}
+          setLanguage={setLanguage}
         />
         {previewTask && (
           <TaskDetailModal

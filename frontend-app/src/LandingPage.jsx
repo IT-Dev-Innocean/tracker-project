@@ -44,11 +44,21 @@ export default function LandingPage({
   loginWithGoogle,
   isInstallable,
   handleInstallClick,
+  language = 'en',
+  setLanguage,
 }) {
   const INSTALL_APP_UI_ENABLED = useFeatureFlag('INSTALL_APP_UI_ENABLED');
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isSupportAlertOpen, setIsSupportAlertOpen] = useState(false);
+  const tMsg = (en, id) => (language === 'id' ? id : en);
+
+  const handleLanguageChange = (val) => {
+    setLanguage?.(val);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('innocean_lang', val);
+    }
+  };
 
 
 
@@ -64,37 +74,10 @@ export default function LandingPage({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    if (!showAuthForm) {
-      const observer = new IntersectionObserver(
-        (entries) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add('animate-fade-up');
-              observer.unobserve(entry.target);
-            }
-          });
-        },
-        { threshold: 0.1 }
-      );
-
-      document.querySelectorAll('.reveal-on-scroll').forEach((el) => observer.observe(el));
-      return () => observer.disconnect();
-    }
-  }, [showAuthForm]);
-
   if (!showAuthForm) {
     return (
       <div className="bg-white dark:bg-black text-black dark:text-white font-sans transition-colors duration-200 overflow-x-hidden">
         <style>{`
-          @keyframes fade-up {
-            0% { opacity: 0; transform: translateY(30px); }
-            100% { opacity: 1; transform: translateY(0); }
-          }
-          .animate-fade-up {
-            animation: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-          }
-          .reveal-on-scroll { opacity: 0; }
           @keyframes float {
             0% { transform: translateY(0px) rotate(-2deg); }
             50% { transform: translateY(-15px) rotate(0deg); }
@@ -103,20 +86,8 @@ export default function LandingPage({
           .animate-float {
             animation: float 6s ease-in-out infinite;
           }
-          @keyframes float-reverse {
-            0% { transform: translateY(0px) rotate(2deg); }
-            50% { transform: translateY(-10px) rotate(0deg); }
-            100% { transform: translateY(0px) rotate(2deg); }
-          }
-          .animate-float-reverse {
-            animation: float-reverse 7s ease-in-out infinite;
-          }
-          @keyframes fade-up {
-            0% { opacity: 0; transform: translateY(10px); }
-            100% { opacity: 1; transform: translateY(0); }
-          }
-          .animate-fade-up {
-            animation: fade-up 0.5s ease-out both;
+          @media (prefers-reduced-motion: reduce) {
+            .animate-float { animation: none; }
           }
         `}</style>
         <LandingHero
@@ -124,17 +95,25 @@ export default function LandingPage({
           setShowAuthForm={setShowAuthForm}
           isInstallable={INSTALL_APP_UI_ENABLED && isInstallable}
           handleInstallClick={handleInstallClick}
+          language={language}
+          tMsg={tMsg}
+          onLanguageChange={handleLanguageChange}
         />
-        <LandingAISection showAuthForm={showAuthForm} />
-        <LandingFeatures showAuthForm={showAuthForm} />
-        <LandingFAQ />
+        <LandingAISection showAuthForm={showAuthForm} tMsg={tMsg} />
+        <LandingFeatures showAuthForm={showAuthForm} tMsg={tMsg} />
+        <LandingFAQ tMsg={tMsg} />
 
-        <LandingCTA setIsLoginMode={setIsLoginMode} setShowAuthForm={setShowAuthForm} />
+        <LandingCTA
+          setIsLoginMode={setIsLoginMode}
+          setShowAuthForm={setShowAuthForm}
+          tMsg={tMsg}
+        />
 
         <LandingFooter
           setIsSupportAlertOpen={setIsSupportAlertOpen}
           setIsPrivacyOpen={setIsPrivacyOpen}
           setIsTermsOpen={setIsTermsOpen}
+          tMsg={tMsg}
         />
 
         {/* Jump to Top Button */}
@@ -143,7 +122,7 @@ export default function LandingPage({
           className={`fixed bottom-6 right-6 md:bottom-10 md:right-10 z-[100] w-12 h-12 cursor-pointer bg-white dark:bg-neutral-800 text-black dark:text-white border border-slate-200 dark:border-slate-700 rounded-full shadow-xl flex items-center justify-center hover:scale-110 transition-all duration-300 ${
             showScrollTop ? 'translate-y-0 opacity-100' : 'translate-y-16 opacity-0 pointer-events-none'
           }`}
-          title="Jump to Top"
+          title={tMsg('Back to top', 'Kembali ke atas')}
         >
           <Icon name="chevron-up" className="w-5 h-5" />
         </button>
@@ -157,18 +136,20 @@ export default function LandingPage({
               <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl shadow-sm border border-blue-200 dark:border-blue-800/50">
                 <Icon name="headphones" className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-black text-black dark:text-white mb-4 uppercase">
-                Coming Soon
+              <h3 className="text-xl font-black text-black dark:text-white mb-4">
+                {tMsg('Please log in first', 'Silakan masuk dulu')}
               </h3>
               <p className="text-neutral-600 dark:text-neutral-400 mb-8 text-sm font-medium leading-relaxed">
-                IT Support contact integration for guests is coming soon! Please log in to your account to submit a
-                support ticket.
+                {tMsg(
+                  'IT support from this page is not available yet. Log in to your account, then contact support from your profile menu.',
+                  'Kontak IT Support dari halaman ini belum tersedia. Masuk ke akun kamu, lalu hubungi support dari menu profil.'
+                )}
               </p>
               <button
                 onClick={() => setIsSupportAlertOpen(false)}
-                className="w-full cursor-pointer px-4 py-4 rounded-full font-bold text-white bg-black dark:bg-white dark:text-black hover:opacity-80 shadow-md transition-all uppercase tracking-widest text-xs hover:-translate-y-0.5"
+                className="w-full cursor-pointer px-4 py-4 rounded-full font-bold text-white bg-black dark:bg-white dark:text-black hover:opacity-80 shadow-md transition-all text-sm hover:-translate-y-0.5"
               >
-                Understood
+                {tMsg('Got it', 'Mengerti')}
               </button>
             </div>
           </div>

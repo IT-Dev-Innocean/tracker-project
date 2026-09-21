@@ -1650,25 +1650,9 @@ export default function useAppLogic() {
       showNotification('Google Login failed or cancelled', 'error'),
   });
 
-  // Prefer One Tap account chooser; fallback ke OAuth popup jika One Tap tidak tersedia
+  // Tombol "Continue with Google" selalu buka pemilih akun (popup).
+  // One Tap tetap jalan sendiri lewat useGoogleOneTapLogin.
   const loginWithGoogle = () => {
-    if (typeof window !== 'undefined' && window.google?.accounts?.id?.prompt) {
-      try {
-        window.google.accounts.id.prompt((notification) => {
-          // Fallback OAuth hanya jika One Tap gagal tampil / di-skip Google,
-          // bukan saat user menutup prompt dengan sengaja.
-          if (
-            notification?.isNotDisplayed?.() ||
-            notification?.isSkippedMoment?.()
-          ) {
-            loginWithGoogleOAuth();
-          }
-        });
-        return;
-      } catch {
-        // fall through
-      }
-    }
     loginWithGoogleOAuth();
   };
 
@@ -2703,7 +2687,7 @@ export default function useAppLogic() {
     if (unreadCount > 0) {
       document.title = `(${unreadCount}) INNOCEAN Tracker`;
     } else {
-      document.title = 'INNOCEAN Tracker | Enterprise Workload Manager';
+      document.title = 'INNOCEAN Tracker';
     }
   }, [unreadCount]);
 
