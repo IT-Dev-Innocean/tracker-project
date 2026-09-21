@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { HighlightText, LoadingSpinner } from './Utils';
 import { Icon } from './components/icons/Icon';
@@ -11,6 +11,10 @@ import {
   resetFeatureFlagsToDefault,
 } from './featureFlags';
 import AIOverviewPanel from './components/Admin/AIOverviewPanel';
+import {
+  readPersistedAdminTab,
+  writePersistedAdminTab,
+} from './utils/navPersistence';
 
 export default function AdminModal({
   adminUsers,
@@ -63,7 +67,7 @@ export default function AdminModal({
     }
   };
 
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState(() => readPersistedAdminTab());
   const [adminBoards, setAdminBoards] = useState([]);
   const [isBoardsLoading, setIsBoardsLoading] = useState(false);
   const [projectFilter, setProjectFilter] = useState('all');
@@ -78,6 +82,10 @@ export default function AdminModal({
     getAllFeatureFlags()
   );
   const [isSavingFlags, setIsSavingFlags] = useState(false);
+
+  useEffect(() => {
+    writePersistedAdminTab(activeTab);
+  }, [activeTab]);
 
   const filteredUsers = adminUsers.filter(
     (u) =>
