@@ -618,8 +618,10 @@ export default function TeamsDirectory() {
                           <td className='px-5 py-3.5 font-medium text-black dark:text-white flex items-center gap-3'>
                             <Avatar
                               url={avatarsMap[l.username]}
-                              name={l.username}
+                              name={u?.full_name || l.username}
                               size='w-8 h-8'
+                              textClass='text-[10px]'
+                              maxInitials={2}
                             />
                             <div className='flex flex-col min-w-0'>
                               <span className='font-semibold text-black dark:text-white leading-tight'>
@@ -876,10 +878,13 @@ export default function TeamsDirectory() {
                             <td className='px-6 py-4 whitespace-nowrap'>
                               <div className='flex items-center gap-3'>
                                 <Avatar
-                                  name={person.username}
+                                  name={person.full_name || person.username}
                                   url={
                                     avatarsMap[person.username] || person.avatar
                                   }
+                                  size='w-8 h-8'
+                                  textClass='text-[10px]'
+                                  maxInitials={2}
                                 />
                                 <div className='min-w-0'>
                                   <div className='truncate font-bold text-black dark:text-white text-sm'>
@@ -1082,8 +1087,11 @@ export default function TeamsDirectory() {
               {editUser && (
                 <div className='mb-4 flex items-center gap-3 rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5'>
                   <Avatar
-                    name={editUser.username}
+                    name={editUser.full_name || editUser.username}
                     url={avatarsMap[editUser.username] || editUser.avatar}
+                    size='w-8 h-8'
+                    textClass='text-[10px]'
+                    maxInitials={2}
                   />
                   <div className='min-w-0'>
                     <div className='truncate text-sm font-bold text-black dark:text-white'>

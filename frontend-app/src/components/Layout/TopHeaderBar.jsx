@@ -396,10 +396,11 @@ export default function TopHeaderBar() {
             className='theme-interactive flex flex-col items-center gap-0.5 rounded-lg px-1.5 py-1 transition-colors tour-account-menu text-slate-600 dark:text-slate-400'
             title={`${firstName || currentUser} · ${roleLabel}`}>
             <Avatar
-              name={currentUser}
+              name={profileData?.full_name || currentUser}
               url={avatarsMap[currentUser]}
               size='w-9 h-9'
-              textClass='text-sm'
+              textClass='text-[11px]'
+              maxInitials={2}
             />
             <span className='text-xs font-semibold leading-none max-w-20 truncate mt-2'>
               {firstName || roleLabel}
