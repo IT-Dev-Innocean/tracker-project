@@ -107,7 +107,10 @@ class AIUsageTests(unittest.TestCase):
             self.assertEqual(capacity["complex_order"][0], "groq")
             self.assertEqual(capacity["rpd_total"], 2000)
             budget = free_response.json()["groq_budget"]
-            self.assertEqual(budget["monthly_budget_usd"], 30)
+            self.assertEqual(budget["plan"], "free")
+            self.assertEqual(budget["billing_mode"], "free")
+            self.assertEqual(budget["monthly_budget_usd"], 0)
+            self.assertEqual(budget["threshold"], "ok")
             plan_response = client.put(
                 "/api/admin/ai/limits",
                 json={
@@ -124,6 +127,10 @@ class AIUsageTests(unittest.TestCase):
             self.assertEqual(engines["gemini_35"]["rpd"], 10000)
             self.assertEqual(engines["gemini_31"]["plan"], "tier1")
             self.assertTrue(engines["groq"]["unlimited"])
+            payg_budget = plan_response.json()["groq_budget"]
+            self.assertEqual(payg_budget["plan"], "developer")
+            self.assertEqual(payg_budget["billing_mode"], "payg")
+            self.assertEqual(payg_budget["monthly_budget_usd"], 30)
         finally:
             client.put(
                 "/api/admin/ai/limits",
@@ -132,7 +139,7 @@ class AIUsageTests(unittest.TestCase):
                     "engine_plans": {
                         "gemini_35": "free",
                         "gemini_31": "free",
-                        "groq": "developer",
+                        "groq": "free",
                     },
                 },
             )

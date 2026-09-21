@@ -150,7 +150,7 @@ VITE_GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
 | `AI_MAX_DAILY_LIMIT` | Backend | Tidak | Maksimum 20 prompt AI/user/hari |
 | `AI_MAX_INPUT_TOKENS` | Backend | Tidak | Default 4000 token input/request |
 | `AI_MAX_OUTPUT_TOKENS` | Backend | Tidak | Default 2000 token output/request |
-| `GROQ_MONTHLY_BUDGET_USD` | Backend | Tidak | Plafon estimasi Groq ($30) |
+| `GROQ_MONTHLY_BUDGET_USD` | Backend | Tidak | Plafon Groq Developer PAYG ($30). Tidak dipakai saat plan Free |
 | `GROQ_MODEL` | Backend | Tidak | Default `openai/gpt-oss-120b` |
 | `GEMINI_MODEL` | Backend | Tidak | Default `gemini-3.1-flash-lite` |
 | `SMTP_*` | Backend | Tidak | Email verifikasi / notifikasi |
@@ -199,7 +199,7 @@ Setelah backend pertama kali connect (atau setelah `alembic upgrade head`), skem
 | `GROQ_API_KEY` | *(opsional)* |
 | `AI_DEFAULT_DAILY_LIMIT` | *(opsional)* `15` |
 | `AI_MAX_DAILY_LIMIT` | *(opsional)* `20` |
-| `GROQ_MONTHLY_BUDGET_USD` | *(opsional)* `30` |
+| `GROQ_MONTHLY_BUDGET_USD` | *(opsional)* `30` — hanya untuk plan Developer |
 | `GROQ_MODEL` | *(opsional)* `openai/gpt-oss-120b` |
 | `GEMINI_MODEL` | *(opsional)* `gemini-3.1-flash-lite` |
 | `SMTP_SERVER` | *(opsional)* `smtp.gmail.com` |

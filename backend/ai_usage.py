@@ -97,7 +97,8 @@ ENGINE_PLAN_CATALOG = {
                 "tpm": 250000,
             },
         },
-        "default_plan": "developer",
+        # Stay on free until a Groq Developer budget is actually funded.
+        "default_plan": "free",
     },
 }
 
@@ -574,16 +575,31 @@ def groq_month_spend(db: Session) -> dict:
 
     from services.ai.config import GROQ_MONTHLY_BUDGET_USD
 
-    budget = GROQ_MONTHLY_BUDGET_USD
-    remaining = max(0.0, budget - spent)
-    ratio = 0.0 if budget <= 0 else spent / budget
+    groq_plan = (get_engine_plan_selections(db).get("groq") or {}).get("plan")
+    if groq_plan not in ENGINE_PLAN_CATALOG["groq"]["plans"]:
+        groq_plan = ENGINE_PLAN_CATALOG["groq"]["default_plan"]
+    billing_mode = "payg" if groq_plan == "developer" else "free"
     days = monthrange(year, month)[1]
+
+    if billing_mode == "free":
+        budget = 0.0
+        remaining = 0.0
+        ratio = 0.0
+        threshold = "ok"
+    else:
+        budget = GROQ_MONTHLY_BUDGET_USD
+        remaining = max(0.0, budget - spent)
+        ratio = 0.0 if budget <= 0 else spent / budget
+        threshold = budget_threshold(spent, budget)
+
     return {
+        "plan": groq_plan,
+        "billing_mode": billing_mode,
         "monthly_budget_usd": round(budget, 2),
         "spent_usd": round(spent, 4),
         "remaining_usd": round(remaining, 4),
         "usage_ratio": round(ratio, 4),
-        "threshold": budget_threshold(spent, budget),
+        "threshold": threshold,
         "month": month_key,
         "model": GROQ_MODEL,
         "input_tokens": input_tokens,

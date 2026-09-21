@@ -293,12 +293,24 @@ export default function AIOverviewPanel({ language, showNotification }) {
   const providerDist = overview?.provider_distribution || {};
   const taskDist = today.by_task_type || {};
   const groqThreshold = groqBudget.threshold || 'ok';
-  const groqPercent = Math.min(
-    100,
-    Math.round((Number(groqBudget.usage_ratio) || 0) * 1000) / 10
-  );
-  const groqBarClass =
-    groqThreshold === 'hard_limit'
+  const groqIsFree =
+    groqBudget.billing_mode !== 'payg' && engines.groq?.plan !== 'developer';
+  const groqDailyLimit = engines.groq?.rpd;
+  const groqDailyUsed = engines.groq?.used_today || 0;
+  const groqDailyRemaining = engines.groq?.remaining;
+  const groqPercent = groqIsFree
+    ? groqDailyLimit
+      ? Math.min(100, Math.round((groqDailyUsed / groqDailyLimit) * 1000) / 10)
+      : 0
+    : Math.min(
+        100,
+        Math.round((Number(groqBudget.usage_ratio) || 0) * 1000) / 10
+      );
+  const groqBarClass = groqIsFree
+    ? groqPercent >= 90
+      ? 'bg-amber-500'
+      : 'bg-indigo-500'
+    : groqThreshold === 'hard_limit'
       ? 'bg-red-500'
       : groqThreshold === 'critical'
         ? 'bg-orange-500'
@@ -336,8 +348,8 @@ export default function AIOverviewPanel({ language, showNotification }) {
             </h3>
             <p className='mt-1 text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed'>
               {tMsg(
-                'Monitor Smart Assistant usage for today (WIB), Groq monthly spend, and per-user prompt limits. Default is 15 prompts/day. Maximum configurable limit is 20.',
-                'Pantau pemakaian Smart Assistant hari ini (WIB), belanja Groq bulanan, dan limit prompt per pengguna. Default 15 prompt/hari. Limit maksimum yang dapat diatur adalah 20.'
+                'Monitor Smart Assistant usage for today (WIB), Groq Free-tier quota (switch to Developer later if a budget is funded), and per-user prompt limits. Default is 15 prompts/day. Maximum configurable limit is 20.',
+                'Pantau pemakaian Smart Assistant hari ini (WIB), kuota Groq Free tier (naik ke Developer nanti jika budget sudah ada), dan limit prompt per pengguna. Default 15 prompt/hari. Limit maksimum yang dapat diatur adalah 20.'
               )}
             </p>
           </div>
@@ -385,48 +397,75 @@ export default function AIOverviewPanel({ language, showNotification }) {
               {tMsg('Groq usage', 'Pemakaian Groq')}
             </h4>
             <p className='mt-1 text-xs text-neutral-500 dark:text-neutral-400'>
-              {tMsg(
-                `GPT-OSS 120B estimated spend for ${groqBudget.month || tMsg('this month', 'bulan ini')}. Pay-as-you-go — not a fixed subscription.`,
-                `Estimasi belanja GPT-OSS 120B untuk ${groqBudget.month || tMsg('this month', 'bulan ini')}. Pay-as-you-go — bukan langganan tetap.`
-              )}
+              {groqIsFree
+                ? tMsg(
+                    `GPT-OSS 120B is on the Groq Free tier for ${groqBudget.month || tMsg('this month', 'bulan ini')} — 1,000 requests/day. Not pay-as-you-go yet. Switch to Developer after a budget is funded.`,
+                    `GPT-OSS 120B memakai kuota Groq Free tier untuk ${groqBudget.month || tMsg('this month', 'bulan ini')} — 1.000 request/hari. Belum Pay-as-you-go. Naik ke plan Developer setelah budget tersedia.`
+                  )
+                : tMsg(
+                    `GPT-OSS 120B estimated spend for ${groqBudget.month || tMsg('this month', 'bulan ini')}. Pay-as-you-go — not a fixed subscription.`,
+                    `Estimasi belanja GPT-OSS 120B untuk ${groqBudget.month || tMsg('this month', 'bulan ini')}. Pay-as-you-go — bukan langganan tetap.`
+                  )}
             </p>
           </div>
           <span
             className={`text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-lg ${
-              groqThreshold === 'ok'
+              groqIsFree || groqThreshold === 'ok'
                 ? 'bg-neutral-100 dark:bg-neutral-900 text-neutral-500'
                 : 'bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-400'
             }`}>
-            {groqThreshold === 'hard_limit'
-              ? tMsg('Hard limit', 'Batas keras')
-              : groqThreshold === 'critical'
-                ? tMsg('Critical 90%+', 'Kritis 90%+')
-                : groqThreshold === 'high'
-                  ? tMsg('High 75%+', 'Tinggi 75%+')
-                  : groqThreshold === 'warning'
-                    ? tMsg('Warning 50%+', 'Peringatan 50%+')
-                    : tMsg('Healthy', 'Aman')}
+            {groqIsFree
+              ? tMsg('Free tier', 'Free tier')
+              : groqThreshold === 'hard_limit'
+                ? tMsg('Hard limit', 'Batas keras')
+                : groqThreshold === 'critical'
+                  ? tMsg('Critical 90%+', 'Kritis 90%+')
+                  : groqThreshold === 'high'
+                    ? tMsg('High 75%+', 'Tinggi 75%+')
+                    : groqThreshold === 'warning'
+                      ? tMsg('Warning 50%+', 'Peringatan 50%+')
+                      : tMsg('Healthy', 'Aman')}
           </span>
         </div>
         <div className='mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3'>
-          {[
-            {
-              label: tMsg('Estimated spend', 'Estimasi belanja'),
-              value: formatUsd(groqBudget.spent_usd),
-            },
-            {
-              label: tMsg('Monthly budget', 'Anggaran bulanan'),
-              value: formatUsd(groqBudget.monthly_budget_usd),
-            },
-            {
-              label: tMsg('Remaining', 'Sisa'),
-              value: formatUsd(groqBudget.remaining_usd),
-            },
-            {
-              label: tMsg('Usage', 'Pemakaian'),
-              value: `${groqPercent}%`,
-            },
-          ].map((item) => (
+          {(groqIsFree
+            ? [
+                {
+                  label: tMsg('Used today', 'Dipakai hari ini'),
+                  value: `${formatCompactNumber(groqDailyUsed, language)} / ${formatCompactNumber(groqDailyLimit, language)}`,
+                },
+                {
+                  label: tMsg('Remaining today', 'Sisa hari ini'),
+                  value: formatCompactNumber(groqDailyRemaining, language),
+                },
+                {
+                  label: tMsg('Requests this month', 'Request bulan ini'),
+                  value: formatCompactNumber(groqBudget.requests || 0, language),
+                },
+                {
+                  label: tMsg('Daily quota', 'Kuota harian'),
+                  value: `${groqPercent}%`,
+                },
+              ]
+            : [
+                {
+                  label: tMsg('Estimated spend', 'Estimasi belanja'),
+                  value: formatUsd(groqBudget.spent_usd),
+                },
+                {
+                  label: tMsg('Monthly budget', 'Anggaran bulanan'),
+                  value: formatUsd(groqBudget.monthly_budget_usd),
+                },
+                {
+                  label: tMsg('Remaining', 'Sisa'),
+                  value: formatUsd(groqBudget.remaining_usd),
+                },
+                {
+                  label: tMsg('Usage', 'Pemakaian'),
+                  value: `${groqPercent}%`,
+                },
+              ]
+          ).map((item) => (
             <div key={item.label}>
               <p className='text-[10px] font-black uppercase tracking-widest text-neutral-400'>
                 {item.label}

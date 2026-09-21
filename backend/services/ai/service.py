@@ -215,6 +215,7 @@ def generate_ai(
     chain = [engine for engine in engines_for_task(task_key) if engine in callers]
     groq_status = groq_month_spend(db)
     groq_threshold = groq_status.get("threshold") or "ok"
+    groq_is_payg = groq_status.get("billing_mode") == "payg"
     primary_is_groq = bool(chain and chain[0] == "groq")
 
     last_error = None
@@ -222,8 +223,12 @@ def generate_ai(
     budget_blocked_all = True
     for index, engine in enumerate(chain):
         is_fallback = index > 0
-        if engine == "groq" and not groq_allowed_for_request(
-            groq_threshold, primary_is_groq, is_fallback
+        if (
+            engine == "groq"
+            and groq_is_payg
+            and not groq_allowed_for_request(
+                groq_threshold, primary_is_groq, is_fallback
+            )
         ):
             last_error_type = BUDGET
             last_error = ProviderError(BUDGET, "groq_budget")
