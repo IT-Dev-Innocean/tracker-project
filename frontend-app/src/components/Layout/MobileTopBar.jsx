@@ -237,10 +237,11 @@ export default function MobileTopBar() {
             className='theme-interactive flex flex-col items-center gap-0.5 p-1 -mr-1 rounded-lg transition-colors tour-account-menu-mobile text-slate-600 dark:text-slate-400'
             title={`${firstName || currentUser} · ${roleLabel}`}>
             <Avatar
-              name={currentUser}
+              name={profileData?.full_name || currentUser}
               url={avatarsMap[currentUser]}
               size='w-8 h-8'
-              textClass='text-xs'
+              textClass='text-[10px]'
+              maxInitials={2}
             />
             <span className='text-[10px] font-semibold leading-none max-w-20 truncate mt-2'>
               {firstName || roleLabel}

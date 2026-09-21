@@ -5,6 +5,9 @@ import App from './App.jsx';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AppProvider } from './contexts/AppContext';
 import FeatureFlagsBootstrap from './components/FeatureFlagsBootstrap.jsx';
+import { bustStaleClientCache } from './utils/clientCache';
+
+bustStaleClientCache();
 
 // Membungkam peringatan palsu dari @hello-pangea/dnd terkait Orthogonal Scroll di Kanban Board
 const originalWarn = console.warn;

@@ -8,17 +8,20 @@ export const Avatar = ({
   url,
   size = 'w-5 h-5',
   textClass = 'text-[10px]',
-  maxInitials = 1,
+  maxInitials = 2,
   withRing = false,
 }) => {
   const [imgError, setImgError] = React.useState(false);
   const ringClass = withRing
     ? 'ring-2 ring-white dark:ring-neutral-950'
     : '';
-  if (url && !imgError)
+  const imageUrl = typeof url === 'string' ? url.trim() : '';
+  const hasImage =
+    Boolean(imageUrl) && imageUrl !== 'null' && imageUrl !== 'undefined';
+  if (hasImage && !imgError)
     return (
       <img
-        src={url}
+        src={imageUrl}
         alt={name}
         onError={() => setImgError(true)}
         className={`${size} rounded-full object-cover shrink-0 shadow-sm ${ringClass}`}
@@ -32,7 +35,9 @@ export const Avatar = ({
   let initial = '?';
   if (cleanName) {
     if (maxInitials > 1 && parts.length >= 2) {
-      initial = `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+      const first = parts[0][0];
+      const last = parts[parts.length - 1][0];
+      initial = `${first}${last}`.toUpperCase();
     } else if (maxInitials > 1) {
       initial = cleanName.slice(0, 2).toUpperCase();
     } else {
@@ -56,7 +61,7 @@ export const Avatar = ({
   const colorIndex = Math.abs(hash) % colors.length;
   return (
     <div
-      className={`${size} ${colors[colorIndex]} rounded-full flex items-center justify-center text-white font-bold ${textClass} shrink-0 shadow-sm ${ringClass}`}
+      className={`${size} ${colors[colorIndex]} rounded-full flex items-center justify-center text-white font-bold ${textClass} shrink-0 shadow-sm whitespace-nowrap leading-none ${ringClass}`}
       title={cleanName}>
       {initial}
     </div>

@@ -560,10 +560,11 @@ export default function HomeDashboard() {
         <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl bg-neutral-100/80 dark:bg-neutral-900/60 border border-neutral-200/60 dark:border-neutral-800 px-4 py-4 sm:px-5 sm:py-4'>
           <div className='flex items-center gap-3 min-w-0'>
             <Avatar
-              name={currentUser}
+              name={profileData?.full_name || currentUser}
               url={avatarsMap?.[currentUser] || profileData?.avatar}
               size='w-11 h-11'
-              textClass='text-sm'
+              textClass='text-xs'
+              maxInitials={2}
             />
             <div className='min-w-0'>
               <h1 className='text-lg sm:text-xl font-bold text-black dark:text-white truncate'>
@@ -922,10 +923,11 @@ export default function HomeDashboard() {
                           onClick={openTeamsPage}
                           className='w-full flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-neutral-50 dark:hover:bg-neutral-800/50 transition-colors text-left'>
                           <Avatar
-                            name={person.username}
+                            name={person.full_name || person.username}
                             url={avatarsMap?.[person.username] || person.avatar}
                             size='w-9 h-9'
-                            textClass='text-xs'
+                            textClass='text-[10px]'
+                            maxInitials={2}
                           />
                           <div className='min-w-0 flex-1'>
                             <div className='text-sm font-bold text-black dark:text-white truncate'>
@@ -1007,6 +1009,7 @@ export default function HomeDashboard() {
                                     url={avatarsMap?.[assigneeName]}
                                     size='w-3.5 h-3.5'
                                     textClass='text-[6px]'
+                                    maxInitials={1}
                                   />
                                 </div>
                               );
