@@ -139,18 +139,6 @@ export function useAuth({ showNotification, setIsLoading, language, onClearSessi
   });
 
   const loginWithGoogle = () => {
-    if (typeof window !== 'undefined' && window.google?.accounts?.id?.prompt) {
-      try {
-        window.google.accounts.id.prompt((notification) => {
-          if (notification?.isNotDisplayed?.() || notification?.isSkippedMoment?.()) {
-            loginWithGoogleOAuth();
-          }
-        });
-        return;
-      } catch {
-        // fall through
-      }
-    }
     loginWithGoogleOAuth();
   };
 

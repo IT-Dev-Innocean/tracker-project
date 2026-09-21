@@ -1,7 +1,7 @@
 {
   "name": "INNOCEAN Tracker",
   "short_name": "Tracker",
-  "description": "Enterprise Workload Manager",
+  "description": "Internal workspace for INNOCEAN Indonesia employees",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
