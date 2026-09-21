@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, func, text
+from typing import Optional
 import re
 import json
 from datetime import datetime, timedelta
@@ -397,6 +398,89 @@ def manual_verify_user(
     return {"message": f"User @{username} has been manually verified."}
 
 
+def _provision_workspace_user(
+    db: Session,
+    *,
+    email: str,
+    full_name: str,
+    role: str,
+    username_hint: Optional[str] = None,
+    temporary_password: Optional[str] = None,
+    job_position: Optional[str] = None,
+    division_name: Optional[str] = None,
+):
+    local_part = email.split("@", 1)[0]
+    base_username = re.sub(r"[^a-zA-Z0-9_.-]", ".", (username_hint or local_part).strip())
+    base_username = re.sub(r"\.+", ".", base_username).strip(".-_") or "user"
+    if not re.match(r"^[a-zA-Z0-9_.-]+$", base_username):
+        raise HTTPException(status_code=400, detail="Invalid username format")
+
+    if db.query(User).filter(User.email == email).first():
+        raise HTTPException(status_code=400, detail="Email already exists")
+
+    username = base_username
+    suffix = 1
+    while db.query(User).filter(User.username == username).first():
+        username = f"{base_username}{suffix}"
+        suffix += 1
+        if suffix > 99:
+            raise HTTPException(status_code=400, detail="Unable to generate unique username")
+
+    temp_password = temporary_password or f"Welcome{username[:1].upper()}123!"
+    if len(temp_password) < 8:
+        raise HTTPException(status_code=400, detail="Temporary password must be at least 8 characters")
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    new_user = User(
+        username=username,
+        email=email,
+        full_name=full_name,
+        password=get_password_hash(temp_password),
+        is_verified=1,
+        created_at=now_str,
+        role=role,
+        is_superadmin=1 if role == ROLE_ADMIN else 0,
+        job_position=job_position,
+        division_name=division_name,
+    )
+    db.add(new_user)
+    db.commit()
+    return new_user, temp_password
+
+
+def _queue_workspace_invite_email(
+    background_tasks: BackgroundTasks,
+    *,
+    email: str,
+    full_name: str,
+    username: str,
+    temp_password: str,
+    current_user: str,
+):
+    frontend_url = os.getenv("FRONTEND_URL", "https://iid-tracker.netlify.app").split(",")[0].strip().rstrip("/")
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h2>You are invited to INNOCEAN TRACKER</h2>
+      <p>Hi {full_name},</p>
+      <p>@{current_user} invited you to the workspace.</p>
+      <p><strong>Username:</strong> {username}<br/>
+      <strong>Temporary password:</strong> {temp_password}</p>
+      <p>Please sign in and change your password immediately.</p>
+      <p><a href="{frontend_url}">Open Tracker</a></p>
+    </div>
+    """
+    try:
+        from services.email_service import send_email
+        background_tasks.add_task(
+            send_email,
+            email,
+            "Invitation to INNOCEAN TRACKER",
+            html_body,
+        )
+    except Exception:
+        pass
+
+
 @router.post("/api/teams/invite")
 def invite_workspace_user(
     payload: WorkspaceInviteModel,
@@ -424,73 +508,83 @@ def invite_workspace_user(
         raise HTTPException(status_code=403, detail="Only Admin can invite as Admin")
 
     local_part = email.split("@", 1)[0]
-    # Username & full name auto-derived from email when not provided
-    base_username = re.sub(r"[^a-zA-Z0-9_.-]", ".", (payload.username or local_part).strip())
-    base_username = re.sub(r"\.+", ".", base_username).strip(".-_") or "user"
-    if not re.match(r"^[a-zA-Z0-9_.-]+$", base_username):
-        raise HTTPException(status_code=400, detail="Invalid username format")
-
     full_name = (payload.full_name or "").strip()
     if not full_name:
         full_name = " ".join(
             part.capitalize() for part in re.split(r"[._\-\s]+", local_part) if part
         ) or local_part
 
-    if db.query(User).filter(User.email == email).first():
-        raise HTTPException(status_code=400, detail="Email already exists")
-
-    username = base_username
-    suffix = 1
-    while db.query(User).filter(User.username == username).first():
-        username = f"{base_username}{suffix}"
-        suffix += 1
-        if suffix > 99:
-            raise HTTPException(status_code=400, detail="Unable to generate unique username")
-
-    temp_password = payload.temporary_password or f"Welcome{username[:1].upper()}123!"
-    if len(temp_password) < 8:
-        raise HTTPException(status_code=400, detail="Temporary password must be at least 8 characters")
-
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    new_user = User(
-        username=username,
+    new_user, temp_password = _provision_workspace_user(
+        db,
         email=email,
         full_name=full_name,
-        password=get_password_hash(temp_password),
-        is_verified=1,
-        created_at=now_str,
         role=role,
-        is_superadmin=1 if role == ROLE_ADMIN else 0,
+        username_hint=payload.username,
+        temporary_password=payload.temporary_password,
     )
-    db.add(new_user)
-    db.commit()
-
-    frontend_url = os.getenv("FRONTEND_URL", "https://iid-tracker.netlify.app").split(",")[0].strip().rstrip("/")
-    html_body = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <h2>You are invited to INNOCEAN TRACKER</h2>
-      <p>Hi {full_name},</p>
-      <p>@{current_user} invited you to the workspace.</p>
-      <p><strong>Username:</strong> {username}<br/>
-      <strong>Temporary password:</strong> {temp_password}</p>
-      <p>Please sign in and change your password immediately.</p>
-      <p><a href="{frontend_url}">Open Tracker</a></p>
-    </div>
-    """
-    try:
-        from services.email_service import send_email
-        background_tasks.add_task(
-            send_email,
-            email,
-            "Invitation to INNOCEAN TRACKER",
-            html_body,
-        )
-    except Exception:
-        pass
+    _queue_workspace_invite_email(
+        background_tasks,
+        email=email,
+        full_name=full_name,
+        username=new_user.username,
+        temp_password=temp_password,
+        current_user=current_user,
+    )
 
     return {
-        "message": f"User @{username} invited successfully.",
-        "username": username,
+        "message": f"User @{new_user.username} invited successfully.",
+        "username": new_user.username,
+        "temporary_password": temp_password,
+    }
+
+
+@router.post("/api/admin/users")
+def add_workspace_employee(
+    payload: AddEmployeeModel,
+    background_tasks: BackgroundTasks,
+    current_user: str = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not can_access_admin_menu(db, current_user):
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    full_name = (payload.full_name or "").strip()
+    email = (payload.email or "").strip().lower()
+    job_position = (payload.job_position or "").strip() or None
+    division_name = (payload.division_name or "").strip()
+
+    if not full_name:
+        raise HTTPException(status_code=400, detail="Full name is required")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email is required")
+    if not (email.endswith("@innocean.co.id") or email.endswith("@innocean.com")):
+        raise HTTPException(
+            status_code=400,
+            detail="Only @innocean.co.id or @innocean.com emails are allowed.",
+        )
+    if not division_name:
+        raise HTTPException(status_code=400, detail="Department is required")
+
+    new_user, temp_password = _provision_workspace_user(
+        db,
+        email=email,
+        full_name=full_name,
+        role=ROLE_STAFF,
+        job_position=job_position,
+        division_name=division_name,
+    )
+    _queue_workspace_invite_email(
+        background_tasks,
+        email=email,
+        full_name=full_name,
+        username=new_user.username,
+        temp_password=temp_password,
+        current_user=current_user,
+    )
+
+    return {
+        "message": f"Employee @{new_user.username} added successfully.",
+        "username": new_user.username,
         "temporary_password": temp_password,
     }
 

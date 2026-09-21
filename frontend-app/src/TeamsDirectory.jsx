@@ -67,6 +67,7 @@ export default function TeamsDirectory() {
     workspaceRole === ROLE_PROJECT_OWNER ||
     isSuperAdmin;
   const canEditPeople = canAccessAdmin(workspaceRole) || isSuperAdmin;
+  const canAddEmployee = canEditPeople;
 
   const [people, setPeople] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -90,6 +91,14 @@ export default function TeamsDirectory() {
     division_name: '',
   });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addForm, setAddForm] = useState({
+    full_name: '',
+    email: '',
+    job_position: '',
+    division_name: '',
+  });
+  const [isSavingAdd, setIsSavingAdd] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [peoplePerPage, setPeoplePerPage] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -391,6 +400,63 @@ export default function TeamsDirectory() {
     setEditUser(null);
   };
 
+  const emptyPersonForm = {
+    full_name: '',
+    email: '',
+    job_position: '',
+    division_name: '',
+  };
+
+  const closeAdd = () => {
+    if (isSavingAdd) return;
+    setAddOpen(false);
+  };
+
+  const handleAddEmployee = (e) => {
+    e.preventDefault();
+    if (!canAddEmployee) return;
+    const fullName = addForm.full_name.trim();
+    const email = addForm.email.trim();
+    const department = addForm.division_name.trim();
+    if (!fullName || !email || !department) return;
+    setIsSavingAdd(true);
+    axios
+      .post('/api/admin/users', {
+        full_name: fullName,
+        email,
+        job_position: addForm.job_position.trim(),
+        division_name: department,
+      })
+      .then((res) => {
+        showNotification?.(
+          res.data.message ||
+            tMsg('Employee added.', 'Karyawan ditambahkan.'),
+          'success'
+        );
+        if (res.data.temporary_password) {
+          showNotification?.(
+            tMsg(
+              `Temporary password: ${res.data.temporary_password}`,
+              `Password sementara: ${res.data.temporary_password}`
+            ),
+            'info'
+          );
+        }
+        setIsSavingAdd(false);
+        setAddOpen(false);
+        setAddForm({ ...emptyPersonForm });
+        loadPeople();
+      })
+      .catch((err) => {
+        setIsSavingAdd(false);
+        showNotification?.(
+          err.response?.data?.detail ||
+            tMsg('Failed to add employee', 'Gagal menambahkan karyawan'),
+          'error'
+        );
+      });
+  };
+
   const handleEdit = (e) => {
     e.preventDefault();
     if (!editUser || !canEditPeople) return;
@@ -509,11 +575,27 @@ export default function TeamsDirectory() {
                 className='flex items-center justify-center border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 font-bold py-2.5 px-5 rounded-lg transition-colors text-sm text-neutral-700 dark:text-neutral-200'>
                 {tMsg('Export', 'Ekspor')}
               </button>
+              {canAddEmployee && (
+                <button
+                  type='button'
+                  onClick={() => {
+                    setAddForm({ ...emptyPersonForm });
+                    setAddOpen(true);
+                  }}
+                  className='flex items-center gap-2 justify-center bg-black dark:bg-white text-white dark:text-black hover:opacity-80 font-bold py-2.5 px-5 rounded-lg transition-opacity text-sm shadow-sm'>
+                  <IconPlus className='w-4 h-4' />
+                  {tMsg('Add Employee', 'Tambah Karyawan')}
+                </button>
+              )}
               <button
                 type='button'
                 onClick={() => setInviteOpen(true)}
-                className='flex items-center gap-2 justify-center bg-black dark:bg-white text-white dark:text-black hover:opacity-80 font-bold py-2.5 px-5 rounded-lg transition-opacity text-sm shadow-sm'>
-                <IconPlus className='w-4 h-4' />
+                className={
+                  canAddEmployee
+                    ? 'flex items-center gap-2 justify-center border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 font-bold py-2.5 px-5 rounded-lg transition-colors text-sm text-neutral-700 dark:text-neutral-200'
+                    : 'flex items-center gap-2 justify-center bg-black dark:bg-white text-white dark:text-black hover:opacity-80 font-bold py-2.5 px-5 rounded-lg transition-opacity text-sm shadow-sm'
+                }>
+                {!canAddEmployee && <IconPlus className='w-4 h-4' />}
                 {tMsg('Invite', 'Undang')}
               </button>
             </div>
@@ -1140,7 +1222,6 @@ export default function TeamsDirectory() {
                     {tMsg('Job Position', 'Posisi Kerja')}
                   </label>
                   <input
-                    required
                     type='text'
                     value={editForm.job_position}
                     onChange={(e) =>
@@ -1241,6 +1322,162 @@ export default function TeamsDirectory() {
                   {isSavingEdit
                     ? tMsg('Saving…', 'Menyimpan…')
                     : tMsg('Save Changes', 'Simpan Perubahan')}
+                </button>
+              </div>
+            </form>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      <Dialog.Root
+        open={addOpen && canAddEmployee}
+        onOpenChange={(open) => {
+          if (!open) closeAdd();
+        }}>
+        <Dialog.Portal>
+          <Dialog.Overlay className='fixed inset-0 z-50 bg-black/50 backdrop-blur-sm' />
+          <Dialog.Content
+            onEscapeKeyDown={(e) => {
+              if (isSavingAdd) e.preventDefault();
+            }}
+            onPointerDownOutside={(e) => {
+              if (isSavingAdd) e.preventDefault();
+            }}
+            className='fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md max-h-[90vh] overflow-y-auto -translate-x-1/2 -translate-y-1/2 rounded-3xl border border-neutral-200 bg-white p-6 shadow-2xl outline-none dark:border-neutral-800 dark:bg-neutral-950'>
+            <form onSubmit={handleAddEmployee}>
+              <Dialog.Title className='text-xl font-black text-black dark:text-white mb-1'>
+                {tMsg('Add Employee', 'Tambah Karyawan')}
+              </Dialog.Title>
+              <Dialog.Description className='text-sm text-neutral-500 mb-5'>
+                {tMsg(
+                  'Create an employee account for this workspace.',
+                  'Buat akun karyawan untuk workspace ini.'
+                )}
+              </Dialog.Description>
+
+              <div className='space-y-3'>
+                <div>
+                  <label className='mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-neutral-500'>
+                    {tMsg('Full Name', 'Nama Lengkap')}
+                  </label>
+                  <input
+                    required
+                    type='text'
+                    value={addForm.full_name}
+                    onChange={(e) =>
+                      setAddForm((f) => ({ ...f, full_name: e.target.value }))
+                    }
+                    placeholder={tMsg('Full name', 'Nama lengkap')}
+                    className='w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 text-sm outline-none focus:border-neutral-400'
+                  />
+                </div>
+                <div>
+                  <label className='mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-neutral-500'>
+                    {tMsg('Email', 'Email')}
+                  </label>
+                  <input
+                    required
+                    type='email'
+                    value={addForm.email}
+                    onChange={(e) =>
+                      setAddForm((f) => ({ ...f, email: e.target.value }))
+                    }
+                    placeholder='email@innocean.co.id'
+                    className='w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 text-sm outline-none focus:border-neutral-400'
+                  />
+                </div>
+                <div>
+                  <label className='mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-neutral-500'>
+                    {tMsg('Job Position', 'Posisi Kerja')}
+                  </label>
+                  <input
+                    type='text'
+                    value={addForm.job_position}
+                    onChange={(e) =>
+                      setAddForm((f) => ({
+                        ...f,
+                        job_position: e.target.value,
+                      }))
+                    }
+                    placeholder={tMsg(
+                      'e.g. Senior Designer',
+                      'contoh: Senior Designer'
+                    )}
+                    className='w-full rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 text-sm outline-none focus:border-neutral-400'
+                  />
+                </div>
+                <div>
+                  <label className='mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-neutral-500'>
+                    {tMsg('Department', 'Departemen')}
+                  </label>
+                  <Select.Root
+                    value={addForm.division_name || undefined}
+                    onValueChange={(value) =>
+                      setAddForm((f) => ({ ...f, division_name: value }))
+                    }>
+                    <Select.Trigger
+                      className='flex w-full items-center justify-between gap-2 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 px-3 py-2.5 text-left text-sm outline-none focus:border-neutral-400 data-placeholder:text-neutral-400'>
+                      <Select.Value
+                        placeholder={tMsg(
+                          'Select department',
+                          'Pilih departemen'
+                        )}
+                      />
+                      <Select.Icon>
+                        <Icon
+                          name='chevron-down'
+                          className='w-4 h-4 text-neutral-400'
+                        />
+                      </Select.Icon>
+                    </Select.Trigger>
+                    <Select.Portal>
+                      <Select.Content
+                        position='popper'
+                        sideOffset={6}
+                        className='z-60 max-h-64 w-(--radix-select-trigger-width) overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-xl'>
+                        <Select.Viewport className='p-1'>
+                          {SUBTASK_DEPARTMENT_OPTIONS.map((dept) => (
+                            <Select.Item
+                              key={dept}
+                              value={dept}
+                              className='flex cursor-pointer items-center justify-between rounded-lg px-3 py-2 text-sm outline-none data-highlighted:bg-neutral-100 dark:data-highlighted:bg-neutral-900 data-[state=checked]:font-bold'>
+                              <Select.ItemText>{dept}</Select.ItemText>
+                              <Select.ItemIndicator>
+                                <Icon
+                                  name='check'
+                                  className='w-3.5 h-3.5 text-emerald-600'
+                                />
+                              </Select.ItemIndicator>
+                            </Select.Item>
+                          ))}
+                        </Select.Viewport>
+                      </Select.Content>
+                    </Select.Portal>
+                  </Select.Root>
+                </div>
+              </div>
+
+              <div className='mt-6 flex gap-3'>
+                <Dialog.Close asChild>
+                  <button
+                    type='button'
+                    disabled={isSavingAdd}
+                    className='flex-1 rounded-full bg-neutral-100 dark:bg-neutral-900 py-3 text-xs font-bold uppercase disabled:opacity-50'>
+                    {tMsg('Cancel', 'Batal')}
+                  </button>
+                </Dialog.Close>
+                <button
+                  type='submit'
+                  disabled={
+                    isSavingAdd ||
+                    !addForm.full_name.trim() ||
+                    !addForm.email.trim() ||
+                    !addForm.division_name
+                  }
+                  className='flex-1 rounded-full bg-black dark:bg-white py-3 text-xs font-bold uppercase text-white dark:text-black disabled:opacity-50'>
+                  {isSavingAdd
+                    ? tMsg('Saving…', 'Menyimpan…')
+                    : tMsg('Add Employee', 'Tambah Karyawan')}
                 </button>
               </div>
             </form>

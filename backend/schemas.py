@@ -165,6 +165,13 @@ class WorkspaceInviteModel(BaseModel):
     temporary_password: Optional[str] = None
 
 
+class AddEmployeeModel(BaseModel):
+    full_name: str
+    email: str
+    job_position: Optional[str] = None
+    division_name: str
+
+
 class SubtaskReorderModel(BaseModel):
     ordered_ids: List[int]
 
