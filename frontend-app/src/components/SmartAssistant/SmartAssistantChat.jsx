@@ -4,6 +4,11 @@ import { LoadingSpinner } from '../../Utils';
 import { Icon } from '../icons/Icon';
 import AssistantWelcome from './AssistantWelcome';
 import AssistantRecommendations from './AssistantRecommendations';
+import {
+  formatAssistantTimeLabel,
+  messageDate,
+  shouldShowAssistantTimeLabel,
+} from '../../utils/assistantTimeLabel';
 
 const INPUT_MIN_HEIGHT = 96;
 
@@ -87,54 +92,74 @@ export default function SmartAssistantChat({
               <AssistantWelcome currentUser={currentUser} tMsg={tMsg} />
             </div>
           )}
-          {messages.map((msg) => {
-            if (msg.sender === 'system') {
-              return (
-                <div key={msg.id} className="flex justify-center my-2 chat-animate">
-                  <div dangerouslySetInnerHTML={{ __html: msg.text }} />
+          {(() => {
+            let previousDate = null;
+            return messages.map((msg) => {
+              const nodes = [];
+              const isChatMessage = msg.sender === 'user' || msg.sender === 'bot';
+              const msgDate = isChatMessage ? messageDate(msg) : null;
+              if (shouldShowAssistantTimeLabel(previousDate, msgDate)) {
+                nodes.push(
+                  <div key={`time-${msg.id}`} className="flex justify-center">
+                    <span className="text-xs font-medium text-neutral-400 dark:text-neutral-500">
+                      {formatAssistantTimeLabel(msgDate, language)}
+                    </span>
+                  </div>
+                );
+              }
+              if (msgDate) previousDate = msgDate;
+
+              if (msg.sender === 'system') {
+                nodes.push(
+                  <div key={msg.id} className="flex justify-center my-2 chat-animate">
+                    <div dangerouslySetInnerHTML={{ __html: msg.text }} />
+                  </div>
+                );
+                return nodes;
+              }
+
+              if (msg.sender === 'user') {
+                nodes.push(
+                  <div key={msg.id} className="flex justify-end chat-animate">
+                    <div className="max-w-[85%] rounded-3xl bg-indigo-50 dark:bg-indigo-950/50 text-black dark:text-white px-4 py-2.5 text-sm leading-relaxed">
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: renderChatMessageContent(msg.text, true),
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+                return nodes;
+              }
+
+              nodes.push(
+                <div key={msg.id} className="w-full chat-animate">
+                  <div
+                    className="w-full text-[15px] leading-7 text-black dark:text-neutral-100 assistant-prose"
+                    dangerouslySetInnerHTML={{
+                      __html: renderChatMessageContent(msg.text, false),
+                    }}
+                  />
+                  {msg.options && msg.options.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {msg.options.map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => handleUserReply(opt)}
+                          disabled={step === 'end' && currentBotMessage?.id !== msg.id}
+                          className="bg-white dark:bg-black border border-neutral-300 dark:border-neutral-700 text-black dark:text-white px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors disabled:opacity-50"
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
-            }
-
-            if (msg.sender === 'user') {
-              return (
-                <div key={msg.id} className="flex justify-end chat-animate">
-                  <div className="max-w-[85%] rounded-3xl bg-indigo-50 dark:bg-indigo-950/50 text-black dark:text-white px-4 py-2.5 text-sm leading-relaxed">
-                    <div
-                      dangerouslySetInnerHTML={{
-                        __html: renderChatMessageContent(msg.text, true),
-                      }}
-                    />
-                  </div>
-                </div>
-              );
-            }
-
-            return (
-              <div key={msg.id} className="w-full chat-animate">
-                <div
-                  className="w-full text-[15px] leading-7 text-black dark:text-neutral-100 assistant-prose"
-                  dangerouslySetInnerHTML={{
-                    __html: renderChatMessageContent(msg.text, false),
-                  }}
-                />
-                {msg.options && msg.options.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-4">
-                    {msg.options.map((opt) => (
-                      <button
-                        key={opt}
-                        onClick={() => handleUserReply(opt)}
-                        disabled={step === 'end' && currentBotMessage?.id !== msg.id}
-                        className="bg-white dark:bg-black border border-neutral-300 dark:border-neutral-700 text-black dark:text-white px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors disabled:opacity-50"
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+              return nodes;
+            });
+          })()}
 
           {step === 'taking_notes' && (
             <div className="sticky bottom-2 w-full flex justify-end gap-2 pointer-events-none mt-4 z-50">
