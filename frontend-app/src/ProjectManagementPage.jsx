@@ -5,8 +5,10 @@ import { HighlightText, LoadingSpinner } from './Utils';
 import { IconPlus } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import TableColumnHeader from './components/TableColumnHeader';
+import TableSortFilterButton from './components/TableSortFilterButton';
 import {
   applyColumnSortFilter,
+  sortByNewestFirst,
   uniqueColumnValues,
   useColumnSortFilter,
 } from './hooks/useColumnSortFilter';
@@ -111,8 +113,15 @@ export default function ProjectManagementPage() {
   const [visibleColumns, setVisibleColumns] = useState(loadVisibleColumns);
   const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
   const columnsMenuRef = useRef(null);
-  const { sortKey, sortDir, toggleSort, columnFilters, setColumnFilter } =
-    useColumnSortFilter();
+  const {
+    sortKey,
+    sortDir,
+    toggleSort,
+    resetSort,
+    columnFilters,
+    setColumnFilter,
+    clearFilters,
+  } = useColumnSortFilter();
 
   const columnOptions = [
     { key: 'project_number', label: tMsg('Job Number', 'Nomor Job') },
@@ -294,7 +303,7 @@ export default function ProjectManagementPage() {
   };
 
   const searchedBoards = useMemo(() => {
-    return manageBoards.filter((b) => {
+    const filtered = manageBoards.filter((b) => {
       const matchFilter =
         projectFilter === 'all' || b.owner_status === projectFilter;
       const q = projectSearchQuery.toLowerCase();
@@ -307,6 +316,7 @@ export default function ProjectManagementPage() {
         (b.billing_type || '').toLowerCase().includes(q);
       return matchFilter && matchSearch;
     });
+    return sortByNewestFirst(filtered);
   }, [manageBoards, projectFilter, projectSearchQuery]);
 
   const uniqueValuesByColumn = useMemo(() => {
@@ -326,6 +336,42 @@ export default function ProjectManagementPage() {
     });
     return map;
   }, [searchedBoards]);
+
+  const sortFilterColumns = useMemo(() => {
+    const blank = (value) => value || tMsg('(Blank)', '(Kosong)');
+    return [
+      {
+        key: 'project_number',
+        label: tMsg('Job Number', 'Nomor Job'),
+        formatValue: blank,
+      },
+      {
+        key: 'client_code',
+        label: tMsg('Client Code', 'Kode Klien'),
+        formatValue: blank,
+      },
+      { key: 'name', label: tMsg('Project Name', 'Nama Proyek') },
+      {
+        key: 'created_by',
+        label: tMsg('Project Requester', 'Project Requester'),
+      },
+      {
+        key: 'billing_type',
+        label: tMsg('Billing Type', 'Tipe Penagihan'),
+        formatValue: blank,
+      },
+      {
+        key: 'owner_status',
+        label: tMsg('Owner Status', 'Status Pemilik'),
+        formatValue: formatOwnerStatus,
+      },
+    ]
+      .filter((col) => visibleColumns[col.key] !== false)
+      .map((col) => ({
+        ...col,
+        uniqueValues: uniqueValuesByColumn[col.key] || [],
+      }));
+  }, [language, visibleColumns, uniqueValuesByColumn]);
 
   const filteredBoards = useMemo(
     () =>
@@ -569,6 +615,19 @@ export default function ProjectManagementPage() {
                 </option>
                 <option value='orphan'>{tMsg('Orphaned', 'Yatim')}</option>
               </select>
+              <TableSortFilterButton
+                columns={sortFilterColumns}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={toggleSort}
+                onResetSort={resetSort}
+                columnFilters={columnFilters}
+                onFilterChange={setColumnFilter}
+                onClearFilters={clearFilters}
+                dismissWhen={columnsMenuOpen}
+                onOpen={() => setColumnsMenuOpen(false)}
+                tMsg={tMsg}
+              />
               <div className='relative' ref={columnsMenuRef}>
                 <button
                   type='button'
@@ -770,104 +829,28 @@ export default function ProjectManagementPage() {
                       />
                     </th>
                     {isColVisible('project_number') && (
-                      <TableColumnHeader
-                        label={tMsg('Job Number', 'Nomor Job')}
-                        columnKey='project_number'
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={toggleSort}
-                        uniqueValues={uniqueValuesByColumn.project_number}
-                        selectedFilters={columnFilters.project_number}
-                        onFilterChange={(values) =>
-                          setColumnFilter('project_number', values)
-                        }
-                        formatValue={(value) =>
-                          value || tMsg('(Blank)', '(Kosong)')
-                        }
-                        tMsg={tMsg}
-                      />
+                      <TableColumnHeader label={tMsg('Job Number', 'Nomor Job')} />
                     )}
                     {isColVisible('client_code') && (
-                      <TableColumnHeader
-                        label={tMsg('Client Code', 'Kode Klien')}
-                        columnKey='client_code'
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={toggleSort}
-                        uniqueValues={uniqueValuesByColumn.client_code}
-                        selectedFilters={columnFilters.client_code}
-                        onFilterChange={(values) =>
-                          setColumnFilter('client_code', values)
-                        }
-                        formatValue={(value) =>
-                          value || tMsg('(Blank)', '(Kosong)')
-                        }
-                        tMsg={tMsg}
-                      />
+                      <TableColumnHeader label={tMsg('Client Code', 'Kode Klien')} />
                     )}
                     {isColVisible('name') && (
-                      <TableColumnHeader
-                        label={tMsg('Project Name', 'Nama Proyek')}
-                        columnKey='name'
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={toggleSort}
-                        uniqueValues={uniqueValuesByColumn.name}
-                        selectedFilters={columnFilters.name}
-                        onFilterChange={(values) =>
-                          setColumnFilter('name', values)
-                        }
-                        tMsg={tMsg}
-                      />
+                      <TableColumnHeader label={tMsg('Project Name', 'Nama Proyek')} />
                     )}
                     {isColVisible('created_by') && (
                       <TableColumnHeader
                         label={tMsg('Project Requester', 'Project Requester')}
-                        columnKey='created_by'
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={toggleSort}
-                        uniqueValues={uniqueValuesByColumn.created_by}
-                        selectedFilters={columnFilters.created_by}
-                        onFilterChange={(values) =>
-                          setColumnFilter('created_by', values)
-                        }
-                        tMsg={tMsg}
                       />
                     )}
                     {isColVisible('billing_type') && (
                       <TableColumnHeader
                         label={tMsg('Billing Type', 'Tipe Penagihan')}
-                        columnKey='billing_type'
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={toggleSort}
-                        uniqueValues={uniqueValuesByColumn.billing_type}
-                        selectedFilters={columnFilters.billing_type}
-                        onFilterChange={(values) =>
-                          setColumnFilter('billing_type', values)
-                        }
-                        formatValue={(value) =>
-                          value || tMsg('(Blank)', '(Kosong)')
-                        }
-                        tMsg={tMsg}
                       />
                     )}
                     {isColVisible('owner_status') && (
                       <TableColumnHeader
                         label={tMsg('Owner Status', 'Status Pemilik')}
-                        columnKey='owner_status'
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={toggleSort}
-                        uniqueValues={uniqueValuesByColumn.owner_status}
-                        selectedFilters={columnFilters.owner_status}
-                        onFilterChange={(values) =>
-                          setColumnFilter('owner_status', values)
-                        }
-                        formatValue={formatOwnerStatus}
                         align='center'
-                        tMsg={tMsg}
                       />
                     )}
                     {isColVisible('actions') && (

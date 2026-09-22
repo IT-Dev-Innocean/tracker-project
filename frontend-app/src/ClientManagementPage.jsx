@@ -5,8 +5,10 @@ import { HighlightText, LoadingSpinner } from './Utils';
 import { IconPlus } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import TableColumnHeader from './components/TableColumnHeader';
+import TableSortFilterButton from './components/TableSortFilterButton';
 import {
   applyColumnSortFilter,
+  sortByNewestFirst,
   uniqueColumnValues,
   useColumnSortFilter,
 } from './hooks/useColumnSortFilter';
@@ -87,8 +89,15 @@ export default function ClientManagementPage() {
   const [visibleColumns, setVisibleColumns] = useState(loadVisibleColumns);
   const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
   const columnsMenuRef = useRef(null);
-  const { sortKey, sortDir, toggleSort, columnFilters, setColumnFilter } =
-    useColumnSortFilter();
+  const {
+    sortKey,
+    sortDir,
+    toggleSort,
+    resetSort,
+    columnFilters,
+    setColumnFilter,
+    clearFilters,
+  } = useColumnSortFilter();
 
   const columnOptions = [
     { key: 'client_code', label: tMsg('Client Code', 'Kode Klien') },
@@ -175,7 +184,7 @@ export default function ClientManagementPage() {
 
   const searchedClients = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    return clients.filter((c) => {
+    const filtered = clients.filter((c) => {
       const matchStatus =
         statusFilter === 'all' || (c.status || 'active') === statusFilter;
       const matchSearch =
@@ -185,6 +194,7 @@ export default function ClientManagementPage() {
         (c.created_by || '').toLowerCase().includes(q);
       return matchStatus && matchSearch;
     });
+    return sortByNewestFirst(filtered);
   }, [clients, searchQuery, statusFilter]);
 
   const uniqueValuesByColumn = useMemo(() => {
@@ -197,6 +207,29 @@ export default function ClientManagementPage() {
     });
     return map;
   }, [searchedClients]);
+
+  const sortFilterColumns = useMemo(() => {
+    const blank = (value) => value || tMsg('(Blank)', '(Kosong)');
+    return [
+      { key: 'client_code', label: tMsg('Client Code', 'Kode Klien') },
+      { key: 'client_name', label: tMsg('Client Name', 'Nama Klien') },
+      {
+        key: 'created_by',
+        label: tMsg('Project Requester', 'Project Requester'),
+        formatValue: blank,
+      },
+      {
+        key: 'status',
+        label: tMsg('Status', 'Status'),
+        formatValue: formatClientStatus,
+      },
+    ]
+      .filter((col) => visibleColumns[col.key] !== false)
+      .map((col) => ({
+        ...col,
+        uniqueValues: uniqueValuesByColumn[col.key] || [],
+      }));
+  }, [language, visibleColumns, uniqueValuesByColumn]);
 
   const filteredClients = useMemo(
     () =>
@@ -477,6 +510,19 @@ export default function ClientManagementPage() {
                 <option value='active'>{tMsg('Active', 'Aktif')}</option>
                 <option value='inactive'>{tMsg('Inactive', 'Nonaktif')}</option>
               </select>
+              <TableSortFilterButton
+                columns={sortFilterColumns}
+                sortKey={sortKey}
+                sortDir={sortDir}
+                onSort={toggleSort}
+                onResetSort={resetSort}
+                columnFilters={columnFilters}
+                onFilterChange={setColumnFilter}
+                onClearFilters={clearFilters}
+                dismissWhen={columnsMenuOpen}
+                onOpen={() => setColumnsMenuOpen(false)}
+                tMsg={tMsg}
+              />
               <div className='relative' ref={columnsMenuRef}>
                 <button
                   type='button'
@@ -564,68 +610,20 @@ export default function ClientManagementPage() {
                       />
                     </th>
                     {isColVisible('client_code') && (
-                      <TableColumnHeader
-                        label={tMsg('Client Code', 'Kode Klien')}
-                        columnKey='client_code'
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={toggleSort}
-                        uniqueValues={uniqueValuesByColumn.client_code}
-                        selectedFilters={columnFilters.client_code}
-                        onFilterChange={(values) =>
-                          setColumnFilter('client_code', values)
-                        }
-                        tMsg={tMsg}
-                      />
+                      <TableColumnHeader label={tMsg('Client Code', 'Kode Klien')} />
                     )}
                     {isColVisible('client_name') && (
-                      <TableColumnHeader
-                        label={tMsg('Client Name', 'Nama Klien')}
-                        columnKey='client_name'
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={toggleSort}
-                        uniqueValues={uniqueValuesByColumn.client_name}
-                        selectedFilters={columnFilters.client_name}
-                        onFilterChange={(values) =>
-                          setColumnFilter('client_name', values)
-                        }
-                        tMsg={tMsg}
-                      />
+                      <TableColumnHeader label={tMsg('Client Name', 'Nama Klien')} />
                     )}
                     {isColVisible('created_by') && (
                       <TableColumnHeader
                         label={tMsg('Project Requester', 'Project Requester')}
-                        columnKey='created_by'
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={toggleSort}
-                        uniqueValues={uniqueValuesByColumn.created_by}
-                        selectedFilters={columnFilters.created_by}
-                        onFilterChange={(values) =>
-                          setColumnFilter('created_by', values)
-                        }
-                        formatValue={(value) =>
-                          value || tMsg('(Blank)', '(Kosong)')
-                        }
-                        tMsg={tMsg}
                       />
                     )}
                     {isColVisible('status') && (
                       <TableColumnHeader
                         label={tMsg('Status', 'Status')}
-                        columnKey='status'
-                        sortKey={sortKey}
-                        sortDir={sortDir}
-                        onSort={toggleSort}
-                        uniqueValues={uniqueValuesByColumn.status}
-                        selectedFilters={columnFilters.status}
-                        onFilterChange={(values) =>
-                          setColumnFilter('status', values)
-                        }
-                        formatValue={formatClientStatus}
                         align='center'
-                        tMsg={tMsg}
                       />
                     )}
                     {isColVisible('actions') && (

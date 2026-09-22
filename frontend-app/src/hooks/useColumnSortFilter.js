@@ -34,13 +34,24 @@ export function useColumnSortFilter(defaultSortKey = null, defaultSortDir = 'asc
     });
   }, []);
 
+  const resetSort = useCallback(() => {
+    setSortKey(defaultSortKey);
+    setSortDir(defaultSortDir);
+  }, [defaultSortKey, defaultSortDir]);
+
+  const clearFilters = useCallback(() => {
+    setColumnFilters({});
+  }, []);
+
   return {
     sortKey,
     sortDir,
     toggleSort,
+    resetSort,
     columnFilters,
     setColumnFilter,
     clearColumnFilter,
+    clearFilters,
   };
 }
 
@@ -52,6 +63,18 @@ export function uniqueColumnValues(rows, getValue) {
   return Array.from(set).sort((a, b) =>
     a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
   );
+}
+
+export function sortByNewestFirst(rows) {
+  return [...(rows || [])].sort((a, b) => {
+    const aTime = Date.parse(a?.created_at || '');
+    const bTime = Date.parse(b?.created_at || '');
+    const aValid = Number.isFinite(aTime);
+    const bValid = Number.isFinite(bTime);
+    if (aValid && bValid && aTime !== bTime) return bTime - aTime;
+    if (aValid !== bValid) return aValid ? -1 : 1;
+    return (Number(b?.id) || 0) - (Number(a?.id) || 0);
+  });
 }
 
 export function applyColumnSortFilter(
