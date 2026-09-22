@@ -45,7 +45,6 @@ export default function Sidebar() {
     setShowClientManage,
     sidebarNav,
     setSidebarNav,
-    userDirectory,
     workspaceRole,
     setIsChatWorkspaceOpen,
     setExportMode,
@@ -100,6 +99,13 @@ export default function Sidebar() {
       return next;
     });
   };
+
+  const inEmployeesSection = showTeams || sidebarNav === 'teams';
+  const [employeesMenuOpen, setEmployeesMenuOpen] = useState(inEmployeesSection);
+
+  useEffect(() => {
+    setEmployeesMenuOpen(inEmployeesSection);
+  }, [inEmployeesSection]);
 
   const unreadInboxChatsCount = useMemo(() => {
     return (inboxChats || []).filter((chat) => {
@@ -542,39 +548,97 @@ export default function Sidebar() {
             )}
 
             {canOpenTeams && (
-              <button
-                onClick={() => {
-                  setSelectedBoard(null);
-                  setShowTimesheets?.(false);
-                  setShowAdmin?.(false);
-                  setShowProjectManage?.(false);
-                  setShowClientManage?.(false);
-                  setShowTeams?.(true);
-                  setSidebarNav?.('teams');
-                  setTeamsSubNav?.('people');
-                  setIsMobileMenuOpen(false);
-                  setIsProactiveAIOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                  showTeams || sidebarNav === 'teams'
-                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
-                    : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
-                } ${isCollapsed ? 'justify-center' : ''}`}
-                title={tMsg('Employees', 'Karyawan')}>
-                <div className='w-6 h-6 flex items-center justify-center'>
-                  <Icon name='users' className='w-5 h-5' />
+              <>
+                <div
+                  className={`w-full flex items-center rounded-lg transition-all ${
+                    inEmployeesSection && teamsSubNav !== 'leaves'
+                      ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                      : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
+                  } ${isCollapsed ? 'justify-center' : ''}`}>
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setSelectedBoard(null);
+                      setShowTimesheets?.(false);
+                      setShowAdmin?.(false);
+                      setShowProjectManage?.(false);
+                      setShowClientManage?.(false);
+                      setShowTeams?.(true);
+                      setSidebarNav?.('teams');
+                      setTeamsSubNav?.('people');
+                      setEmployeesMenuOpen(true);
+                      setIsMobileMenuOpen(false);
+                      setIsProactiveAIOpen(false);
+                    }}
+                    className={`flex items-center gap-3 min-w-0 ${
+                      isCollapsed ? 'justify-center px-3 py-2 w-full' : 'flex-1 px-3 py-2'
+                    }`}
+                    title={tMsg('Employees', 'Karyawan')}>
+                    <div className='w-6 h-6 flex items-center justify-center shrink-0'>
+                      <Icon name='users' className='w-5 h-5' />
+                    </div>
+                    {!isCollapsed && (
+                      <span className='text-sm truncate flex-1 text-left'>
+                        {tMsg('Employees', 'Karyawan')}
+                      </span>
+                    )}
+                  </button>
+                  {!isCollapsed && (
+                    <button
+                      type='button'
+                      onClick={() => setEmployeesMenuOpen((open) => !open)}
+                      className='mr-1.5 ml-1 p-1 rounded-md shrink-0 text-current'
+                      aria-expanded={employeesMenuOpen}
+                      aria-label={
+                        employeesMenuOpen
+                          ? tMsg('Collapse Employees', 'Tutup Karyawan')
+                          : tMsg('Expand Employees', 'Buka Karyawan')
+                      }
+                      title={
+                        employeesMenuOpen
+                          ? tMsg('Collapse', 'Tutup')
+                          : tMsg('Expand', 'Buka')
+                      }>
+                      <Icon
+                        name={employeesMenuOpen ? 'chevron-up' : 'chevron-down'}
+                        className='w-4 h-4'
+                      />
+                    </button>
+                  )}
                 </div>
-                {!isCollapsed && (
-                  <span className='text-sm truncate flex-1 text-left'>
-                    {tMsg('Employees', 'Karyawan')}
-                  </span>
+                {employeesMenuOpen && (
+                  <button
+                    type='button'
+                    onClick={() => {
+                      setSelectedBoard(null);
+                      setShowTimesheets?.(false);
+                      setShowAdmin?.(false);
+                      setShowProjectManage?.(false);
+                      setShowClientManage?.(false);
+                      setShowTeams?.(true);
+                      setSidebarNav?.('teams');
+                      setTeamsSubNav?.('leaves');
+                      setEmployeesMenuOpen(true);
+                      setIsMobileMenuOpen(false);
+                      setIsProactiveAIOpen(false);
+                    }}
+                    className={`flex items-center gap-2.5 rounded-lg transition-all ${
+                      inEmployeesSection && teamsSubNav === 'leaves'
+                        ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                        : 'theme-interactive text-slate-500 dark:text-slate-400 font-medium'
+                    } ${isCollapsed ? 'w-full justify-center px-3 py-2' : 'ml-8 w-[calc(100%-2rem)] pl-3 pr-3 py-1.5'}`}
+                    title={tMsg('Employees Leave', 'Cuti Karyawan')}>
+                    <div className='w-5 h-5 flex items-center justify-center shrink-0'>
+                      <Icon name='calendar' className='w-4 h-4' />
+                    </div>
+                    {!isCollapsed && (
+                      <span className='text-[13px] truncate flex-1 text-left'>
+                        {tMsg('Employees Leave', 'Cuti Karyawan')}
+                      </span>
+                    )}
+                  </button>
                 )}
-                {!isCollapsed && (
-                  <span className='text-[10px] font-bold text-neutral-400'>
-                    {(userDirectory || []).length || 0}
-                  </span>
-                )}
-              </button>
+              </>
             )}
 
             {TIMESHEETS_UI_ENABLED && (
@@ -724,33 +788,7 @@ export default function Sidebar() {
             </div>
           )}
 
-          {showTeams ? (
-            <div className='mb-4'>
-              <button
-                onClick={() => {
-                  setShowTeams?.(true);
-                  setSelectedBoard(null);
-                  setSidebarNav?.('teams');
-                  setTeamsSubNav?.('leaves');
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                  showTeams && teamsSubNav === 'leaves'
-                    ? 'bg-neutral-100 dark:bg-neutral-800/50 text-black dark:text-white font-bold'
-                    : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
-                } ${isCollapsed ? 'justify-center' : ''}`}
-                title={tMsg('Employees Leave', 'Cuti Karyawan')}>
-                <div className='w-6 h-6 flex items-center justify-center'>
-                  <Icon name='calendar' className='w-5 h-5' />
-                </div>
-                {!isCollapsed && (
-                  <span className='text-sm truncate flex-1 text-left'>
-                    {tMsg('Employees Leave', 'Cuti Karyawan')}
-                  </span>
-                )}
-              </button>
-            </div>
-          ) : (
-            <>
+          <>
               {favorites.length > 0 && (
                 <div className='mb-6'>
                   {!isCollapsed && (
@@ -803,8 +841,7 @@ export default function Sidebar() {
                     : displayBoards.map((b) => renderBoardItem(b))}
                 </div>
               </div>
-            </>
-          )}
+          </>
         </div>
 
         {/* Mobile-only: Chat & Export di bawah sidebar (dibuka via hamburger) */}

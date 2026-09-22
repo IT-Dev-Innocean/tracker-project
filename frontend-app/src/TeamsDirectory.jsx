@@ -7,6 +7,7 @@ import { HighlightText, LoadingSpinner } from './Utils';
 import { Avatar, IconPlus } from './SharedUI';
 import { Icon } from './components/icons/Icon';
 import TableColumnHeader from './components/TableColumnHeader';
+import TableSortFilterButton from './components/TableSortFilterButton';
 import {
   applyColumnSortFilter,
   uniqueColumnValues,
@@ -122,8 +123,15 @@ export default function TeamsDirectory() {
   const [visibleColumns, setVisibleColumns] = useState(loadVisibleColumns);
   const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
   const columnsMenuRef = useRef(null);
-  const { sortKey, sortDir, toggleSort, columnFilters, setColumnFilter } =
-    useColumnSortFilter('name');
+  const {
+    sortKey,
+    sortDir,
+    toggleSort,
+    resetSort,
+    columnFilters,
+    setColumnFilter,
+    clearFilters,
+  } = useColumnSortFilter('name');
 
   const columnOptions = [
     { key: 'name', label: tMsg('Name', 'Nama') },
@@ -269,6 +277,36 @@ export default function TeamsDirectory() {
     });
     return map;
   }, [searchedPeople]);
+
+  const sortFilterColumns = useMemo(() => {
+    const blank = (value) => value || tMsg('(Blank)', '(Kosong)');
+    const notUpdated = (value) =>
+      value || tMsg('Not updated yet', 'Belum diupdate');
+    return [
+      { key: 'name', label: tMsg('Name', 'Nama') },
+      { key: 'email', label: tMsg('Email', 'Email'), formatValue: blank },
+      {
+        key: 'job_position',
+        label: tMsg('Job Position', 'Posisi Kerja'),
+        formatValue: notUpdated,
+      },
+      {
+        key: 'department',
+        label: tMsg('Department', 'Departemen'),
+        formatValue: notUpdated,
+      },
+      {
+        key: 'status',
+        label: tMsg('User Status', 'Status'),
+        formatValue: formatPersonStatus,
+      },
+    ]
+      .filter((col) => visibleColumns[col.key] !== false)
+      .map((col) => ({
+        ...col,
+        uniqueValues: uniqueValuesByColumn[col.key] || [],
+      }));
+  }, [language, visibleColumns, uniqueValuesByColumn]);
 
   const filtered = useMemo(
     () =>
@@ -780,6 +818,20 @@ export default function TeamsDirectory() {
                     {tMsg('Unverified', 'Belum Verifikasi')}
                   </option>
                 </select>
+                <TableSortFilterButton
+                  columns={sortFilterColumns}
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  defaultSortKey='name'
+                  onSort={toggleSort}
+                  onResetSort={resetSort}
+                  columnFilters={columnFilters}
+                  onFilterChange={setColumnFilter}
+                  onClearFilters={clearFilters}
+                  dismissWhen={columnsMenuOpen}
+                  onOpen={() => setColumnsMenuOpen(false)}
+                  tMsg={tMsg}
+                />
                 <div className='relative' ref={columnsMenuRef}>
                   <button
                     type='button'
@@ -854,89 +906,25 @@ export default function TeamsDirectory() {
                   <thead className='bg-neutral-100 dark:bg-neutral-800 text-neutral-500 dark:text-neutral-400 sticky top-0 z-20'>
                     <tr>
                       {isColVisible('name') && (
-                        <TableColumnHeader
-                          label={tMsg('Name', 'Nama')}
-                          columnKey='name'
-                          sortKey={sortKey}
-                          sortDir={sortDir}
-                          onSort={toggleSort}
-                          uniqueValues={uniqueValuesByColumn.name}
-                          selectedFilters={columnFilters.name}
-                          onFilterChange={(values) =>
-                            setColumnFilter('name', values)
-                          }
-                          tMsg={tMsg}
-                        />
+                        <TableColumnHeader label={tMsg('Name', 'Nama')} />
                       )}
                       {isColVisible('email') && (
-                        <TableColumnHeader
-                          label={tMsg('Email', 'Email')}
-                          columnKey='email'
-                          sortKey={sortKey}
-                          sortDir={sortDir}
-                          onSort={toggleSort}
-                          uniqueValues={uniqueValuesByColumn.email}
-                          selectedFilters={columnFilters.email}
-                          onFilterChange={(values) =>
-                            setColumnFilter('email', values)
-                          }
-                          formatValue={(value) =>
-                            value || tMsg('(Blank)', '(Kosong)')
-                          }
-                          tMsg={tMsg}
-                        />
+                        <TableColumnHeader label={tMsg('Email', 'Email')} />
                       )}
                       {isColVisible('job_position') && (
                         <TableColumnHeader
                           label={tMsg('Job Position', 'Posisi Kerja')}
-                          columnKey='job_position'
-                          sortKey={sortKey}
-                          sortDir={sortDir}
-                          onSort={toggleSort}
-                          uniqueValues={uniqueValuesByColumn.job_position}
-                          selectedFilters={columnFilters.job_position}
-                          onFilterChange={(values) =>
-                            setColumnFilter('job_position', values)
-                          }
-                          formatValue={(value) =>
-                            value || tMsg('Not updated yet', 'Belum diupdate')
-                          }
-                          tMsg={tMsg}
                         />
                       )}
                       {isColVisible('department') && (
                         <TableColumnHeader
                           label={tMsg('Department', 'Departemen')}
-                          columnKey='department'
-                          sortKey={sortKey}
-                          sortDir={sortDir}
-                          onSort={toggleSort}
-                          uniqueValues={uniqueValuesByColumn.department}
-                          selectedFilters={columnFilters.department}
-                          onFilterChange={(values) =>
-                            setColumnFilter('department', values)
-                          }
-                          formatValue={(value) =>
-                            value || tMsg('Not updated yet', 'Belum diupdate')
-                          }
-                          tMsg={tMsg}
                         />
                       )}
                       {isColVisible('status') && (
                         <TableColumnHeader
                           label={tMsg('User Status', 'Status')}
-                          columnKey='status'
-                          sortKey={sortKey}
-                          sortDir={sortDir}
-                          onSort={toggleSort}
-                          uniqueValues={uniqueValuesByColumn.status}
-                          selectedFilters={columnFilters.status}
-                          onFilterChange={(values) =>
-                            setColumnFilter('status', values)
-                          }
-                          formatValue={formatPersonStatus}
                           align='center'
-                          tMsg={tMsg}
                         />
                       )}
                       {isColVisible('actions') && (
