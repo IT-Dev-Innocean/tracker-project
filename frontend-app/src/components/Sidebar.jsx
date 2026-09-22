@@ -39,6 +39,8 @@ export default function Sidebar() {
     setTeamsSubNav,
     showAdmin,
     setShowAdmin,
+    adminSubNav,
+    setAdminSubNav,
     showProjectManage,
     setShowProjectManage,
     showClientManage,
@@ -106,6 +108,55 @@ export default function Sidebar() {
   useEffect(() => {
     setEmployeesMenuOpen(inEmployeesSection);
   }, [inEmployeesSection]);
+
+  const inAdminSection = showAdmin || sidebarNav === 'admin';
+  const [adminMenuOpen, setAdminMenuOpen] = useState(inAdminSection);
+
+  useEffect(() => {
+    setAdminMenuOpen(inAdminSection);
+  }, [inAdminSection]);
+
+  const openAdminTab = (tab) => {
+    setAdminSubNav?.(tab);
+    setAdminMenuOpen(true);
+    setSelectedBoard(null);
+    setShowTeams?.(false);
+    setShowTimesheets?.(false);
+    setShowMyTasks?.(false);
+    setShowProjectManage?.(false);
+    setShowClientManage?.(false);
+    setIsMobileMenuOpen(false);
+    setIsProactiveAIOpen(false);
+    if (showAdmin || sidebarNav === 'admin') {
+      setShowAdmin?.(true);
+      setSidebarNav?.('admin');
+      return;
+    }
+    openAdminModal();
+  };
+
+  const adminSubmenus = [
+    {
+      key: 'users',
+      icon: 'user',
+      label: tMsg('User Management', 'Manajemen Pengguna'),
+    },
+    {
+      key: 'feature-flags',
+      icon: 'flag',
+      label: tMsg('Feature Flags', 'Feature Flags'),
+    },
+    {
+      key: 'ai-overview',
+      icon: 'sparkles',
+      label: tMsg('AI Overview', 'AI Overview'),
+    },
+    {
+      key: 'approvers',
+      icon: 'shield-check',
+      label: tMsg('Approver Management', 'Manajemen Penyetuju'),
+    },
+  ];
 
   const unreadInboxChatsCount = useMemo(() => {
     return (inboxChats || []).filter((chat) => {
@@ -682,29 +733,74 @@ export default function Sidebar() {
             )}
 
             {isAdminRole && (
-              <button
-                onClick={() => {
-                  openAdminModal();
-                  setShowProjectManage?.(false);
-                  setShowClientManage?.(false);
-                  setIsMobileMenuOpen(false);
-                  setIsProactiveAIOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                  showAdmin || sidebarNav === 'admin'
-                    ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
-                    : 'theme-interactive text-slate-600 dark:text-slate-400 font-medium'
-                } ${isCollapsed ? 'justify-center' : ''}`}
-                title={tMsg('Administrator', 'Administrator')}>
-                <div className='w-6 h-6 flex items-center justify-center'>
-                  <Icon name='shield' className='w-5 h-5' />
+              <>
+                <div
+                  className={`w-full flex items-center rounded-lg transition-all theme-interactive text-slate-600 dark:text-slate-400 font-medium ${isCollapsed ? 'justify-center' : ''}`}>
+                  <button
+                    type='button'
+                    onClick={() => openAdminTab('users')}
+                    className={`flex items-center gap-3 min-w-0 ${
+                      isCollapsed ? 'justify-center px-3 py-2 w-full' : 'flex-1 px-3 py-2'
+                    }`}
+                    title={tMsg('Administrator', 'Administrator')}>
+                    <div className='w-6 h-6 flex items-center justify-center shrink-0'>
+                      <Icon name='shield' className='w-5 h-5' />
+                    </div>
+                    {!isCollapsed && (
+                      <span className='text-sm truncate flex-1 text-left'>
+                        {tMsg('Administrator', 'Administrator')}
+                      </span>
+                    )}
+                  </button>
+                  {!isCollapsed && (
+                    <button
+                      type='button'
+                      onClick={() => setAdminMenuOpen((open) => !open)}
+                      className='mr-1.5 ml-1 p-1 rounded-md shrink-0 text-current'
+                      aria-expanded={adminMenuOpen}
+                      aria-label={
+                        adminMenuOpen
+                          ? tMsg('Collapse Administrator', 'Tutup Administrator')
+                          : tMsg('Expand Administrator', 'Buka Administrator')
+                      }
+                      title={
+                        adminMenuOpen
+                          ? tMsg('Collapse', 'Tutup')
+                          : tMsg('Expand', 'Buka')
+                      }>
+                      <Icon
+                        name={adminMenuOpen ? 'chevron-up' : 'chevron-down'}
+                        className='w-4 h-4'
+                      />
+                    </button>
+                  )}
                 </div>
-                {!isCollapsed && (
-                  <span className='text-sm truncate'>
-                    {tMsg('Administrator', 'Administrator')}
-                  </span>
-                )}
-              </button>
+                {adminMenuOpen &&
+                  adminSubmenus.map((item) => {
+                      const active = inAdminSection && adminSubNav === item.key;
+                      return (
+                        <button
+                          key={item.key}
+                          type='button'
+                          onClick={() => openAdminTab(item.key)}
+                          className={`flex items-center gap-2.5 rounded-lg transition-all ${
+                            active
+                              ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-bold'
+                              : 'theme-interactive text-slate-500 dark:text-slate-400 font-medium'
+                          } ${isCollapsed ? 'w-full justify-center px-3 py-2' : 'ml-8 w-[calc(100%-2rem)] pl-3 pr-3 py-1.5'}`}
+                          title={item.label}>
+                          <div className='w-5 h-5 flex items-center justify-center shrink-0'>
+                            <Icon name={item.icon} className='w-4 h-4' />
+                          </div>
+                          {!isCollapsed && (
+                            <span className='text-[13px] truncate flex-1 text-left'>
+                              {item.label}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+              </>
             )}
           </div>
 

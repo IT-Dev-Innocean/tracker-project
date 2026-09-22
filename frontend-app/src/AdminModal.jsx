@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
+import { useAppContext } from './hooks/useAppContext';
 import { HighlightText, LoadingSpinner } from './Utils';
 import { Icon } from './components/icons/Icon';
 import { excludeTodoListBoards } from './utils/boards';
@@ -11,10 +12,14 @@ import {
   resetFeatureFlagsToDefault,
 } from './featureFlags';
 import AIOverviewPanel from './components/Admin/AIOverviewPanel';
+import TableColumnHeader from './components/TableColumnHeader';
+import TableSortFilterButton from './components/TableSortFilterButton';
 import {
-  readPersistedAdminTab,
-  writePersistedAdminTab,
-} from './utils/navPersistence';
+  applyColumnSortFilter,
+  sortByNewestFirst,
+  uniqueColumnValues,
+  useColumnSortFilter,
+} from './hooks/useColumnSortFilter';
 
 export default function AdminModal({
   adminUsers,
@@ -35,6 +40,9 @@ export default function AdminModal({
   const [showDeleteChoice, setShowDeleteChoice] = useState(false);
   const [deleteChoiceUser, setDeleteChoiceUser] = useState(null);
   const tMsg = (en, id) => (language === 'id' ? id : en);
+  const { adminSubNav, setAdminSubNav } = useAppContext();
+  const activeTab = adminSubNav;
+  const setActiveTab = setAdminSubNav;
 
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [projectSearchQuery, setProjectSearchQuery] = useState('');
@@ -67,7 +75,6 @@ export default function AdminModal({
     }
   };
 
-  const [activeTab, setActiveTab] = useState(() => readPersistedAdminTab());
   const [adminBoards, setAdminBoards] = useState([]);
   const [isBoardsLoading, setIsBoardsLoading] = useState(false);
   const [projectFilter, setProjectFilter] = useState('all');
@@ -84,15 +91,250 @@ export default function AdminModal({
   const [isSavingFlags, setIsSavingFlags] = useState(false);
 
   useEffect(() => {
-    writePersistedAdminTab(activeTab);
+    if (activeTab === 'feature-flags') {
+      setFeatureFlagsDraft(getAllFeatureFlags());
+    }
   }, [activeTab]);
 
-  const filteredUsers = adminUsers.filter(
-    (u) =>
-      u.username.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-      (u.full_name && u.full_name.toLowerCase().includes(userSearchQuery.toLowerCase())) ||
-      (u.email && u.email.toLowerCase().includes(userSearchQuery.toLowerCase()))
+  const [usersLoading, setUsersLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setUsersLoading(true);
+    axios
+      .get('/api/admin/users')
+      .then((res) => {
+        if (!cancelled) setAdminUsers?.(res.data.users || []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setUsersLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [setAdminUsers]);
+
+  const USER_COLUMN_STORAGE_KEY = 'innocean_admin_users_visible_columns';
+  const USER_COLUMNS_VERSION = 2;
+  const DEFAULT_USER_COLUMNS = {
+    username: false,
+    full_name: true,
+    email: true,
+    role: true,
+    status: true,
+    actions: true,
+  };
+
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    if (typeof window === 'undefined') return { ...DEFAULT_USER_COLUMNS };
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem(USER_COLUMN_STORAGE_KEY) || '{}'
+      );
+      const { v, ...savedColumns } = saved;
+      const merged = { ...DEFAULT_USER_COLUMNS, ...savedColumns };
+      if (v !== USER_COLUMNS_VERSION) merged.username = false;
+      return merged;
+    } catch {
+      return { ...DEFAULT_USER_COLUMNS };
+    }
+  });
+  const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
+  const columnsMenuRef = useRef(null);
+  const {
+    sortKey,
+    sortDir,
+    toggleSort,
+    resetSort,
+    columnFilters,
+    setColumnFilter,
+    clearFilters,
+  } = useColumnSortFilter();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [usersPerPage, setUsersPerPage] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = Number(localStorage.getItem('innocean_admin_users_per_page'));
+      if ([5, 10, 20, 50].includes(saved)) return saved;
+    }
+    return 5;
+  });
+
+  const setUsersPerPagePersist = (value) => {
+    const next = Number(value);
+    setUsersPerPage(next);
+    setCurrentPage(1);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('innocean_admin_users_per_page', String(next));
+    }
+  };
+
+  const columnOptions = [
+    { key: 'username', label: tMsg('Username', 'Nama Pengguna') },
+    { key: 'full_name', label: tMsg('Full Name', 'Nama Lengkap') },
+    { key: 'email', label: 'Email' },
+    { key: 'role', label: tMsg('Role', 'Peran') },
+    { key: 'status', label: tMsg('Status', 'Status') },
+    { key: 'actions', label: tMsg('Actions', 'Tindakan') },
+  ];
+  const isColVisible = (key) => visibleColumns[key] !== false;
+  const visibleDataCount = columnOptions.filter((col) =>
+    isColVisible(col.key)
+  ).length;
+
+  const persistVisibleColumns = (next) => {
+    setVisibleColumns(next);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(
+        USER_COLUMN_STORAGE_KEY,
+        JSON.stringify({ ...next, v: USER_COLUMNS_VERSION })
+      );
+    }
+  };
+
+  const toggleColumn = (key) => {
+    const currentlyVisible = isColVisible(key);
+    if (currentlyVisible && visibleDataCount <= 1) return;
+    persistVisibleColumns({
+      ...visibleColumns,
+      [key]: !currentlyVisible,
+    });
+  };
+
+  const resetColumns = () => {
+    persistVisibleColumns({ ...DEFAULT_USER_COLUMNS });
+  };
+
+  useEffect(() => {
+    if (!columnsMenuOpen) return;
+    const handleClickOutside = (event) => {
+      if (
+        columnsMenuRef.current &&
+        !columnsMenuRef.current.contains(event.target)
+      ) {
+        setColumnsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [columnsMenuOpen]);
+
+  const getUserRoleKey = (user) =>
+    user.role || (user.is_superadmin === 1 ? 'admin' : 'project_owner');
+
+  const getUserStatusKey = (user) => {
+    if (user.is_verified !== 1) return 'unverified';
+    if (user.account_status === 'suspended') return 'frozen';
+    if (user.account_status === 'pending_deletion') return 'deleting';
+    if (user.account_status === 'offboarding') return 'offboarding';
+    return 'active';
+  };
+
+  const formatUserRole = (value) => {
+    if (value === 'admin') return tMsg('Admin', 'Admin');
+    if (value === 'project_owner') return tMsg('Project Owner', 'Project Owner');
+    if (value === 'manager') return tMsg('Manager', 'Manager');
+    if (value === 'staff') return tMsg('Staff', 'Staff');
+    return value || tMsg('(Blank)', '(Kosong)');
+  };
+
+  const formatUserStatus = (value) => {
+    if (value === 'frozen') return tMsg('Frozen', 'Beku');
+    if (value === 'deleting') return tMsg('Deleting Soon', 'Segera Dihapus');
+    if (value === 'offboarding') return tMsg('Offboarding', 'Akan Keluar');
+    if (value === 'unverified') return tMsg('Unverified', 'Belum Verifikasi');
+    if (value === 'active') return tMsg('Active', 'Aktif');
+    return value || tMsg('(Blank)', '(Kosong)');
+  };
+
+  const getUserColumnValue = (user, key) => {
+    if (key === 'username') return user.username || '';
+    if (key === 'full_name') return user.full_name || '';
+    if (key === 'email') return user.email || '';
+    if (key === 'role') return getUserRoleKey(user);
+    if (key === 'status') return getUserStatusKey(user);
+    return '';
+  };
+
+  const searchedUsers = useMemo(() => {
+    const needle = userSearchQuery.trim().toLowerCase();
+    const matched = (adminUsers || []).filter((user) => {
+      if (!needle) return true;
+      return [user.username, user.full_name, user.email]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(needle));
+    });
+    return sortByNewestFirst(matched);
+  }, [adminUsers, userSearchQuery]);
+
+  const uniqueValuesByColumn = useMemo(() => {
+    const keys = ['username', 'full_name', 'email', 'role', 'status'];
+    const map = {};
+    keys.forEach((key) => {
+      map[key] = uniqueColumnValues(searchedUsers, (row) =>
+        getUserColumnValue(row, key)
+      );
+    });
+    return map;
+  }, [searchedUsers, language]);
+
+  const sortFilterColumns = useMemo(
+    () =>
+      [
+        { key: 'username', label: tMsg('Username', 'Nama Pengguna') },
+        { key: 'full_name', label: tMsg('Full Name', 'Nama Lengkap') },
+        { key: 'email', label: 'Email' },
+        {
+          key: 'role',
+          label: tMsg('Role', 'Peran'),
+          formatValue: formatUserRole,
+        },
+        {
+          key: 'status',
+          label: tMsg('Status', 'Status'),
+          formatValue: formatUserStatus,
+        },
+      ]
+        .filter((col) => visibleColumns[col.key] !== false)
+        .map((col) => ({
+          ...col,
+          uniqueValues: uniqueValuesByColumn[col.key] || [],
+        })),
+    [language, visibleColumns, uniqueValuesByColumn]
   );
+
+  const filteredUsers = useMemo(
+    () =>
+      applyColumnSortFilter(searchedUsers, {
+        sortKey,
+        sortDir,
+        columnFilters,
+        getValue: getUserColumnValue,
+      }),
+    [searchedUsers, sortKey, sortDir, columnFilters]
+  );
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredUsers.length / usersPerPage) || 1
+  );
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPage - 1) * usersPerPage;
+    return filteredUsers.slice(start, start + usersPerPage);
+  }, [filteredUsers, currentPage, usersPerPage]);
+  const rangeStart =
+    filteredUsers.length === 0 ? 0 : (currentPage - 1) * usersPerPage + 1;
+  const rangeEnd = Math.min(currentPage * usersPerPage, filteredUsers.length);
+  const visibleColumnCount =
+    1 + columnOptions.filter((col) => isColVisible(col.key)).length;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [userSearchQuery, usersPerPage, sortKey, sortDir, columnFilters]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   const filteredAdminBoards = adminBoards.filter((b) => {
     const matchFilter = projectFilter === 'all' || b.owner_status === projectFilter;
@@ -108,8 +350,11 @@ export default function AdminModal({
   };
 
   const handleSelectAllUsers = (e) => {
+    const pageNames = paginatedUsers
+      .filter((u) => u.username !== 'admin')
+      .map((u) => u.username);
     if (e.target.checked) {
-      setSelectedUsers(filteredUsers.filter((u) => u.username !== 'admin').map((u) => u.username));
+      setSelectedUsers(pageNames);
     } else {
       setSelectedUsers([]);
     }
@@ -134,11 +379,6 @@ export default function AdminModal({
         axios.get('/api/admin/users').then((res) => setAdminUsers(res.data.users || []));
       }
     });
-  };
-
-  const handleFeatureFlagsTabClick = () => {
-    setFeatureFlagsDraft(getAllFeatureFlags());
-    setActiveTab('feature-flags');
   };
 
   const handleToggleFeatureFlag = (key) => {
@@ -276,7 +516,15 @@ export default function AdminModal({
             {tMsg('Administrator', 'Administrator')}
           </div>
           <h1 className="mt-1 text-2xl font-black text-black dark:text-white">
-            {tMsg('Admin Dashboard', 'Dasbor Admin')}
+            {activeTab === 'feature-flags'
+              ? tMsg('Feature Flags', 'Feature Flags')
+              : activeTab === 'ai-overview'
+                ? tMsg('AI Overview', 'AI Overview')
+                : activeTab === 'approvers'
+                  ? tMsg('Approver Management', 'Manajemen Penyetuju')
+                  : activeTab === 'projects'
+                    ? tMsg('Projects', 'Proyek')
+                    : tMsg('User Management', 'Manajemen Pengguna')}
           </h1>
           <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
             {tMsg(
@@ -284,48 +532,6 @@ export default function AdminModal({
               'Kelola pengguna, proyek, dan pengaturan sistem untuk workspace Anda.'
             )}
           </p>
-          <div className="mt-5 flex items-center gap-4 overflow-x-auto border-b border-neutral-200 dark:border-neutral-800 pb-px">
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`shrink-0 pb-2 text-sm font-medium transition-colors ${
-                activeTab === 'users'
-                  ? 'border-b-2 border-black dark:border-white text-black dark:text-white font-bold'
-                  : 'text-neutral-400 hover:text-black dark:hover:text-white'
-              }`}
-            >
-              {tMsg('User Management', 'Manajemen Pengguna')}
-            </button>
-            <button
-              onClick={handleFeatureFlagsTabClick}
-              className={`shrink-0 pb-2 text-sm font-medium transition-colors ${
-                activeTab === 'feature-flags'
-                  ? 'border-b-2 border-black dark:border-white text-black dark:text-white font-bold'
-                  : 'text-neutral-400 hover:text-black dark:hover:text-white'
-              }`}
-            >
-              {tMsg('Feature Flags', 'Feature Flags')}
-            </button>
-            <button
-              onClick={() => setActiveTab('ai-overview')}
-              className={`shrink-0 pb-2 text-sm font-medium transition-colors ${
-                activeTab === 'ai-overview'
-                  ? 'border-b-2 border-black dark:border-white text-black dark:text-white font-bold'
-                  : 'text-neutral-400 hover:text-black dark:hover:text-white'
-              }`}
-            >
-              {tMsg('AI Overview', 'AI Overview')}
-            </button>
-            <button
-              onClick={() => setActiveTab('approvers')}
-              className={`shrink-0 pb-2 text-sm font-medium transition-colors ${
-                activeTab === 'approvers'
-                  ? 'border-b-2 border-black dark:border-white text-black dark:text-white font-bold'
-                  : 'text-neutral-400 hover:text-black dark:hover:text-white'
-              }`}
-            >
-              {tMsg('Approver Management', 'Manajemen Penyetuju')}
-            </button>
-          </div>
         </div>
 
         {activeTab === 'users' ? (
@@ -439,15 +645,90 @@ export default function AdminModal({
                   </div>
                 )}
               </div>
-              <div className="relative w-full sm:w-auto mt-2 sm:mt-0">
-                <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
-                <input
-                  type="text"
-                  placeholder={tMsg('Search users...', 'Cari pengguna...')}
-                  value={userSearchQuery}
-                  onChange={(e) => setUserSearchQuery(e.target.value)}
-                  className="w-full sm:w-64 pl-8 pr-4 py-2 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-xl focus:border-indigo-500 focus:bg-white dark:focus:bg-black outline-none text-xs font-medium transition-all shadow-inner"
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative">
+                  <Icon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder={tMsg('Search users...', 'Cari pengguna...')}
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                    className="w-full sm:w-56 pl-8 pr-4 py-2 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-xl focus:border-neutral-400 outline-none text-xs font-medium"
+                  />
+                </div>
+                <TableSortFilterButton
+                  columns={sortFilterColumns}
+                  sortKey={sortKey}
+                  sortDir={sortDir}
+                  onSort={toggleSort}
+                  onResetSort={resetSort}
+                  columnFilters={columnFilters}
+                  onFilterChange={setColumnFilter}
+                  onClearFilters={clearFilters}
+                  dismissWhen={columnsMenuOpen}
+                  onOpen={() => setColumnsMenuOpen(false)}
+                  tMsg={tMsg}
                 />
+                <div className="relative" ref={columnsMenuRef}>
+                  <button
+                    type="button"
+                    onClick={() => setColumnsMenuOpen((open) => !open)}
+                    className={`flex items-center gap-1.5 py-2 px-3 border outline-none text-xs font-bold rounded-xl transition-colors ${
+                      columnsMenuOpen || visibleDataCount < columnOptions.length
+                        ? 'bg-neutral-200 dark:bg-neutral-800 border-neutral-300 dark:border-neutral-700 text-black dark:text-white'
+                        : 'bg-neutral-100 dark:bg-neutral-900 border-transparent text-black dark:text-white hover:bg-neutral-200 dark:hover:bg-neutral-800'
+                    }`}
+                  >
+                    <Icon name="sliders" className="w-3.5 h-3.5" />
+                    {tMsg('Columns', 'Kolom')}
+                    {visibleDataCount < columnOptions.length && (
+                      <span className="min-w-4 h-4 px-1 rounded-full bg-black dark:bg-white text-white dark:text-black text-[9px] leading-4 text-center">
+                        {columnOptions.length - visibleDataCount}
+                      </span>
+                    )}
+                  </button>
+                  {columnsMenuOpen && (
+                    <div className="absolute right-0 top-full mt-2 z-30 w-56 overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 shadow-xl">
+                      <div className="px-3 py-2 border-b border-neutral-100 dark:border-neutral-800 text-[10px] font-black uppercase tracking-widest text-neutral-400">
+                        {tMsg('Show / Hide Columns', 'Tampil / Sembunyi Kolom')}
+                      </div>
+                      <div className="p-1.5">
+                        {columnOptions.map((col) => {
+                          const visible = isColVisible(col.key);
+                          const locked = visible && visibleDataCount <= 1;
+                          return (
+                            <button
+                              key={col.key}
+                              type="button"
+                              disabled={locked}
+                              onClick={() => toggleColumn(col.key)}
+                              className="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-bold text-neutral-700 dark:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-900 disabled:opacity-40 disabled:cursor-not-allowed"
+                            >
+                              <span>{col.label}</span>
+                              <Icon
+                                name={visible ? 'eye' : 'eye-off'}
+                                className={`w-3.5 h-3.5 ${
+                                  visible
+                                    ? 'text-emerald-600 dark:text-emerald-400'
+                                    : 'text-neutral-400'
+                                }`}
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="border-t border-neutral-100 dark:border-neutral-800 p-1.5">
+                        <button
+                          type="button"
+                          onClick={resetColumns}
+                          className="w-full rounded-lg px-2.5 py-2 text-left text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                        >
+                          {tMsg('Reset Columns', 'Atur Ulang Kolom')}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex-1 overflow-auto">
@@ -459,34 +740,36 @@ export default function AdminModal({
                         type="checkbox"
                         className="cursor-pointer rounded border-neutral-300 dark:border-neutral-600 text-indigo-600 focus:ring-indigo-500"
                         checked={
-                          filteredUsers.filter((u) => u.username !== 'admin').length > 0 &&
-                          selectedUsers.length === filteredUsers.filter((u) => u.username !== 'admin').length
+                          paginatedUsers.filter((u) => u.username !== 'admin').length > 0 &&
+                          paginatedUsers
+                            .filter((u) => u.username !== 'admin')
+                            .every((u) => selectedUsers.includes(u.username))
                         }
                         onChange={handleSelectAllUsers}
                       />
                     </th>
-                    <th className="px-6 py-4 font-bold text-xs text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
-                      {tMsg('Username', 'Nama Pengguna')}
-                    </th>
-                    <th className="px-6 py-4 font-bold text-xs text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
-                      {tMsg('Full Name', 'Nama Lengkap')}
-                    </th>
-                    <th className="px-6 py-4 font-bold text-xs text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700">
-                      Email
-                    </th>
-                    <th className="px-6 py-4 font-bold text-xs text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700 text-center">
-                      {tMsg('Role', 'Peran')}
-                    </th>
-                    <th className="px-6 py-4 font-bold text-xs text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700 text-center">
-                      {tMsg('Status', 'Status')}
-                    </th>
-                    <th className="px-6 py-4 font-bold text-xs text-neutral-500 dark:text-neutral-400 border-b border-neutral-200 dark:border-neutral-700 text-right">
-                      {tMsg('Actions', 'Tindakan')}
-                    </th>
+                    {isColVisible('username') && (
+                      <TableColumnHeader label={tMsg('Username', 'Nama Pengguna')} />
+                    )}
+                    {isColVisible('full_name') && (
+                      <TableColumnHeader label={tMsg('Full Name', 'Nama Lengkap')} />
+                    )}
+                    {isColVisible('email') && <TableColumnHeader label="Email" />}
+                    {isColVisible('role') && (
+                      <TableColumnHeader label={tMsg('Role', 'Peran')} align="center" />
+                    )}
+                    {isColVisible('status') && (
+                      <TableColumnHeader label={tMsg('Status', 'Status')} align="center" />
+                    )}
+                    {isColVisible('actions') && (
+                      <th className="px-6 py-4 font-bold text-xs uppercase tracking-wide border-b border-neutral-200 dark:border-neutral-700 text-right">
+                        {tMsg('Actions', 'Tindakan')}
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                  {filteredUsers.map((u) => (
+                  {paginatedUsers.map((u) => (
                     <tr key={u.username} className="hover:bg-white dark:hover:bg-neutral-950 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap w-10">
                         {u.username !== 'admin' && (
@@ -498,9 +781,12 @@ export default function AdminModal({
                           />
                         )}
                       </td>
+                      {isColVisible('username') && (
                       <td className="px-6 py-4 font-bold text-black dark:text-white text-sm whitespace-nowrap">
                         @<HighlightText text={u.username} query={userSearchQuery} />
                       </td>
+                      )}
+                      {isColVisible('full_name') && (
                       <td className="px-6 py-4 text-sm font-medium text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
                         <div><HighlightText text={u.full_name || '-'} query={userSearchQuery} /></div>
                         {(() => {
@@ -515,9 +801,13 @@ export default function AdminModal({
                           return null;
                         })()}
                       </td>
+                      )}
+                      {isColVisible('email') && (
                       <td className="px-6 py-4 text-sm font-medium text-neutral-700 dark:text-neutral-300 whitespace-nowrap">
                         <HighlightText text={u.email} query={userSearchQuery} />
                       </td>
+                      )}
+                      {isColVisible('role') && (
                       <td className="px-6 py-4 text-center whitespace-nowrap">
                         {(() => {
                           const role =
@@ -558,6 +848,8 @@ export default function AdminModal({
                           );
                         })()}
                       </td>
+                      )}
+                      {isColVisible('status') && (
                       <td className="px-6 py-4 text-center">
                         {u.is_verified === 1 ? (
                           u.account_status === 'suspended' ? (
@@ -592,6 +884,8 @@ export default function AdminModal({
                           </span>
                         )}
                       </td>
+                      )}
+                      {isColVisible('actions') && (
                       <td className="px-6 py-4 text-right">
                         {u.username !== 'admin' && (
                           <div className="flex justify-end items-center gap-2 flex-wrap">
@@ -749,21 +1043,78 @@ export default function AdminModal({
                           </div>
                         )}
                       </td>
+                      )}
                     </tr>
                   ))}
-                  {filteredUsers.length === 0 && (
+                  {usersLoading ? (
+                    <tr>
+                      <td colSpan={visibleColumnCount} className="p-16">
+                        <div className="flex justify-center">
+                          <LoadingSpinner />
+                        </div>
+                      </td>
+                    </tr>
+                  ) : filteredUsers.length === 0 ? (
                     <tr>
                       <td
-                        colSpan="7"
+                        colSpan={visibleColumnCount}
                         className="p-8 text-center text-neutral-500 font-bold uppercase tracking-widest text-xs"
                       >
                         {tMsg('No users found.', 'Tidak ada pengguna ditemukan.')}
                       </td>
                     </tr>
-                  )}
+                  ) : null}
                 </tbody>
               </table>
             </div>
+            {filteredUsers.length > 0 && (
+              <div className="px-4 sm:px-6 py-4 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
+                    {tMsg('Show', 'Tampilkan')}
+                  </span>
+                  <select
+                    value={usersPerPage}
+                    onChange={(e) => setUsersPerPagePersist(e.target.value)}
+                    className="py-1.5 px-2 bg-neutral-100 dark:bg-neutral-900 border border-transparent text-black dark:text-white rounded-lg outline-none text-xs font-bold"
+                  >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                  </select>
+                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest">
+                    {tMsg(
+                      `${rangeStart}–${rangeEnd} of ${filteredUsers.length}`,
+                      `${rangeStart}–${rangeEnd} dari ${filteredUsers.length}`
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-neutral-100 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {tMsg('Prev', 'Sebelumnya')}
+                  </button>
+                  <span className="text-xs font-bold text-neutral-700 dark:text-neutral-300 min-w-16 text-center">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                    }
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-neutral-100 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {tMsg('Next', 'Berikutnya')}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           </>
         ) : activeTab === 'projects' ? (
