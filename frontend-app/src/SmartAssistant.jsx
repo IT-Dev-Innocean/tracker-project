@@ -14,6 +14,8 @@ import { buildAssistantRecommendations } from './utils/assistantRecommendations'
 import { generateAI, fetchAIUsage, AI_TASK_TYPES } from './api/aiClient';
 
 const MAX_AI_CONTEXT_TASKS = 80;
+// Flip to true to restore keyword intercepts (create task, analysis, cuti, planner, etc.).
+const CHAT_KEYWORD_SHORTCUTS_ENABLED = false;
 
 function compactTaskForAI(task, boardMap) {
   const subtasks = (task.subtasks || []).slice(0, 8).map((st) => ({
@@ -752,6 +754,7 @@ ${Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n\n') : taskData
 
       // Intent Recognition Engine
       if (currentStep === 'idle' || currentStep === 'end' || currentStep === 'end_mom') {
+        if (CHAT_KEYWORD_SHORTCUTS_ENABLED) {
         if (['create task', 'new task', 'add task', 'tugas baru', 'buat tugas'].includes(textLower)) {
           if (isGlobal) {
             setStep('ask_board_for_create');
@@ -1230,6 +1233,7 @@ ${Array.isArray(taskData.raw_notes) ? taskData.raw_notes.join('\n\n') : taskData
           setPlannerPrompt(data);
           setAssistantMode('planner');
           return;
+        }
         }
 
         // --- General AI Conversation (Pure Role-Based Q&A) ---
