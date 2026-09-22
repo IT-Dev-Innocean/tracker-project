@@ -18,19 +18,22 @@ const MAX_AI_CONTEXT_TASKS = 80;
 const CHAT_KEYWORD_SHORTCUTS_ENABLED = false;
 
 function compactTaskForAI(task, boardMap) {
-  const subtasks = (task.subtasks || []).slice(0, 8).map((st) => ({
-    title: st.task_name,
-    assignee: st.assignee || null,
-    done: !!st.is_done,
-  }));
+  const assignees = (task.subtasks || [])
+    .filter((st) => st.assignee)
+    .slice(0, 8)
+    .map((st) => ({
+      person: st.assignee,
+      division: st.department || st.task_name || null,
+      done: !!st.is_done,
+    }));
   return {
     id: task.id,
     title: task.task_name,
     status: task.status,
-    assignee: task.main_assignee || task.requester || null,
+    requester: task.main_assignee || task.requester || null,
     deadline: task.deadline,
     project: boardMap[String(task.board_id)] || task.board_name || null,
-    ...(subtasks.length ? { subtasks } : {}),
+    ...(assignees.length ? { assignees } : {}),
   };
 }
 
@@ -1386,14 +1389,15 @@ ${JSON.stringify(allTasksSummary)}
         }". User says: "${data}".
 
 TERMINOLOGY DOMAIN NOTE:
-- In this application, there are NO "workspaces". The structure is strictly: Projects (Proyek) -> Tasks (Tugas) -> Subtasks (Sub-tugas).
+- In this application, there are NO "workspaces". The structure is strictly: Projects (Proyek) -> Tasks (Tugas). Each task has Assignees / Pelaksana grouped by Division (Divisi).
+- There are NO "sub tasks" or "sub-tugas". Do NOT use those words. The people listed on a task are not a breakdown of extra work items; they are the people assigned to EXECUTE that same task, based on the division they belong to.
 - PUBLIC PROJECTS ONLY: ALL valid projects in this app are PUBLIC. Private projects or 'To-do List' private boards do not exist/are not used in this app. You MUST NEVER mention or reference any 'To-do List' or private project. Only discuss active public projects from the database context!
 
 TASK ROLES SPECIFICATION (INNOCEAN TRACKER):
-- Requester / Main Assignee: The person who CREATED or REQUESTED the task (they do NOT execute the work).
+- Requester: The person who CREATED or REQUESTED the task (they do NOT execute the work).
 - Supervisors / Head of Project: The supervisors who know about/oversee the task.
 - R&C Team: The PIC team responsible for MONITORING task execution.
-- Subtask Assignees (DOERS): The actual people assigned to SUBTASKS are the ONES EXECUTING/DOING THE WORK. When a user is assigned to a subtask, it means that user is assigned to DO the work. Always recognize subtask assignees as the actual workers executing the task!
+- Assignees / Pelaksana (DOERS): The people who EXECUTE the work. Each assignee is assigned based on their Division (e.g. Creative, Media, Planning). Always name the person together with their division. Never describe them as sub-tasks that still need to be completed.
 
 USER PROFILE & TEAMS SPECIFICATION:
 - Each user profile in the database has a specific Job Position (Jabatan/Position) and Department/Division (Departemen/Divisi). Always use the 'job_position' and 'department' fields in TEAMS PAGE database context to accurately answer questions regarding any user's position, job title, or department!
@@ -1412,7 +1416,7 @@ CRITICAL RULES:
    - Example clean format for listing tasks:
      **1. [Task Title]**
      • **Project:** [Project Name]
-     • **Subtask(s):** [Subtask Name (Department)]
+     • **Assignee(s):** @jane (Creative), @john (Media)
      • **Status:** [Task Status]
 3. STRICT ADMINISTRATOR PAGE SECURITY GUARDRAIL:
    ${
@@ -1421,7 +1425,7 @@ CRITICAL RULES:
        : `- STRICT SECURITY GUARDRAIL: User @${currentUser} IS NOT AN ADMINISTRATOR. You MUST REFUSE to answer any questions regarding Administrator Settings, Admin Panel controls, system user role management, password resets, or admin feature flags. Politely inform the user that Admin Settings can ONLY be accessed and managed by Administrators.`
    }
 4. STRICT ROLE-BASED ACCESS CONTROL:
-   - If User Role is 'Staff', strictly limit your answers to @${currentUser}'s own assigned tasks and subtasks. Politely decline if asked about other staff members' private workload or unassigned projects.
+   - If User Role is 'Staff', strictly limit your answers to tasks @${currentUser} requested or is assigned to as a pelaksana. Politely decline if asked about other staff members' private workload or unassigned projects.
    - If User Role is Manager/Admin/Owner/BOD, provide comprehensive project insights, team workloads, project health, or performance summaries as requested.
 5. Language: Respond in the exact language used by the user (Indonesian/English). Keep answers warm, professional, clear, and formatted in markdown.`;
 
