@@ -13,7 +13,9 @@ import {
 import {
   clearPersistedNav,
   isMenuOnlyNav,
+  readPersistedAdminTab,
   readPersistedNav,
+  writePersistedAdminTab,
   writePersistedNav,
 } from './utils/navPersistence';
 import {
@@ -456,6 +458,7 @@ export default function useAppLogic() {
     () => persistedNav.teamsSubNav || 'people'
   );
   const [showAdmin, setShowAdmin] = useState(() => Boolean(persistedNav.showAdmin));
+  const [adminSubNav, setAdminSubNav] = useState(() => readPersistedAdminTab());
   const [showProjectManage, setShowProjectManage] = useState(
     () => Boolean(persistedNav.showProjectManage)
   );
@@ -504,6 +507,10 @@ export default function useAppLogic() {
     showMyTasks,
     teamsSubNav,
   ]);
+
+  useEffect(() => {
+    writePersistedAdminTab(adminSubNav);
+  }, [adminSubNav]);
   const [isNotifClosing, setIsNotifClosing] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState(null);
   const [memberToRevoke, setMemberToRevoke] = useState(null);
@@ -6302,6 +6309,8 @@ export default function useAppLogic() {
     setTeamsSubNav,
     showAdmin,
     setShowAdmin,
+    adminSubNav,
+    setAdminSubNav,
     showProjectManage,
     setShowProjectManage,
     showClientManage,
