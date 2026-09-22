@@ -9,6 +9,7 @@ import SmartAssistantSidebar from './components/SmartAssistant/SmartAssistantSid
 import { Icon } from './components/icons/Icon';
 import { useFeatureFlags } from './featureFlags';
 import { resolveAssistantLanguage } from './utils/assistantLanguage';
+import { normalizeMessageTimestamps } from './utils/assistantTimeLabel';
 import { useAssistantConversations } from './hooks/useAssistantConversations';
 import { buildAssistantRecommendations } from './utils/assistantRecommendations';
 import { generateAI, fetchAIUsage, AI_TASK_TYPES } from './api/aiClient';
@@ -397,7 +398,9 @@ export default function SmartAssistant({
   const applyConversation = (detail) => {
     beginSkipSave();
     setActiveId(detail.id);
-    setMessages(Array.isArray(detail.messages) ? detail.messages : []);
+    setMessages(
+      normalizeMessageTimestamps(Array.isArray(detail.messages) ? detail.messages : [])
+    );
     const state = detail.state && typeof detail.state === 'object' ? detail.state : {};
     setAssistantMode(state.assistantMode || 'chat');
     setStep(state.step || 'idle');
