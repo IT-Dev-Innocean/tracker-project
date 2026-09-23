@@ -200,11 +200,19 @@ export default function MobileTopBar() {
                                   : 'text-neutral-600 dark:text-neutral-400'
                               }`}>
                               {(() => {
-                                let msgText = n.message ? n.message.replace(/<!--TASK_ID:\d+-->/g, '') : '';
-                                if (formatDateMMM && msgText.includes('Your timesheet for period')) {
-                                  msgText = msgText.replace(/period (\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/, (_, d1, d2) => {
-                                    return `period ${formatDateMMM(d1)} to ${formatDateMMM(d2)}`;
-                                  });
+                                let msgText = n.message
+                                  ? n.message.replace(/<!--TASK_ID:\d+-->/g, '')
+                                  : '';
+                                if (
+                                  formatDateMMM &&
+                                  msgText.includes('Your timesheet for period')
+                                ) {
+                                  msgText = msgText.replace(
+                                    /period (\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})/,
+                                    (_, d1, d2) => {
+                                      return `period ${formatDateMMM(d1)} to ${formatDateMMM(d2)}`;
+                                    }
+                                  );
                                 }
                                 return msgText;
                               })()}
@@ -243,9 +251,9 @@ export default function MobileTopBar() {
               textClass='text-[10px]'
               maxInitials={2}
             />
-            <span className='text-[10px] font-semibold leading-none max-w-20 truncate mt-2'>
+            {/* <span className='text-[10px] font-semibold leading-none max-w-20 truncate mt-2'>
               {firstName || roleLabel}
-            </span>
+            </span> */}
           </button>
           {isMobileProfileOpen && (
             <div className='absolute top-full right-0 mt-2 w-56 z-50'>
