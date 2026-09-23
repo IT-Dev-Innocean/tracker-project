@@ -6,6 +6,7 @@ import SmartAssistantPlanner from './components/SmartAssistant/SmartAssistantPla
 import SmartAssistantChat from './components/SmartAssistant/SmartAssistantChat';
 import SmartAssistantShell from './components/SmartAssistant/SmartAssistantShell';
 import SmartAssistantSidebar from './components/SmartAssistant/SmartAssistantSidebar';
+import SmartAssistantHighlightsModal from './components/SmartAssistant/SmartAssistantHighlightsModal';
 import { Icon } from './components/icons/Icon';
 import { useFeatureFlags } from './featureFlags';
 import { resolveAssistantLanguage } from './utils/assistantLanguage';
@@ -85,6 +86,7 @@ export default function SmartAssistant({
     SMART_ASSISTANT_QUICK_TODO_ENABLED,
     SMART_ASSISTANT_PLANNER_ENABLED,
     SMART_ASSISTANT_MEETING_NOTES_ENABLED,
+    SMART_ASSISTANT_HIGHLIGHTS_ENABLED,
   } = useFeatureFlags();
 
   const [clients, setClients] = useState([]);
@@ -93,6 +95,49 @@ export default function SmartAssistant({
   const [dbUsers, setDbUsers] = useState([]);
   const [dbLeaves, setDbLeaves] = useState([]);
   const [aiUsage, setAiUsage] = useState(null);
+  const [isHighlightsOpen, setIsHighlightsOpen] = useState(false);
+
+  const highlightsUser = currentUser || 'user';
+  const highlightsDismissedKey = `innocean_sa_highlights_dismissed_${highlightsUser}`;
+  const highlightsCycleKey = `innocean_sa_highlights_cycle_${highlightsUser}`;
+
+  useEffect(() => {
+    if (accountStatus === 'suspended') return undefined;
+    if (!SMART_ASSISTANT_HIGHLIGHTS_ENABLED) {
+      setIsHighlightsOpen(false);
+      try {
+        localStorage.setItem(highlightsCycleKey, '0');
+      } catch {
+        /* storage unavailable */
+      }
+      return undefined;
+    }
+    try {
+      if (localStorage.getItem(highlightsCycleKey) !== '1') {
+        localStorage.removeItem(highlightsDismissedKey);
+        localStorage.setItem(highlightsCycleKey, '1');
+      }
+      if (localStorage.getItem(highlightsDismissedKey) === '1') return undefined;
+    } catch {
+      return undefined;
+    }
+    const timer = window.setTimeout(() => setIsHighlightsOpen(true), 700);
+    return () => window.clearTimeout(timer);
+  }, [
+    accountStatus,
+    SMART_ASSISTANT_HIGHLIGHTS_ENABLED,
+    highlightsCycleKey,
+    highlightsDismissedKey,
+  ]);
+
+  const dismissHighlights = () => {
+    setIsHighlightsOpen(false);
+    try {
+      localStorage.setItem(highlightsDismissedKey, '1');
+    } catch {
+      /* storage unavailable */
+    }
+  };
 
   const loadAiUsage = useCallback(() => {
     fetchAIUsage(language)
@@ -2824,10 +2869,17 @@ USER REQUEST:
   }
 
   return (
+    <>
+    <SmartAssistantHighlightsModal
+      open={isHighlightsOpen}
+      onClose={dismissHighlights}
+      tMsg={tMsg}
+    />
     <SmartAssistantShell
       isOpen={isOpen}
       onClose={closeDrawer}
       onNewChat={handleHeaderNewChat}
+      onShowHighlights={() => setIsHighlightsOpen(true)}
       showNewChat={
         assistantMode === 'chat' &&
         messages.some((msg) => msg.sender === 'user' || msg.sender === 'bot')
@@ -2858,5 +2910,6 @@ USER REQUEST:
     )}>
       {assistantBody}
     </SmartAssistantShell>
+    </>
   );
 }
