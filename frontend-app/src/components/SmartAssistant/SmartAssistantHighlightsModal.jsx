@@ -167,7 +167,7 @@ const SLIDES = [
   },
 ];
 
-export default function SmartAssistantHighlightsModal({ open, onClose, tMsg }) {
+export default function SmartAssistantHighlightsModal({ open, onClose, onTryNow, tMsg }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -244,6 +244,16 @@ export default function SmartAssistantHighlightsModal({ open, onClose, tMsg }) {
             <p className="mt-3 text-sm font-medium leading-relaxed text-slate-600 dark:text-slate-400 sm:text-[15px]">
               {tMsg(slide.description[0], slide.description[1])}
             </p>
+            {index === SLIDES.length - 1 && (
+              <button
+                type="button"
+                onClick={onTryNow}
+                className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-slate-900 px-5 py-3 text-xs font-bold uppercase tracking-widest text-white shadow-lg transition-all hover:-translate-y-0.5 hover:bg-black dark:bg-white dark:text-black dark:hover:bg-slate-200"
+              >
+                {tMsg('Try now', 'Coba sekarang')}
+                <Icon name="arrow-right" className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
           <div className="mt-8 flex items-center gap-2" role="tablist" aria-label={tMsg('Highlights', 'Highlight')}>
             {SLIDES.map((item, itemIndex) => {

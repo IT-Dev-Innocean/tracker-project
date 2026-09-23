@@ -555,7 +555,7 @@ export default function HomeDashboard() {
 
   return (
     <div className='flex-1 overflow-y-auto bg-transparent p-6 md:p-10 w-full h-full relative'>
-      <div className='max-w-5xl mx-auto space-y-8 mt-12 md:mt-4 relative z-10'>
+      <div className='max-w-5xl mx-auto space-y-8 mt-6 md:mt-4 relative z-10'>
         {/* Welcome Banner */}
         <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl bg-neutral-100/80 dark:bg-neutral-900/60 border border-neutral-200/60 dark:border-neutral-800 px-4 py-4 sm:px-5 sm:py-4'>
           <div className='flex items-center gap-3 min-w-0'>

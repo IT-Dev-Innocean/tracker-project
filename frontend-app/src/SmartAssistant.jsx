@@ -71,6 +71,8 @@ export default function SmartAssistant({
   openTeamModal,
   isOpen,
   closeDrawer,
+  openDrawer,
+  showWelcomeTour = false,
   startDriverTour,
   boards = [],
   setSelectedBoard,
@@ -96,10 +98,17 @@ export default function SmartAssistant({
   const [dbLeaves, setDbLeaves] = useState([]);
   const [aiUsage, setAiUsage] = useState(null);
   const [isHighlightsOpen, setIsHighlightsOpen] = useState(false);
+  const [preferencesClosed, setPreferencesClosed] = useState(false);
 
   const highlightsUser = currentUser || 'user';
   const highlightsDismissedKey = `innocean_sa_highlights_dismissed_${highlightsUser}`;
   const highlightsCycleKey = `innocean_sa_highlights_cycle_${highlightsUser}`;
+
+  useEffect(() => {
+    const onPreferencesClosed = () => setPreferencesClosed(true);
+    window.addEventListener('innocean-preferences-closed', onPreferencesClosed);
+    return () => window.removeEventListener('innocean-preferences-closed', onPreferencesClosed);
+  }, []);
 
   useEffect(() => {
     if (accountStatus === 'suspended') return undefined;
@@ -112,6 +121,18 @@ export default function SmartAssistant({
       }
       return undefined;
     }
+
+    let tourDone = false;
+    try {
+      tourDone = !!(
+        localStorage.getItem(`innocean_tour_done_v2_${highlightsUser}`) ||
+        localStorage.getItem('innocean_tour_done_v2')
+      );
+    } catch {
+      tourDone = true;
+    }
+    if (showWelcomeTour || (!tourDone && !preferencesClosed)) return undefined;
+
     try {
       if (localStorage.getItem(highlightsCycleKey) !== '1') {
         localStorage.removeItem(highlightsDismissedKey);
@@ -121,13 +142,46 @@ export default function SmartAssistant({
     } catch {
       return undefined;
     }
-    const timer = window.setTimeout(() => setIsHighlightsOpen(true), 700);
-    return () => window.clearTimeout(timer);
+
+    let cancelled = false;
+    let driverObserver;
+    const driverActive = () =>
+      document.body.classList.contains('driver-active') ||
+      !!document.querySelector('.driver-overlay');
+    const reveal = () => {
+      if (cancelled) return;
+      if (!driverActive()) {
+        setIsHighlightsOpen(true);
+        return;
+      }
+      driverObserver = new MutationObserver(() => {
+        if (cancelled || driverActive()) return;
+        driverObserver.disconnect();
+        window.setTimeout(() => {
+          if (!cancelled) setIsHighlightsOpen(true);
+        }, 400);
+      });
+      driverObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class'],
+        childList: true,
+        subtree: true,
+      });
+    };
+    const timer = window.setTimeout(reveal, 700);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      driverObserver?.disconnect();
+    };
   }, [
     accountStatus,
     SMART_ASSISTANT_HIGHLIGHTS_ENABLED,
     highlightsCycleKey,
     highlightsDismissedKey,
+    highlightsUser,
+    showWelcomeTour,
+    preferencesClosed,
   ]);
 
   const dismissHighlights = () => {
@@ -137,6 +191,11 @@ export default function SmartAssistant({
     } catch {
       /* storage unavailable */
     }
+  };
+
+  const tryHighlights = () => {
+    dismissHighlights();
+    if (typeof openDrawer === 'function') openDrawer();
   };
 
   const loadAiUsage = useCallback(() => {
@@ -2873,6 +2932,7 @@ USER REQUEST:
     <SmartAssistantHighlightsModal
       open={isHighlightsOpen}
       onClose={dismissHighlights}
+      onTryNow={tryHighlights}
       tMsg={tMsg}
     />
     <SmartAssistantShell
