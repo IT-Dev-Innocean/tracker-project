@@ -181,6 +181,7 @@ export function WelcomeTourModal({
     } else {
       localStorage.setItem(`innocean_tour_done_v2_${currentUser}`, 'true');
     }
+    window.dispatchEvent(new CustomEvent('innocean-preferences-closed'));
   });
   const tMsg = (en, id) => (pendingLang === 'id' ? id : en);
 

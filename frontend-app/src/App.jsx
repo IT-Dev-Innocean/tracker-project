@@ -2351,6 +2351,11 @@ function App() {
             openTeamModal={openTeamModal}
             isOpen={isProjectChatOpen && drawerTab === 'assistant'}
             closeDrawer={() => setIsProjectChatOpen(false)}
+            openDrawer={() => {
+              setDrawerTab('assistant');
+              setIsProjectChatOpen(true);
+            }}
+            showWelcomeTour={showWelcomeTour}
             startDriverTour={startTour}
             boards={boards}
             language={language}
