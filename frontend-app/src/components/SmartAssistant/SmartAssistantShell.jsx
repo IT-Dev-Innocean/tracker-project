@@ -9,6 +9,7 @@ export default function SmartAssistantShell({
   onClose,
   onNewChat,
   showNewChat = false,
+  onShowHighlights,
   tMsg,
   sidebar,
   usage = null,
@@ -90,6 +91,17 @@ export default function SmartAssistantShell({
             </p>
             <AIUsageMeter usage={usage} tMsg={tMsg} compact />
           </div>
+          {onShowHighlights && (
+            <button
+              type="button"
+              onClick={onShowHighlights}
+              className="p-2 rounded-xl text-neutral-500 hover:text-black dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors"
+              title={tMsg('Feature highlights', 'Highlight fitur')}
+              aria-label={tMsg('Feature highlights', 'Highlight fitur')}
+            >
+              <Icon name="sparkles" className="w-4 h-4" />
+            </button>
+          )}
           {showNewChat && (
             <button
               type="button"
