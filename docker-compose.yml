@@ -61,6 +61,8 @@ services:
       args:
         VITE_API_BASE_URL: ${FRONTEND_URL:?FRONTEND_URL wajib diisi}
         VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+        VITE_SENTRY_ENVIRONMENT: ${VITE_SENTRY_ENVIRONMENT:-production}
     restart: unless-stopped
     depends_on:
       backend:
