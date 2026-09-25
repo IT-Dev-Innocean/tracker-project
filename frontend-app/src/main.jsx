@@ -1,3 +1,4 @@
+import { Sentry } from './sentry';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
@@ -20,7 +21,11 @@ console.warn = (...args) => {
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-createRoot(document.getElementById('root')).render(
+createRoot(document.getElementById('root'), {
+  onUncaughtError: Sentry.reactErrorHandler(),
+  onCaughtError: Sentry.reactErrorHandler(),
+  onRecoverableError: Sentry.reactErrorHandler(),
+}).render(
   <StrictMode>
     <GoogleOAuthProvider clientId={googleClientId}>
       <FeatureFlagsBootstrap>

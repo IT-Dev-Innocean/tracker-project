@@ -32,6 +32,7 @@ import {
   STATUS_COLOR_PALETTE,
 } from './utils/statusColors';
 import { DEFAULT_JOB_TYPES, LEGACY_JOB_TYPES, mergeJobTypes } from './utils/jobTypes';
+import { setSentryUser } from './sentry';
 import {
   useState,
   useEffect,
@@ -306,6 +307,9 @@ export default function useAppLogic() {
       return '';
     return localStorage.getItem('innocean_username') || '';
   });
+  useEffect(() => {
+    setSentryUser(isAuthenticated ? currentUser : '');
+  }, [isAuthenticated, currentUser]);
   const persistedNav = useMemo(
     () => readPersistedNav(currentUser || ''),
     // Restore once per mount from the saved username/session.
